@@ -1,0 +1,28 @@
+{
+  "action": {
+    "approvereleasecompartment": "اعتماد وفتح الخزانة",
+    "beginretrieval": "بدء الاستلام",
+    "cancelrequest": "إلغاء الطلب",
+    "cancel": "إلغاء",
+    "complete": "إنهاء",
+    "confirmbagscollected": "تأكيد استلام الأمتعة",
+    "confirmhandoverstartrental": "تأكيد التسليم وبدء الإيجار",
+    "confirmhandover": "تأكيد التسليم",
+    "confirmpaymentfiretokitchen": "تأكيد الدفع (إرسال للمطبخ)",
+    "confirmpayment": "تأكيد الدفع",
+    "confirmstoragestarttimer": "تأكيد الإيداع (بدء المؤقت)",
+    "markdelivered": "تعليم كمُسلَّمة",
+    "markserved": "تعليم كمُقدَّمة",
+    "pickupthistask": "استلام المهمة",
+    "reassigncompartment": "تغيير الخزانة",
+    "reportaproblem": "الإبلاغ عن مشكلة",
+    "requestthebags": "طلب الأمتعة",
+    "reservecompartment": "حجز خزانة",
+    "returncomplete": "الإرجاع والإنهاء",
+    "returnasset": "إرجاع الأصل",
+    "startexperience": "بدء التجربة",
+    "starttrip": "بدء الرحلة",
+    "verifyboardingstarttrip": "التحقق من الركوب وبدء الرحلة",
+    "confirmsafetystartexperience": "تأكيد السلامة وبدء التجربة"
+  }
+}

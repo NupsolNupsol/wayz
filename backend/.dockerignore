@@ -1,0 +1,9 @@
+# Keep the API image small and reproducible. The build context is the platform root, so this
+# excludes everything the image does not need — including any dist/ built on the host, which
+# is rebuilt inside the image instead.
+**/node_modules
+**/dist
+**/.git
+**/test-artifacts
+**/playwright-report
+*.md

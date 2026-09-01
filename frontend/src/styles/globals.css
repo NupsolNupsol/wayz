@@ -1,0 +1,271 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --brand: 20 184 166;
+  --brand-600: 15 155 140;
+  --brand-700: 13 118 110;
+  --brand-50: 224 247 244;
+  --brand-fg: 255 255 255;
+  --secondary: 15 118 110; --switch: 245 166 35; --success: 22 163 74;
+  --warning: 245 158 11;
+  --danger: 239 68 68;
+  --muted: 100 116 139;
+  --line: 226 232 240;
+  --surface: 255 255 255;
+  --canvas: 247 249 251;
+  --ink: 15 39 64; --ink-900: 11 31 51;
+  --shadow: 15 33 74;
+  --font: system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+
+  --dk-bg: 13 27 46;
+  --dk-surface: 20 34 56;
+  --dk-elevated: 26 45 71;
+  --dk-border: 37 61 94;
+  --dk-muted: 44 74 110;
+  --dk-text: 184 207 232;
+  --dk-textdim: 122 156 199;
+  --dk-texthi: 232 240 251;
+  --sidebar-w: 282px;
+}
+
+:root[data-theme='dark'] {
+  --line: 37 61 94;
+  --canvas: 13 27 46;
+  --surface: 20 34 56;
+  --ink: 184 207 232;
+  --muted: 122 156 199;
+}
+
+* {
+  box-sizing: border-box;
+}
+html,
+body,
+#root {
+  height: 100%;
+}
+body {
+  margin: 0;
+  font-family: var(--font);
+  background: rgb(var(--canvas));
+  color: rgb(var(--ink));
+  -webkit-font-smoothing: antialiased;
+}
+
+:focus-visible {
+  outline: 2px solid rgb(var(--brand));
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    transition-duration: 0.001ms !important;
+  }
+}
+
+/* The sidebar sits on the start edge, which is the right-hand side in Arabic. */
+@media (min-width: 1024px) {
+  .lf-shell-main[data-sw='wide'] {
+    margin-inline-start: 290px;
+  }
+  .lf-shell-main[data-sw='narrow'] {
+    margin-inline-start: 96px;
+  }
+  .lf-app-header[data-sw='wide'] {
+    padding-inline-start: 314px;
+  }
+  .lf-app-header[data-sw='narrow'] {
+    padding-inline-start: 120px;
+  }
+}
+.lf-shell-main,
+.lf-app-header {
+  transition:
+    margin-inline-start 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+    padding-inline-start 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/*
+ * Arabic reads right to left. Tailwind's logical utilities (ms-, me-, ps-, pe-, start-, end-)
+ * flip on their own once `dir` is set; these rules cover the few places that cannot use them:
+ * fixed positioning, and glyphs that point at something.
+ */
+[dir='rtl'] .lf-arrow-flip {
+  transform: scaleX(-1);
+}
+
+[dir='rtl'] input,
+[dir='rtl'] textarea {
+  text-align: right;
+}
+
+/* Numbers, references and money stay left-to-right even inside an Arabic sentence. */
+.lf-ltr-nums {
+  direction: ltr;
+  unicode-bidi: isolate;
+}
+
+@media print {
+  body * {
+    visibility: hidden;
+  }
+  .receipt-print,
+  .receipt-print * {
+    visibility: visible;
+  }
+  .receipt-print {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    border: none !important;
+  }
+  .no-print {
+    display: none !important;
+  }
+}
+
+.scroll-thin::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+.scroll-thin::-webkit-scrollbar-thumb {
+  background: rgba(107, 119, 133, 0.35);
+  border-radius: 8px;
+}
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  scrollbar-width: none;
+}
+
+@layer components {
+  .lf-card {
+    @apply bg-surface rounded-card border border-line shadow-card;
+  }
+  .lf-card-hover {
+    @apply transition-shadow hover:shadow-cardhover;
+  }
+  .lf-label {
+    @apply block text-[11.5px] font-bold uppercase tracking-[0.7px] text-muted mb-1.5;
+  }
+  .lf-input {
+    @apply w-full h-11 rounded-xl2 px-3.5 text-sm bg-canvas border-[1.5px] border-line
+      text-navy outline-none transition-colors
+      placeholder:text-muted/70
+      focus:border-brand focus:bg-surface focus:ring-[3px] focus:ring-brand/15;
+  }
+  :root[data-theme='dark'] .lf-input {
+    @apply bg-dk-elevated border-dk-border text-dk-text focus:bg-dk-muted focus:border-brand;
+  }
+  .lf-select {
+    @apply lf-input appearance-none pr-9 bg-no-repeat;
+  }
+  .lf-btn {
+    @apply inline-flex items-center justify-center gap-2 h-11 px-4 rounded-xl2 text-sm font-semibold
+      transition-all disabled:opacity-50 disabled:cursor-not-allowed select-none min-h-[44px];
+  }
+  .lf-btn-primary {
+    @apply lf-btn bg-brand text-brand-fg hover:bg-brand-hover shadow-[0_2px_8px_rgb(var(--shadow)/0.22)]
+      active:translate-y-px;
+  }
+  .lf-btn-secondary {
+    @apply lf-btn bg-surface text-navy border border-line hover:bg-navy-50;
+  }
+  :root[data-theme='dark'] .lf-btn-secondary {
+    @apply bg-dk-elevated text-dk-text border-dk-border hover:bg-dk-muted;
+  }
+  .lf-btn-ghost {
+    @apply lf-btn bg-transparent text-muted hover:bg-black/5;
+  }
+  .lf-btn-danger {
+    @apply lf-btn bg-danger-strong text-white hover:brightness-95;
+  }
+  .lf-btn-success {
+    @apply lf-btn bg-success text-white hover:brightness-95;
+  }
+  .lf-chip {
+    @apply inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-semibold;
+  }
+  .lf-section-title {
+    @apply text-lg font-bold text-navy dark:text-dk-texthi;
+  }
+}
+
+/*
+ * Switching theme or language repaints the entire page. Without help the browser flashes;
+ * the View Transitions API lets the old and new frames animate over each other instead.
+ */
+@media (prefers-reduced-motion: no-preference) {
+  ::view-transition-old(root),
+  ::view-transition-new(root) {
+    animation: none;
+    mix-blend-mode: normal;
+  }
+
+  /* Theme: the new colours wash out from the button that was pressed. */
+  [data-vt='theme']::view-transition-old(root) {
+    z-index: 1;
+  }
+  [data-vt='theme']::view-transition-new(root) {
+    z-index: 2;
+    animation: lf-theme-wave 0.55s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+  }
+
+  /* Language: the layout is about to mirror, so it fades and drifts into its new direction. */
+  [data-vt='language']::view-transition-old(root) {
+    animation: lf-lang-out 0.28s cubic-bezier(0.4, 0, 1, 1) forwards;
+  }
+  [data-vt='language']::view-transition-new(root) {
+    animation: lf-lang-in 0.42s cubic-bezier(0, 0, 0.2, 1) forwards;
+  }
+}
+
+@keyframes lf-theme-wave {
+  from {
+    clip-path: circle(0 at var(--vt-x, 50%) var(--vt-y, 0));
+  }
+  to {
+    clip-path: circle(var(--vt-r, 150vmax) at var(--vt-x, 50%) var(--vt-y, 0));
+  }
+}
+
+@keyframes lf-lang-out {
+  from {
+    opacity: 1;
+    transform: translateX(0) scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: translateX(calc(var(--lf-lang-shift, 1) * -18px)) scale(0.995);
+  }
+}
+
+@keyframes lf-lang-in {
+  from {
+    opacity: 0;
+    transform: translateX(calc(var(--lf-lang-shift, 1) * 18px)) scale(0.995);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0) scale(1);
+  }
+}
+
+/* Arabic arrives from the other side. */
+[dir='rtl'] {
+  --lf-lang-shift: -1;
+}
+
+/* The pieces that stay put while the page mirrors get their own gentle move. */
+.lf-app-header,
+.lf-shell-main {
+  view-transition-name: none;
+}

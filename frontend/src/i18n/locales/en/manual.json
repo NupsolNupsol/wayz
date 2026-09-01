@@ -1,0 +1,741 @@
+{
+  "page": {
+    "title": "User manual",
+    "subtitle": "How to run the {{app}} {{product}}, screen by screen",
+    "search": "Search the manual…",
+    "contents": "Manual contents",
+    "open": "Open",
+    "willStopYou": "The platform will stop you",
+    "goodToKnow": "Good to know",
+    "noMatch": "Nothing matches “{{query}}”."
+  },
+  "group": {
+    "getting-started": "Getting started",
+    "selling": "Taking a transaction",
+    "during": "While a session runs",
+    "handback": "Giving things back",
+    "cashier": "The till",
+    "delivery": "Deliveries",
+    "exceptions": "When something goes wrong",
+    "records": "Records and end of day",
+    "hr": "HR and costs",
+    "accounting": "Financial reporting"
+  },
+  "section": {
+    "signing-in": {
+      "title": "Signing in and your shift",
+      "summary": "How to log in, what your role can do, and why you open a shift first.",
+      "steps": [
+        {
+          "title": "Sign in",
+          "detail": "Use the email and password issued to you. Your account is tied to one tenant and one station — everything you see and create belongs to that station only."
+        },
+        {
+          "title": "Check your role",
+          "detail": "Agents run the full customer journey for the activities they are assigned to — the sidebar shows those and nothing else. Cashiers work the till, delivery agents carry bags, and managers oversee the whole tenant from a separate workspace, authorising overrides and signing off cash variances."
+        },
+        {
+          "title": "Open your shift",
+          "detail": "Go to Shift and open one before taking cash. The platform accumulates expected cash against the open shift; without one, the reconciliation at the end of the day will not balance."
+        }
+      ],
+      "tips": [
+        "The wifi icon in the header is a connectivity switch used to demonstrate the offline warning. When it is off, transactional buttons are disabled on purpose.",
+        "Use the sun/moon icon for light or dark mode — the choice is remembered on this device."
+      ]
+    },
+    "dashboard": {
+      "title": "Dashboard",
+      "summary": "Your station at a glance: today’s activity, what is running, and what needs attention.",
+      "steps": [
+        {
+          "title": "Read the KPI row",
+          "detail": "Transactions and revenue are today only. Active operations counts every session currently running, including retrievals in progress."
+        },
+        {
+          "title": "Watch the risk tiles",
+          "detail": "Due soon and Overdue are the ones that cost money. Overdue means the grace period has already been spent and a penalty is accruing."
+        },
+        {
+          "title": "Click a tile to act",
+          "detail": "Each stat card navigates to the matching filtered list, so you can go straight from a number to the bookings behind it."
+        }
+      ],
+      "tips": [
+        "The dashboard refreshes itself every 15 seconds — you do not need to reload the page."
+      ]
+    },
+    "pos": {
+      "title": "New Transaction",
+      "summary": "The launcher — pick the engine the customer wants and it opens the right workspace.",
+      "steps": [
+        {
+          "title": "Pick the service",
+          "detail": "Choose the engine (Shop & Drop, Mobility, Lagoon, COTE, Ana’am). Each has its own workspace because each has a genuinely different flow."
+        }
+      ],
+      "tips": [
+        "If you already know the service, go straight to it from the Engines group in the sidebar."
+      ]
+    },
+    "shop-drop": {
+      "title": "Shop & Drop (bag storage)",
+      "summary": "The full six-step storage journey, from customer to a running timer.",
+      "steps": [
+        {
+          "title": "1 · Customer",
+          "detail": "Search by name or phone, or create a new customer. Capture an email if the customer has one — it enables email as a verification channel later."
+        },
+        {
+          "title": "2 · Bags",
+          "detail": "Enter every bag with its type, size and weight. This is not paperwork: the packing algorithm uses these numbers to choose the compartment."
+        },
+        {
+          "title": "3 · Capacity & plan",
+          "detail": "The system ranks compartments by best fit and pre-selects the recommendation. You can override it. Set the storage duration here."
+        },
+        {
+          "title": "4 · Verify & pay",
+          "detail": "Send a one-time code to the customer by WhatsApp or email and have them read it back, then take payment (cash, Mada, or split)."
+        },
+        {
+          "title": "5 · Assign & store",
+          "detail": "Reserve a specific compartment, print the bag labels, then walk to the locker. Scan the compartment and every bag, and press Confirm Storage."
+        },
+        {
+          "title": "6 · Done",
+          "detail": "The timer is now running. Download the invoice for the customer — it carries a QR code to their live tracking page."
+        }
+      ],
+      "rules": [
+        "Payment does NOT start the timer. Only Confirm Storage does.",
+        "Confirm Storage is blocked unless you scanned the reserved compartment and exactly the bags on the booking — a missing bag, someone else’s bag, or the same bag scanned twice will all stop it.",
+        "One physical bag = one barcode. Never reuse a label."
+      ],
+      "tips": [
+        "If the locker is jammed when you get there, use Reassign on the booking — it moves the reservation and records the reason."
+      ]
+    },
+    "engines": {
+      "title": "Mobility, Lagoon, COTE and Ana’am",
+      "summary": "The shared workspace for rentals, activities, dining and experiences.",
+      "steps": [
+        {
+          "title": "1 · Product",
+          "detail": "Pick what the customer is renting or ordering. Deposit and policy badges show on the card before you commit."
+        },
+        {
+          "title": "2 · Details",
+          "detail": "Choose the customer and the duration or quantity."
+        },
+        {
+          "title": "3 · Payment",
+          "detail": "Verify the customer with a code, then take payment. Any refundable deposit is shown as its own line."
+        },
+        {
+          "title": "4 · Fulfil",
+          "detail": "Confirm the step this engine requires — a condition inspection for mobility, a boarding count for Lagoon, a safety checklist for Ana’am. The timer starts here."
+        }
+      ],
+      "rules": [
+        "COTE has no fulfilment step: paying fires the order to the kitchen.",
+        "The confirmation checkbox is a real gate — the backend rejects the transition without it."
+      ],
+      "tips": [
+        "Active sessions for the engine are listed under the wizard so you can jump straight into one."
+      ]
+    },
+    "operations": {
+      "title": "Active Operations",
+      "summary": "Everything currently running across all engines, sorted so the urgent work is first.",
+      "steps": [
+        {
+          "title": "Scan the list",
+          "detail": "Every live session with its remaining time. Sort or filter to find the one you need."
+        },
+        {
+          "title": "Open a row",
+          "detail": "Opens the booking console, where all the actions live."
+        }
+      ],
+      "tips": [
+        "This is the screen to keep open during a busy period."
+      ]
+    },
+    "overtime": {
+      "title": "Overtime, grace period and penalties",
+      "summary": "What the customer pays if they come back late — and when they do not.",
+      "steps": [
+        {
+          "title": "The session is due",
+          "detail": "At the end time you sold, the countdown reaches zero."
+        },
+        {
+          "title": "Grace period — free",
+          "detail": "For the next 5 minutes there is no charge at all. If the customer collects inside this window they pay nothing extra."
+        },
+        {
+          "title": "After grace — a full hour",
+          "detail": "One second past the grace period costs a whole hour, not a pro-rata amount. Each further hour begins a new block."
+        }
+      ],
+      "rules": [
+        "The penalty is calculated by the server and shown identically on your console and on the customer’s tracking page — you cannot be looking at different numbers.",
+        "On completion the penalty is added to the order as a charge line and the order returns to awaiting payment. Collect it before the customer leaves."
+      ],
+      "tips": [
+        "The customer is messaged automatically about 15 minutes before their time is up, explaining the grace period and the full-hour rule.",
+        "A session only flips to OVERTIME once grace is spent — an amber \"due soon\" is still free."
+      ]
+    },
+    "tracking": {
+      "title": "The customer tracking page",
+      "summary": "The public page customers open from their invoice QR — what they can and cannot see.",
+      "steps": [
+        {
+          "title": "How they get there",
+          "detail": "The QR on the invoice, and the link in the reminder message, both open /track/<booking>. No login is required."
+        },
+        {
+          "title": "What it shows",
+          "detail": "A live countdown, the grace-period explanation, their item list, and — if they are late — the penalty accrued so far."
+        }
+      ],
+      "rules": [
+        "The page never shows bag barcodes, the customer’s own contact details, or anything about the station.",
+        "Treat the link as private: anyone the customer forwards it to can watch the session."
+      ]
+    },
+    "booking-detail": {
+      "title": "The booking console",
+      "summary": "One booking, every action the workflow currently allows.",
+      "steps": [
+        {
+          "title": "Read the Actions strip",
+          "detail": "The buttons shown are exactly the transitions valid right now for your role. If a button is absent, that step is not legal from this state."
+        },
+        {
+          "title": "Follow the prompts",
+          "detail": "Some actions open a panel first — scanning to store, or verifying the customer before retrieval."
+        },
+        {
+          "title": "Check the trails",
+          "detail": "Custody shows who held the property and when. Identity checks show how the customer was verified, including any fallback and its reason."
+        }
+      ],
+      "tips": [
+        "Use Labels to reprint bag tags, and Invoice to regenerate the customer’s PDF at any time."
+      ]
+    },
+    "verification": {
+      "title": "Verifying the customer",
+      "summary": "Proving the person at the counter owns the booking before you hand anything over.",
+      "steps": [
+        {
+          "title": "1 · Send a code",
+          "detail": "WhatsApp or email — whichever the customer can receive. The code goes to the contact recorded when the booking was made; you cannot type in a new one."
+        },
+        {
+          "title": "2 · They read it back",
+          "detail": "Enter the four digits they tell you. That is the verification."
+        },
+        {
+          "title": "3 · If no code can reach them",
+          "detail": "Switch to ID document: record the document type, number and holder name, photograph it, and write why the code could not be used."
+        },
+        {
+          "title": "4 · If even that fails",
+          "detail": "Ask your manager. They enter their own credentials on your device; the override is logged under their name, not yours."
+        }
+      ],
+      "rules": [
+        "Retrieval will not start without a valid verification — the button will be refused.",
+        "A verification is good for 30 minutes and is consumed when used. A second handover needs a second check.",
+        "Every fallback requires a written reason and is permanently recorded.",
+        "If the message provider is down you will NOT be shown the code. A code you were just shown proves nothing about the customer."
+      ]
+    },
+    "retrieval": {
+      "title": "Retrieval and handover",
+      "summary": "Scanning bags back out and closing the session cleanly.",
+      "steps": [
+        {
+          "title": "Verify first",
+          "detail": "Begin retrieval prompts for identity if it has not been done."
+        },
+        {
+          "title": "Scan each bag out",
+          "detail": "Scan every bag as you hand it over. A barcode from another booking is rejected outright."
+        },
+        {
+          "title": "Confirm handover",
+          "detail": "Only possible once every bag is out. This releases the compartment and sets the final chargeable end time."
+        }
+      ],
+      "rules": [
+        "A missing bag blocks completion. Report an incident instead of forcing it through.",
+        "Completion releases the compartment back into the pool automatically."
+      ]
+    },
+    "cashier-till": {
+      "title": "Working the till",
+      "summary": "What is owed, what is in the drawer, and what you have taken today.",
+      "steps": [
+        {
+          "title": "1 · Open your till",
+          "detail": "Do this before anything else. A cash payment with no till behind it cannot be reconciled by anyone at the end of the day, so the platform refuses it outright."
+        },
+        {
+          "title": "2 · Record your opening float",
+          "detail": "Go to Cash drawer → Float in and enter what you have been given. The expected balance starts from that number."
+        },
+        {
+          "title": "3 · Work the queue",
+          "detail": "Awaiting payment lists everything an agent has registered but nobody has paid for, oldest first."
+        },
+        {
+          "title": "4 · Count and close",
+          "detail": "At the end of your shift go to Shift & count. You enter what you actually counted without being shown what was expected — that is what makes it a blind count."
+        }
+      ],
+      "rules": [
+        "Cash is credited to YOUR till, not to whoever else is working the counter. Your count is yours alone.",
+        "A till awaiting your manager cannot take more cash until the variance is signed off.",
+        "The expected figure is always shown as its parts — float, cash taken, refunds, pay-outs, banking. If the parts and the total ever disagree, report it and do not adjust your count."
+      ],
+      "tips": [
+        "Card takings never touch the drawer — they are settled by the processor and are shown separately.",
+        "Paying for a booking confirms it; it does NOT start the storage timer. That begins when the agent scans the bags into a compartment."
+      ]
+    },
+    "cashier-queue": {
+      "title": "Taking a payment",
+      "summary": "The queue of bookings waiting for money, and how to settle one.",
+      "steps": [
+        {
+          "title": "Pick the customer",
+          "detail": "The list is oldest first. Anything waiting more than ten minutes is flagged."
+        },
+        {
+          "title": "Check the breakdown",
+          "detail": "The dialog shows the price, the VAT and any refundable deposit before you take anything."
+        },
+        {
+          "title": "Split if you need to",
+          "detail": "Cash and Mada can be mixed on one payment; the confirm button unlocks only when the split covers the total exactly."
+        },
+        {
+          "title": "Hand over the receipt",
+          "detail": "One is issued automatically as soon as the payment is taken."
+        }
+      ],
+      "rules": [
+        "A booking already paid for leaves the queue by itself — you cannot take money twice.",
+        "You only ever see bookings from your own station."
+      ]
+    },
+    "cashier-transactions": {
+      "title": "Transactions and refunds",
+      "summary": "Every payment taken at this counter — searchable, and where refunds are issued.",
+      "steps": [
+        {
+          "title": "Find it",
+          "detail": "Sort or filter by method, type, status or date. The search box matches the reference, the customer and the receipt number."
+        },
+        {
+          "title": "Refund",
+          "detail": "Open a captured payment and enter the amount plus a reason. Both are required."
+        }
+      ],
+      "rules": [
+        "A refund is recorded as a NEW transaction. The original is never edited — the ledger keeps what actually happened.",
+        "You cannot refund more than is left on a payment after any earlier refunds.",
+        "A cash refund comes out of your drawer, so your till must be open and hold enough to cover it.",
+        "Every refund carries your name and your reason into the audit trail."
+      ]
+    },
+    "cashier-drawer": {
+      "title": "The cash drawer",
+      "summary": "Float in, money paid out, money banked — and the arithmetic behind the expected balance.",
+      "steps": [
+        {
+          "title": "Float in",
+          "detail": "Cash you put into the drawer, normally at the start of a shift."
+        },
+        {
+          "title": "Paid out",
+          "detail": "A small expense settled from the drawer. Keep the invoice number in the reference field."
+        },
+        {
+          "title": "Banked",
+          "detail": "Money taken out to the safe when the drawer is holding more than it should."
+        }
+      ],
+      "rules": [
+        "Every movement needs a reason, and none of them can be edited or deleted afterwards.",
+        "You cannot take out more than the drawer is expected to hold.",
+        "Made a mistake? Record the opposite movement with a reason. The trail keeps both, which is what lets someone explain a variance later."
+      ]
+    },
+    "deliveries": {
+      "title": "Sending bags to a customer",
+      "summary": "Raising a courier job from the kiosk, and releasing the bags when the courier arrives.",
+      "steps": [
+        {
+          "title": "1 · Raise the request",
+          "detail": "Open the booking and choose \"Send to customer\", or offer it on the last step of the Shop & Drop wizard. You are asked HOW the customer asked, because that decides what proof is needed."
+        },
+        {
+          "title": "2 · If they phoned it in, verify them",
+          "detail": "Pick \"They called or messaged\" and a code goes to the phone or email recorded on the booking. Only after that can the delivery be created. The proof is spent on this request and cannot open a second one."
+        },
+        {
+          "title": "3 · Wait for a courier to claim it",
+          "detail": "The request is offered to every courier working this site. The first to claim it owns it; the others stop seeing it."
+        },
+        {
+          "title": "4 · A courier arrives at your desk",
+          "detail": "They appear at the top of Deliveries under \"Waiting at your desk\". Open it and read the assigned courier’s name."
+        },
+        {
+          "title": "5 · Check them, then release",
+          "detail": "Confirm the person in front of you IS the named courier, tick the box, then type the compartment’s unlock code. They get it on their phone for 15 minutes."
+        }
+      ],
+      "rules": [
+        "Only bags that are actually in the locker can be sent — a booking that is not ACTIVE or in OVERTIME is refused.",
+        "One open delivery per booking. Close or cancel the first before raising another.",
+        "A request the customer made by phone cannot be created without a fresh identity check.",
+        "You are the only role that can release the compartment. A courier can never approve their own collection.",
+        "If the name on screen is not the person at your desk, close the dialog and tell your manager."
+      ],
+      "tips": [
+        "Ask while the customer is still at the desk — arranging it later means calling them back for a code.",
+        "The compartment code is read off the kiosk by you. It is never derived from the compartment number, so knowing the locker is not enough to open it."
+      ]
+    },
+    "courier-board": {
+      "title": "Working as a delivery agent",
+      "summary": "Claiming a task, collecting the bags, and getting them to the customer.",
+      "steps": [
+        {
+          "title": "1 · Pick up a task",
+          "detail": "Open jobs at your site are listed on the board. Tap \"Pick up this task\" — it is a race, so occasionally another courier gets there first and you will be told so."
+        },
+        {
+          "title": "2 · Go to the kiosk",
+          "detail": "Tap \"Request the bags\". The agent at that kiosk is notified that you are waiting."
+        },
+        {
+          "title": "3 · Show who you are",
+          "detail": "The agent checks your ID against the name on their screen. When they approve, a compartment code appears on your task — it lasts 15 minutes."
+        },
+        {
+          "title": "4 · Scan every bag",
+          "detail": "Open the compartment and scan each bag as you take it out. You will not see the barcodes on your phone — that is deliberate, so a scan means you physically had the bag."
+        },
+        {
+          "title": "5 · Deliver and close",
+          "detail": "Take them to the address on the task and mark it delivered. If you cannot complete it, report a problem and say what happened."
+        }
+      ],
+      "rules": [
+        "You can only act on a task assigned to you.",
+        "The scan must match the customer’s bags exactly — a missing bag, an extra bag or a duplicate scan is refused.",
+        "If the code expires before you collect, ask the agent to approve again.",
+        "Once you are holding the bags the task can only end as delivered or failed — it cannot be cancelled."
+      ],
+      "tips": [
+        "The board refreshes itself. Leave it open while you work.",
+        "Tap the phone number on a task to call the customer from the app.",
+        "On a demo server each bag row shows a Scan button (and a \"Scan all bags\" shortcut) standing in for a handheld scanner. On a real deployment those buttons are absent and you scan the physical label."
+      ]
+    },
+    "incidents": {
+      "title": "Incidents",
+      "summary": "Logging exceptions and moving them through to resolution.",
+      "steps": [
+        {
+          "title": "Log it",
+          "detail": "Choose the service it happened on, then the category. The list adapts — a scooter offers faults and damage, storage offers missing or wrong bags."
+        },
+        {
+          "title": "Describe it plainly",
+          "detail": "Write what you saw. This is what your manager reads later."
+        },
+        {
+          "title": "Advance the status",
+          "detail": "Reported → Investigating → Awaiting approval → Resolved. Use the arrow button on the row."
+        }
+      ],
+      "tips": [
+        "Reporting from inside a booking links the incident to it automatically, and picks the right category list for that engine."
+      ]
+    },
+    "assets": {
+      "title": "Assets",
+      "summary": "The physical estate — one row per kind of asset, click through to the individual assets behind it.",
+      "steps": [
+        {
+          "title": "Read the list",
+          "detail": "One row per kind: how many exist, how many are in use, free and out of service, and what the counter charges for one. The three buttons above narrow it to Shop & Drop, Mobility or Lagoon."
+        },
+        {
+          "title": "Create a kind",
+          "detail": "New kind asks for the shape, a name, an activity, a price and its capacity — and creates the product that sells it in the same step. Ask for a number of first assets and that many are created straight away, each with its own identifier."
+        },
+        {
+          "title": "Open a kind",
+          "detail": "Clicking a row lists every individual asset with its status, station, price and QR code. From here you add more, suspend one, put it back, rename it or delete it."
+        },
+        {
+          "title": "Price it",
+          "detail": "Price all moves the whole kind. An asset can also be priced apart from its kind — tick the box on its edit form. Both are written to the audit trail."
+        },
+        {
+          "title": "Print the code",
+          "detail": "Every asset carries a QR code. Download or print it, stick it on the asset, and scanning it opens that asset's page."
+        }
+      ],
+      "rules": [
+        "An asset holding a live booking cannot be taken out of service — finish or reassign the booking first.",
+        "Statuses the booking engine owns (Reserved, Occupied) cannot be set by hand.",
+        "A kind can only be deleted once no assets of it are left."
+      ],
+      "tips": [
+        "Available is free; Reserved is held for a booking being walked to; Occupied has property in it; Out of service and Maintenance are yours to set.",
+        "If availability looks wrong, look for a session that was never completed — it holds its asset until it is. Force free releases it, and says so in the audit trail.",
+        "Managers, the tenant admin and HR all open the same page with the same rights. Agents can read it and scan stickers."
+      ]
+    },
+    "customers": {
+      "title": "Customers",
+      "summary": "The customer directory and their history.",
+      "steps": [
+        {
+          "title": "Search",
+          "detail": "By name or phone. Open a customer to see their bookings."
+        },
+        {
+          "title": "Keep contacts current",
+          "detail": "A phone and an email are what let you verify someone later. An email is optional but worth capturing."
+        }
+      ]
+    },
+    "bookings": {
+      "title": "Bookings",
+      "summary": "Every booking at this station, filterable by status and engine.",
+      "steps": [
+        {
+          "title": "Filter",
+          "detail": "Narrow by status or engine, sort by any column."
+        },
+        {
+          "title": "Open one",
+          "detail": "Opens the booking console with its available actions."
+        }
+      ]
+    },
+    "shift": {
+      "title": "Shift and cash reconciliation",
+      "summary": "Opening, blind-counting and closing your till.",
+      "steps": [
+        {
+          "title": "Open",
+          "detail": "Start of your session. Cash you take is accumulated against it."
+        },
+        {
+          "title": "Blind count",
+          "detail": "Count the drawer and enter the figure WITHOUT seeing the expected amount. That is the point — it keeps the count honest."
+        },
+        {
+          "title": "Resolve a variance",
+          "detail": "If the count differs, a note is required. Your manager approves it; you cannot sign off your own variance."
+        }
+      ]
+    },
+    "profile": {
+      "title": "Profile",
+      "summary": "Your account details and the active brand theme."
+    },
+    "hr-costs": {
+      "title": "Recording what the business spends",
+      "summary": "Every supplier invoice, repair, refuel and rent — the cost side of the tax figures.",
+      "steps": [
+        {
+          "title": "1 · Record a cost",
+          "detail": "Enter the amount exactly as it appears on the invoice, VAT included. The platform splits it into the amount before VAT and the VAT itself, at your tenant rate."
+        },
+        {
+          "title": "2 · Pick the category",
+          "detail": "Supplier, maintenance, repair, fuel and oil, venue rent, accommodation rent, payroll, administrative, other. The categories are what the accountant groups by."
+        },
+        {
+          "title": "3 · Tie it to an activity, if it belongs to one",
+          "detail": "A boat repair belongs to the Lagoon; scooter batteries belong to Scooters. Shared costs such as staff accommodation are left without an activity and reported separately."
+        },
+        {
+          "title": "4 · Tie it to a season",
+          "detail": "Seasons run about six months. A cost attached to a season is counted in that season's totals."
+        }
+      ],
+      "rules": [
+        "Payroll carries no VAT. Wages are not a taxable purchase, so the whole amount is the base.",
+        "A cost is never deleted — it is voided with a reason, and the entry stays for the audit trail.",
+        "A voided cost stops counting towards VAT and Zakat from that moment.",
+        "Only HR and the tenant admin can record a cost. The accountant reads the figures and never writes them."
+      ],
+      "tips": [
+        "A damaged boat or scooter becomes a cost when it is repaired — log the repair invoice, not the damage.",
+        "The accountant's VAT due drops as soon as you record a purchase, because purchases reduce the taxable base."
+      ]
+    },
+    "hr-seasons": {
+      "title": "Seasons and employee charges",
+      "summary": "Every season must carry its employee charges, so payroll lands in the cost base.",
+      "steps": [
+        {
+          "title": "1 · Create the season",
+          "detail": "Name it and set the start. The end defaults to six months later. Creating one opens it straight away, because the next thing to do is charge its employees."
+        },
+        {
+          "title": "2 · Open a season",
+          "detail": "Click any season card. Inside you get who is charged and who is not, every employee with their monthly cost and season total, the operating costs booked to that season, and where the money went by category."
+        },
+        {
+          "title": "3 · Charge the employees",
+          "detail": "The button says how many are left to charge. The dialog names them, groups them by role, shows who is already charged and will be skipped, and puts the exact total on the button before you commit."
+        }
+      ],
+      "rules": [
+        "Charging a season twice does not double the cost — anyone already charged is skipped, and the dialog says so before you press anything.",
+        "A role left at a zero monthly cost is not charged; those people stay on the uncharged list rather than disappearing quietly.",
+        "A season with no employee charges is flagged in amber. The client requires them on every project, every six months."
+      ]
+    },
+    "accounting-dashboard": {
+      "title": "VAT, Zakat and the activity figures",
+      "summary": "The read-only financial position: what is due to ZATCA, and what each activity earned.",
+      "steps": [
+        {
+          "title": "1 · Set the period",
+          "detail": "VAT is filed quarterly, so pick the quarter. Every figure on the page follows the dates."
+        },
+        {
+          "title": "2 · Read the VAT return",
+          "detail": "Net taxable base = sales before VAT − returns before VAT − purchases and expenses before VAT. VAT due is that base at the tenant rate (15%). A negative base means VAT is refundable, not payable."
+        },
+        {
+          "title": "3 · Read the Zakat position",
+          "detail": "Zakat is annual, at 2.5% of net profit, and is only due when the year is in profit. Net profit is revenue after returns, less the costs HR recorded, less the VAT already paid."
+        },
+        {
+          "title": "4 · Export",
+          "detail": "Phase one gives one activity in full detail — every transaction with its own totals. Phase two gives one consolidated workbook totalling each activity side by side."
+        }
+      ],
+      "rules": [
+        "The accountant is strictly read-only. No booking, no payment, no refund, no staff change.",
+        "All amounts on the platform are stored VAT-inclusive and split into base and VAT at the point of sale — the report never re-derives them.",
+        "The tax rate lives on the tenant record, not in the code, so it can be changed without a release.",
+        "The exported files carry the Arabic column headings ZATCA expects. The screen itself is in English."
+      ],
+      "tips": [
+        "Filter by activity to answer \"how did the Lagoon do this quarter\" without touching the other two.",
+        "The transaction detail table is the same data as the export — filter it before exporting to see what you will get."
+      ]
+    },
+    "accounting-commissions": {
+      "title": "Card commissions",
+      "summary": "What the acquiring bank withholds on each card scheme, and how it is booked.",
+      "steps": [
+        {
+          "title": "1 · Check the contract rates",
+          "detail": "The rates come from the contract with the bank: Mada and SPAN at 0.75%, Visa and Mastercard at 2.60%, GCC cards at 1.75%. They start at those values and can be changed here."
+        },
+        {
+          "title": "2 · Change a rate when the contract changes",
+          "detail": "Edit the percentage and save. It applies to everything imported afterwards. Tick the re-price box to also correct transactions that have not settled yet."
+        },
+        {
+          "title": "3 · Read the scheme breakdown",
+          "detail": "Volume, commission and net settlement per scheme over the chosen dates, with the blended effective rate."
+        }
+      ],
+      "rules": [
+        "The commission is an expense, not a tax. It is posted as a bank commission expense — one entry per day per scheme — and reduces the taxable base and the net profit the Zakat is calculated on.",
+        "It never appears as VAT collected or VAT paid.",
+        "Money that has already settled is never re-priced. A rate correction cannot rewrite a bank statement.",
+        "A rate above 20% is refused as a typing mistake."
+      ]
+    },
+    "accounting-reconciliation": {
+      "title": "Reconciliation",
+      "summary": "The terminal against the platform — and only what does not line up.",
+      "steps": [
+        {
+          "title": "1 · Read the four counts",
+          "detail": "Matched, amount differs, card differs, only at the terminal, only in the platform. A handful of exceptions is normal; the point is that you can see them."
+        },
+        {
+          "title": "2 · Open the exception",
+          "detail": "Every row leads with its reference, and the reference is a link. It opens the card transaction or the platform payment — whichever side the record lives on — with both accounts side by side and a plain verdict at the top."
+        },
+        {
+          "title": "3 · Chase it",
+          "detail": "\"Only at the terminal\" means money was taken on the card machine and never rung up — the one worth chasing hardest. \"Card differs\" means the agent picked the wrong card at the counter; the money is right, the record is not."
+        }
+      ],
+      "rules": [
+        "Cash is excluded from the comparison entirely — it never went near a card machine.",
+        "Refunds are excluded from the platform side; a refund is its own terminal event, not a second copy of the sale.",
+        "Only the exceptions are listed. The line above the table says how many were compared."
+      ]
+    },
+    "accounting-payments": {
+      "title": "Payments",
+      "summary": "What the platform recorded at the counter — the other half of the reconciliation.",
+      "steps": [
+        {
+          "title": "Filter",
+          "detail": "By period, by cash or card, and by any column — customer, card scheme, type, activity."
+        },
+        {
+          "title": "Open one",
+          "detail": "The reference opens the payment with its VAT split, who took it, and the card transaction it was matched to, if any."
+        }
+      ],
+      "rules": [
+        "A card sale with nothing at the terminal is flagged in the last column — that is the same exception the reconciliation counts.",
+        "Cash shows n/a there, because no terminal was involved."
+      ]
+    },
+    "accounting-transactions": {
+      "title": "Card transactions",
+      "summary": "Every card payment as the terminal saw it, matched against what the platform recorded.",
+      "steps": [
+        {
+          "title": "1 · Bring the rows in",
+          "detail": "Import a feed. The platform does not care where the rows come from — read straight off the payment terminal, or a nightly extract from the acquirer. Both arrive through the same door."
+        },
+        {
+          "title": "2 · Let it price them",
+          "detail": "Each row is priced against the scheme rate on arrival: gross, commission, net settled, and the VAT split. The rate used is stored on the transaction, so history stays true even when the contract changes."
+        },
+        {
+          "title": "3 · Reconcile",
+          "detail": "The reconciliation compares the terminal against the platform payments for the same period and lists only what does not line up: amounts that differ, rows the platform never saw, and payments the terminal never reported."
+        }
+      ],
+      "rules": [
+        "Only externalRef, scheme and grossAmount are required. Everything else is optional.",
+        "A reference already imported is skipped, so a feed can be replayed without creating duplicates.",
+        "Scheme names are normalised — \"MASTER CARD\", \"Mastercard\" and \"MC\" all land on the same scheme.",
+        "A row with an unknown scheme, a non-positive amount or a broken date is rejected and reported back, and the rest of the batch still lands."
+      ],
+      "tips": [
+        "A handful of exceptions is normal — a terminal receipt that never reached the platform, or a refund that crossed a day boundary. The point is that you can see them."
+      ]
+    }
+  }
+}

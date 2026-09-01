@@ -1,0 +1,76 @@
+services:
+  mongo:
+    image: mongo:7
+    container_name: lockerflow-mongo
+    restart: unless-stopped
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo_data:/data/db
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    container_name: lockerflow-redis
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:6379:6379"
+    command: redis-server --appendonly yes
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: lockerflow-api
+    restart: unless-stopped
+    depends_on:
+      mongo:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    environment:
+      NODE_ENV: production
+      PORT: 4000
+      CORS_ORIGIN: "http://localhost:5175,http://localhost:8081"
+      MONGODB_URI: mongodb://mongo:27017/lockerflow
+      JWT_SECRET: dev-lockerflow-secret-change-me
+      JWT_EXPIRES_IN: 12h
+      QUEUE_ENABLED: "true"
+      REDIS_URL: redis://redis:6379
+      AUTO_SEED: "false"
+      VONAGE_API_KEY: ${VONAGE_API_KEY:-}
+      VONAGE_API_SECRET: ${VONAGE_API_SECRET:-}
+      VONAGE_WHATSAPP_NUMBER: ${VONAGE_WHATSAPP_NUMBER:-}
+      MAIL_HOST: ${MAIL_HOST:-}
+      MAIL_PORT: ${MAIL_PORT:-465}
+      MAIL_SECURE: ${MAIL_SECURE:-true}
+      MAIL_DOMAIN: ${MAIL_DOMAIN:-}
+      SENDER_EMAIL: ${SENDER_EMAIL:-}
+      SENDER_PASSWORD: ${SENDER_PASSWORD:-}
+      MAIL_FROM_NAME: ${MAIL_FROM_NAME:-WAYZ}
+      MAIL_FALLBACK_HOST: ${MAIL_FALLBACK_HOST:-}
+      MAIL_FALLBACK_PORT: ${MAIL_FALLBACK_PORT:-465}
+      MAIL_FALLBACK_SECURE: ${MAIL_FALLBACK_SECURE:-true}
+      MAIL_FALLBACK_USER: ${MAIL_FALLBACK_USER:-}
+      MAIL_FALLBACK_PASSWORD: ${MAIL_FALLBACK_PASSWORD:-}
+      PUBLIC_APP_URL: ${PUBLIC_APP_URL:-http://localhost:5175}
+      OTP_TEST_PEEK: "true"
+      INVITE_TEST_PEEK: "true"
+      DEMO_SCANNER: "true"
+    ports:
+      - "4000:4000"
+
+volumes:
+  mongo_data:
+  redis_data:

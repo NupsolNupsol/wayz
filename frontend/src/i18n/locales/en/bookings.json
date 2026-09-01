@@ -1,0 +1,96 @@
+{
+  "page": {
+    "booking": "Booking",
+    "notFound": "Booking not found",
+    "actions": "Actions",
+    "session": "Operational session",
+    "remaining": "Remaining:",
+    "timerNotStarted": "Timer not started — awaiting a fulfilment action (never payment).",
+    "noActions": "No actions available in this state.",
+    "verifyLocked": "Retrieval is locked until the customer's identity is verified.",
+    "verifyOpen": "Verify customer",
+    "verified": "Identity verified — retrieval authorised.",
+    "invoice": "Invoice",
+    "labels": "Labels",
+    "sendToCustomer": "Send to customer",
+    "refund": "Refund",
+    "incident": "Incident",
+    "openDeliveries": "Open deliveries",
+    "deliveryLine": "Delivery {{id}} · {{status}}",
+    "goingTo": "Going to {{address}}",
+    "refunded": "Refunded",
+    "stillRefundable": "{{amount}} of this booking is still refundable.",
+    "bags": "Bags ({{count}})",
+    "manualBarcode": "Manual barcode (scan out / test wrong-bag rejection)",
+    "enterBarcode": "Enter/scan barcode",
+    "scan": "Scan",
+    "scannedOut": "Scanned out",
+    "scanOut": "Scan out",
+    "bagLine": "Bag {{index}} · {{description}}",
+    "packingPlan": "Packing plan",
+    "compartmentsFor": "× compartment for {{count}} bag(s)",
+    "customer": "Customer",
+    "viewProfile": "View customer profile →",
+    "identityChecks": "Identity checks",
+    "custody": "Custody timeline",
+    "noCustody": "No custody events yet."
+  },
+  "meta": {
+    "kind": "Kind",
+    "unit": "Unit",
+    "started": "Started",
+    "expectedEnd": "Expected end"
+  },
+  "labelsModal": {
+    "title": "Bag labels",
+    "subtitle": "One unique barcode per physical bag",
+    "print": "Print"
+  },
+  "store": {
+    "title": "Scan in & confirm storage",
+    "subtitle": "Scan the compartment and every bag — the timer starts here, never at payment",
+    "noReservation": "No compartment is reserved for this booking yet."
+  },
+  "reassign": {
+    "title": "Reassign compartment",
+    "subtitle": "Requires a reason — logged to the audit trail",
+    "unit": "Replacement unit",
+    "choose": "Choose a unit…",
+    "reason": "Reason",
+    "reasonPlaceholder": "e.g. Locker jammed on arrival",
+    "submit": "Reassign"
+  },
+  "refundModal": {
+    "title": "Refund this booking",
+    "subtitle": "{{paid}} taken · {{refundable}} refundable",
+    "amount": "Amount",
+    "amountHint": "Defaults to everything the customer paid. Lower it for a partial refund.",
+    "tooMuch": "Only {{amount}} is left to refund on this booking.",
+    "reason": "Reason",
+    "reasonHint": "This is recorded against the booking and in the tenant audit trail.",
+    "reasonPlaceholder": "e.g. Customer cancelled before collecting",
+    "note": "The money goes back the way it came in — cash leaves the till, a card refund follows the same scheme — and the accountant sees it as a refund in the VAT return.",
+    "submit": "Refund {{amount}}"
+  },
+  "incidentModal": {
+    "title": "Report incident",
+    "type": "Type",
+    "typeHint": "Categories that apply to {{engine}}",
+    "description": "Description",
+    "submit": "Report"
+  },
+  "toast": {
+    "blocked": "Action blocked",
+    "scanned": "Bag scanned out",
+    "scanRejected": "Scan rejected",
+    "reassigned": "Compartment reassigned",
+    "reassignFailed": "Reassign failed",
+    "refundDone": "Refund recorded",
+    "refundDetail": "{{amount}} returned in total on {{ref}}. It is on the booking and in the audit trail.",
+    "refundRefused": "Refund refused",
+    "incidentReported": "Incident reported",
+    "stored": "Storage confirmed",
+    "storedDetail": "Timer started now.",
+    "storeFailed": "Cannot confirm storage"
+  }
+}

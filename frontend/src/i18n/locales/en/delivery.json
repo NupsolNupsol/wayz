@@ -1,0 +1,145 @@
+{
+  "board": {
+    "title": "Delivery board",
+    "subtitle": "Bags to collect from the kiosks and take to customers",
+    "loading": "Loading your work…",
+    "openOnSite": "Open on site",
+    "myTasks": "My tasks",
+    "deliveredToday": "Delivered today",
+    "availableAtSite": "Available at this site",
+    "nothingInHand": "Nothing in hand",
+    "nothingInHandMessage": "Pick up a task alongside to get started.",
+    "noOpenRequests": "No open requests",
+    "noOpenRequestsMessage": "New requests from the kiosks appear here automatically.",
+    "pickUp": "Pick up this task",
+    "continue": "Continue",
+    "taskIsYours": "Task is yours",
+    "headToKiosk": "Head to the kiosk and request the bags.",
+    "completedTitle": "Completed",
+    "completedSubtitle": "Everything you have closed, newest first",
+    "closed": "Closed",
+    "delivered": "Delivered",
+    "failed": "Failed",
+    "inTransit": "in transit"
+  },
+  "task": {
+    "title": "Delivery",
+    "board": "Board",
+    "nextStep": "Next step",
+    "notMine": "Another courier has already picked this task up. You can see where it stands, but only they can move it.",
+    "openToEveryone": "This task is open to every courier on this site. Claim it and it becomes yours alone.",
+    "pickUp": "Pick up this task",
+    "goTo": "Go to",
+    "agentWillCheck": "The agent will check this task is assigned to you before opening anything.",
+    "requestBags": "Request the bags",
+    "waitingForAgent": "Waiting for the kiosk agent",
+    "showThemYourName": "Show them your name. Once they confirm you are the assigned courier, the compartment code appears here.",
+    "expiresIn": "Expires in",
+    "expired": "Expired. Ask the agent at the kiosk to approve again — they will give you a new code.",
+    "askAgain": "Ask the agent again",
+    "scan": "Scan",
+    "scanAll": "Scan all bags",
+    "scanPlaceholder": "Scan or type a bag barcode",
+    "demoScanner": "Demo mode — these buttons stand in for a handheld scanner.",
+    "add": "Add",
+    "confirmCollected": "Confirm bags collected",
+    "alreadyScanned": "Already scanned",
+    "scanOnce": "Scan each bag once.",
+    "carrying": "You are carrying {{count}} bag(s). Hand them to the customer at the address above, then close the task.",
+    "markDelivered": "Mark delivered",
+    "reportProblem": "Report a problem",
+    "cannotDo": "Cannot do this task",
+    "whatHappened": "What happened?",
+    "failPlaceholder": "Customer not at the address, refused the delivery, wrong address…",
+    "auditNote": "This is written to the audit trail and shown to the kiosk.",
+    "submit": "Submit",
+    "activity": "Activity",
+    "couldNotContinue": "Could not continue",
+    "callCustomer": "Call the customer"
+  },
+  "kiosk": {
+    "title": "Deliveries",
+    "subtitle": "Courier jobs raised at this station",
+    "atYourDesk": "At your desk",
+    "openJobs": "Open jobs",
+    "inTransit": "In transit",
+    "empty": "No deliveries yet",
+    "emptyMessage": "Open a delivery from a stored booking and it appears here.",
+    "waitingAtDesk": "Waiting at your desk",
+    "checkCourier": "Check courier & release",
+    "allDeliveries": "All deliveries from this station",
+    "release": "Release",
+    "releaseTitle": "Release bags to a courier",
+    "checkPerson": "Check the person in front of you before anything opens.",
+    "assignedTo": "This delivery is assigned to",
+    "noCourier": "No courier is assigned — do not release anything.",
+    "codeHint": "Read it off the kiosk. The courier sees it for 15 minutes, then it dies.",
+    "codeFormat": "4–12 letters or digits",
+    "approveRelease": "Approve & release",
+    "released": "Compartment released",
+    "notApproved": "Not approved",
+    "byPhone": "By phone",
+    "atStorage": "At the desk",
+    "registeredAgo": "registered {{ago}} ago"
+  },
+  "request": {
+    "title": "Send these bags to the customer",
+    "deliverTo": "Deliver to",
+    "addressPlaceholder": "Hotel, room number, gate — anything the courier can find",
+    "addressHint": "Where the courier is taking the bags.",
+    "notes": "Notes for the courier",
+    "notesHint": "Access instructions, who to ask for, timing.",
+    "contact": "Contact on arrival",
+    "howAsked": "How did they ask?",
+    "verified": "Customer verified",
+    "proofSpent": "The proof is recorded on the booking and will be spent on this delivery.",
+    "verifyFirst": "Verify the customer first",
+    "codeGoesTo": "A code goes to the phone or email recorded on the booking — never to a number read out on the call.",
+    "verifyIdentity": "Verify identity",
+    "verifyToEnable": "Verify the customer to enable the button",
+    "create": "Create delivery",
+    "couldNotCreate": "Could not create the delivery"
+  },
+  "state": {
+    "REQUESTED": {
+      "label": "Open",
+      "hint": "Waiting for a courier to pick it up"
+    },
+    "ASSIGNED": {
+      "label": "Assigned",
+      "hint": "Go to the kiosk and request the bags"
+    },
+    "RELEASE_REQUESTED": {
+      "label": "Awaiting the agent",
+      "hint": "The kiosk agent is confirming who you are"
+    },
+    "RELEASE_APPROVED": {
+      "label": "Compartment open",
+      "hint": "Open the compartment and scan every bag"
+    },
+    "PICKED_UP": {
+      "label": "In transit",
+      "hint": "Deliver to the address on the job"
+    },
+    "DELIVERED": {
+      "label": "Delivered",
+      "hint": "Handed to the customer"
+    },
+    "CANCELLED": {
+      "label": "Cancelled",
+      "hint": "Called off before the bags moved"
+    },
+    "FAILED": {
+      "label": "Failed",
+      "hint": "Could not be completed"
+    }
+  },
+  "step": {
+    "REQUESTED": "Open",
+    "ASSIGNED": "Claimed",
+    "RELEASE_REQUESTED": "At the kiosk",
+    "RELEASE_APPROVED": "Compartment released",
+    "PICKED_UP": "Collected",
+    "DELIVERED": "Delivered"
+  }
+}

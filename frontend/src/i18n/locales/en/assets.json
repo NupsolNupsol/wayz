@@ -1,0 +1,152 @@
+{
+  "title": "Assets",
+  "subtitle": "Every physical asset the tenant owns — one row per kind, click through to the individual assets.",
+  "kind": {
+    "COMPARTMENT": "Compartment",
+    "VEHICLE": "Vehicle",
+    "BOAT": "Boat",
+    "TABLE": "Table",
+    "ANIMAL": "Animal"
+  },
+  "status": {
+    "AVAILABLE": "Available",
+    "OUT_OF_SERVICE": "Out of service",
+    "MAINTENANCE": "Maintenance",
+    "BLOCKED": "Blocked"
+  },
+  "table": {
+    "total": "Total",
+    "inUse": "In use",
+    "free": "Free",
+    "down": "Down",
+    "utilisation": "Utilisation",
+    "price": "Price",
+    "ownPrice": "Own price",
+    "qr": "QR",
+    "noStation": "Not provisioned anywhere yet",
+    "stationsMore": "{{first}} +{{count}}"
+  },
+  "action": {
+    "add": "Add assets",
+    "price": "Price",
+    "priceAll": "Price all",
+    "suspend": "Suspend",
+    "restore": "Restore",
+    "forceFree": "Force free",
+    "newKind": "New kind",
+    "editKind": "Rename",
+    "deleteKind": "Delete kind"
+  },
+  "empty": {
+    "title": "No asset kinds yet",
+    "message": "Asset kinds come from the catalogue. Create one under Pricing, then add assets here.",
+    "noUnits": "No assets of this kind yet",
+    "noUnitsHint": "Add the first one and it becomes bookable straight away."
+  },
+  "add": {
+    "title": "Add {{name}}",
+    "subtitle": "{{count}} already in the estate",
+    "submit": "Add {{count}}",
+    "howMany": "How many",
+    "identifierNote": "Each one gets its own identifier and QR code.",
+    "kioskHint": "Only compartments belong to a kiosk.",
+    "noKiosk": "No kiosk"
+  },
+  "edit": {
+    "title": "{{identifier}}",
+    "subtitle": "Change this one asset without touching the rest of its kind.",
+    "note": "Note",
+    "statusLocked": "Held by a live booking ({{status}}) — finish or reassign it first.",
+    "ownPrice": "Price this one apart from its kind (kind price: {{price}})",
+    "unitPrice": "Price for this asset"
+  },
+  "remove": {
+    "title": "Remove {{identifier}}",
+    "subtitle": "This takes the asset out of the estate.",
+    "body": "It disappears from availability at once. Past bookings keep their history."
+  },
+  "price": {
+    "title": "Price {{name}}",
+    "subtitle": "Applies to all {{count}} assets of this kind",
+    "base": "Price",
+    "baseHint": "What the counter charges for one of these.",
+    "deposit": "Refundable deposit",
+    "overtime": "Overtime rate per hour",
+    "overtimeHint": "Leave at zero when overtime does not apply.",
+    "clearOverrides": "Also reset every asset that carries its own price",
+    "submit": "Save price",
+    "noProduct": "This kind is not sold by any product yet, so it has no price. Create a product for it under Pricing first.",
+    "noProductShort": "No product"
+  },
+  "qr": {
+    "title": "QR code — {{identifier}}",
+    "subtitle": "Print it, stick it on the asset. Scanning opens this asset.",
+    "downloaded": "{{identifier}} QR saved",
+    "couldNotDownload": "Could not save the QR code"
+  },
+  "unit": {
+    "title": "Asset",
+    "state": "This asset",
+    "booking": "Current booking",
+    "noBooking": "Not in use right now.",
+    "qr": "QR code",
+    "notFound": "Asset not found",
+    "notFoundHint": "The code may belong to another tenant, or the asset has been removed."
+  },
+  "toast": {
+    "added": "{{count}} asset(s) added",
+    "couldNotAdd": "Could not add",
+    "unitSaved": "{{identifier}} saved",
+    "couldNotSave": "Could not save",
+    "removed": "{{identifier}} removed",
+    "couldNotRemove": "Could not remove",
+    "priced": "{{name}} repriced",
+    "appliesToAll": "Every asset of this kind follows the new price.",
+    "overridesCleared": "{{count}} asset(s) put back on the kind price.",
+    "couldNotPrice": "Could not save the price",
+    "kindCreated": "{{name}} created",
+    "kindProvisioned": "{{count}} asset(s) provisioned and bookable.",
+    "kindNoUnits": "Add assets to it when you are ready.",
+    "couldNotCreateKind": "Could not create the kind",
+    "kindRenamed": "Renamed to {{name}}",
+    "kindRemoved": "{{name}} deleted",
+    "couldNotRemoveKind": "Could not delete the kind"
+  },
+  "free": {
+    "title": "Force {{identifier}} free",
+    "subtitle": "The asset is held by a booking.",
+    "body": "This detaches it from {{ref}} and puts it straight back into availability. Use it when the asset is physically free but the record says otherwise — it is written to the audit trail.",
+    "bodyNoBooking": "This puts it straight back into availability. Use it when the asset is physically free but the record says otherwise — it is written to the audit trail.",
+    "submit": "Free it"
+  },
+  "newKind": {
+    "title": "New kind of asset",
+    "subtitle": "A kind is what the counter sells — \"Compartment L\", \"Single Scooter Bay\". The assets themselves come next.",
+    "shape": "Shape",
+    "shapeHint": "What the asset physically is. It sets how the kind is priced and reserved.",
+    "nameHint": "The name staff and customers see.",
+    "namePlaceholder": "Compartment L",
+    "pricing": "Price",
+    "capacity": "Capacity",
+    "dimensions": "Inside size (cm)",
+    "dimensionsHint": "Width, height, depth — the packing plan uses these to fit bags.",
+    "maxWeight": "Max weight (kg)",
+    "bagCount": "Bags it holds",
+    "bagCountHint": "How many typical bags fit in one.",
+    "seats": "Seats",
+    "seatsHint": "How many people one takes.",
+    "firstAssets": "First assets",
+    "howMany": "How many to create now",
+    "howManyHint": "Each gets its own identifier and QR code. Leave at zero to add them later.",
+    "submit": "Create kind"
+  },
+  "removeKind": {
+    "title": "Delete {{name}}",
+    "subtitle": "Only a kind with no assets left can go.",
+    "body": "The kind disappears from the estate and its product is retired from the counter. Past bookings keep their history."
+  },
+  "editKind": {
+    "title": "Rename {{name}}",
+    "subtitle": "The product the counter sells is renamed with it."
+  }
+}

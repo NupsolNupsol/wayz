@@ -1,0 +1,28 @@
+{
+  "action": {
+    "approvereleasecompartment": "Approve & release compartment",
+    "beginretrieval": "Begin retrieval",
+    "cancelrequest": "Cancel request",
+    "cancel": "Cancel",
+    "complete": "Complete",
+    "confirmbagscollected": "Confirm bags collected",
+    "confirmhandoverstartrental": "Confirm handover & start rental",
+    "confirmhandover": "Confirm handover",
+    "confirmpaymentfiretokitchen": "Confirm payment (fire to kitchen)",
+    "confirmpayment": "Confirm payment",
+    "confirmstoragestarttimer": "Confirm storage (start timer)",
+    "markdelivered": "Mark delivered",
+    "markserved": "Mark served",
+    "pickupthistask": "Pick up this task",
+    "reassigncompartment": "Reassign compartment",
+    "reportaproblem": "Report a problem",
+    "requestthebags": "Request the bags",
+    "reservecompartment": "Reserve compartment",
+    "returncomplete": "Return & complete",
+    "returnasset": "Return asset",
+    "startexperience": "Start experience",
+    "starttrip": "Start trip",
+    "verifyboardingstarttrip": "Verify boarding & start trip",
+    "confirmsafetystartexperience": "Confirm safety & start experience"
+  }
+}

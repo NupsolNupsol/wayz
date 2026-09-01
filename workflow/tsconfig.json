@@ -1,0 +1,23 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+    "lib": ["ES2022"],
+    "strict": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+    "declaration": true,
+    "declarationMap": true,
+    "sourceMap": true,
+    // A type error must never produce a dist/ that the backend then imports and trusts.
+    "noEmitOnError": true,
+    "outDir": "dist",
+    "rootDir": "."
+  },
+  "include": ["index.ts", "shared/**/*.ts", "utils/**/*.ts", "workflow/**/*.ts", "bookingWorkflowValidators/**/*.ts", "bookingWorkflowOperations/**/*.ts"],
+  "exclude": ["dist", "node_modules"]
+}

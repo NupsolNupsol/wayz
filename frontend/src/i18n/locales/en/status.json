@@ -1,0 +1,216 @@
+{
+  "booking": {
+    "DRAFT": "Draft",
+    "CONFIRMED": "Confirmed",
+    "RESERVED": "Reserved",
+    "ACTIVE": "Active",
+    "OVERTIME": "Overtime",
+    "RETRIEVAL_IN_PROGRESS": "Retrieval in progress",
+    "PREPARING": "Preparing",
+    "COMPLETED": "Completed",
+    "CANCELLED": "Cancelled"
+  },
+  "bag": {
+    "REGISTERED": "Registered",
+    "LABELLED": "Labelled",
+    "STORED": "Stored",
+    "RETRIEVED": "Retrieved"
+  },
+  "unit": {
+    "AVAILABLE": "Available",
+    "OCCUPIED": "Occupied",
+    "HELD": "Held",
+    "MAINTENANCE": "Maintenance",
+    "OUT_OF_SERVICE": "Out of service",
+    "BLOCKED": "Blocked",
+    "INSPECTION_REQUIRED": "Inspection required"
+  },
+  "payment": {
+    "PENDING": "Pending",
+    "CAPTURED": "Captured",
+    "REFUNDED": "Refunded",
+    "VOID": "Void"
+  },
+  "paymentKind": {
+    "SALE": "Sale",
+    "REFUND": "Refund",
+    "DEPOSIT": "Deposit",
+    "OVERTIME": "Overtime",
+    "DEPOSIT_RELEASE": "Deposit released"
+  },
+  "method": {
+    "CASH": "Cash",
+    "CARD": "Card",
+    "TRANSFER": "Transfer",
+    "APPLE_PAY": "Apple Pay"
+  },
+  "delivery": {
+    "REQUESTED": "Requested",
+    "ASSIGNED": "Assigned",
+    "RELEASE_REQUESTED": "Release requested",
+    "RELEASE_APPROVED": "Release approved",
+    "PICKED_UP": "Picked up",
+    "IN_TRANSIT": "In transit",
+    "DELIVERED": "Delivered",
+    "FAILED": "Failed",
+    "CANCELLED": "Cancelled"
+  },
+  "shift": {
+    "OPEN": "Open",
+    "RECONCILING": "Reconciling",
+    "CLOSED": "Closed"
+  },
+  "incident": {
+    "REPORTED": "Reported",
+    "INVESTIGATING": "Investigating",
+    "AWAITING_APPROVAL": "Awaiting approval",
+    "RESOLVED": "Resolved",
+    "REJECTED": "Rejected"
+  },
+  "incidentType": {
+    "MISSING_BAG": "Missing bag",
+    "DAMAGED_BAG": "Damaged bag",
+    "WRONG_BAG": "Wrong bag presented",
+    "LABEL_ISSUE": "Label / barcode issue",
+    "DAMAGE_ON_RETURN": "Damage found on return",
+    "ASSET_DAMAGE": "Asset damaged by customer",
+    "ASSET_FAULT": "Asset fault / breakdown",
+    "ASSET_NOT_RETURNED": "Asset not returned",
+    "LATE_RETURN": "Late return",
+    "CUSTOMER_INJURY": "Customer injury",
+    "SAFETY_CONCERN": "Safety concern",
+    "ANIMAL_WELFARE": "Animal welfare concern",
+    "FOOD_QUALITY": "Food quality complaint",
+    "ORDER_ERROR": "Wrong or incomplete order",
+    "ACCESS_ISSUE": "Access issue (locker / area)",
+    "PAYMENT_DISPUTE": "Payment dispute",
+    "OTHER": "Other"
+  },
+  "verification": {
+    "PENDING": "Pending",
+    "CONSUMED": "Consumed",
+    "EXPIRED": "Expired",
+    "FAILED": "Failed",
+    "WHATSAPP_OTP": "WhatsApp code",
+    "EMAIL_OTP": "Email code",
+    "ID_DOCUMENT": "ID document",
+    "MANAGER_OVERRIDE": "Manager override"
+  },
+  "reconciliation": {
+    "MATCHED": "Matched",
+    "AMOUNT_MISMATCH": "Amount differs",
+    "SCHEME_MISMATCH": "Card differs",
+    "MISSING_IN_PLATFORM": "Only at the terminal",
+    "MISSING_AT_TERMINAL": "Only in the platform"
+  },
+  "scheme": {
+    "MADA": "Mada",
+    "SPAN": "SPAN",
+    "VISA": "Visa",
+    "MASTERCARD": "Mastercard",
+    "GCC": "GCC"
+  },
+  "expense": {
+    "PAYROLL": "Payroll",
+    "RENT_VENUE": "Venue rent",
+    "RENT_ACCOMMODATION": "Accommodation rent",
+    "MAINTENANCE": "Maintenance",
+    "REPAIR": "Repair",
+    "FUEL_OIL": "Fuel & oil",
+    "SUPPLIER": "Supplier",
+    "ADMIN": "Administrative",
+    "BANK_COMMISSION": "Bank commission",
+    "OTHER": "Other"
+  },
+  "sessionKind": {
+    "STORAGE": "Storage",
+    "RENTAL": "Rental",
+    "ACTIVITY": "Activity",
+    "EXPERIENCE": "Experience",
+    "DINING": "Dining"
+  },
+  "purpose": {
+    "RETRIEVAL": "Retrieval",
+    "DEPOSIT_REFUND": "Deposit refund",
+    "DELIVERY_REQUEST": "Delivery request"
+  },
+  "schemeFull": {
+    "MADA": "Mada Card",
+    "SPAN": "SPAN Card",
+    "VISA": "Visa Card",
+    "MASTERCARD": "Master Card",
+    "GCC": "GCC Card"
+  },
+  "expenseCategory": {
+    "SUPPLIER": "Supplier / purchase",
+    "MAINTENANCE": "Maintenance",
+    "REPAIR": "Repair",
+    "FUEL_OIL": "Fuel & oil",
+    "RENT_VENUE": "Venue rent",
+    "RENT_ACCOMMODATION": "Accommodation rent",
+    "PAYROLL": "Payroll",
+    "ADMIN": "Administrative",
+    "BANK_COMMISSION": "Bank commission",
+    "OTHER": "Other"
+  },
+  "durationUnit": {
+    "HOUR": "hour",
+    "DAY": "day",
+    "HALF_HOUR": "half hour",
+    "FIFTEEN_MIN": "fifteen min"
+  },
+  "billingModel": {
+    "PER_BAG": "Per bag",
+    "PER_COMPARTMENT": "Per compartment",
+    "PACKAGE": "Package",
+    "DURATION_BASED": "By duration"
+  },
+  "entity": {
+    "Booking": "Booking",
+    "Customer": "Customer",
+    "Delivery": "Delivery",
+    "Incident": "Incident",
+    "Shift": "Shift",
+    "Payment": "Payment",
+    "Catalogue": "Catalogue",
+    "Tenant": "Tenant",
+    "Accounting": "Accounting",
+    "Payroll": "Payroll",
+    "Session": "Session",
+    "Verification": "Verification",
+    "CardTransaction": "Card transaction",
+    "Asset": "Asset",
+    "Season": "Season",
+    "Request": "Request"
+  },
+  "auditAction": {
+    "SIGNED_IN": "signed in",
+    "ASSET_KIND_CREATED": "asset kind created",
+    "ASSET_KIND_UPDATED": "asset kind updated",
+    "ASSET_KIND_REMOVED": "asset kind removed",
+    "ASSET_UNITS_ADDED": "assets added",
+    "ASSET_UNIT_UPDATED": "asset updated",
+    "ASSET_UNIT_REMOVED": "asset removed",
+    "ASSET_TYPE_PRICED": "asset kind repriced"
+  },
+  "collection": {
+    "Sites": "Sites",
+    "Stations": "Stations",
+    "Kiosks": "Kiosks",
+    "Asset units": "Asset units",
+    "People": "People",
+    "Customers": "Customers",
+    "Bookings": "Bookings",
+    "Payments": "Payments",
+    "Deliveries": "Deliveries",
+    "Cash movements": "Cash movements",
+    "Shifts": "Shifts",
+    "Incidents": "Incidents",
+    "Audit entries": "Audit entries"
+  },
+  "ledgerEntry": {
+    "SALE": "Sale",
+    "RETURN": "Return",
+    "EXPENSE": "Expense"
+  }
+}

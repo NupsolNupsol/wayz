@@ -1,0 +1,216 @@
+{
+  "booking": {
+    "DRAFT": "مسودة",
+    "CONFIRMED": "مؤكد",
+    "RESERVED": "محجوز",
+    "ACTIVE": "جارٍ",
+    "OVERTIME": "وقت إضافي",
+    "RETRIEVAL_IN_PROGRESS": "جارٍ التسليم",
+    "PREPARING": "قيد التحضير",
+    "COMPLETED": "مكتمل",
+    "CANCELLED": "ملغى"
+  },
+  "bag": {
+    "REGISTERED": "مسجلة",
+    "LABELLED": "موسومة",
+    "STORED": "محفوظة",
+    "RETRIEVED": "مستلمة"
+  },
+  "unit": {
+    "AVAILABLE": "متاح",
+    "OCCUPIED": "مشغول",
+    "HELD": "محجوز مؤقتًا",
+    "MAINTENANCE": "صيانة",
+    "OUT_OF_SERVICE": "خارج الخدمة",
+    "BLOCKED": "موقوف",
+    "INSPECTION_REQUIRED": "بحاجة إلى فحص"
+  },
+  "payment": {
+    "PENDING": "معلقة",
+    "CAPTURED": "محصّلة",
+    "REFUNDED": "مستردة",
+    "VOID": "ملغاة"
+  },
+  "paymentKind": {
+    "SALE": "بيع",
+    "REFUND": "استرداد",
+    "DEPOSIT": "تأمين",
+    "OVERTIME": "وقت إضافي",
+    "DEPOSIT_RELEASE": "إرجاع التأمين"
+  },
+  "method": {
+    "CASH": "نقدًا",
+    "CARD": "بطاقة",
+    "TRANSFER": "تحويل",
+    "APPLE_PAY": "أبل باي"
+  },
+  "delivery": {
+    "REQUESTED": "مطلوب",
+    "ASSIGNED": "مُسند",
+    "RELEASE_REQUESTED": "طلب تسليم",
+    "RELEASE_APPROVED": "تم اعتماد التسليم",
+    "PICKED_UP": "تم الاستلام",
+    "IN_TRANSIT": "في الطريق",
+    "DELIVERED": "تم التوصيل",
+    "FAILED": "فشل",
+    "CANCELLED": "ملغى"
+  },
+  "shift": {
+    "OPEN": "مفتوحة",
+    "RECONCILING": "قيد المطابقة",
+    "CLOSED": "مغلقة"
+  },
+  "incident": {
+    "REPORTED": "تم الإبلاغ",
+    "INVESTIGATING": "قيد الفحص",
+    "AWAITING_APPROVAL": "بانتظار الاعتماد",
+    "RESOLVED": "تمت المعالجة",
+    "REJECTED": "مرفوض"
+  },
+  "incidentType": {
+    "MISSING_BAG": "حقيبة مفقودة",
+    "DAMAGED_BAG": "حقيبة متضررة",
+    "WRONG_BAG": "تقديم حقيبة خاطئة",
+    "LABEL_ISSUE": "مشكلة في الملصق أو الباركود",
+    "DAMAGE_ON_RETURN": "ضرر عند الإرجاع",
+    "ASSET_DAMAGE": "إتلاف الأصل من العميل",
+    "ASSET_FAULT": "عطل في الأصل",
+    "ASSET_NOT_RETURNED": "لم يُعد الأصل",
+    "LATE_RETURN": "تأخر في الإرجاع",
+    "CUSTOMER_INJURY": "إصابة عميل",
+    "SAFETY_CONCERN": "ملاحظة سلامة",
+    "ANIMAL_WELFARE": "ملاحظة على رعاية الحيوان",
+    "FOOD_QUALITY": "شكوى على جودة الطعام",
+    "ORDER_ERROR": "طلب خاطئ أو ناقص",
+    "ACCESS_ISSUE": "مشكلة في الوصول",
+    "PAYMENT_DISPUTE": "نزاع على الدفع",
+    "OTHER": "أخرى"
+  },
+  "verification": {
+    "PENDING": "معلق",
+    "CONSUMED": "مستخدم",
+    "EXPIRED": "منتهي",
+    "FAILED": "فشل",
+    "WHATSAPP_OTP": "رمز واتساب",
+    "EMAIL_OTP": "رمز البريد الإلكتروني",
+    "ID_DOCUMENT": "إثبات هوية",
+    "MANAGER_OVERRIDE": "اعتماد المدير"
+  },
+  "reconciliation": {
+    "MATCHED": "متطابق",
+    "AMOUNT_MISMATCH": "المبلغ مختلف",
+    "SCHEME_MISMATCH": "البطاقة مختلفة",
+    "MISSING_IN_PLATFORM": "في الجهاز فقط",
+    "MISSING_AT_TERMINAL": "في المنصة فقط"
+  },
+  "scheme": {
+    "MADA": "مدى",
+    "SPAN": "سبان",
+    "VISA": "فيزا",
+    "MASTERCARD": "ماستركارد",
+    "GCC": "الخليج"
+  },
+  "expense": {
+    "PAYROLL": "رواتب",
+    "RENT_VENUE": "إيجار الموقع",
+    "RENT_ACCOMMODATION": "إيجار السكن",
+    "MAINTENANCE": "صيانة",
+    "REPAIR": "إصلاح",
+    "FUEL_OIL": "وقود وزيوت",
+    "SUPPLIER": "موردون",
+    "ADMIN": "مصاريف إدارية",
+    "BANK_COMMISSION": "عمولة بنكية",
+    "OTHER": "أخرى"
+  },
+  "sessionKind": {
+    "STORAGE": "حفظ",
+    "RENTAL": "إيجار",
+    "ACTIVITY": "نشاط",
+    "EXPERIENCE": "تجربة",
+    "DINING": "ضيافة"
+  },
+  "purpose": {
+    "RETRIEVAL": "الاستلام",
+    "DEPOSIT_REFUND": "استرداد التأمين",
+    "DELIVERY_REQUEST": "طلب توصيل"
+  },
+  "schemeFull": {
+    "MADA": "بطاقة مدى",
+    "SPAN": "بطاقة سبان",
+    "VISA": "بطاقة فيزا",
+    "MASTERCARD": "بطاقة ماستركارد",
+    "GCC": "بطاقة خليجية"
+  },
+  "expenseCategory": {
+    "SUPPLIER": "مورّد / مشتريات",
+    "MAINTENANCE": "صيانة",
+    "REPAIR": "إصلاح",
+    "FUEL_OIL": "وقود وزيوت",
+    "RENT_VENUE": "إيجار موقع",
+    "RENT_ACCOMMODATION": "إيجار سكن",
+    "PAYROLL": "رواتب",
+    "ADMIN": "مصاريف إدارية",
+    "BANK_COMMISSION": "عمولة بنكية",
+    "OTHER": "أخرى"
+  },
+  "durationUnit": {
+    "HOUR": "ساعة",
+    "DAY": "يوم",
+    "HALF_HOUR": "نصف ساعة",
+    "FIFTEEN_MIN": "ربع ساعة"
+  },
+  "billingModel": {
+    "PER_BAG": "لكل حقيبة",
+    "PER_COMPARTMENT": "لكل خزانة",
+    "PACKAGE": "باقة",
+    "DURATION_BASED": "حسب المدة"
+  },
+  "entity": {
+    "Booking": "حجز",
+    "Customer": "عميل",
+    "Delivery": "توصيل",
+    "Incident": "بلاغ",
+    "Shift": "وردية",
+    "Payment": "دفعة",
+    "Catalogue": "الكتالوج",
+    "Tenant": "المنشأة",
+    "Accounting": "المحاسبة",
+    "Payroll": "الرواتب",
+    "Session": "الجلسة",
+    "Verification": "تحقق",
+    "CardTransaction": "عملية بطاقة",
+    "Asset": "أصل",
+    "Season": "موسم",
+    "Request": "طلب"
+  },
+  "auditAction": {
+    "SIGNED_IN": "سجّل الدخول",
+    "ASSET_KIND_CREATED": "أُنشئ نوع أصل",
+    "ASSET_KIND_UPDATED": "عُدّل نوع أصل",
+    "ASSET_KIND_REMOVED": "حُذف نوع أصل",
+    "ASSET_UNITS_ADDED": "أُضيفت أصول",
+    "ASSET_UNIT_UPDATED": "عُدّل أصل",
+    "ASSET_UNIT_REMOVED": "حُذف أصل",
+    "ASSET_TYPE_PRICED": "أُعيد تسعير نوع أصل"
+  },
+  "collection": {
+    "Sites": "المواقع",
+    "Stations": "المحطات",
+    "Kiosks": "الأكشاك",
+    "Asset units": "وحدات الأصول",
+    "People": "الموظفون",
+    "Customers": "العملاء",
+    "Bookings": "الحجوزات",
+    "Payments": "المدفوعات",
+    "Deliveries": "التوصيلات",
+    "Cash movements": "حركات النقد",
+    "Shifts": "الورديات",
+    "Incidents": "البلاغات",
+    "Audit entries": "قيود التدقيق"
+  },
+  "ledgerEntry": {
+    "SALE": "بيع",
+    "RETURN": "مرتجع",
+    "EXPENSE": "مصروف"
+  }
+}
