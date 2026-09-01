@@ -1,3 +1,12 @@
+# Secrets never live in this file. Every sensitive value below is an interpolation that Compose
+# resolves from the host environment or from backend/.env (git-ignored) at `docker compose up`
+# time. backend/.env.example documents the full set with safe placeholders.
+#
+# Note the deliberate asymmetry: MONGODB_URI / REDIS_URL are hardcoded to the Compose SERVICE
+# NAMES here, and are NOT interpolated from .env. The .env file holds the localhost URLs the
+# backend needs when it runs directly on the host; pulling those into the API container would
+# point it at itself. Infrastructure wiring belongs to Compose, credentials belong to .env.
+
 services:
   mongo:
     image: mongo:7
@@ -30,8 +39,10 @@ services:
 
   api:
     build:
-      context: .
-      dockerfile: Dockerfile
+      # The platform root: the API's package.json depends on ../workflow, which is outside
+      # backend/ and therefore has to be inside the build context.
+      context: ..
+      dockerfile: backend/Dockerfile
     container_name: lockerflow-api
     restart: unless-stopped
     depends_on:
@@ -40,34 +51,61 @@ services:
       redis:
         condition: service_healthy
     environment:
+      # --- Docker infrastructure: fixed, container-only. Never read from .env. ----------
       NODE_ENV: production
       PORT: 4000
-      CORS_ORIGIN: "http://localhost:5175,http://localhost:8081"
       MONGODB_URI: mongodb://mongo:27017/lockerflow
-      JWT_SECRET: dev-lockerflow-secret-change-me
-      JWT_EXPIRES_IN: 12h
-      QUEUE_ENABLED: "true"
       REDIS_URL: redis://redis:6379
+      # Mode-specific, like the URLs above: the host runs the sweep on an in-process timer and
+      # does not seed a throwaway database, this stack has a real Redis and a fresh volume.
+      QUEUE_ENABLED: "true"
       AUTO_SEED: "false"
+
+      # --- Environment-specific: overridable, safe non-secret defaults. -----------------
+      # Both browsers that talk to this API in development: the web workspace and the Expo
+      # web preview. The default is the full list, so a .env that names only one origin is
+      # still the thing that widens or narrows it — it never silently drops the second.
+      CORS_ORIGIN: ${CORS_ORIGIN:-http://localhost:5175,http://localhost:8081}
+      PUBLIC_APP_URL: ${PUBLIC_APP_URL:-http://localhost:5175}
+      JWT_EXPIRES_IN: ${JWT_EXPIRES_IN:-12h}
+      EXPIRY_WARNING_MINUTES: ${EXPIRY_WARNING_MINUTES:-15}
+
+      # --- Demo / test affordances. -----------------------------------------------------
+      # These expose data that production must not hand out: OTP_TEST_PEEK opens the endpoint
+      # that returns a live OTP, INVITE_TEST_PEEK returns the staff invitation link in the API
+      # response, DEMO_SCANNER returns parcel barcodes so the UI can fake a hardware scan.
+      # They default to true here because this Compose stack is the demo environment; set them
+      # to false in the host environment for any deployment that real customers can reach.
+      OTP_TEST_PEEK: ${OTP_TEST_PEEK:-true}
+      INVITE_TEST_PEEK: ${INVITE_TEST_PEEK:-true}
+      DEMO_SCANNER: ${DEMO_SCANNER:-true}
+
+      # --- Secrets and credentials: supplied by the host environment / backend/.env. -----
+      # JWT_SECRET has no default on purpose — Compose refuses to start without it rather
+      # than silently signing tokens with a key that is public in this repository.
+      JWT_SECRET: ${JWT_SECRET:?JWT_SECRET is required — set it in backend/.env (see .env.example)}
+
+      # Vonage WhatsApp OTP. Unset leaves OTP delivery in mock mode.
       VONAGE_API_KEY: ${VONAGE_API_KEY:-}
       VONAGE_API_SECRET: ${VONAGE_API_SECRET:-}
       VONAGE_WHATSAPP_NUMBER: ${VONAGE_WHATSAPP_NUMBER:-}
+      VONAGE_MESSAGES_URL: ${VONAGE_MESSAGES_URL:-https://messages-sandbox.nexmo.com/v1/messages}
+
+      # Primary SMTP (email OTP channel).
       MAIL_HOST: ${MAIL_HOST:-}
       MAIL_PORT: ${MAIL_PORT:-465}
       MAIL_SECURE: ${MAIL_SECURE:-true}
       MAIL_DOMAIN: ${MAIL_DOMAIN:-}
+      MAIL_FROM_NAME: ${MAIL_FROM_NAME:-WAYZ}
       SENDER_EMAIL: ${SENDER_EMAIL:-}
       SENDER_PASSWORD: ${SENDER_PASSWORD:-}
-      MAIL_FROM_NAME: ${MAIL_FROM_NAME:-WAYZ}
+
+      # Fallback SMTP, tried when the primary refuses or times out.
       MAIL_FALLBACK_HOST: ${MAIL_FALLBACK_HOST:-}
       MAIL_FALLBACK_PORT: ${MAIL_FALLBACK_PORT:-465}
       MAIL_FALLBACK_SECURE: ${MAIL_FALLBACK_SECURE:-true}
       MAIL_FALLBACK_USER: ${MAIL_FALLBACK_USER:-}
       MAIL_FALLBACK_PASSWORD: ${MAIL_FALLBACK_PASSWORD:-}
-      PUBLIC_APP_URL: ${PUBLIC_APP_URL:-http://localhost:5175}
-      OTP_TEST_PEEK: "true"
-      INVITE_TEST_PEEK: "true"
-      DEMO_SCANNER: "true"
     ports:
       - "4000:4000"
 

@@ -5,5 +5,13 @@
 **/dist
 **/.git
 **/test-artifacts
+**/test-results
 **/playwright-report
+frontend
+mobile
+chargeback-pro
 *.md
+
+# Never let a credential file reach a build context. Compose injects secrets at run time.
+**/.env
+**/.env.*

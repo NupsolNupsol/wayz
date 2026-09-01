@@ -36,7 +36,7 @@ export {
   OVERRIDE_ROLES,
   COURIER,
   KIOSK_OPS,
-} from '../../workflow/dist/index.js'
+} from '@wayz/workflow'
 
 export type {
   AssetIntent,
@@ -62,4 +62,4 @@ export type {
   DeliveryTimelineEntry,
   DeliveryTransition,
   DeliveryWorkflowDef,
-} from '../../workflow/dist/index.js'
+} from '@wayz/workflow'

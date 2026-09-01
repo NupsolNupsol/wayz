@@ -6,7 +6,9 @@ const schema = z.object({
   PORT: z.coerce.number().default(4000),
   CORS_ORIGIN: z.string().default('http://localhost:5175'),
   MONGODB_URI: z.string().default('mongodb://localhost:27017/lockerflow'),
-  JWT_SECRET: z.string().min(8).default('dev-lockerflow-secret-change-me'),
+  // No default on purpose: a signing key checked into the repository is a signing key
+  // every reader of the repository can forge tokens with. Boot fails loudly instead.
+  JWT_SECRET: z.string().min(16, 'JWT_SECRET must be set to at least 16 characters'),
   JWT_EXPIRES_IN: z.string().default('12h'),
   QUEUE_ENABLED: z
     .enum(['true', 'false'])

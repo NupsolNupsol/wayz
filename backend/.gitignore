@@ -1,11 +1,13 @@
-node_modules
-dist
-.env
-*.log
-test-results
-playwright-report
-.DS_Store
+node_modules/
+dist/
+*.tsbuildinfo
+
+# Environment: real values stay local, the template is committed.
 .env
 .env.*
-node_modules/
+!.env.example
+
+*.log
 test-results/
+playwright-report/
+.DS_Store
