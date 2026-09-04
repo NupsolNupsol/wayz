@@ -60,7 +60,7 @@ export function AmountDuePanel({
     }
   }, [asked, due, blockedReason])
 
-  if (due <= 0) return null
+  if (due <= 0 && !open) return null
 
   const collect = (splits: PaymentSplit[]) => {
     settle.mutate(
@@ -82,6 +82,7 @@ export function AmountDuePanel({
 
   return (
     <>
+      {due > 0 && (
       <Card className="border-amber-400 bg-amber-50 dark:bg-amber-900/20" data-testid="amount-due">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
@@ -118,6 +119,8 @@ export function AmountDuePanel({
           </Button>
         </div>
       </Card>
+
+      )}
 
       <Modal
         open={open}

@@ -45,7 +45,7 @@ export function DashboardPage() {
       ? [{ icon: 'Grid3x3', label: t('common:crumb.assets'), to: '/assets', testId: 'qa-assets' }]
       : []),
   ]
-  const { data: stats, isLoading } = useDashboard()
+  const { data: stats, isLoading, isError } = useDashboard()
   const { data: bookings = [] } = useBookings()
   const { data: shift } = useShift()
   if (!me) return null
@@ -83,9 +83,9 @@ export function DashboardPage() {
         }
       />
 
-      {isLoading || !stats ? (
+      {isLoading && !isError ? (
         <Spinner label={t('dashboard.loading')} />
-      ) : (
+      ) : !stats ? null : (
         <>
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-5">
             <StatCard label={t('dashboard.stat.todaysTransactions')} value={stats.todaysTransactions} icon={<Receipt size={22} />} tone="info" testId="stat-transactions" onClick={() => navigate('/bookings')} />
