@@ -1,4 +1,4 @@
-import { LAGOON_OPS, LAGOON_TILL } from '../shared/access.js'
+import { LAGOON_OPS, LAGOON_SAIL, LAGOON_TILL } from '../shared/access.js'
 import { ACTIVE, CANCELLED, COMPLETED, CONFIRMED, DRAFT, OVERTIME } from '../shared/status.js'
 import type { EngineWorkflow, OperationResult, ValidationResult, WorkflowContext } from '../shared/types.js'
 import { useLagoonValidator } from '../bookingWorkflowValidators/controller.lagoon.validator.controller.js'
@@ -24,7 +24,7 @@ export const lagoonWorkflow: EngineWorkflow = {
       label: 'Start trip',
       source: [CONFIRMED],
       target: ACTIVE,
-      actors: LAGOON_OPS,
+      actors: LAGOON_SAIL,
       style: { backgroundColor: '#1a3470' },
     },
     {
@@ -32,7 +32,7 @@ export const lagoonWorkflow: EngineWorkflow = {
       label: 'Return & complete',
       source: [ACTIVE, OVERTIME],
       target: COMPLETED,
-      actors: LAGOON_OPS,
+      actors: LAGOON_SAIL,
       style: { backgroundColor: '#2ECC71' },
     },
     {

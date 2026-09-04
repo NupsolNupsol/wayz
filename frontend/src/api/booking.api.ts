@@ -26,6 +26,7 @@ export interface CreateBookingInput {
   durationMin?: number
   rateMode?: 'HOURS' | 'TOURS'
   tours?: number
+  unitId?: string
   bags?: BagInput[]
   metadata?: Record<string, unknown>
 }

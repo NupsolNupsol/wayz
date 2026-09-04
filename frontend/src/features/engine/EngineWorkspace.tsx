@@ -2,7 +2,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom'
 import { clsx } from 'clsx'
 import { useTranslation } from 'react-i18next'
 import { useEffect, useState } from 'react'
-import { ArrowLeft, ArrowRight, PlayCircle, ShieldCheck, Camera } from 'lucide-react'
+import { ArrowLeft, ArrowRight, PlayCircle, Sailboat, ShieldCheck, Camera } from 'lucide-react'
 import { PageHeader } from '@/components/PageHeader'
 import { Card, Button, Field, SectionTitle, StatusBadge, Badge, EmptyState } from '@/components/ui'
 import { Stepper, type Step } from '@/components/Stepper'
@@ -15,6 +15,7 @@ import { Icon } from '@/components/Icon'
 import { useProducts, useBooking, useBookingOrder, useBookings, useCreateBooking, useCustomer, usePay, useTransition, useUnits } from '@/hooks'
 import { ApiError } from '@/api/client'
 import { useAuthStore } from '@/store/auth'
+import { useBoatsWithRoom } from '@/hooks'
 import { engineLabel, engineTagline, productIcon } from '@/config/engineMeta'
 import { isCustomerComplete, money } from '@/utils'
 import { useActionLabel } from '@/i18n/useActionLabel'
@@ -27,7 +28,7 @@ import { Select } from '@/components/Select'
 const FULFILMENT: Record<EngineKind, { code: string; label: string; flag?: 'inspectionDone' | 'safetyAck' | 'boardingVerified'; promptKey?: string } | null> = {
   SHOP_AND_DROP: null,
   MOBILITY: { code: 'TO_HANDOVER', label: 'Confirm handover & start rental', flag: 'inspectionDone', promptKey: 'agent:engine.prompt.inspectionDone' },
-  LAGOON: { code: 'TO_STARTED', label: 'Verify boarding & start trip', flag: 'boardingVerified', promptKey: 'agent:engine.prompt.boardingVerified' },
+  LAGOON: null,
   ANAAM: { code: 'TO_STARTED', label: 'Confirm safety & start experience', flag: 'safetyAck', promptKey: 'agent:engine.prompt.safetyAck' },
   COTE_RESTAURANT: null,
 }
@@ -60,6 +61,7 @@ export function EngineWorkspace({ engineKind }: { engineKind: EngineKind }) {
   const [rateMode, setRateMode] = useState<'HOURS' | 'TOURS'>('HOURS')
   const [tours, setTours] = useState(1)
   const [visitors, setVisitors] = useState(2)
+  const [boatId, setBoatId] = useState('')
   const [phoneVerified, setPhoneVerified] = useState(false)
   const [flag, setFlag] = useState(false)
   const [unitId, setUnitId] = useState('')
@@ -78,6 +80,11 @@ export function EngineWorkspace({ engineKind }: { engineKind: EngineKind }) {
         ? (product.hourlyPrice ?? product.basePrice) * Math.max(1, duration)
         : product.basePrice * Math.max(1, visitors)
     : 0
+
+  const isLagoon = engineKind === 'LAGOON'
+  const { data: boats = [] } = useBoatsWithRoom(product?.assetTypeId ?? undefined, isLagoon && !!product)
+  const boat = boats.find((b) => b._id === boatId) ?? null
+  const seatCap = boat ? Math.max(1, boat.free) : undefined
 
   const fulfilment = FULFILMENT[engineKind]
   const active = bookings.filter((b) => ['ACTIVE', 'OVERTIME', 'PREPARING', 'CONFIRMED'].includes(b.status))
@@ -118,6 +125,7 @@ export function EngineWorkspace({ engineKind }: { engineKind: EngineKind }) {
         tours: byTours ? Math.max(1, tours) : undefined,
         durationMin: !byTours && product.billingModel === 'DURATION_BASED' ? duration * 60 : undefined,
         quantity: byTours || product.billingModel === 'DURATION_BASED' ? undefined : Math.max(1, visitors),
+        unitId: isLagoon ? boatId : undefined,
         metadata: { visitors },
       })
       setBooking(res.booking); setOrder(res.order); setStep(2)
@@ -252,6 +260,50 @@ export function EngineWorkspace({ engineKind }: { engineKind: EngineKind }) {
             </div>
           )}
 
+          {isLagoon && (
+            <div className="mt-3" data-testid="engine-boats">
+              <p className="text-xs uppercase tracking-wider text-muted font-bold mb-1.5">{t('engine.whichBoat')}</p>
+              <p className="text-xs text-muted mb-2">{t('engine.whichBoatHint')}</p>
+              {boats.length === 0 ? (
+                <p className="text-sm text-muted" data-testid="engine-no-boats">{t('engine.noBoats')}</p>
+              ) : (
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
+                  {boats.map((b) => {
+                    const chosen = b._id === boatId
+                    const full = b.free === 0
+                    return (
+                      <button
+                        key={b._id}
+                        type="button"
+                        disabled={full}
+                        onClick={() => {
+                          setBoatId(b._id)
+                          setVisitors((n) => Math.min(Math.max(1, n), b.free))
+                        }}
+                        data-testid={`engine-boat-${b._id}`}
+                        className={clsx(
+                          'lf-card p-3 text-start transition-colors disabled:opacity-50 disabled:cursor-not-allowed',
+                          chosen ? 'border-brand ring-1 ring-brand/30 bg-brand/5' : 'hover:border-brand',
+                        )}
+                      >
+                        <p className="font-semibold text-sm text-navy dark:text-dk-texthi flex items-center gap-2">
+                          <Sailboat size={15} className={chosen ? 'text-brand' : 'text-muted'} />
+                          {b.identifier}
+                        </p>
+                        <p className="text-xs text-muted mt-0.5">
+                          {full ? t('engine.boatFull') : t('engine.seatsFree', { free: b.free, seats: b.seats })}
+                        </p>
+                        <div className="h-1.5 rounded-full bg-line dark:bg-dk-border mt-2 overflow-hidden">
+                          <div className="h-full rounded-full bg-brand" style={{ width: `${Math.round((b.taken / b.seats) * 100)}%` }} />
+                        </div>
+                      </button>
+                    )
+                  })}
+                </div>
+              )}
+            </div>
+          )}
+
           <div className="grid grid-cols-2 gap-3 mt-2">
             {byTours ? (
               <Field label={t('engine.tours')} hint={t('engine.toursHint', { minutes: product.tourMinutes ?? 60 })}>
@@ -260,7 +312,19 @@ export function EngineWorkspace({ engineKind }: { engineKind: EngineKind }) {
             ) : product.billingModel === 'DURATION_BASED' ? (
               <Field label={t('engine.durationPeriods')}><NumberInput min={1} value={duration} onChange={setDuration} testId="engine-duration" /></Field>
             ) : (
-              <Field label={engineKind === 'COTE_RESTAURANT' ? 'Quantity' : 'Visitors'}><NumberInput min={1} value={visitors} onChange={setVisitors} testId="engine-visitors" /></Field>
+              <Field
+                label={engineKind === 'COTE_RESTAURANT' ? 'Quantity' : 'Visitors'}
+                hint={isLagoon ? (boat ? t('engine.seatsLeft', { free: boat.free, boat: boat.identifier }) : t('engine.pickABoatFirst')) : undefined}
+              >
+                <NumberInput
+                  min={1}
+                  max={seatCap}
+                  value={visitors}
+                  onChange={(n) => setVisitors(seatCap ? Math.min(n, seatCap) : n)}
+                  disabled={isLagoon && !boat}
+                  testId="engine-visitors"
+                />
+              </Field>
             )}
             <Field label={t('engine.price')}>
               <p className="lf-input flex items-center font-semibold tabular-nums" data-testid="engine-quoted-price">{money(quoted)}</p>
@@ -272,7 +336,7 @@ export function EngineWorkspace({ engineKind }: { engineKind: EngineKind }) {
             <Button
               onClick={createDraft}
               loading={createMut.isPending}
-              disabled={!customerReachable || !online}
+              disabled={!customerReachable || !online || (isLagoon && !boat)}
               data-testid="engine-next"
             >{t('engine.continue')}<ArrowRight size={15} /></Button>
           </div>

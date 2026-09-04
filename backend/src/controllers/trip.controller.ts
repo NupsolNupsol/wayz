@@ -2,25 +2,27 @@ import { z } from 'zod'
 import { asyncHandler } from '../utils/asyncHandler.js'
 import { scopeFromReq } from '../utils/scope.js'
 import {
+  boatsWithRoom,
   claimTrip,
   clockStation,
   completeTrip,
-  planTrips,
+  releaseTrip,
+  setTripRoute,
   startTrip,
   tripBoard,
   tripDetail,
-  waitingForABoat,
-  setTripRoute,
 } from '../services/trip.service.js'
 
 export const tripController = {
-  waiting: asyncHandler(async (req, res) => {
-    res.json({ success: true, data: await waitingForABoat(scopeFromReq(req)) })
+  boats: asyncHandler(async (req, res) => {
+    const assetTypeId = typeof req.query.assetTypeId === 'string' ? req.query.assetTypeId : undefined
+    res.json({ success: true, data: await boatsWithRoom(scopeFromReq(req), assetTypeId) })
   }),
 
-  plan: asyncHandler(async (req, res) => {
-    res.status(201).json({ success: true, data: await planTrips(scopeFromReq(req)) })
+  release: asyncHandler(async (req, res) => {
+    res.json({ success: true, data: await releaseTrip(scopeFromReq(req), req.params.id) })
   }),
+
 
   board: asyncHandler(async (req, res) => {
     const mine = req.query.mine === 'true'

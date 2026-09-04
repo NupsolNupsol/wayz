@@ -4,8 +4,14 @@ import { OPERATIONS_POLL_MS } from './pollIntervals'
 
 const KEY = ['lagoon', 'trips'] as const
 
-export const useWaitingForBoats = (enabled = true) =>
-  useQuery({ queryKey: [...KEY, 'waiting'], queryFn: tripApi.waiting, enabled, refetchInterval: OPERATIONS_POLL_MS, staleTime: 0 })
+export const useBoatsWithRoom = (assetTypeId?: string, enabled = true) =>
+  useQuery({
+    queryKey: [...KEY, 'boats', assetTypeId ?? ''],
+    queryFn: () => tripApi.boats(assetTypeId),
+    enabled,
+    refetchInterval: OPERATIONS_POLL_MS,
+    staleTime: 0,
+  })
 
 export const useTripBoard = (mine = false, enabled = true) =>
   useQuery({ queryKey: [...KEY, 'board', mine], queryFn: () => tripApi.board(mine), enabled, refetchInterval: OPERATIONS_POLL_MS, staleTime: 0 })
@@ -24,7 +30,7 @@ function useTripMutation<V, R>(fn: (v: V) => Promise<R>) {
   })
 }
 
-export const usePlanTrips = () => useTripMutation(() => tripApi.plan())
+export const useReleaseTrip = () => useTripMutation((id: string) => tripApi.release(id))
 export const useClaimTrip = () => useTripMutation((id: string) => tripApi.claim(id))
 export const useStartTrip = () => useTripMutation((v: { id: string; unitId?: string }) => tripApi.start(v.id, v.unitId))
 export const useClockStation = () => useTripMutation((v: { id: string; stationId: string }) => tripApi.clock(v.id, v.stationId))

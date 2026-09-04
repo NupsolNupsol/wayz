@@ -9,8 +9,8 @@ router.use(authenticate, requireRole('AGENT', 'CHIEF_CAPTAIN', ...FLOOR_LEADS))
 const desk = requireRole('AGENT', ...FLOOR_LEADS)
 const captain = requireRole('CHIEF_CAPTAIN')
 
-router.get('/waiting', desk, tripController.waiting)
-router.post('/plan', desk, tripController.plan)
+router.get('/boats', desk, tripController.boats)
+router.post('/:id/release', desk, tripController.release)
 
 router.get('/', tripController.board)
 router.get('/:id', tripController.detail)

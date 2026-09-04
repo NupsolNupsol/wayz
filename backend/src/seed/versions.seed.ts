@@ -271,6 +271,15 @@ const RELEASE_FOUR_MORE: Draft[] = [
   ),
   change(
     'Lagoon',
+    'The desk seats people on a boat; a full boat calls a captain',
+    'A lagoon sale now names the boat. The desk sees every boat at the desk with the seats left on each, roomiest first, and the party is seated on the one they choose - it cannot be sold more seats than the boat has. When the last seat goes, that boat becomes a task for a captain on its own. A half-full boat can still be sent early with Send it now.',
+    ['Kiosk agent', 'Chief captain'],
+    [LAGOON_DESK, 'Open the till, then start a Lagoon sale and pick the Abra Trip', 'Read the boats offered and how many seats each has left', 'Pick one, try to type more visitors than it has seats, then sell a smaller party', 'Open Boats and trips and watch that boat fill', 'Sell the remaining seats on the same boat', CAPTAIN, 'Open the trip board'],
+    'The visitor box will not go past the seats left on the chosen boat, and a sale without a boat is refused. The boat shows Empty, then Filling, then Full. Only when it is full does a task appear for the captain - and the desk has no way to start a trip at any point.',
+    [{ label: 'Lagoon', to: '/lagoon' }, { label: 'Boats and trips', to: '/lagoon/trips' }, { label: 'Trip board', to: '/lagoon/captain' }],
+  ),
+  change(
+    'Lagoon',
     'The captain works like the courier',
     'The captain workspace is a task list, not a counter: Trip board, Chart and sail, Completed, Profile. A trip shows the boat, its seats and who is aboard. Only the captain starts a trip.',
     ['Chief captain'],

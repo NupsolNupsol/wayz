@@ -1,7 +1,7 @@
 import { http, unwrap } from './client'
 import type { MapPoint } from '@/components/StationMap'
 
-export type TripStatus = 'READY' | 'CLAIMED' | 'RUNNING' | 'COMPLETED' | 'CANCELLED'
+export type TripStatus = 'FILLING' | 'READY' | 'CLAIMED' | 'RUNNING' | 'COMPLETED' | 'CANCELLED'
 
 export interface TripPassenger {
   bookingId: string
@@ -56,11 +56,26 @@ export interface TripBoard {
   ready: Trip[]
   running: Trip[]
   done: Trip[]
+  filling: Trip[]
+}
+
+export interface BoatSpace {
+  _id: string
+  identifier: string
+  assetTypeId: string
+  assetTypeName: string
+  seats: number
+  taken: number
+  free: number
+  tripId: string | null
+  tripRef: string | null
+  status: 'EMPTY' | 'FILLING' | 'FULL'
 }
 
 export const tripApi = {
-  waiting: () => unwrap<WaitingGroup[]>(http.get('/lagoon/trips/waiting')),
-  plan: () => unwrap<Trip[]>(http.post('/lagoon/trips/plan', {})),
+  boats: (assetTypeId?: string) =>
+    unwrap<BoatSpace[]>(http.get('/lagoon/trips/boats', { params: assetTypeId ? { assetTypeId } : undefined })),
+  release: (id: string) => unwrap<Trip>(http.post(`/lagoon/trips/${id}/release`, {})),
   board: (mine = false) => unwrap<TripBoard>(http.get('/lagoon/trips', { params: mine ? { mine: 'true' } : undefined })),
   detail: (id: string) => unwrap<{ trip: Trip; stations: MapPoint[] }>(http.get(`/lagoon/trips/${id}`)),
   setRoute: (id: string, stationIds: string[]) => unwrap<Trip>(http.post(`/lagoon/trips/${id}/route`, { stationIds })),

@@ -1,14 +1,11 @@
-import mongoose from 'mongoose'
 import { AssetType, AssetUnit, Booking, Kiosk, Station, Trip, User } from '../models/index.js'
-import type { TripDoc } from '../models/index.js'
-
-type TripHydrated = mongoose.HydratedDocument<TripDoc>
 import { ApiError } from '../utils/ApiError.js'
 import { formatId, nextSequence, pad } from './counter.service.js'
 import { recordAudit } from './audit.service.js'
 import { stationMap } from './org.service.js'
 import { raise } from './notification.service.js'
 import { outstandingFor, transitionBooking } from './booking.service.js'
+import { canWorkEngine } from '../domain/access.js'
 import type { Scope } from '../interfaces/index.js'
 
 function peopleOn(booking: { metadata?: Record<string, unknown> | null }): number {
@@ -16,129 +13,217 @@ function peopleOn(booking: { metadata?: Record<string, unknown> | null }): numbe
   return Number.isFinite(visitors) && visitors > 0 ? Math.floor(visitors) : 1
 }
 
-export async function waitingForABoat(scope: Scope) {
-  const bookings = await Booking.find({
-    tenantId: scope.tenantId,
-    stationId: scope.stationId,
-    engineKind: 'LAGOON',
-    status: 'CONFIRMED',
-  })
-    .sort({ createdAt: 1 })
-    .lean()
-
-  const untripped = bookings.filter((b) => !(b.metadata ?? {}).tripId)
-  const typeIds = [...new Set(untripped.map((b) => (b.metadata ?? {}).assetTypeId as string).filter(Boolean))]
-  const types = await AssetType.find({ tenantId: scope.tenantId, _id: { $in: typeIds } }).lean()
-  const byType = new Map(types.map((t) => [t._id, t]))
-
-  const groups = new Map<string, { assetTypeId: string; name: string; seats: number; people: number; bookings: typeof untripped }>()
-  for (const booking of untripped) {
-    const assetTypeId = (booking.metadata ?? {}).assetTypeId as string | undefined
-    if (!assetTypeId) continue
-    const type = byType.get(assetTypeId)
-    const group = groups.get(assetTypeId) ?? {
-      assetTypeId,
-      name: type?.name ?? assetTypeId,
-      seats: Math.max(1, type?.capacity?.seats ?? 1),
-      people: 0,
-      bookings: [],
-    }
-    group.people += peopleOn(booking)
-    group.bookings.push(booking)
-    groups.set(assetTypeId, group)
-  }
-
-  return [...groups.values()].map((g) => ({
-    assetTypeId: g.assetTypeId,
-    name: g.name,
-    seats: g.seats,
-    people: g.people,
-    bookings: g.bookings.map((b) => ({ _id: b._id, ref: b.ref, customerName: b.customerName, people: peopleOn(b) })),
-    boatsNeeded: Math.ceil(g.people / g.seats),
-  }))
+export interface BoatSpace {
+  _id: string
+  identifier: string
+  assetTypeId: string
+  assetTypeName: string
+  seats: number
+  taken: number
+  free: number
+  tripId: string | null
+  tripRef: string | null
+  status: 'EMPTY' | 'FILLING' | 'FULL'
 }
 
-export async function planTrips(scope: Scope) {
-  const groups = await waitingForABoat(scope)
-  if (!groups.length) throw ApiError.unprocessable('Nobody is waiting for a boat right now.')
+const FILLING_BOOKINGS = ['CONFIRMED', 'ACTIVE', 'OVERTIME']
 
-  const created: TripHydrated[] = []
+export async function boatsWithRoom(scope: Scope, assetTypeId?: string): Promise<BoatSpace[]> {
+  if (!canWorkEngine(scope, 'LAGOON')) throw ApiError.forbidden('You are not assigned to the lagoon.')
 
-  for (const group of groups) {
-    let seatsLeft = 0
-    let trip: TripHydrated | null = null
+  const units = await AssetUnit.find({
+    tenantId: scope.tenantId,
+    stationId: scope.stationId,
+    ...(assetTypeId ? { assetTypeId } : {}),
+    status: { $in: ['AVAILABLE', 'RESERVED'] },
+  })
+    .sort({ identifier: 1 })
+    .lean()
 
-    const openBoat = async () => {
-      const seq = await nextSequence('trip')
-      trip = await Trip.create({
-        _id: formatId('trip', seq),
-        ref: `TRP-${pad(seq)}`,
+  const boats = units.filter((u) => u.assetTypeId.includes('boat'))
+  if (boats.length === 0) return []
+
+  const types = await AssetType.find(
+    { tenantId: scope.tenantId, _id: { $in: [...new Set(boats.map((u) => u.assetTypeId))] } },
+    { name: 1, capacity: 1 },
+  ).lean()
+  const byType = new Map(types.map((t) => [t._id, t]))
+
+  const [aboard, trips] = await Promise.all([
+    Booking.find(
+      {
         tenantId: scope.tenantId,
-        stationId: scope.stationId,
-        kioskId: scope.kioskId ?? null,
-        assetTypeId: group.assetTypeId,
-        assetTypeName: group.name,
-        seats: group.seats,
-        passengers: [],
-        headcount: 0,
-        status: 'READY',
-        createdBy: scope.agentId,
-      })
-      created.push(trip)
-      seatsLeft = group.seats
-    }
+        engineKind: 'LAGOON',
+        status: { $in: FILLING_BOOKINGS },
+        assetUnitId: { $in: boats.map((u) => u._id) },
+      },
+      { assetUnitId: 1, metadata: 1 },
+    ).lean(),
+    Trip.find(
+      {
+        tenantId: scope.tenantId,
+        status: { $in: ['FILLING', 'READY', 'CLAIMED'] },
+        assetUnitId: { $in: boats.map((u) => u._id) },
+      },
+      { assetUnitId: 1, ref: 1 },
+    ).lean(),
+  ])
 
-    for (const passenger of group.bookings) {
-      let left = passenger.people
-
-      while (left > 0) {
-        if (!trip || seatsLeft === 0) await openBoat()
-
-        const seated = Math.min(left, seatsLeft)
-        trip!.passengers.push({
-          bookingId: passenger._id,
-          bookingRef: passenger.ref,
-          customerName: passenger.customerName,
-          people: seated,
-        })
-        trip!.headcount += seated
-        seatsLeft -= seated
-        left -= seated
-        await trip!.save()
-      }
-
-      await Booking.updateOne({ _id: passenger._id }, { $set: { 'metadata.tripId': trip!._id } })
-    }
+  const taken = new Map<string, number>()
+  for (const booking of aboard) {
+    const id = booking.assetUnitId as string
+    taken.set(id, (taken.get(id) ?? 0) + peopleOn(booking))
   }
+  const tripOf = new Map(trips.map((t) => [t.assetUnitId as string, t]))
 
-  for (const trip of created) {
-    await recordAudit({
+  return boats
+    .map((unit) => {
+      const seats = Math.max(1, byType.get(unit.assetTypeId)?.capacity?.seats ?? 1)
+      const used = taken.get(unit._id) ?? 0
+      const free = Math.max(0, seats - used)
+      const trip = tripOf.get(unit._id) ?? null
+      return {
+        _id: unit._id,
+        identifier: unit.identifier,
+        assetTypeId: unit.assetTypeId,
+        assetTypeName: byType.get(unit.assetTypeId)?.name ?? unit.assetTypeId,
+        seats,
+        taken: used,
+        free,
+        tripId: trip?._id ?? null,
+        tripRef: trip?.ref ?? null,
+        status: (free === 0 ? 'FULL' : used === 0 ? 'EMPTY' : 'FILLING') as BoatSpace['status'],
+      }
+    })
+    .sort((a, b) => b.free - a.free || a.identifier.localeCompare(b.identifier))
+}
+
+export async function seatsLeftOn(scope: Scope, unitId: string) {
+  const boats = await boatsWithRoom(scope)
+  const boat = boats.find((b) => b._id === unitId)
+  if (!boat) throw ApiError.badRequest('That boat is not available at this desk.')
+  return boat
+}
+
+export async function seatOnBoat(scope: Scope, booking: {
+  _id: string
+  ref: string
+  customerName: string
+  assetUnitId?: string | null
+  metadata?: Record<string, unknown> | null
+}) {
+  const unitId = booking.assetUnitId
+  if (!unitId) return null
+
+  const unit = await AssetUnit.findOne({ _id: unitId, tenantId: scope.tenantId }).lean()
+  if (!unit) return null
+
+  const type = await AssetType.findOne({ _id: unit.assetTypeId, tenantId: scope.tenantId }, { name: 1, capacity: 1 }).lean()
+  const seats = Math.max(1, type?.capacity?.seats ?? 1)
+  const people = peopleOn(booking)
+
+  let trip = await Trip.findOne({
+    tenantId: scope.tenantId,
+    assetUnitId: unitId,
+    status: { $in: ['FILLING', 'READY'] },
+  })
+
+  if (!trip) {
+    const seq = await nextSequence('trip')
+    trip = await Trip.create({
+      _id: formatId('trip', seq),
+      ref: `TRP-${pad(seq)}`,
       tenantId: scope.tenantId,
-      actorId: scope.agentId,
-      action: 'TRIP_PLANNED',
-      entity: 'Trip',
-      entityId: trip._id,
-      detail: `${trip.assetTypeName} · ${trip.headcount} of ${trip.seats} seats`,
+      stationId: scope.stationId,
+      kioskId: scope.kioskId ?? null,
+      assetTypeId: unit.assetTypeId,
+      assetTypeName: type?.name ?? unit.assetTypeId,
+      seats,
+      assetUnitId: unit._id,
+      assetUnitIdentifier: unit.identifier,
+      passengers: [],
+      headcount: 0,
+      status: 'FILLING',
+      createdBy: scope.agentId,
     })
   }
+
+  if (trip.passengers.some((p) => p.bookingId === booking._id)) return trip.toObject()
+
+  trip.passengers.push({
+    bookingId: booking._id,
+    bookingRef: booking.ref,
+    customerName: booking.customerName,
+    people,
+  })
+  trip.headcount += people
+
+  const full = trip.headcount >= trip.seats
+  if (full && trip.status === 'FILLING') trip.status = 'READY'
+  await trip.save()
+
+  await Booking.updateOne({ _id: booking._id }, { $set: { 'metadata.tripId': trip._id } })
+
+  await recordAudit({
+    tenantId: scope.tenantId,
+    actorId: scope.agentId,
+    action: full ? 'TRIP_READY' : 'TRIP_SEATED',
+    entity: 'Trip',
+    entityId: trip._id,
+    detail: `${booking.ref} · ${people} aboard ${trip.assetUnitIdentifier} (${trip.headcount}/${trip.seats})`,
+  })
+
+  if (full) {
+    await raise({
+      tenantId: scope.tenantId,
+      stationId: scope.stationId,
+      engineKind: 'LAGOON',
+      title: 'A boat is full and waiting for a captain',
+      body: `${trip.ref} · ${trip.assetUnitIdentifier ?? trip.assetTypeName} — ${trip.headcount} aboard, ready to sail.`,
+      level: 'info',
+      audience: ['CHIEF_CAPTAIN'],
+      link: '/lagoon/trips',
+    })
+  }
+
+  return trip.toObject()
+}
+
+export async function releaseTrip(scope: Scope, tripId: string) {
+  const trip = await Trip.findOne({ _id: tripId, tenantId: scope.tenantId, stationId: scope.stationId })
+  if (!trip) throw ApiError.notFound('Trip not found.')
+  if (trip.status !== 'FILLING') throw ApiError.unprocessable(`${trip.ref} is already ${trip.status.toLowerCase()}.`)
+  if (trip.headcount === 0) throw ApiError.unprocessable('Nobody is on that boat yet.')
+
+  trip.status = 'READY'
+  await trip.save()
+
+  await recordAudit({
+    tenantId: scope.tenantId,
+    actorId: scope.agentId,
+    action: 'TRIP_RELEASED',
+    entity: 'Trip',
+    entityId: trip._id,
+    detail: `${trip.ref} sent to the captains with ${trip.headcount} of ${trip.seats} seats filled`,
+  })
 
   await raise({
     tenantId: scope.tenantId,
     stationId: scope.stationId,
     engineKind: 'LAGOON',
-    title: 'Boats ready to sail',
-    body: `${created.length} trip(s) waiting for a captain.`,
+    title: 'A boat is waiting for a captain',
+    body: `${trip.ref} · ${trip.assetUnitIdentifier ?? trip.assetTypeName} — ${trip.headcount} aboard, sent early by the desk.`,
     level: 'info',
     audience: ['CHIEF_CAPTAIN'],
     link: '/lagoon/trips',
   })
 
-  return created.map((t) => t.toObject())
+  return trip.toObject()
 }
 
 export async function tripBoard(scope: Scope, mine = false) {
   const base = { tenantId: scope.tenantId, stationId: scope.stationId }
-  const [ready, running, done] = await Promise.all([
+  const [ready, running, done, filling] = await Promise.all([
     Trip.find({ ...base, status: 'READY' }).sort({ createdAt: 1 }).lean(),
     Trip.find({
       ...base,
@@ -148,8 +233,9 @@ export async function tripBoard(scope: Scope, mine = false) {
       .sort({ createdAt: 1 })
       .lean(),
     Trip.find({ ...base, status: { $in: ['COMPLETED', 'CANCELLED'] } }).sort({ endedAt: -1 }).limit(25).lean(),
+    Trip.find({ ...base, status: 'FILLING' }).sort({ createdAt: 1 }).lean(),
   ])
-  return { ready, running, done }
+  return { ready, running, done, filling }
 }
 
 export async function tripDetail(scope: Scope, tripId: string) {
@@ -248,16 +334,19 @@ export async function startTrip(scope: Scope, tripId: string, input: { unitId?: 
     ])
   }
 
-  const boat = input.unitId
-    ? await AssetUnit.findOne({ _id: input.unitId, tenantId: scope.tenantId, assetTypeId: trip.assetTypeId })
+  const wanted = trip.assetUnitId ?? input.unitId
+  const boat = wanted
+    ? await AssetUnit.findOne({ _id: wanted, tenantId: scope.tenantId, assetTypeId: trip.assetTypeId })
     : await AssetUnit.findOne({
         tenantId: scope.tenantId,
         stationId: trip.stationId,
         assetTypeId: trip.assetTypeId,
         status: 'AVAILABLE',
       })
-  if (!boat) throw ApiError.unprocessable('No boat of that kind is free at this station.')
-  if (boat.status !== 'AVAILABLE') throw ApiError.unprocessable(`${boat.identifier} is ${boat.status.toLowerCase()}.`)
+  if (!boat) throw ApiError.unprocessable('The boat on this trip is no longer at this station.')
+  if (!['AVAILABLE', 'RESERVED'].includes(boat.status)) {
+    throw ApiError.unprocessable(`${boat.identifier} is ${boat.status.toLowerCase()}.`)
+  }
 
   const desk = deskScopeOf(scope, trip)
   const boarded = new Set<string>()

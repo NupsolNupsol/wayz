@@ -1,6 +1,6 @@
 import mongoose, { Schema } from 'mongoose'
 
-export const TRIP_STATUSES = ['READY', 'CLAIMED', 'RUNNING', 'COMPLETED', 'CANCELLED'] as const
+export const TRIP_STATUSES = ['FILLING', 'READY', 'CLAIMED', 'RUNNING', 'COMPLETED', 'CANCELLED'] as const
 export type TripStatus = (typeof TRIP_STATUSES)[number]
 
 export interface TripPassenger {

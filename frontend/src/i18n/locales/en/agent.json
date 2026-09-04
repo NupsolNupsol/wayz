@@ -89,7 +89,14 @@
     "byTour": "By the tour · {{price}}",
     "tours": "How many tours",
     "toursHint": "Each tour runs {{minutes}} minutes.",
-    "price": "Price"
+    "price": "Price",
+    "whichBoat": "Which boat are they boarding?",
+    "whichBoatHint": "Boats with the most room first. A boat fills up, then becomes a task for a captain.",
+    "noBoats": "No boat of this kind is free at your desk.",
+    "boatFull": "Full",
+    "seatsFree": "{{free}} of {{seats}} seats free",
+    "seatsLeft": "{{free}} seat(s) left on {{boat}}",
+    "pickABoatFirst": "Pick a boat first."
   },
   "shopdrop": {
     "title": "Shop & Drop",
@@ -375,7 +382,25 @@
     "completed": "Completed trips",
     "noneFinished": "No finished trips yet",
     "noneFinishedHint": "Trips you close appear here with the road you sailed.",
-    "people": "{{count}} aboard"
+    "people": "{{count}} aboard",
+    "seated": "People seated",
+    "fillingNow": "Boats filling",
+    "outOnTheWater": "Out on the water",
+    "boats": "Boats at this desk",
+    "boatsHint": "Every party you sell is seated on the boat you chose. When a boat is full it becomes a task for a captain — you never start a trip yourself.",
+    "noBoats": "No boats at this desk",
+    "noBoatsHint": "Ask the CEO to add boats to this station.",
+    "seatsLeft": "{{free}} of {{seats}} seats left",
+    "sendItNow": "Send it now",
+    "released": "Sent to the captains",
+    "releasedDetail": "{{ref}} is waiting for a captain to take it.",
+    "noneSailing": "Nothing is out on the water.",
+    "stopsClocked": "{{count}} stop(s) clocked",
+    "boatState": {
+      "EMPTY": "Empty",
+      "FILLING": "Filling",
+      "FULL": "Full"
+    }
   },
   "voyage": {
     "title": "Chart & sail",

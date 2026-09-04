@@ -28,6 +28,7 @@ import type { PaymentSplit } from '../interfaces/index.js'
 import { CARD_SCHEMES } from '../domain/commission.js'
 import { canWorkEngine, engineFilter, kioskFilter } from '../domain/access.js'
 import { tenantRules } from './rules.service.js'
+import { seatOnBoat, seatsLeftOn } from './trip.service.js'
 import { raise } from './notification.service.js'
 import { tillForTransaction } from './shift.service.js'
 import { FLOOR_LEADS } from '../domain/roles.js'
@@ -195,6 +196,26 @@ export async function createBooking(scope: Scope, input: CreateBookingInput) {
     ...totals,
   })
 
+  let lagoonBoat: { _id: string; identifier: string; free: number; seats: number } | null = null
+  if (input.engineKind === 'LAGOON') {
+    if (!input.unitId) {
+      throw ApiError.badRequest('Choose the boat this party is boarding.')
+    }
+    const boat = await seatsLeftOn(scope, input.unitId)
+    if (boat.assetTypeId !== product.assetTypeId) {
+      throw ApiError.badRequest(`${boat.identifier} is not a ${product.name}.`)
+    }
+    const people = Math.max(1, Math.floor(Number((input.metadata ?? {}).visitors ?? quantity) || 1))
+    if (people > boat.free) {
+      throw ApiError.unprocessable(
+        boat.free === 0
+          ? `${boat.identifier} is full — pick another boat.`
+          : `${boat.identifier} has ${boat.free} seat(s) left, and this party is ${people}.`,
+      )
+    }
+    lagoonBoat = boat
+  }
+
   const booking = await Booking.create({
     _id: bookingId,
     ref: `${enginePrefix(input.engineKind)}-${pad(bookingSeq)}`,
@@ -225,8 +246,20 @@ export async function createBooking(scope: Scope, input: CreateBookingInput) {
     },
     reservation: null,
     packingPlan,
-    metadata: { ...(input.metadata ?? {}), assetTypeId: product.assetTypeId ?? undefined, deposit: product.depositRequired || undefined },
+    assetUnitId: lagoonBoat?._id ?? null,
+    metadata: {
+      ...(input.metadata ?? {}),
+      assetTypeId: product.assetTypeId ?? undefined,
+      deposit: product.depositRequired || undefined,
+      ...(lagoonBoat ? { boat: lagoonBoat.identifier } : {}),
+    },
   })
+
+  if (lagoonBoat) {
+    booking.session.assetUnitId = lagoonBoat._id
+    booking.markModified('session')
+    await booking.save()
+  }
 
   return { booking, order }
 }
@@ -321,6 +354,16 @@ export async function payBooking(scope: Scope, bookingId: string, splits: Paymen
     kioskId: scope.kioskId ?? null,
   })
   await writeAudits(scope.tenantId, scope.agentId, booking._id, audits)
+
+  if (booking.engineKind === 'LAGOON' && booking.assetUnitId) {
+    await seatOnBoat(scope, {
+      _id: booking._id,
+      ref: booking.ref,
+      customerName: booking.customerName,
+      assetUnitId: booking.assetUnitId,
+      metadata: booking.metadata as Record<string, unknown>,
+    })
+  }
 
   return { booking, order, receipt }
 }

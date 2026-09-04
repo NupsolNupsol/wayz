@@ -43,6 +43,7 @@ const createSchema = z.object({
   durationMin: z.number().int().positive().optional(),
   rateMode: z.enum(['HOURS', 'TOURS']).optional(),
   tours: z.number().int().positive().optional(),
+  unitId: z.string().min(1).optional(),
   bags: z.array(bagSchema).optional(),
   metadata: z.record(z.unknown()).optional(),
 })
