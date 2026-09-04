@@ -42,6 +42,7 @@ export function StationMap({
   onPick,
   onDropNew,
   onTapCanvas,
+  dimUnpicked = false,
   testId = 'station-map',
   children,
 }: {
@@ -54,6 +55,7 @@ export function StationMap({
   onPick?: (point: MapPoint) => void
   onDropNew?: (id: string, x: number, y: number) => void
   onTapCanvas?: (x: number, y: number) => void
+  dimUnpicked?: boolean
   testId?: string
   children?: React.ReactNode
 }) {
@@ -138,6 +140,7 @@ export function StationMap({
       {placed.map((point) => {
         const order = route.indexOf(point._id)
         const reached = reachedIds.includes(point._id)
+        const dimmed = dimUnpicked && order < 0
         return (
           <button
             key={point._id}
@@ -150,8 +153,9 @@ export function StationMap({
             }}
             onClick={() => onPick?.(point)}
             className={clsx(
-              'absolute -translate-x-1/2 -translate-y-1/2 flex flex-col items-center gap-1 group',
+              'absolute -translate-x-1/2 -translate-y-1/2 flex flex-col items-center gap-1 group transition-opacity',
               onMove ? 'cursor-grab active:cursor-grabbing' : onPick ? 'cursor-pointer' : 'cursor-default',
+              dimmed && 'opacity-40 grayscale hover:opacity-75',
             )}
             style={{ left: `${(point.mapX as number) * 100}%`, top: `${(point.mapY as number) * 100}%` }}
           >

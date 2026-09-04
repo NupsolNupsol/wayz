@@ -511,15 +511,13 @@ export function BookingDetailPage() {
               <VerificationTrail verifications={verifications} />
             </Card>
           )}
-          {!unfinished && (
-            <AmountDuePanel
-              bookingId={id}
-              overtime={booking.session?.overtime}
-              openSignal={collectSignal}
-              blockedReason={awaitingRetrievalCheck ? t('page.verifyBeforePayment', { amount: money(dueNow) }) : null}
-              onDueChange={setDueNow}
-            />
-          )}
+          <AmountDuePanel
+            bookingId={id}
+            overtime={booking.session?.overtime}
+            openSignal={collectSignal}
+            blockedReason={awaitingRetrievalCheck ? t('page.verifyBeforePayment', { amount: money(dueNow) }) : null}
+            onDueChange={setDueNow}
+          />
 
           <DevClockPanel bookingId={id} hasStarted={!!s.startedAt} />
 

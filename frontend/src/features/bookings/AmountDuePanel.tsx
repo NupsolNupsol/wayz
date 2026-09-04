@@ -83,7 +83,7 @@ export function AmountDuePanel({
   return (
     <>
       {due > 0 && (
-      <Card className="border-amber-400 bg-amber-50 dark:bg-amber-900/20" data-testid="amount-due">
+      <Card key="amount-due" className="border-amber-400 bg-amber-50 dark:bg-amber-900/20" data-testid="amount-due">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
             <SectionTitle className="flex items-center gap-2">
@@ -123,6 +123,7 @@ export function AmountDuePanel({
       )}
 
       <Modal
+        key="settle"
         open={open}
         onClose={() => setOpen(false)}
         title={t('due.collectTitle')}

@@ -25,6 +25,18 @@ async function main() {
     })
   }
 
+  const trackingHome = env.PUBLIC_APP_URL
+  const reachable = await fetch(`${trackingHome.replace(/\/$/, '')}/`, { method: 'HEAD' })
+    .then((r) => r.status < 500)
+    .catch(() => false)
+  if (!reachable) {
+    logger.warn('Customers cannot open their tracking link: PUBLIC_APP_URL does not answer', {
+      publicAppUrl: trackingHome,
+      sentIn: 'expiry warnings, invoices and the tracking QR',
+      fix: 'Point PUBLIC_APP_URL at the address that actually serves the web app, and make sure that host serves frontend/dist.',
+    })
+  }
+
   const app = createApp()
   const server = app.listen(env.PORT, () =>
     logger.info('WAYZ API listening', { port: env.PORT, env: env.NODE_ENV }),

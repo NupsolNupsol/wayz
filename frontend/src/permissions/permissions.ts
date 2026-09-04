@@ -152,6 +152,7 @@ export function homeForRole(role: Role | undefined): string {
   if (isAccountantRole(role)) return '/accounting'
   if (isHrRole(role)) return '/hr'
   if (isCourierRole(role)) return '/courier'
+  if (role === 'CHIEF_CAPTAIN') return '/lagoon/captain'
   if (role && MANAGER_ROLES.includes(role)) return '/manager'
   if (isAgentRole(role)) return '/dashboard'
   if (role) return '/no-workspace'

@@ -387,7 +387,11 @@
     "started": "جارية",
     "startedDetail": "تبحر على {{boat}}.",
     "didNotGo": "لم تتم العملية",
-    "planTheRoad": "خطط الطريق"
+    "planTheRoad": "خطط الطريق",
+    "completed": "الرحلات المنتهية",
+    "noneFinished": "لا توجد رحلات منتهية بعد",
+    "noneFinishedHint": "ستظهر هنا الرحلات التي تنهيها مع الطريق الذي أبحرته.",
+    "people": "{{count}} راكب"
   },
   "voyage": {
     "title": "الخريطة والإبحار",

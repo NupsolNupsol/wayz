@@ -371,7 +371,11 @@
     "started": "Under way",
     "startedDetail": "Sailing on {{boat}}.",
     "didNotGo": "That did not go through",
-    "planTheRoad": "Plan the road"
+    "planTheRoad": "Plan the road",
+    "completed": "Completed trips",
+    "noneFinished": "No finished trips yet",
+    "noneFinishedHint": "Trips you close appear here with the road you sailed.",
+    "people": "{{count}} aboard"
   },
   "voyage": {
     "title": "Chart & sail",

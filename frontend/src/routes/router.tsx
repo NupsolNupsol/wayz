@@ -72,6 +72,7 @@ import { LagoonTripsPage } from "@/features/lagoon/LagoonTripsPage";
 import { HrShifts } from "@/features/hr/HrShifts";
 import { CaptainBoardPage } from "@/features/lagoon/CaptainBoardPage";
 import { CaptainVoyagePage } from "@/features/lagoon/CaptainVoyagePage";
+import { CaptainHistoryPage } from "@/features/lagoon/CaptainHistoryPage";
 import { ManualSalesPage } from "@/features/finance/ManualSalesPage";
 import { RefundRequestsPage } from "@/features/finance/RefundRequestsPage";
 import { AssetsPage } from "@/features/assets/AssetsPage";
@@ -305,6 +306,7 @@ export const router = createBrowserRouter([
       { path: "lagoon/trips", element: <LagoonTripsPage /> },
       { path: "lagoon/captain", element: <CaptainBoardPage /> },
       { path: "lagoon/voyage", element: <CaptainVoyagePage /> },
+      { path: "lagoon/captain/history", element: <CaptainHistoryPage /> },
       { path: "deliveries", element: <KioskDeliveriesPage /> },
       { path: "assets", element: <AssetsPage /> },
       { path: "customers", element: <CustomersPage /> },

@@ -1,7 +1,7 @@
 import { NavLink } from 'react-router-dom'
 import { clsx } from 'clsx'
 import { PanelLeftClose, X, PackageOpen } from 'lucide-react'
-import { ACCOUNTANT_NAV, AGENT_NAV, COURIER_NAV, HR_NAV, MANAGER_NAV, TENANT_ADMIN_NAV } from '@/config/navigation'
+import { ACCOUNTANT_NAV, AGENT_NAV, CAPTAIN_NAV, COURIER_NAV, HR_NAV, MANAGER_NAV, TENANT_ADMIN_NAV } from '@/config/navigation'
 import { APP } from '@/config/appConfig'
 import { Icon } from '@/components/Icon'
 import { useTranslation } from 'react-i18next'
@@ -14,6 +14,7 @@ function navFor(role: Role) {
   if (isAccountantRole(role)) return ACCOUNTANT_NAV
   if (isHrRole(role)) return HR_NAV
   if (isCourierRole(role)) return COURIER_NAV
+  if (role === 'CHIEF_CAPTAIN') return CAPTAIN_NAV
   return isAgentRole(role) ? AGENT_NAV : MANAGER_NAV
 }
 

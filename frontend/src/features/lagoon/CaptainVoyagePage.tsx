@@ -129,6 +129,7 @@ export function CaptainVoyagePage() {
               boat={boat}
               selectedId={nextStopId}
               onPick={toggle}
+              dimUnpicked
               testId="voyage-map"
             >
               {points.every((p) => p.mapX === null) && (
@@ -156,9 +157,27 @@ export function CaptainVoyagePage() {
           <div className="flex flex-col gap-4">
             <Card className="p-4">
               <SectionTitle className="mb-1">{trip.ref}</SectionTitle>
-              <p className="text-sm text-muted flex items-center gap-1.5 mb-3">
-                <Users size={14} /> {t('trips.aboard', { headcount: trip.headcount, seats: trip.seats })}
+              <p className="text-sm text-muted flex flex-wrap items-center gap-x-3 gap-y-1 mb-3">
+                <span className="flex items-center gap-1.5">
+                  <Ship size={14} /> {trip.assetUnitIdentifier ?? trip.assetTypeName}
+                </span>
+                <span className="flex items-center gap-1.5">
+                  <Users size={14} /> {t('trips.aboard', { headcount: trip.headcount, seats: trip.seats })}
+                </span>
               </p>
+
+              {trip.passengers.length > 0 && (
+                <ul className="flex flex-col gap-1.5 mb-4" data-testid="voyage-manifest">
+                  {trip.passengers.map((p) => (
+                    <li key={p.bookingId} className="flex items-center justify-between gap-2 text-sm">
+                      <span className="min-w-0 truncate text-navy dark:text-dk-text">{p.customerName || p.bookingRef}</span>
+                      <span className="text-xs text-muted whitespace-nowrap">
+                        {p.bookingRef} · {t('trips.people', { count: p.people })}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              )}
 
               {trip.status === 'CLAIMED' && plan.length === 0 && (
                 <p className="text-sm text-muted mb-3" data-testid="voyage-need-road">

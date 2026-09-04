@@ -217,6 +217,28 @@ export const COURIER_NAV: NavGroup[] = [
   },
 ]
 
+export const CAPTAIN_NAV: NavGroup[] = [
+  {
+    id: 'captain-work',
+    label: 'My work',
+    items: [
+      { id: 'captain-board', label: 'Trip board', to: '/lagoon/captain', icon: 'Anchor', testId: 'nav-lagoon-captain' },
+      { id: 'captain-voyage', label: 'Chart & sail', to: '/lagoon/voyage', icon: 'Map', testId: 'nav-lagoon-voyage' },
+      { id: 'captain-history', label: 'Completed', to: '/lagoon/captain/history', icon: 'PackageCheck', testId: 'nav-captain-history' },
+    ],
+  },
+  {
+    id: 'captain-session',
+    label: 'Session',
+    items: [{ id: 'captain-profile', label: 'Profile', to: '/profile', icon: 'UserCog', testId: 'nav-captain-profile' }],
+  },
+  {
+    id: 'help',
+    label: 'Help & docs',
+    items: [{ id: 'manual', label: 'User manual', to: '/help/manual', icon: 'BookOpen', testId: 'nav-manual' }],
+  },
+]
+
 export const AGENT_NAV: NavGroup[] = [
   {
     id: 'overview',

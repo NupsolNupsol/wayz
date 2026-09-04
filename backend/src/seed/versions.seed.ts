@@ -270,6 +270,15 @@ const RELEASE_FOUR_MORE: Draft[] = [
     [{ label: 'Refund approvals', to: '/refund-requests' }],
   ),
   change(
+    'Lagoon',
+    'The captain works like the courier',
+    'The captain workspace is a task list, not a counter: Trip board, Chart and sail, Completed, Profile. A trip shows the boat, its seats and who is aboard. Only the captain starts a trip.',
+    ['Chief captain'],
+    [CAPTAIN, 'Look at the menu on the left and at where you landed', 'Take a trip and read the boat, the seats and the manifest'],
+    'The menu carries only trips, the chart, completed trips and the profile - no bookings, no operations, no assets. The trip names the boat, how many seats it has, and every party aboard with its reference.',
+    [{ label: 'Trip board', to: '/lagoon/captain' }, { label: 'Chart and sail', to: '/lagoon/voyage' }],
+  ),
+  change(
     'Across the platform',
     'These release notes',
     'A public page listing every release with the changes in it, how to test each one, and a link into the screen. Anyone who tests a change can check it off so nobody repeats it, or report a problem that stays on the card for the team to read.',
