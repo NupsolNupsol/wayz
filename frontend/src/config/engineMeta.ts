@@ -16,7 +16,6 @@ export const ENGINE_META: Record<EngineKind, EngineMeta> = {
   ANAAM: { label: "Ana'am Experience", tagline: 'Animal experiences', icon: 'Rabbit', route: '/anaam' },
 }
 
-/** The activity's name in the reader's language; the table above holds the English fallback. */
 export function engineLabel(kind: EngineKind | string): string {
   return i18n.t(`common:engine.${kind}`, { defaultValue: ENGINE_META[kind as EngineKind]?.label ?? String(kind) })
 }
@@ -33,10 +32,6 @@ export function isVisibleEngine(kind: EngineKind): boolean {
 
 export const visibleEngineOptions = () => VISIBLE_ENGINES.map((k) => ({ label: engineLabel(k), value: k }))
 
-/**
- * An agent is dedicated to specific activities; every other role passes an empty list
- * and sees them all.
- */
 export function enginesFor(assigned: EngineKind[]): EngineKind[] {
   return assigned.length ? VISIBLE_ENGINES.filter((k) => assigned.includes(k)) : VISIBLE_ENGINES
 }

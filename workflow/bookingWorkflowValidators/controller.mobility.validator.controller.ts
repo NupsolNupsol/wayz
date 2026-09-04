@@ -1,5 +1,5 @@
 import type { ValidationResult, WorkflowContext } from '../shared/types.js'
-import { requireAvailableUnit, requireFlag, requirePositiveDuration, requireReason } from './shared.validators.js'
+import { requireAvailableUnit, requireFlag, requirePaid, requirePositiveDuration, requireReason, requireTargetUnitAvailable } from './shared.validators.js'
 
 export const useMobilityValidator = (transitionCode: string, ctx: WorkflowContext): ValidationResult => {
   const errors: string[] = []
@@ -11,10 +11,16 @@ export const useMobilityValidator = (transitionCode: string, ctx: WorkflowContex
 
     case 'TO_HANDOVER': {
       errors.push(
+        ...requirePaid(ctx),
         ...requireFlag(ctx, 'inspectionDone', 'A condition inspection must be recorded before handover.'),
         ...requireAvailableUnit(ctx),
         ...requirePositiveDuration(ctx),
       )
+      break
+    }
+
+    case 'TO_REPLACED': {
+      errors.push(...requireReason(ctx), ...requireTargetUnitAvailable(ctx))
       break
     }
 

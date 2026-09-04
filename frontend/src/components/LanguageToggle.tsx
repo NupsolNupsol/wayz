@@ -8,7 +8,6 @@ import { LANGUAGES, type Language } from '@/i18n'
 
 const SHORT: Record<Language, string> = { en: 'EN', ar: 'ع' }
 
-/** Two letters, one tap. The whole platform turns over, including the direction it reads in. */
 export function LanguageToggle({ compact = false }: { compact?: boolean }) {
   const { t, i18n } = useTranslation()
   const language = useAuthStore((s) => s.language)

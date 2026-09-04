@@ -1,5 +1,5 @@
 import { AssetType, Booking, CatalogueProduct, Tenant } from '../models/index.js'
-import { BILLING_MODELS, DURATION_UNITS } from '../domain/types.js'
+import { BILLING_MODELS, DURATION_UNITS, SALE_TYPES, SALE_UNITS } from '../domain/types.js'
 import { ApiError } from '../utils/ApiError.js'
 import { round2 } from '../utils/helpers.js'
 import { DEFAULT_VAT_RATE } from '../domain/tax.js'
@@ -27,6 +27,8 @@ export async function listPricing(scope: ManagerScope) {
     vatRate: tenant?.vatRate ?? DEFAULT_VAT_RATE,
     billingModels: [...BILLING_MODELS],
     durationUnits: [...DURATION_UNITS],
+    saleUnits: [...SALE_UNITS],
+    saleTypes: [...SALE_TYPES],
     assetTypes: assetTypes.map((t) => ({ _id: t._id, name: t.name, kind: t.kind, engineKind: t.engineKind })),
     products: products.map((p) => ({
       _id: p._id,
@@ -34,9 +36,15 @@ export async function listPricing(scope: ManagerScope) {
       engineKind: p.engineKind,
       category: p.category,
       basePrice: p.basePrice,
+      hourlyPrice: p.hourlyPrice ?? null,
+      tourPrice: p.tourPrice ?? null,
+      tourMinutes: p.tourMinutes ?? null,
+      saleUnit: p.saleUnit ?? 'ITEM',
+      saleType: p.saleType ?? 'RENTAL',
       overtimeHourlyRate: p.overtimeHourlyRate ?? null,
       effectiveOvertimeRate: p.overtimeHourlyRate ?? p.basePrice,
       depositRequired: p.depositRequired,
+      penaltyPrice: p.penaltyPrice ?? 0,
       assetTypeId: p.assetTypeId,
       assetTypeName: p.assetTypeId ? (typeName.get(p.assetTypeId) ?? null) : null,
       billingModel: p.billingModel,
@@ -60,8 +68,20 @@ function validate(input: Partial<ProductInput>) {
   if (input.depositRequired !== undefined && (!Number.isFinite(input.depositRequired) || input.depositRequired < 0)) {
     throw ApiError.badRequest('Deposit must be zero or more.')
   }
+  if (input.penaltyPrice !== undefined && (!Number.isFinite(input.penaltyPrice) || input.penaltyPrice < 0)) {
+    throw ApiError.badRequest('Penalty price must be zero or more.')
+  }
   if (input.billingModel && !BILLING_MODELS.includes(input.billingModel)) {
     throw ApiError.badRequest(`Unknown billing model "${input.billingModel}".`)
+  }
+  if (input.saleUnit && !SALE_UNITS.includes(input.saleUnit)) {
+    throw ApiError.badRequest(`Unknown sale unit "${input.saleUnit}".`)
+  }
+  if (input.saleType && !SALE_TYPES.includes(input.saleType)) {
+    throw ApiError.badRequest(`Unknown sale type "${input.saleType}".`)
+  }
+  if (input.saleType === 'SALE' && input.overtimeHourlyRate) {
+    throw ApiError.badRequest('A sale has no overtime — leave the hourly rate empty or make it a rental.')
   }
 }
 
@@ -82,8 +102,14 @@ export async function createProduct(scope: ManagerScope, input: ProductInput) {
     name: input.name.trim(),
     category: input.category ?? 'General',
     basePrice: round2(input.basePrice),
+    hourlyPrice: input.hourlyPrice == null ? null : round2(input.hourlyPrice),
+    tourPrice: input.tourPrice == null ? null : round2(input.tourPrice),
+    tourMinutes: input.tourMinutes ?? null,
+    saleUnit: input.saleUnit ?? 'ITEM',
+    saleType: input.saleType ?? 'RENTAL',
     overtimeHourlyRate: input.overtimeHourlyRate == null ? null : round2(input.overtimeHourlyRate),
     depositRequired: round2(input.depositRequired ?? 0),
+    penaltyPrice: round2(input.penaltyPrice ?? 0),
     assetTypeId: input.assetTypeId ?? null,
     billingModel: input.billingModel,
     durationUnit: input.durationUnit,
@@ -103,7 +129,13 @@ export async function updateProduct(scope: ManagerScope, id: string, patch: Part
   if (patch.overtimeHourlyRate !== undefined) {
     product.overtimeHourlyRate = patch.overtimeHourlyRate == null ? null : round2(patch.overtimeHourlyRate)
   }
+  if (patch.hourlyPrice !== undefined) product.hourlyPrice = patch.hourlyPrice == null ? null : round2(patch.hourlyPrice)
+  if (patch.tourPrice !== undefined) product.tourPrice = patch.tourPrice == null ? null : round2(patch.tourPrice)
+  if (patch.tourMinutes !== undefined) product.tourMinutes = patch.tourMinutes ?? null
   if (patch.depositRequired !== undefined) product.depositRequired = round2(patch.depositRequired)
+  if (patch.penaltyPrice !== undefined) product.penaltyPrice = round2(patch.penaltyPrice)
+  if (patch.saleUnit !== undefined) product.saleUnit = patch.saleUnit
+  if (patch.saleType !== undefined) product.saleType = patch.saleType
   if (patch.billingModel !== undefined) product.billingModel = patch.billingModel
   if (patch.durationUnit !== undefined) product.durationUnit = patch.durationUnit
   if (patch.emoji !== undefined) product.emoji = patch.emoji

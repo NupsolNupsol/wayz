@@ -2,6 +2,8 @@ import { Booking, Incident } from '../models/index.js'
 import { ApiError } from '../utils/ApiError.js'
 import { recordAudit } from './audit.service.js'
 import { allowedEngines, canWorkEngine } from '../domain/access.js'
+import { FLOOR_LEADS } from '../domain/roles.js'
+import { raise } from './notification.service.js'
 import { formatId, nextSequence, pad } from './counter.service.js'
 import type { EngineKind } from '../domain/types.js'
 import { isIncidentTypeValidFor } from '../domain/incidents.js'
@@ -13,7 +15,6 @@ import type { Scope } from '../interfaces/index.js'
 export function listIncidents(scope: Scope) {
   const q: Record<string, unknown> = { tenantId: scope.tenantId, stationId: scope.stationId }
   const allowed = allowedEngines(scope)
-  // A station-wide incident carries no activity, so it stays visible to whoever is on the floor.
   if (allowed) q.engineKind = { $in: [...allowed, null] }
   return Incident.find(q).sort({ createdAt: -1 }).limit(200).lean()
 }
@@ -49,6 +50,18 @@ export async function createIncident(scope: Scope, data: CreateIncidentInput) {
     bookingId: data.bookingId ?? null,
     engineKind,
     status: 'REPORTED',
+  })
+
+  await raise({
+    tenantId: scope.tenantId,
+    stationId: scope.stationId,
+    kioskId: scope.kioskId,
+    engineKind,
+    title: `Incident reported — ${INCIDENT_LABELS[data.type] ?? data.type}`,
+    body: `${incident.ref}: ${data.description}`,
+    level: 'warning',
+    audience: FLOOR_LEADS,
+    link: `/manager/incidents`,
   })
 
   await recordAudit({

@@ -160,5 +160,60 @@
     "now": "· now",
     "quarterly": "quarterly",
     "annual": "annual"
+  },
+  "manualSales": {
+    "title": "Manual sales",
+    "subtitle": "Revenue taken off-system. It counts for nothing until it is bank-matched and approved.",
+    "record": "Record a sale",
+    "recordBlurb": "A paper receipt, a season that ran before the tills were live.",
+    "recorded": "Entry recorded",
+    "recordedDetail": "{{ref}} is pending approval.",
+    "awaitingApproval": "Awaiting approval",
+    "pendingValue": "Pending value",
+    "description": "What it was",
+    "descriptionHint": "Enough for whoever approves it to recognise the money.",
+    "amountHint": "The amount actually taken, VAT included.",
+    "occurredAt": "Taken on",
+    "occurredHint": "The day the money changed hands, not today.",
+    "review": "Review",
+    "reviewTitle": "Review {{ref}}",
+    "reviewBlurb": "Approving posts it to revenue. Someone else has to approve an entry you made yourself.",
+    "approve": "Approve",
+    "approved": "Posted to revenue",
+    "reject": "Reject",
+    "rejected": "Entry rejected",
+    "note": "Note",
+    "noteHint": "What it was matched against, or why it is being rejected.",
+    "emptyTitle": "No manual entries",
+    "emptyMessage": "Everything so far went through a till.",
+    "status": {
+      "PENDING": "Pending",
+      "APPROVED": "Approved",
+      "REJECTED": "Rejected"
+    }
+  },
+  "refunds": {
+    "title": "Refund approvals",
+    "subtitleApprover": "Money waiting for someone who may release it.",
+    "subtitleDesk": "What you have asked to give back, and where it got to.",
+    "awaiting": "Awaiting approval",
+    "awaitingValue": "Value held",
+    "askedBy": "Asked by",
+    "review": "Review",
+    "reviewTitle": "Review {{ref}}",
+    "reviewBlurb": "Releasing it moves the money on the original payment method. Nobody releases their own request.",
+    "release": "Release",
+    "released": "Refund released",
+    "refuse": "Refuse",
+    "refused": "Refund refused",
+    "note": "Note",
+    "noteHint": "Required when refusing; useful either way.",
+    "emptyTitle": "Nothing waiting",
+    "emptyMessage": "Refunds asked for at a desk appear here for approval.",
+    "status": {
+      "PENDING": "Waiting",
+      "APPROVED": "Released",
+      "REJECTED": "Refused"
+    }
   }
 }

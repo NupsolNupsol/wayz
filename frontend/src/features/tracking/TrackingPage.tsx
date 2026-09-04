@@ -16,7 +16,6 @@ export function TrackingPage() {
   return (
     <div className="min-h-screen bg-canvas dark:bg-dk-bg px-4 py-6 sm:py-10" data-testid="tracking-page">
       <div className="mx-auto w-full max-w-md">
-        {/* The customer never signs in, so this is their only way to choose a language. */}
         <div className="flex justify-end mb-2">
           <LanguageToggle compact />
         </div>

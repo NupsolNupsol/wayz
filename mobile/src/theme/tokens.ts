@@ -1,7 +1,3 @@
-/**
- * The few places that need a colour as a value rather than a class: the status bar, an
- * ActivityIndicator, a chart bar, a native header. Everything else uses Tailwind classes.
- */
 export const COLORS = {
   brand: '#14b8a6',
   brandDark: '#0f766e',
@@ -22,7 +18,6 @@ export const COLORS = {
 
 export type Tone = 'brand' | 'success' | 'warn' | 'danger' | 'info' | 'neutral'
 
-/** One tone table, so a pill, a banner and a stat all agree on what "late" looks like. */
 export const TONE_CLASS: Record<Tone, { box: string; border: string; text: string; dot: string }> = {
   brand: { box: 'bg-brand-soft', border: 'border-brand/30', text: 'text-brand-ink', dot: 'bg-brand' },
   success: { box: 'bg-success-soft', border: 'border-success/30', text: 'text-success', dot: 'bg-success' },
@@ -32,12 +27,7 @@ export const TONE_CLASS: Record<Tone, { box: string; border: string; text: strin
   neutral: { box: 'bg-canvas', border: 'border-line', text: 'text-muted', dot: 'bg-faint' },
 }
 
-/**
- * Booking, bag, unit and delivery states all land in one of these tones. The workflow owns
- * the states; this only decides how urgent each one looks.
- */
 const STATUS_TONE: Record<string, Tone> = {
-  // bookings
   DRAFT: 'neutral',
   CONFIRMED: 'info',
   RESERVED: 'info',
@@ -48,14 +38,12 @@ const STATUS_TONE: Record<string, Tone> = {
   SERVED: 'success',
   COMPLETED: 'neutral',
   CANCELLED: 'neutral',
-  // bags
   REGISTERED: 'neutral',
   LABELLED: 'info',
   STORED: 'success',
   IN_TRANSIT: 'warn',
   RETRIEVED: 'neutral',
   DELIVERED: 'neutral',
-  // units
   AVAILABLE: 'success',
   HELD: 'warn',
   OCCUPIED: 'info',
@@ -64,14 +52,12 @@ const STATUS_TONE: Record<string, Tone> = {
   BLOCKED: 'danger',
   OUT_OF_SERVICE: 'danger',
   MAINTENANCE: 'warn',
-  // deliveries
   REQUESTED: 'warn',
   ASSIGNED: 'info',
   RELEASE_REQUESTED: 'warn',
   RELEASE_APPROVED: 'info',
   PICKED_UP: 'info',
   FAILED: 'danger',
-  // shifts, payments, incidents
   OPEN: 'success',
   COUNTED: 'info',
   AWAITING_APPROVAL: 'warn',
@@ -88,7 +74,6 @@ const STATUS_TONE: Record<string, Tone> = {
 export const toneFor = (status: string | null | undefined): Tone =>
   (status && STATUS_TONE[status.toUpperCase()]) || 'neutral'
 
-/** `RETRIEVAL_IN_PROGRESS` → `Retrieval in progress`. */
 export const humanise = (code: string | null | undefined): string => {
   if (!code) return '—'
   const words = code.replaceAll('_', ' ').toLowerCase()

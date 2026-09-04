@@ -3,20 +3,37 @@ import { AssetType, AssetUnit, Booking, CatalogueProduct, Kiosk, Station } from 
 import { ApiError } from '../utils/ApiError.js'
 import { nextId } from './counter.service.js'
 import { recordAudit } from './audit.service.js'
-import type { AssetUnitStatus, BagCategory, BillingModel, EngineKind } from '../domain/types.js'
+import type { AssetUnitStatus, BagCategory, BillingModel, EngineKind, Role, SaleType, SaleUnit } from '../domain/types.js'
+import { canWorkEngine, engineFilter } from '../domain/access.js'
+import { tenantRules } from './rules.service.js'
+import type { Scope } from '../interfaces/index.js'
+import { FLOOR_LEADS } from '../domain/roles.js'
+import { raise } from './notification.service.js'
 
 export interface AssetScope {
   tenantId: string
   userId: string
+  role: Role
+  engineKinds?: EngineKind[]
 }
 
-/** Statuses a person may set by hand. The rest are moved by the workflow itself. */
+function assertOwns(scope: AssetScope, engineKind: EngineKind) {
+  if (!canWorkEngine({ role: scope.role, engineKinds: scope.engineKinds }, engineKind)) {
+    throw ApiError.forbidden('You are not assigned to that activity.')
+  }
+}
+
+async function assertOwnsType(scope: AssetScope, assetTypeId: string) {
+  const type = await AssetType.findOne({ _id: assetTypeId, tenantId: scope.tenantId }, { engineKind: 1 }).lean()
+  if (!type) throw ApiError.notFound('Asset not found.')
+  assertOwns(scope, type.engineKind)
+}
+
 export const SETTABLE_STATUSES: AssetUnitStatus[] = ['AVAILABLE', 'OUT_OF_SERVICE', 'MAINTENANCE', 'BLOCKED']
 
 export const ASSET_KINDS = ['COMPARTMENT', 'VEHICLE', 'TABLE', 'BOAT', 'ANIMAL'] as const
 export type AssetKind = (typeof ASSET_KINDS)[number]
 
-/** What a kind of asset is physically shaped like, and therefore how it is sold. */
 const KIND_DEFAULTS: Record<AssetKind, { billingModel: BillingModel; emoji: string }> = {
   COMPARTMENT: { billingModel: 'PER_COMPARTMENT', emoji: '🗄️' },
   VEHICLE: { billingModel: 'DURATION_BASED', emoji: '🛴' },
@@ -25,7 +42,22 @@ const KIND_DEFAULTS: Record<AssetKind, { billingModel: BillingModel; emoji: stri
   ANIMAL: { billingModel: 'PACKAGE', emoji: '🐪' },
 }
 
-/** A unit holding a live booking cannot be taken away from it. */
+const SALE_UNIT_DEFAULTS: Record<AssetKind, SaleUnit> = {
+  COMPARTMENT: 'BAG',
+  VEHICLE: 'HOUR',
+  BOAT: 'TOUR',
+  TABLE: 'ITEM',
+  ANIMAL: 'TOUR',
+}
+
+const SALE_TYPE_DEFAULTS: Record<AssetKind, SaleType> = {
+  COMPARTMENT: 'SALE',
+  VEHICLE: 'RENTAL',
+  BOAT: 'RENTAL',
+  TABLE: 'RENTAL',
+  ANIMAL: 'RENTAL',
+}
+
 const BUSY: AssetUnitStatus[] = ['HELD', 'RESERVED', 'OCCUPIED', 'RETRIEVAL_PENDING']
 
 const round2 = (n: number) => Math.round(n * 100) / 100
@@ -44,14 +76,14 @@ function bucket(statuses: Record<string, number>) {
   }
 }
 
-/** The catalogue product that sells this asset type — the type's list price lives there. */
 async function productFor(tenantId: string, assetTypeId: string) {
-  return CatalogueProduct.findOne({ tenantId, assetTypeId }).lean()
+  return CatalogueProduct.findOne({ tenantId, assetTypeId }).sort({ basePrice: 1, _id: 1 }).lean()
 }
 
 export async function listAssetTypes(scope: AssetScope, engineKind?: EngineKind) {
   const match: Record<string, unknown> = { tenantId: scope.tenantId }
-  if (engineKind) match.engineKind = engineKind
+  const engines = engineFilter({ role: scope.role, engineKinds: scope.engineKinds }, engineKind)
+  if (engines !== undefined) match.engineKind = engines
 
   const [types, unitAgg, products, unitStations] = await Promise.all([
     AssetType.find(match).sort({ engineKind: 1, name: 1 }).lean(),
@@ -80,7 +112,11 @@ export async function listAssetTypes(scope: AssetScope, engineKind?: EngineKind)
     stationsByType.set(row._id.assetTypeId, list)
   }
 
-  const productByType = new Map(products.filter((p) => p.assetTypeId).map((p) => [p.assetTypeId as string, p]))
+  const productByType = new Map<string, (typeof products)[number]>()
+  for (const product of [...products].sort((a, b) => a.basePrice - b.basePrice || a._id.localeCompare(b._id))) {
+    if (!product.assetTypeId || productByType.has(product.assetTypeId)) continue
+    productByType.set(product.assetTypeId, product)
+  }
   const stations = await Station.find({ tenantId: scope.tenantId }).lean()
   const stationName = new Map(stations.map((s) => [s._id, s.name]))
 
@@ -99,7 +135,10 @@ export async function listAssetTypes(scope: AssetScope, engineKind?: EngineKind)
         productId: product?._id ?? null,
         productName: product?.name ?? null,
         basePrice: product?.basePrice ?? null,
+        saleUnit: product?.saleUnit ?? null,
+        saleType: product?.saleType ?? null,
         depositRequired: product?.depositRequired ?? null,
+        penaltyPrice: product?.penaltyPrice ?? null,
         overtimeHourlyRate: product?.overtimeHourlyRate ?? null,
         billingModel: product?.billingModel ?? null,
         stationNames: [...new Set(stationsByType.get(type._id) ?? [])].map((id) => stationName.get(id) ?? id),
@@ -113,6 +152,7 @@ export async function listAssetTypes(scope: AssetScope, engineKind?: EngineKind)
 export async function assetTypeDetail(scope: AssetScope, assetTypeId: string) {
   const type = await AssetType.findOne({ _id: assetTypeId, tenantId: scope.tenantId }).lean()
   if (!type) throw ApiError.notFound('Asset type not found.')
+  assertOwns(scope, type.engineKind)
 
   const [units, product, stations, kiosks] = await Promise.all([
     AssetUnit.find({ tenantId: scope.tenantId, assetTypeId }).sort({ identifier: 1 }).limit(2000).lean(),
@@ -142,7 +182,10 @@ export async function assetTypeDetail(scope: AssetScope, assetTypeId: string) {
       productId: product?._id ?? null,
       productName: product?.name ?? null,
       basePrice: product?.basePrice ?? null,
+      saleUnit: product?.saleUnit ?? null,
+      saleType: product?.saleType ?? null,
       depositRequired: product?.depositRequired ?? null,
+      penaltyPrice: product?.penaltyPrice ?? null,
       overtimeHourlyRate: product?.overtimeHourlyRate ?? null,
       billingModel: product?.billingModel ?? null,
       ...bucket(statuses),
@@ -160,16 +203,51 @@ export async function assetTypeDetail(scope: AssetScope, assetTypeId: string) {
       note: u.note ?? '',
       priceOverride: u.priceOverride ?? null,
       effectivePrice: u.priceOverride ?? product?.basePrice ?? null,
+      penaltyPrice: u.penaltyPrice ?? null,
+      effectivePenalty: u.penaltyPrice ?? product?.penaltyPrice ?? null,
       currentBookingId: u.currentBookingId,
       currentBookingRef: u.currentBookingId ? (bookingRef.get(u.currentBookingId) ?? null) : null,
     })),
   }
 }
 
-/** What a scanned QR code resolves to: one unit, with enough context to act on it. */
+export async function unitReturnPosition(scope: Scope, unitId: string) {
+  const unit = await AssetUnit.findOne({ _id: unitId, tenantId: scope.tenantId }).lean()
+  if (!unit) throw ApiError.notFound('Asset not found.')
+
+  const [type, kiosk, rules] = await Promise.all([
+    AssetType.findOne({ _id: unit.assetTypeId, tenantId: scope.tenantId }).lean(),
+    unit.kioskId ? Kiosk.findOne({ _id: unit.kioskId, tenantId: scope.tenantId }).lean() : null,
+    tenantRules(scope.tenantId),
+  ])
+
+  const myDesk = scope.kioskId ?? null
+  const belongsHere = !myDesk || !unit.kioskId || unit.kioskId === myDesk
+
+  const booking = unit.currentBookingId
+    ? await Booking.findOne({ _id: unit.currentBookingId, tenantId: scope.tenantId }).lean()
+    : null
+  const live = !!booking && ['ACTIVE', 'OVERTIME'].includes(booking.status)
+
+  return {
+    unitId: unit._id,
+    identifier: unit.identifier,
+    assetTypeName: type?.name ?? unit.assetTypeId,
+    engineKind: type?.engineKind ?? null,
+    status: unit.status,
+    homeKioskId: unit.kioskId,
+    homeKioskName: kiosk?.name ?? null,
+    belongsHere,
+    booking: live && booking ? { id: booking._id, ref: booking.ref, customerName: booking.customerName, status: booking.status } : null,
+    wrongDeskPenalty: belongsHere ? 0 : rules.rental.wrongStationPenalty,
+    currency: undefined as string | undefined,
+  }
+}
+
 export async function assetUnitDetail(scope: AssetScope, unitId: string) {
   const unit = await AssetUnit.findOne({ _id: unitId, tenantId: scope.tenantId }).lean()
   if (!unit) throw ApiError.notFound('Asset not found.')
+  await assertOwnsType(scope, unit.assetTypeId)
 
   const [type, product, station, kiosk, booking] = await Promise.all([
     AssetType.findOne({ _id: unit.assetTypeId, tenantId: scope.tenantId }).lean(),
@@ -186,6 +264,8 @@ export async function assetUnitDetail(scope: AssetScope, unitId: string) {
     note: unit.note ?? '',
     priceOverride: unit.priceOverride ?? null,
     effectivePrice: unit.priceOverride ?? product?.basePrice ?? null,
+    penaltyPrice: unit.penaltyPrice ?? null,
+    effectivePenalty: unit.penaltyPrice ?? product?.penaltyPrice ?? null,
     assetTypeId: unit.assetTypeId,
     assetTypeName: type?.name ?? unit.assetTypeId,
     assetTypeKind: type?.kind ?? null,
@@ -206,7 +286,10 @@ export interface NewAssetKind {
   engineKind: EngineKind
   kind: AssetKind
   basePrice: number
+  saleUnit?: SaleUnit
+  saleType?: SaleType
   depositRequired?: number
+  penaltyPrice?: number
   overtimeHourlyRate?: number | null
   billingModel?: BillingModel
   capacity?: {
@@ -217,17 +300,13 @@ export interface NewAssetKind {
     capacityScore?: number
     seats?: number
   }
-  /** Provision this many straight away, so the kind is usable the moment it exists. */
   initialCount?: number
   stationId?: string
   kioskId?: string | null
 }
 
-/**
- * Creates a kind of asset and the product that sells it in one step: a kind with no product
- * has no price, and a price with no kind has nothing to hand over.
- */
 export async function createAssetKind(scope: AssetScope, input: NewAssetKind) {
+  assertOwns(scope, input.engineKind)
   const name = input.name.trim()
   if (name.length < 2) throw ApiError.badRequest('Give the kind a name.')
 
@@ -257,7 +336,10 @@ export async function createAssetKind(scope: AssetScope, input: NewAssetKind) {
     name,
     category: 'General',
     basePrice: round2(input.basePrice),
+    saleUnit: input.saleUnit ?? SALE_UNIT_DEFAULTS[input.kind],
+    saleType: input.saleType ?? SALE_TYPE_DEFAULTS[input.kind],
     depositRequired: round2(input.depositRequired ?? 0),
+    penaltyPrice: round2(input.penaltyPrice ?? 0),
     overtimeHourlyRate: input.overtimeHourlyRate == null ? null : round2(input.overtimeHourlyRate),
     assetTypeId,
     billingModel: input.billingModel ?? defaults.billingModel,
@@ -296,6 +378,7 @@ export async function updateAssetKind(
 ) {
   const type = await AssetType.findOne({ _id: assetTypeId, tenantId: scope.tenantId })
   if (!type) throw ApiError.notFound('Asset kind not found.')
+  assertOwns(scope, type.engineKind)
 
   const changes: string[] = []
   if (input.name !== undefined && input.name.trim() && input.name.trim() !== type.name) {
@@ -303,7 +386,6 @@ export async function updateAssetKind(
     const clash = await AssetType.findOne({ tenantId: scope.tenantId, name, _id: { $ne: type._id } }).lean()
     if (clash) throw ApiError.badRequest(`${name} already exists in this tenant.`)
     changes.push(`name ${type.name} → ${name}`)
-    // The product is what customers see, so it follows the kind's name.
     await CatalogueProduct.updateOne({ tenantId: scope.tenantId, assetTypeId }, { $set: { name } })
     type.name = name
   }
@@ -335,6 +417,7 @@ export async function updateAssetKind(
 export async function removeAssetKind(scope: AssetScope, assetTypeId: string) {
   const type = await AssetType.findOne({ _id: assetTypeId, tenantId: scope.tenantId }).lean()
   if (!type) throw ApiError.notFound('Asset kind not found.')
+  assertOwns(scope, type.engineKind)
 
   const units = await AssetUnit.countDocuments({ tenantId: scope.tenantId, assetTypeId })
   if (units > 0) {
@@ -369,11 +452,15 @@ export async function addUnits(
   ])
   if (!type) throw ApiError.notFound('Asset type not found.')
   if (!station) throw ApiError.notFound('Station not found.')
+  assertOwns(scope, type.engineKind)
   if (input.count < 1 || input.count > 200) throw ApiError.badRequest('Add between 1 and 200 assets at a time.')
 
   if (input.kioskId) {
     const kiosk = await Kiosk.findOne({ _id: input.kioskId, tenantId: scope.tenantId, stationId: input.stationId }).lean()
     if (!kiosk) throw ApiError.badRequest('That kiosk does not belong to the chosen station.')
+    if (kiosk.engineKind !== type.engineKind) {
+      throw ApiError.badRequest(`${kiosk.name} runs ${kiosk.engineKind.replaceAll('_', ' ').toLowerCase()}, so it cannot hold ${type.name}.`)
+    }
   }
 
   const prefix =
@@ -421,10 +508,19 @@ export async function addUnits(
 export async function updateUnit(
   scope: AssetScope,
   unitId: string,
-  input: { status?: AssetUnitStatus; note?: string; priceOverride?: number | null; identifier?: string },
+  input: {
+    status?: AssetUnitStatus
+    note?: string
+    priceOverride?: number | null
+    penaltyPrice?: number | null
+    identifier?: string
+    stationId?: string
+    kioskId?: string | null
+  },
 ) {
   const unit = await AssetUnit.findOne({ _id: unitId, tenantId: scope.tenantId })
   if (!unit) throw ApiError.notFound('Asset not found.')
+  await assertOwnsType(scope, unit.assetTypeId)
 
   const changes: string[] = []
 
@@ -432,7 +528,6 @@ export async function updateUnit(
     if (!SETTABLE_STATUSES.includes(input.status)) {
       throw ApiError.badRequest(`${input.status} is set by the workflow, not by hand.`)
     }
-    // Returning a unit to service is the release itself; only taking a busy one away is refused.
     if (input.status !== 'AVAILABLE' && BUSY.includes(unit.status)) {
       throw ApiError.unprocessable(`${unit.identifier} is in use — complete or reassign its booking first.`)
     }
@@ -462,7 +557,58 @@ export async function updateUnit(
     unit.priceOverride = next
   }
 
+  if (input.penaltyPrice !== undefined) {
+    const next = input.penaltyPrice === null ? null : round2(input.penaltyPrice)
+    if (next !== null && next < 0) throw ApiError.badRequest('A penalty cannot be negative.')
+    changes.push(next === null ? 'penalty back to the product penalty' : `penalty ${next}`)
+    unit.penaltyPrice = next
+  }
+
+  if (input.stationId !== undefined || input.kioskId !== undefined) {
+    if (BUSY.includes(unit.status)) {
+      throw ApiError.unprocessable(`${unit.identifier} is in use — complete its booking before moving it.`)
+    }
+    const stationId = input.stationId ?? unit.stationId
+    const station = await Station.findOne({ _id: stationId, tenantId: scope.tenantId }).lean()
+    if (!station) throw ApiError.badRequest('That station does not exist in this tenant.')
+
+    const type = await AssetType.findOne({ _id: unit.assetTypeId, tenantId: scope.tenantId }, { engineKind: 1 }).lean()
+    if (type && !station.engineKinds.includes(type.engineKind)) {
+      throw ApiError.badRequest(`${station.name} does not run ${type.engineKind.replaceAll('_', ' ').toLowerCase()}.`)
+    }
+
+    const kioskId = input.kioskId === undefined ? unit.kioskId : input.kioskId
+    if (kioskId) {
+      const kiosk = await Kiosk.findOne({ _id: kioskId, tenantId: scope.tenantId, stationId }).lean()
+      if (!kiosk) throw ApiError.badRequest('That kiosk does not belong to the chosen station.')
+      if (type && kiosk.engineKind !== type.engineKind) {
+        throw ApiError.badRequest(`${kiosk.name} runs ${kiosk.engineKind.replaceAll('_', ' ').toLowerCase()}, so it cannot hold ${unit.identifier}.`)
+      }
+    }
+
+    if (stationId !== unit.stationId || kioskId !== unit.kioskId) {
+      changes.push(`moved to ${station.name}${kioskId ? '' : ' (no desk)'}`)
+    }
+    unit.stationId = stationId
+    unit.kioskId = kioskId
+  }
+
   await unit.save()
+
+  if (input.status && input.status !== 'AVAILABLE' && SETTABLE_STATUSES.includes(input.status)) {
+    const type = await AssetType.findOne({ _id: unit.assetTypeId, tenantId: scope.tenantId }).lean()
+    await raise({
+      tenantId: scope.tenantId,
+      stationId: unit.stationId,
+      kioskId: unit.kioskId,
+      engineKind: type?.engineKind ?? null,
+      title: `${type?.name ?? 'Asset'} taken out of service`,
+      body: `${unit.identifier} moved to ${input.status.replaceAll('_', ' ').toLowerCase()}.${unit.note ? ` ${unit.note}` : ''}`,
+      level: 'warning',
+      audience: FLOOR_LEADS,
+      link: `/assets/unit/${unit._id}`,
+    })
+  }
 
   await recordAudit({
     tenantId: scope.tenantId,
@@ -479,6 +625,7 @@ export async function updateUnit(
 export async function removeUnit(scope: AssetScope, unitId: string) {
   const unit = await AssetUnit.findOne({ _id: unitId, tenantId: scope.tenantId })
   if (!unit) throw ApiError.notFound('Asset not found.')
+  await assertOwnsType(scope, unit.assetTypeId)
   if (BUSY.includes(unit.status)) {
     throw ApiError.unprocessable(`${unit.identifier} is in use — complete or reassign its booking first.`)
   }
@@ -496,17 +643,22 @@ export async function removeUnit(scope: AssetScope, unitId: string) {
   return { removed: unit._id, identifier: unit.identifier }
 }
 
-/**
- * The list price for a whole kind of asset. It lives on the catalogue product, because that
- * is what the counter sells; every unit of the type inherits it unless it carries an override.
- */
 export async function updateTypePrice(
   scope: AssetScope,
   assetTypeId: string,
-  input: { basePrice?: number; depositRequired?: number; overtimeHourlyRate?: number | null; clearOverrides?: boolean },
+  input: {
+    basePrice?: number
+    depositRequired?: number
+    penaltyPrice?: number
+    saleUnit?: SaleUnit
+    saleType?: SaleType
+    overtimeHourlyRate?: number | null
+    clearOverrides?: boolean
+  },
 ) {
   const type = await AssetType.findOne({ _id: assetTypeId, tenantId: scope.tenantId }).lean()
   if (!type) throw ApiError.notFound('Asset type not found.')
+  assertOwns(scope, type.engineKind)
 
   const product = await CatalogueProduct.findOne({ tenantId: scope.tenantId, assetTypeId })
   if (!product) throw ApiError.unprocessable(`${type.name} has no product to price. Create one under Pricing first.`)
@@ -521,6 +673,19 @@ export async function updateTypePrice(
     if (input.depositRequired < 0) throw ApiError.badRequest('A deposit cannot be negative.')
     changes.push(`deposit ${product.depositRequired} → ${round2(input.depositRequired)}`)
     product.depositRequired = round2(input.depositRequired)
+  }
+  if (input.penaltyPrice !== undefined) {
+    if (input.penaltyPrice < 0) throw ApiError.badRequest('A penalty cannot be negative.')
+    changes.push(`penalty ${product.penaltyPrice ?? 0} → ${round2(input.penaltyPrice)}`)
+    product.penaltyPrice = round2(input.penaltyPrice)
+  }
+  if (input.saleUnit !== undefined) {
+    changes.push(`unit ${product.saleUnit} → ${input.saleUnit}`)
+    product.saleUnit = input.saleUnit
+  }
+  if (input.saleType !== undefined) {
+    changes.push(`sale type ${product.saleType} → ${input.saleType}`)
+    product.saleType = input.saleType
   }
   if (input.overtimeHourlyRate !== undefined) {
     const next = input.overtimeHourlyRate === null ? null : round2(input.overtimeHourlyRate)

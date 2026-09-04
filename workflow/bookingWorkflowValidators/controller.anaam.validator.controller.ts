@@ -1,5 +1,5 @@
 import type { ValidationResult, WorkflowContext } from '../shared/types.js'
-import { requireAvailableUnit, requireFlag, requirePositiveDuration } from './shared.validators.js'
+import { requireAvailableUnit, requireFlag, requirePaid, requirePositiveDuration } from './shared.validators.js'
 
 export const useAnaamValidator = (transitionCode: string, ctx: WorkflowContext): ValidationResult => {
   const errors: string[] = []
@@ -11,6 +11,7 @@ export const useAnaamValidator = (transitionCode: string, ctx: WorkflowContext):
 
     case 'TO_STARTED': {
       errors.push(
+        ...requirePaid(ctx),
         ...requireFlag(ctx, 'safetyAck', 'Safety acknowledgement is required.'),
         ...requireAvailableUnit(ctx),
         ...requirePositiveDuration(ctx),

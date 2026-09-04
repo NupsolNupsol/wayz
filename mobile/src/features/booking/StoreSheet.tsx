@@ -9,10 +9,6 @@ import { useTransition } from '@/hooks/queries'
 import { COLORS } from '@/theme/tokens'
 import type { Booking } from '@/types'
 
-/**
- * Scan in and confirm storage. The timer starts here and nowhere else, so the compartment and
- * every single bag must be scanned before the button unlocks — the same rule the API enforces.
- */
 export function StoreSheet({
   open,
   onClose,
@@ -156,7 +152,6 @@ export function StoreSheet({
                 </Body>
                 <Ref className="text-[12px] text-muted">{bag.barcode}</Ref>
               </View>
-              {/* On a demo device there is no hardware scanner, so each bag can be tapped in. */}
               {!done ? (
                 <Body
                   className="font-semibold text-brand-ink"

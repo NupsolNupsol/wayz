@@ -1,7 +1,3 @@
-/**
- * The manual's shape. Every word lives in the manual namespace, so the whole book
- * reads in whichever language the user picked.
- */
 export interface ManualSection {
   id: string
   route?: string
@@ -49,12 +45,19 @@ export const MANUAL_GROUPS: ManualGroup[] = [
     ],
   },
   {
-    id: 'cashier',
+    id: 'till',
     sections: [
-      { id: 'cashier-till', route: '/cashier', icon: 'Wallet', steps: 4, rules: 3, tips: 2 },
-      { id: 'cashier-queue', route: '/cashier/queue', icon: 'ClipboardCheck', steps: 4, rules: 2 },
-      { id: 'cashier-transactions', route: '/cashier/transactions', icon: 'Receipt', steps: 2, rules: 4 },
-      { id: 'cashier-drawer', route: '/cashier/drawer', icon: 'Banknote', steps: 3, rules: 3 },
+      { id: 'till-overview', route: '/till', icon: 'Wallet', steps: 4, rules: 3, tips: 2 },
+      { id: 'till-queue', route: '/till/queue', icon: 'ClipboardCheck', steps: 4, rules: 2 },
+      { id: 'till-transactions', route: '/till/transactions', icon: 'Receipt', steps: 2, rules: 4 },
+      { id: 'till-drawer', route: '/till/drawer', icon: 'Banknote', steps: 3, rules: 3 },
+    ],
+  },
+  {
+    id: 'admin',
+    sections: [
+      { id: 'admin-rules', route: '/admin/rules', icon: 'Gavel', steps: 4, rules: 3 },
+      { id: 'manual-sales', route: '/manual-sales', icon: 'FilePlus2', steps: 3, rules: 3 },
     ],
   },
   {
@@ -101,7 +104,6 @@ export const MANUAL_GROUPS: ManualGroup[] = [
 
 const SECTION_IDS = new Set(MANUAL_GROUPS.flatMap((g) => g.sections.map((s) => s.id)))
 
-/** Whether a screen has a page in the manual, so the header only offers help that exists. */
 export function hasManualSection(id: string): boolean {
   return SECTION_IDS.has(id)
 }

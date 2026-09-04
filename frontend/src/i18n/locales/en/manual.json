@@ -14,12 +14,13 @@
     "selling": "Taking a transaction",
     "during": "While a session runs",
     "handback": "Giving things back",
-    "cashier": "The till",
+    "till": "The till",
     "delivery": "Deliveries",
     "exceptions": "When something goes wrong",
     "records": "Records and end of day",
     "hr": "HR and costs",
-    "accounting": "Financial reporting"
+    "accounting": "Financial reporting",
+    "admin": "Running the company"
   },
   "section": {
     "signing-in": {
@@ -277,7 +278,7 @@
         "Completion releases the compartment back into the pool automatically."
       ]
     },
-    "cashier-till": {
+    "till-overview": {
       "title": "Working the till",
       "summary": "What is owed, what is in the drawer, and what you have taken today.",
       "steps": [
@@ -308,7 +309,7 @@
         "Paying for a booking confirms it; it does NOT start the storage timer. That begins when the agent scans the bags into a compartment."
       ]
     },
-    "cashier-queue": {
+    "till-queue": {
       "title": "Taking a payment",
       "summary": "The queue of bookings waiting for money, and how to settle one.",
       "steps": [
@@ -334,7 +335,7 @@
         "You only ever see bookings from your own station."
       ]
     },
-    "cashier-transactions": {
+    "till-transactions": {
       "title": "Transactions and refunds",
       "summary": "Every payment taken at this counter — searchable, and where refunds are issued.",
       "steps": [
@@ -354,7 +355,7 @@
         "Every refund carries your name and your reason into the audit trail."
       ]
     },
-    "cashier-drawer": {
+    "till-drawer": {
       "title": "The cash drawer",
       "summary": "Float in, money paid out, money banked — and the arithmetic behind the expected balance.",
       "steps": [
@@ -735,6 +736,78 @@
       ],
       "tips": [
         "A handful of exceptions is normal — a terminal receipt that never reached the platform, or a refund that crossed a day boundary. The point is that you can see them."
+      ]
+    },
+    "admin-rules": {
+      "title": "Operating rules",
+      "summary": "The grace period, the overtime block, the replacement bonus, the wrong-station charge, and the damage schedule — all of them yours to set.",
+      "steps": [
+        {
+          "title": "Open the rules",
+          "detail": "Tenant admin → Operating rules. Only the CEO account reaches this screen."
+        },
+        {
+          "title": "Set the clock",
+          "detail": "The grace the system allows and the shorter one you tell the customer. The second can never exceed the first."
+        },
+        {
+          "title": "Say when the clock starts",
+          "detail": "Per activity. Bag storage counts from handover; a rental counts from payment plus a short delay."
+        },
+        {
+          "title": "Price the damage",
+          "detail": "Each line of the penalty schedule is a flat amount, or the asset’s own replacement value when the thing decides."
+        }
+      ],
+      "rules": [
+        "Nothing here is fixed in code — a new season can re-price every figure without a deploy.",
+        "A change applies to sessions started after it is saved, never retrospectively.",
+        "Restore defaults puts the client’s original figures back on screen; nothing is saved until you press Save."
+      ]
+    },
+    "manual-sales": {
+      "title": "Manual sales",
+      "summary": "Revenue taken off-system — a paper receipt, a weekend before the tills were live — entered by hand and worth nothing until it is approved.",
+      "steps": [
+        {
+          "title": "Record it",
+          "detail": "Station, activity, what it was, the amount taken and the day it was taken. Never today unless it really was today."
+        },
+        {
+          "title": "Wait",
+          "detail": "It sits in Pending. It does not appear in any revenue figure while it does."
+        },
+        {
+          "title": "Approve it",
+          "detail": "The CEO matches it against the bank and approves. Only then is it posted to revenue."
+        }
+      ],
+      "rules": [
+        "Nobody approves an entry they made themselves.",
+        "A rejection needs a written reason; an approval does not.",
+        "Approved entries join the activity breakdown; pending and rejected ones never do."
+      ]
+    },
+    "notifications": {
+      "title": "Notifications",
+      "summary": "What happened while you were working, narrowed to your desk, your activity and your role.",
+      "steps": [
+        {
+          "title": "Watch the bell",
+          "detail": "The badge counts what you have not read. Opening it shows the six most recent."
+        },
+        {
+          "title": "Open one",
+          "detail": "It marks itself read and takes you to the booking, asset or shift it is about."
+        },
+        {
+          "title": "Clear the rest",
+          "detail": "Mark all read clears them for you alone."
+        }
+      ],
+      "rules": [
+        "A station is worked by several people; one of them clearing a notice does not hide it from the rest.",
+        "A notice addressed to supervisors never reaches the counter, and the reverse."
       ]
     }
   }

@@ -79,6 +79,12 @@ services:
       OTP_TEST_PEEK: ${OTP_TEST_PEEK:-true}
       INVITE_TEST_PEEK: ${INVITE_TEST_PEEK:-true}
       DEMO_SCANNER: ${DEMO_SCANNER:-true}
+      # The testing clock: ages one booking so an overtime rule can be seen to fire without
+      # waiting an hour for it. Demo only — never set this where customers can reach the app.
+      DEMO_TIME_TRAVEL: ${DEMO_TIME_TRAVEL:-true}
+      # WhatsApp fetches an invoice PDF itself, so it needs an address it can reach. Point this
+      # at a tunnel in development; unset, the send explains why it could not go.
+      PUBLIC_API_URL: ${PUBLIC_API_URL:-}
 
       # --- Secrets and credentials: supplied by the host environment / backend/.env. -----
       # JWT_SECRET has no default on purpose — Compose refuses to start without it rather

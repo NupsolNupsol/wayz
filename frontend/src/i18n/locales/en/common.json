@@ -37,7 +37,8 @@
     "goBackTo": "Go back to {{step}}",
     "retire": "Retire",
     "restore": "Restore",
-    "suspend": "Suspend"
+    "suspend": "Suspend",
+    "remove": "Remove"
   },
   "field": {
     "name": "Name",
@@ -128,29 +129,34 @@
       "CUSTOMER": "Customer",
       "PAYMENT": "Payment",
       "TRANSACTION": "Terminal"
-    }
+    },
+    "whatsNew": "What's new — releases and how to test them"
   },
   "offline": {
     "title": "You are offline",
     "message": "Transactional operations require a connection. Reconnect to create bookings, take payments, and run asset actions."
   },
   "role": {
-    "AGENT": "Agent",
-    "CASHIER": "Cashier",
+    "AGENT": "Kiosk agent",
     "DELIVERY_AGENT": "Delivery agent",
-    "MANAGER": "Manager",
-    "HR": "HR",
+    "MANAGER": "Activity manager",
+    "HR": "HR & expenses",
     "ACCOUNTANT": "Accountant",
-    "TENANT_ADMIN": "Tenant admin"
+    "TENANT_ADMIN": "CEO / tenant admin",
+    "SUPERVISOR": "Supervisor",
+    "CHIEF_CAPTAIN": "Chief captain",
+    "PROJECT_MANAGER": "Project manager"
   },
   "workspace": {
-    "AGENT": "Agent POS",
-    "CASHIER": "Cashier",
+    "AGENT": "Kiosk",
     "DELIVERY_AGENT": "Delivery",
     "MANAGER": "Manager",
     "HR": "HR & costs",
     "ACCOUNTANT": "Accounting",
-    "TENANT_ADMIN": "Tenant admin"
+    "TENANT_ADMIN": "Tenant admin",
+    "SUPERVISOR": "Supervision",
+    "CHIEF_CAPTAIN": "Lagoon boats",
+    "PROJECT_MANAGER": "Projects"
   },
   "engine": {
     "SHOP_AND_DROP": "Shop & Drop",
@@ -173,7 +179,6 @@
     "home": "Home",
     "manager": "Manager",
     "tenantadmin": "Tenant admin",
-    "cashier": "Cashier",
     "delivery": "Delivery",
     "accounting": "Accounting",
     "hr": "HR",
@@ -208,7 +213,9 @@
     "company": "Company",
     "people": "People",
     "costs": "Costs",
-    "commissions": "Commissions"
+    "commissions": "Commissions",
+    "till": "Till",
+    "admin": "Tenant admin"
   },
   "time": {
     "min": "min",
@@ -216,10 +223,14 @@
     "justNow": "just now",
     "minsAgo": "{{count}} min ago",
     "inMins": "in {{count}} min",
-    "hoursAgo": "{{count}} h ago",
+    "hoursAgo": "{{hours}}h {{minutes}}m ago",
     "inHours": "in {{count}} h",
     "daysAgo": "{{count}} d ago",
-    "inDays": "in {{count}} d"
+    "inDays": "in {{count}} d",
+    "minutesAgo_one": "{{count}} minute ago",
+    "minutesAgo_other": "{{count}} minutes ago",
+    "daysAgo_one": "{{count}} day ago",
+    "daysAgo_other": "{{count}} days ago"
   },
   "column": {
     "status": "Status",
@@ -383,7 +394,6 @@
     "email": "Email",
     "website": "Website",
     "agentrunsthecounterforoneactivity": "Agent — runs the counter for one activity",
-    "cashierthetillpaymentsrefundsdrawer": "Cashier — the till: payments, refunds, drawer",
     "deliveryagenttakesbagstocustomers": "Delivery agent — takes bags to customers",
     "managertenantwideoversight": "Manager — tenant-wide oversight",
     "accountantreadonlyvatandfinance": "Accountant — read-only VAT and finance",
@@ -421,5 +431,18 @@
     "LAGOON": "Lagoon",
     "COTE_RESTAURANT": "COTE",
     "ANAAM": "Ana'am"
+  },
+  "method": {
+    "CASH": "Cash",
+    "CARD": "Card"
+  },
+  "live": {
+    "live": "Live",
+    "updated": "Updated {{when}}"
+  },
+  "signOut": {
+    "title": "Sign out?",
+    "subtitle": "You will need your password to get back in.",
+    "nothingOpen": "Nothing is left open at your desk."
   }
 }

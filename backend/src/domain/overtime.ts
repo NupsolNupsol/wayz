@@ -5,7 +5,6 @@ export const DEFAULT_GRACE_MINUTES = 5
 export const OVERTIME_BLOCK_MINUTES = 60
 
 const MS_PER_MIN = 60_000
-const BLOCK_MS = OVERTIME_BLOCK_MINUTES * MS_PER_MIN
 
 export type SessionPhase =
   | 'NOT_STARTED'
@@ -20,6 +19,7 @@ export interface OvertimeSessionInput {
   chargeableEndedAt?: Date | string | null
   gracePeriodMin?: number | null
   overtimeHourlyRate?: number | null
+  overtimeBlockMin?: number | null
 }
 
 export interface OvertimeState {
@@ -50,6 +50,8 @@ export function computeOvertime(session: OvertimeSessionInput, now: Date = new D
   const chargeableEndedAt = toDate(session.chargeableEndedAt)
   const gracePeriodMin = session.gracePeriodMin ?? DEFAULT_GRACE_MINUTES
   const hourlyRate = session.overtimeHourlyRate ?? 0
+  const blockMin = Math.max(1, session.overtimeBlockMin ?? OVERTIME_BLOCK_MINUTES)
+  const blockMs = blockMin * MS_PER_MIN
 
   const evaluatedAt = chargeableEndedAt ?? now
 
@@ -79,7 +81,7 @@ export function computeOvertime(session: OvertimeSessionInput, now: Date = new D
   const pastGrace = graceRemainingMs < 0
   const withinGrace = overdueMs > 0 && !pastGrace
 
-  const chargeableHours = pastGrace ? Math.max(1, Math.ceil(overdueMs / BLOCK_MS)) : 0
+  const chargeableHours = pastGrace ? Math.max(1, Math.ceil(overdueMs / blockMs)) : 0
   const penaltyAmount = round2(chargeableHours * hourlyRate)
 
   const phase: SessionPhase = chargeableEndedAt
@@ -105,6 +107,18 @@ export function computeOvertime(session: OvertimeSessionInput, now: Date = new D
     hourlyRate,
     penaltyAmount,
   }
+}
+
+export const OVERTIME_LINE_PRODUCT_ID = 'OVERTIME_PENALTY'
+
+export function pendingOvertime(
+  state: OvertimeState,
+  lines: { productId: string; unitPrice: number; quantity?: number }[] = [],
+): number {
+  const already = lines
+    .filter((l) => l.productId === OVERTIME_LINE_PRODUCT_ID)
+    .reduce((sum, l) => sum + l.unitPrice * (l.quantity ?? 1), 0)
+  return round2(Math.max(0, state.penaltyAmount - already))
 }
 
 export function describeOvertime(state: OvertimeState, currency = 'SAR'): string {

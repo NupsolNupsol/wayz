@@ -35,7 +35,8 @@ export default function Sell() {
             <View className="flex-1">
               <Body className="font-semibold">Your till is not open</Body>
               <Muted>
-                You can still take a card payment, but cash needs an open till.
+                Nothing can be sold, extended or settled until you open it. Open
+                it from the Shift screen.
               </Muted>
             </View>
           </View>

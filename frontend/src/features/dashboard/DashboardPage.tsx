@@ -1,7 +1,7 @@
 import i18n from '@/i18n'
 import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { Activity, AlertTriangle, ArrowRight, Boxes, CirclePlus, Clock, PackageCheck, Receipt, TriangleAlert, Wallet, Timer as TimerIcon, BarChart3, PieChart } from 'lucide-react'
+import { Activity, AlertTriangle, Anchor, ArrowRight, Boxes, CirclePlus, Clock, PackageCheck, Receipt, TriangleAlert, Wallet, Timer as TimerIcon, BarChart3, PieChart } from 'lucide-react'
 import { PageHeader } from '@/components/PageHeader'
 import { RefLink } from '@/components/RefLink'
 import { Card, StatCard, Button, StatusBadge, SectionTitle, Spinner } from '@/components/ui'
@@ -9,20 +9,42 @@ import { Icon } from '@/components/Icon'
 import { Timer } from '@/components/Timer'
 import { BarChart, DonutChart } from '@/components/Charts'
 import { CHART_COLORS } from '@/config/chartColors'
+import { clsx } from 'clsx'
 import { useAuthStore } from '@/store/auth'
+import { can } from '@/permissions/permissions'
 import { useDashboard, useBookings, useShift } from '@/hooks'
 import { ENGINE_META } from '@/config/engineMeta'
 import { money, formatTime } from '@/utils'
 import type { EngineKind } from '@/api/types'
 
-
-/** The activity's short name, for a chart axis where the full one will not fit. */
 const shortEngine = (kind: EngineKind): string => i18n.t(`common:engineShort.${kind}`, { defaultValue: kind })
 
 export function DashboardPage() {
   const { t } = useTranslation('agent')
   const navigate = useNavigate()
   const me = useAuthStore((s) => s.me)
+  const sells = can(me?.role, 'pos.use')
+  const sails = can(me?.role, 'trip.sail')
+  const engines = me?.engineKinds ?? []
+
+  const actions = [
+    ...(sells && engines.includes('SHOP_AND_DROP')
+      ? [{ icon: 'ShoppingBag', label: 'Shop & Drop', to: '/shop-drop', testId: 'qa-shopdrop' }]
+      : []),
+    ...(sells && engines.includes('MOBILITY')
+      ? [{ icon: 'Bike', label: 'Mobility', to: '/mobility', testId: 'qa-mobility' }]
+      : []),
+    ...(sells && engines.includes('LAGOON')
+      ? [{ icon: 'Sailboat', label: 'Lagoon', to: '/lagoon', testId: 'qa-lagoon' }]
+      : []),
+    ...(sails ? [{ icon: 'Map', label: t('voyage.title'), to: '/lagoon/voyage', testId: 'qa-voyage' }] : []),
+    ...(can(me?.role, 'customer.manage')
+      ? [{ icon: 'Users', label: t('common:crumb.customers'), to: '/customers', testId: 'qa-customers' }]
+      : []),
+    ...(can(me?.role, 'assets.view')
+      ? [{ icon: 'Grid3x3', label: t('common:crumb.assets'), to: '/assets', testId: 'qa-assets' }]
+      : []),
+  ]
   const { data: stats, isLoading } = useDashboard()
   const { data: bookings = [] } = useBookings()
   const { data: shift } = useShift()
@@ -44,10 +66,19 @@ export function DashboardPage() {
         subtitle={`${me.tenant?.name} · ${me.station?.name}`}
         actions={
           <>
-            <Button variant="secondary" onClick={() => navigate('/shift')} data-testid="dash-shift">
-              <Clock size={16} /> {t('dashboard.shift')} {shift ? <StatusBadge status={shift.status} group="shift" /> : t('dashboard.shiftClosed')}
-            </Button>
-            <Button onClick={() => navigate('/pos')} data-testid="dash-new-transaction"><CirclePlus size={16} /> {t('dashboard.newTransaction')}</Button>
+            {sells && (
+              <Button variant="secondary" onClick={() => navigate('/shift')} data-testid="dash-shift">
+                <Clock size={16} /> {t('dashboard.shift')} {shift ? <StatusBadge status={shift.status} group="shift" /> : t('dashboard.shiftClosed')}
+              </Button>
+            )}
+            {sails && (
+              <Button onClick={() => navigate('/lagoon/captain')} data-testid="dash-my-trips">
+                <Anchor size={16} /> {t('dashboard.myTrips')}
+              </Button>
+            )}
+            {sells && (
+              <Button onClick={() => navigate('/pos')} data-testid="dash-new-transaction"><CirclePlus size={16} /> {t('dashboard.newTransaction')}</Button>
+            )}
           </>
         }
       />
@@ -108,14 +139,23 @@ export function DashboardPage() {
         </Card>
 
         <Card>
-          <SectionTitle className="mb-3">{t('dashboard.quickActions')}</SectionTitle>
-          <div className="grid grid-cols-2 gap-2">
-            <QuickAction icon="ShoppingBag" label="Shop & Drop" onClick={() => navigate('/shop-drop')} testId="qa-shopdrop" />
-            <QuickAction icon="Bike" label="Mobility" onClick={() => navigate('/mobility')} testId="qa-mobility" />
-            <QuickAction icon="Users" label={t('common:crumb.customers')} onClick={() => navigate('/customers')} testId="qa-customers" />
-            <QuickAction icon="Grid3x3" label={t('common:crumb.assets')} onClick={() => navigate('/assets')} testId="qa-assets" />
-          </div>
-          <SectionTitle className="mb-3 mt-5">{t('dashboard.recent')}</SectionTitle>
+          {actions.length > 0 && (
+            <>
+              <SectionTitle className="mb-3">{t('dashboard.quickActions')}</SectionTitle>
+              <div className="grid grid-cols-2 gap-2">
+                {actions.map((action) => (
+                  <QuickAction
+                    key={action.testId}
+                    icon={action.icon}
+                    label={action.label}
+                    onClick={() => navigate(action.to)}
+                    testId={action.testId}
+                  />
+                ))}
+              </div>
+            </>
+          )}
+          <SectionTitle className={clsx('mb-3', actions.length > 0 && 'mt-5')}>{t('dashboard.recent')}</SectionTitle>
           <div className="flex flex-col divide-y divide-line">
             {recent.map((b) => (
               <button key={b.id} onClick={() => navigate(`/bookings/${b.id}`)} className="flex items-center gap-2 py-2 text-start text-sm">

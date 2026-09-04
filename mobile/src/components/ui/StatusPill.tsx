@@ -2,10 +2,6 @@ import { Text, View } from 'react-native'
 
 import { humanise, TONE_CLASS, toneFor, type Tone } from '@/theme/tokens'
 
-/**
- * A workflow state, in words and in a colour. Pass a raw status code and it reads the tone
- * from the one table, so the same state never looks calm on one screen and urgent on another.
- */
 export function StatusPill({
   status,
   tone,

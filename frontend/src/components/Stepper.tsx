@@ -7,7 +7,6 @@ const revisitStyle = (on: boolean) =>
 
 export interface Step {
   key: string
-  /** Either a ready-made word or a key the stepper looks up itself. */
   label?: string
   labelKey?: string
 }

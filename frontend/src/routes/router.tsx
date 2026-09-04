@@ -6,10 +6,13 @@ import {
   ACCOUNTANT_ROLES,
   AGENT_ROLES,
   ASSET_ROLES,
-  CASHIER_ROLES,
+  TILL_ROLES,
+  MANUAL_SALES_ROLES,
+  REFUND_QUEUE_ROLES,
   COURIER_ROLES,
   DOCS_ROLES,
   HR_ROLES,
+  BACK_OFFICE_ROLES,
   MANAGER_ROLES,
   TENANT_ADMIN_ROLES,
 } from "@/permissions/permissions";
@@ -47,23 +50,30 @@ import { ShiftPage } from "@/features/shift/ShiftPage";
 import { IncidentsPage } from "@/features/incidents/IncidentsPage";
 import { ProfilePage } from "@/features/profile/ProfilePage";
 import { TrackingPage } from "@/features/tracking/TrackingPage";
+import { VersionsPage } from "@/features/versions/VersionsPage";
+import { VersionDetailPage } from "@/features/versions/VersionDetailPage";
 import {
   CourierBoardPage,
   CourierHistoryPage,
 } from "@/features/delivery/CourierBoardPage";
 import { CourierTaskPage } from "@/features/delivery/CourierTaskPage";
 import { KioskDeliveriesPage } from "@/features/delivery/KioskDeliveriesPage";
-import { CashierTill } from "@/features/cashier/CashierTill";
-import { CashierQueue } from "@/features/cashier/CashierQueue";
-import { CashierTransactions } from "@/features/cashier/CashierTransactions";
-import { CashierDrawer } from "@/features/cashier/CashierDrawer";
+import { TillPage } from "@/features/till/TillPage";
+import { TillQueue } from "@/features/till/TillQueue";
+import { TillTransactions } from "@/features/till/TillTransactions";
+import { TillDrawer } from "@/features/till/TillDrawer";
 import { AdminOverview } from "@/features/admin/AdminOverview";
 import { AdminCompany } from "@/features/admin/AdminCompany";
-import {
-  AdminPeople,
-  AdminAudit,
-  AdminIsolation,
-} from "@/features/admin/AdminPeople";
+import { AdminAudit, AdminIsolation } from "@/features/admin/AdminPeople";
+import { AdminRules } from "@/features/admin/AdminRules";
+import { AdminStationMap } from "@/features/admin/AdminStationMap";
+import { ManagerShiftDetail } from "@/features/manager/ManagerShiftDetail";
+import { LagoonTripsPage } from "@/features/lagoon/LagoonTripsPage";
+import { HrShifts } from "@/features/hr/HrShifts";
+import { CaptainBoardPage } from "@/features/lagoon/CaptainBoardPage";
+import { CaptainVoyagePage } from "@/features/lagoon/CaptainVoyagePage";
+import { ManualSalesPage } from "@/features/finance/ManualSalesPage";
+import { RefundRequestsPage } from "@/features/finance/RefundRequestsPage";
 import { AssetsPage } from "@/features/assets/AssetsPage";
 import { AssetTypeDetailPage } from "@/features/assets/AssetTypeDetailPage";
 import { AssetUnitPage } from "@/features/assets/AssetUnitPage";
@@ -86,6 +96,9 @@ import { NoWorkspacePage } from "@/features/misc/NoWorkspacePage";
 export const router = createBrowserRouter([
   { path: "/login", element: <LoginPage /> },
   { path: "/manager/estate", element: <Navigate to="/assets" replace /> },
+  { path: "/cashier", element: <Navigate to="/till" replace /> },
+  { path: "/admin/people", element: <Navigate to="/manager/team" replace /> },
+  { path: "/notifications", element: <Navigate to="/dashboard" replace /> },
   { path: "/admin/assets", element: <Navigate to="/assets" replace /> },
   { path: "/invitation/:token", element: <InvitationPage /> },
 
@@ -106,6 +119,7 @@ export const router = createBrowserRouter([
       { path: "payments", element: <ManagerPayments /> },
       { path: "incidents", element: <ManagerIncidents /> },
       { path: "shifts", element: <ManagerShifts /> },
+      { path: "shifts/:id", element: <ManagerShiftDetail /> },
       { path: "organisation", element: <ManagerOrg /> },
       { path: "pricing", element: <ManagerPricing /> },
       { path: "team", element: <ManagerTeam /> },
@@ -158,9 +172,20 @@ export const router = createBrowserRouter([
     children: [
       { index: true, element: <HrCosts /> },
       { path: "seasons", element: <HrSeasons /> },
+      { path: "shifts", element: <HrShifts /> },
+      { path: "pricing", element: <ManagerPricing /> },
       { path: "seasons/:id", element: <SeasonDetail /> },
       { path: "profile", element: <ProfilePage /> },
     ],
+  },
+  {
+    path: "/admin/rules",
+    element: (
+      <ProtectedRoute allow={BACK_OFFICE_ROLES}>
+        <AppShell />
+      </ProtectedRoute>
+    ),
+    children: [{ index: true, element: <AdminRules /> }],
   },
   {
     path: "/admin",
@@ -172,23 +197,23 @@ export const router = createBrowserRouter([
     children: [
       { index: true, element: <AdminOverview /> },
       { path: "company", element: <AdminCompany /> },
-      { path: "people", element: <AdminPeople /> },
       { path: "audit", element: <AdminAudit /> },
       { path: "isolation", element: <AdminIsolation /> },
+      { path: "stations", element: <AdminStationMap /> },
     ],
   },
   {
-    path: "/cashier",
+    path: "/till",
     element: (
-      <ProtectedRoute allow={CASHIER_ROLES}>
+      <ProtectedRoute allow={TILL_ROLES}>
         <AppShell />
       </ProtectedRoute>
     ),
     children: [
-      { index: true, element: <CashierTill /> },
-      { path: "queue", element: <CashierQueue /> },
-      { path: "transactions", element: <CashierTransactions /> },
-      { path: "drawer", element: <CashierDrawer /> },
+      { index: true, element: <TillPage /> },
+      { path: "queue", element: <TillQueue /> },
+      { path: "transactions", element: <TillTransactions /> },
+      { path: "drawer", element: <TillDrawer /> },
       { path: "shift", element: <ShiftPage /> },
       { path: "profile", element: <ProfilePage /> },
     ],
@@ -204,10 +229,31 @@ export const router = createBrowserRouter([
       { index: true, element: <CourierBoardPage /> },
       { path: "history", element: <CourierHistoryPage /> },
       { path: "task/:id", element: <CourierTaskPage /> },
+      { path: "shift", element: <ShiftPage /> },
       { path: "profile", element: <ProfilePage /> },
     ],
   },
+  {
+    path: "/refund-requests",
+    element: (
+      <ProtectedRoute allow={REFUND_QUEUE_ROLES}>
+        <AppShell />
+      </ProtectedRoute>
+    ),
+    children: [{ index: true, element: <RefundRequestsPage /> }],
+  },
+  {
+    path: "/manual-sales",
+    element: (
+      <ProtectedRoute allow={MANUAL_SALES_ROLES}>
+        <AppShell />
+      </ProtectedRoute>
+    ),
+    children: [{ index: true, element: <ManualSalesPage /> }],
+  },
   { path: "/track/:id", element: <TrackingPage /> },
+  { path: "/versions", element: <VersionsPage /> },
+  { path: "/versions/:id", element: <VersionDetailPage /> },
   {
     path: "/help",
     element: (
@@ -256,6 +302,9 @@ export const router = createBrowserRouter([
         ),
       },
       { path: "operations", element: <OperationsPage /> },
+      { path: "lagoon/trips", element: <LagoonTripsPage /> },
+      { path: "lagoon/captain", element: <CaptainBoardPage /> },
+      { path: "lagoon/voyage", element: <CaptainVoyagePage /> },
       { path: "deliveries", element: <KioskDeliveriesPage /> },
       { path: "assets", element: <AssetsPage /> },
       { path: "customers", element: <CustomersPage /> },

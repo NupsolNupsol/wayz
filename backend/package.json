@@ -14,8 +14,16 @@
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "lint": "eslint . --max-warnings 0",
     "seed": "tsx src/seed/run.ts",
-    "test": "playwright test",
-    "test:headed": "playwright test --headed"
+    "seed:versions": "tsx src/seed/versions.run.ts",
+    "test": "npm run test:roles && npm run test:rules && npm run test:notes && npm run test:shift && npm run test:lagoon && npm run test:hr",
+    "test:rules": "node tests/rules.api.mjs",
+    "test:notes": "node tests/clientNotes.api.mjs",
+    "test:roles": "node tests/roles.api.mjs",
+    "test:shift": "node tests/shift.api.mjs",
+    "test:lagoon": "node tests/lagoon.api.mjs",
+    "test:hr": "node tests/hr.api.mjs",
+    "test:multikiosk": "node tests/multiKiosk.api.mjs",
+    "test:map": "node tests/map.api.mjs"
   },
   "dependencies": {
     "@wayz/workflow": "file:../workflow",

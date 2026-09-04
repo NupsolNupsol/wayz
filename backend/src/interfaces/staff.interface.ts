@@ -6,8 +6,8 @@ export interface StaffInput {
   role: Role
   stationId: string
   kioskId?: string | null
-  /** Required for an agent — the activities they are dedicated to. */
   engineKinds?: EngineKind[]
+  reportsTo?: string | null
   phone?: string
 }
 
@@ -42,7 +42,7 @@ export interface KioskInput {
   name: string
   code?: string
   location?: string
-  engineKinds?: EngineKind[]
+  engineKind: EngineKind
 }
 
 export interface CompanyPatch {

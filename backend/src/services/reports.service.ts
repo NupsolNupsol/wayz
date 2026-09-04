@@ -1,4 +1,4 @@
-import { Audit, AssetUnit, Booking, Customer, Payment, Station } from '../models/index.js'
+import { Audit, AssetUnit, Booking, Customer, Payment, Station, User } from '../models/index.js'
 import { tenantEngines } from './catalogue.service.js'
 import { computeOvertime } from '../domain/overtime.js'
 import { round2 } from '../utils/helpers.js'
@@ -83,6 +83,78 @@ export async function revenueReport(scope: ManagerScope, range: ReportRange) {
       name: stationName.get(id) ?? id,
       total: round2(total),
     })),
+  }
+}
+
+export async function agentRevenueReport(scope: ManagerScope, range: ReportRange) {
+  const { from, to } = resolveRange(range)
+  const match = { tenantId: scope.tenantId, status: 'CAPTURED', createdAt: { $gte: from, $lte: to } }
+
+  const [rows, staff, stations] = await Promise.all([
+    Payment.aggregate([
+      { $match: match },
+      {
+        $group: {
+          _id: {
+            day: { $dateToString: { format: '%Y-%m-%d', date: '$createdAt' } },
+            agentId: '$takenBy',
+            stationId: '$stationId',
+            engineKind: '$engineKind',
+            method: '$method',
+          },
+          total: { $sum: '$amount' },
+          count: { $sum: 1 },
+        },
+      },
+      { $sort: { '_id.day': -1 } },
+    ]),
+    User.find({ tenantId: scope.tenantId }, { fullName: 1 }).lean(),
+    Station.find({ tenantId: scope.tenantId }, { name: 1 }).lean(),
+  ])
+
+  const agentName = new Map(staff.map((u) => [u._id, u.fullName]))
+  const stationName = new Map(stations.map((st) => [st._id, st.name]))
+
+  type Key = { day: string; agentId: string; stationId: string; engineKind?: string; method: string }
+  type Line = {
+    day: string
+    agentId: string
+    agentName: string
+    stationId: string
+    stationName: string
+    engineKind: string
+    total: number
+    count: number
+    byMethod: Record<string, number>
+  }
+
+  const lines = new Map<string, Line>()
+  for (const row of rows as { _id: Key; total: number; count: number }[]) {
+    const key = `${row._id.day}|${row._id.agentId}|${row._id.stationId}|${row._id.engineKind ?? '—'}`
+    const line = lines.get(key) ?? {
+      day: row._id.day,
+      agentId: row._id.agentId,
+      agentName: agentName.get(row._id.agentId) ?? row._id.agentId,
+      stationId: row._id.stationId,
+      stationName: stationName.get(row._id.stationId) ?? row._id.stationId,
+      engineKind: row._id.engineKind ?? '—',
+      total: 0,
+      count: 0,
+      byMethod: {},
+    }
+    line.total = round2(line.total + row.total)
+    line.count += row.count
+    line.byMethod[row._id.method ?? 'UNKNOWN'] = round2((line.byMethod[row._id.method ?? 'UNKNOWN'] ?? 0) + row.total)
+    lines.set(key, line)
+  }
+
+  const rowsOut = [...lines.values()].sort((a, b) => (a.day === b.day ? a.agentName.localeCompare(b.agentName) : b.day.localeCompare(a.day)))
+
+  return {
+    from: from.toISOString().slice(0, 10),
+    to: to.toISOString().slice(0, 10),
+    gross: round2(rowsOut.reduce((sum, r) => sum + r.total, 0)),
+    rows: rowsOut,
   }
 }
 
@@ -237,6 +309,19 @@ export async function reportRows(scope: ManagerScope, kind: string, range: Repor
     case 'payments': {
       const r = await revenueReport(scope, range)
       return r.byMethod.map((m) => ({ method: m.method, transactions: m.count, total: m.total }))
+    }
+    case 'agents': {
+      const r = await agentRevenueReport(scope, range)
+      return r.rows.map((row) => ({
+        date: row.day,
+        agent: row.agentName,
+        station: row.stationName,
+        activity: row.engineKind,
+        transactions: row.count,
+        cash: row.byMethod.CASH ?? 0,
+        card: row.byMethod.CARD ?? 0,
+        total: row.total,
+      }))
     }
     default:
       throw new Error(`Unknown report "${kind}"`)

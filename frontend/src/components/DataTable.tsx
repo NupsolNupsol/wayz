@@ -44,7 +44,6 @@ export function DataTable<T>({
   initialSort?: { key: string; dir: 'asc' | 'desc' }
   pageSize?: number
   className?: string
-  /** A totals line, one cell per column, pinned under the rows. */
   footer?: (rows: T[]) => ReactNode[]
 }) {
   const { t } = useTranslation('ui')
@@ -111,8 +110,6 @@ export function DataTable<T>({
     setAnchor({ top: Math.max(8, top), left: Math.max(8, Math.min(rect.left, window.innerWidth - 236)) })
   }, [open])
 
-  // Filtering can empty the table and move the header, so the anchor is re-measured
-  // rather than captured once when the button was clicked.
   useLayoutEffect(() => {
     if (!open) {
       setAnchor(null)

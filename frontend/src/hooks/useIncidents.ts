@@ -5,9 +5,7 @@ import type { EngineKind, IncidentType } from '../api/types'
 
 export const useIncidents = () => useQuery({ queryKey: qk.incidents, queryFn: incidentApi.list })
 
-
 export const useIncidentCatalogue = () => useQuery({ queryKey: qk.incidentTypes, queryFn: engineApi.incidentTypes, staleTime: Infinity })
-
 
 export function useCreateIncident() {
   const qc = useQueryClient()

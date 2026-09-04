@@ -111,21 +111,67 @@ body {
   unicode-bidi: isolate;
 }
 
+/*
+ * Printing.
+ *
+ * The counter prints to an 80 mm thermal roll on a SUNMI, which is a continuous feed with no
+ * page height and about 72 mm of printable width. Left at A4 the browser scaled the slip down
+ * and cropped it, which is what the client saw. So the page itself becomes the roll: the size
+ * is declared, the margins go to zero, and only the slip is laid on it.
+ *
+ * `.receipt-print` is used both for the sales invoice and for bag labels, and both want the
+ * same treatment — full width of the roll, no borders, nothing else on the page.
+ */
 @media print {
+  @page {
+    /* A continuous roll: fixed width, and a height the content decides. */
+    size: 80mm auto;
+    margin: 0;
+  }
+
+  html,
+  body {
+    width: 80mm;
+    margin: 0 !important;
+    padding: 0 !important;
+    background: #fff !important;
+  }
+
   body * {
     visibility: hidden;
   }
+
   .receipt-print,
   .receipt-print * {
     visibility: visible;
+    /* Thermal paper is black on white; a screen palette prints as grey mush. */
+    color: #000 !important;
+    background: transparent !important;
+    box-shadow: none !important;
   }
+
   .receipt-print {
     position: absolute;
     left: 0;
     top: 0;
-    width: 100%;
+    width: 80mm;
+    max-width: 80mm;
+    /* The roll's printable area, less a hair each side so nothing is shaved off. */
+    padding: 0 4mm !important;
+    margin: 0 !important;
     border: none !important;
+    font-size: 12px;
+    line-height: 1.35;
   }
+
+  /* A slip must never be split across a tear. */
+  .receipt-print,
+  .receipt-print table,
+  .receipt-print tr {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
   .no-print {
     display: none !important;
   }

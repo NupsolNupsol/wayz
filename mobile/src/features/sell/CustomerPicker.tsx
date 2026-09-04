@@ -20,7 +20,6 @@ import { initials } from '@/lib/format'
 import { COLORS } from '@/theme/tokens'
 import type { Customer } from '@/types'
 
-/** Find the customer or create them — the first step of every sale. */
 export function CustomerPicker({
   selected,
   onSelect,

@@ -1,4 +1,14 @@
-export const ROLES = ['AGENT', 'CASHIER', 'DELIVERY_AGENT', 'MANAGER', 'HR', 'ACCOUNTANT', 'TENANT_ADMIN'] as const
+export const ROLES = [
+  'AGENT',
+  'DELIVERY_AGENT',
+  'SUPERVISOR',
+  'CHIEF_CAPTAIN',
+  'MANAGER',
+  'PROJECT_MANAGER',
+  'HR',
+  'ACCOUNTANT',
+  'TENANT_ADMIN',
+] as const
 export type Role = (typeof ROLES)[number]
 
 export const ENGINE_KINDS = [
@@ -17,6 +27,12 @@ export type BillingModel = (typeof BILLING_MODELS)[number]
 
 export const DURATION_UNITS = ['HOUR', 'DAY', 'HALF_HOUR', 'FIFTEEN_MIN'] as const
 export type DurationUnit = (typeof DURATION_UNITS)[number]
+
+export const SALE_TYPES = ['RENTAL', 'SALE'] as const
+export type SaleType = (typeof SALE_TYPES)[number]
+
+export const SALE_UNITS = ['HOUR', 'FULL_DAY', 'TOUR', 'BAG', 'CART', 'DELIVERY', 'ITEM'] as const
+export type SaleUnit = (typeof SALE_UNITS)[number]
 export type BagCategory = 'SOFT' | 'HARD' | 'OVERSIZE' | 'FRAGILE'
 
 export type BookingStatus =

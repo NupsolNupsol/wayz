@@ -37,6 +37,7 @@ export interface OperationalSession {
   gracePeriodMin: number
   overtimeHourlyRate: number
   expiryWarningSentAt?: Date | null
+  paidAt?: Date | null
 }
 
 export interface AssetReservationEmbed {
@@ -97,6 +98,7 @@ export interface BookingDoc {
   ref: string
   tenantId: string
   stationId: string
+  kioskId: string | null
   agentId: string
   orderId: string
   customerId: string
@@ -124,7 +126,6 @@ export interface BookingDoc {
   updatedAt: Date
 }
 
-/** What was given back on this booking, who gave it back, and why. */
 export interface BookingRefund {
   amount: number
   reason: string
@@ -176,6 +177,7 @@ const sessionSchema = new Schema<OperationalSession>(
     gracePeriodMin: { type: Number, default: DEFAULT_GRACE_MINUTES },
     overtimeHourlyRate: { type: Number, default: 0 },
     expiryWarningSentAt: { type: Date, default: null },
+    paidAt: { type: Date, default: null },
   },
   { _id: false },
 )
@@ -249,6 +251,7 @@ const bookingSchema = new Schema<BookingDoc>(
     ref: { type: String, required: true, index: true },
     tenantId: { type: String, required: true, index: true },
     stationId: { type: String, required: true, index: true },
+    kioskId: { type: String, default: null, index: true },
     agentId: { type: String, required: true },
     orderId: { type: String, required: true },
     customerId: { type: String, required: true, index: true },

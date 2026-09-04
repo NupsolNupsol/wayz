@@ -29,11 +29,6 @@ const DOC_TYPES: { value: IdDocumentType; label: string }[] = [
   { value: 'DRIVING_LICENCE', label: 'Driving licence' },
 ]
 
-/**
- * Proving the person at the counter owns the booking. The code goes to the contact recorded
- * when the booking was made — it cannot be retyped here — and every fallback needs a written
- * reason that lands in the audit trail.
- */
 export function VerifySheet({
   open,
   onClose,

@@ -24,7 +24,8 @@
     "viewAll": "View all",
     "noActive": "No active operations right now.",
     "noBookings": "No bookings yet.",
-    "endsAt": "ends {{time}}"
+    "endsAt": "ends {{time}}",
+    "myTrips": "My trips"
   },
   "pos": {
     "title": "New transaction",
@@ -78,7 +79,17 @@
       "boardingVerified": "Boarding count verified",
       "safetyAck": "Safety checklist signed"
     },
-    "activeOfKind": "Active {{engine}}"
+    "activeOfKind": "Active {{engine}}",
+    "customerIncomplete": "This customer has no complete mobile number, so they cannot be sent a code or an invoice. Edit them before taking payment.",
+    "chooseUnit": "Which one are you handing over?",
+    "chooseUnitHint": "The operational number written on the vehicle.",
+    "chooseUnitPlaceholder": "Choose a unit…",
+    "noFreeUnits": "Nothing of this kind is free at your desk right now.",
+    "byHour": "By the hour · {{price}}",
+    "byTour": "By the tour · {{price}}",
+    "tours": "How many tours",
+    "toursHint": "Each tour runs {{minutes}} minutes.",
+    "price": "Price"
   },
   "shopdrop": {
     "title": "Shop & Drop",
@@ -157,9 +168,13 @@
     "title": "Active operations",
     "subtitle": "Live sessions across all engines at this station",
     "empty": "Nothing is running",
-    "emptyMessage": "Active sessions appear here as they start.",
+    "emptyMessage": "Confirmed fulfilments appear here with live timers.",
     "awaitingFulfilment": "Awaiting fulfilment",
-    "open": "Open"
+    "open": "Open",
+    "started": "Started",
+    "due": "Due",
+    "settled": "Settled",
+    "emptyTitle": "No active operations"
   },
   "bookings": {
     "title": "Bookings",
@@ -175,7 +190,8 @@
       "ends": "Ends",
       "total": "Total"
     },
-    "newTransaction": "New Transaction"
+    "newTransaction": "New Transaction",
+    "owing": "{{amount}} owing"
   },
   "bookingDetail": {
     "actions": "Actions",
@@ -274,7 +290,16 @@
     "blindCount": "Blind cash count",
     "blindCountHint": "Count the physical cash in the drawer and enter the amount. The expected total stays hidden until you submit.",
     "closeShift": "Close shift",
-    "failed": "Failed"
+    "failed": "Failed",
+    "openTillTitle": "Your till is open — open the shift page to count and close it",
+    "closedTillTitle": "Your till is shut, so nothing can be sold yet",
+    "openTillTitle2": "Open your till",
+    "openTillBlurb": "Nothing can be sold, extended or settled at this desk until the drawer is open.",
+    "openingFloat": "Opening float",
+    "openingFloatHint": "The change counted into the drawer before the first customer. Leave it at zero if there is none.",
+    "openedToast": "Till open",
+    "openedToastDetail": "The drawer starts on {{amount}}. It closes on the shift page, by counting it.",
+    "openFailed": "The till would not open"
   },
   "profile": {
     "title": "Profile & workspace",
@@ -291,5 +316,82 @@
     "configuredInCode": "Configured in code (",
     "enginesEnabled_one": "{{count}} enabled",
     "enginesEnabled_other": "{{count}} enabled"
+  },
+  "signOut": {
+    "stillOpen": "You still have work open at this desk.",
+    "liveCount_one": "{{count}} live operation",
+    "liveCount_other": "{{count}} live operations",
+    "andMore": "and {{count}} more",
+    "owed": "{{amount}} still owed across them.",
+    "tillOpen": "Your till is still open.",
+    "tillOpenHint": "Count and close it so the day reconciles against your name.",
+    "closeShift": "Close my shift"
+  },
+  "trips": {
+    "title": "Boats & trips",
+    "subtitle": "Everyone who has paid and is waiting for a boat, grouped into trips a captain can take.",
+    "waitingPeople": "People waiting",
+    "boatsNeeded": "Boats needed",
+    "ready": "Waiting for a captain",
+    "running": "Under way",
+    "whoIsWaiting": "Who is waiting",
+    "group": "Group them into boats",
+    "grouped": "Trips created",
+    "groupedDetail": "{{count}} trip(s) are waiting for a captain.",
+    "couldNotGroup": "Nothing was grouped",
+    "nobodyWaiting": "Nobody is waiting",
+    "nobodyWaitingHint": "Paid lagoon bookings show up here, grouped by the boat they asked for.",
+    "seatsEach": "{{seats}} seats each",
+    "peopleWaiting_one": "{{count}} person",
+    "peopleWaiting_other": "{{count}} people",
+    "boats_one": "{{count}} boat",
+    "boats_other": "{{count}} boats",
+    "plannedTitle": "Trips",
+    "noTrips": "No trips yet",
+    "noTripsHint": "Group the people waiting and the trips appear here.",
+    "aboard": "{{headcount}} of {{seats}} seats",
+    "captainTitle": "My trips",
+    "captainSubtitle": "Take a trip, sail it, and clock each station you reach.",
+    "myTrip": "Under way",
+    "nothingUnderway": "You are not sailing anything",
+    "nothingUnderwayHint": "Take a trip from the list, then cast off.",
+    "route": "Route so far",
+    "noStopsYet": "No station clocked yet.",
+    "clockAStation": "Clock a station as you reach it",
+    "reached": "Reached {{name}}",
+    "finishTrip": "Finish the trip",
+    "finished": "Trip finished",
+    "finishedDetail": "{{ref}} is closed and the boat is free again.",
+    "waitingForACaptain": "Waiting for a captain",
+    "noneReady": "No trip is waiting.",
+    "claim": "Take this trip",
+    "claimed": "{{ref}} is yours",
+    "readyToCastOff": "Ready to cast off",
+    "start": "Cast off",
+    "started": "Under way",
+    "startedDetail": "Sailing on {{boat}}.",
+    "didNotGo": "That did not go through",
+    "planTheRoad": "Plan the road"
+  },
+  "voyage": {
+    "title": "Chart & sail",
+    "subtitle": "Plan the road across the lagoon, then clock each jetty as you reach it.",
+    "chart": "The lagoon",
+    "plan": "The road",
+    "stops": "Jetties",
+    "noStops": "No jetty is on the map yet.",
+    "nothingPlanned": "Tap the jetties on the map in the order you will sail them.",
+    "pickHint": "Tap a jetty to add it to the road; tap it again to take it off. The numbers are the order you will sail.",
+    "saveRoute": "Save the road",
+    "reset": "Undo",
+    "routeSaved": "The road is set",
+    "routeSavedDetail": "{{count}} jetty(ies) on this run.",
+    "reached": "Reached",
+    "reachedNext": "Reached {{name}}",
+    "noTrip": "No boat under you",
+    "noTripHint": "Take a trip from your board and it will appear here with the chart.",
+    "noMapYet": "Nobody has placed the jetties on the map yet — ask the CEO to set the station map.",
+    "roadFirst": "Plan the road first — tap the jetties on the chart in the order you will sail them.",
+    "saveFirst": "Save the road before casting off."
   }
 }

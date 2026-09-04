@@ -1,4 +1,5 @@
-import { AssetUnit, Booking, Kiosk, Site, Station } from '../models/index.js'
+import { AssetUnit, Booking, Kiosk, Site, Station, User } from '../models/index.js'
+import { ENGINE_KINDS, type EngineKind } from '../domain/types.js'
 import { ApiError } from '../utils/ApiError.js'
 import { nextId } from './counter.service.js'
 
@@ -65,6 +66,110 @@ export async function orgTree(scope: ManagerScope) {
         })),
     })),
   }
+}
+
+export interface MapPoint {
+  _id: string
+  kind: 'STATION' | 'KIOSK'
+  name: string
+  siteId: string
+  siteName: string
+  stationId: string | null
+  stationName: string | null
+  engineKinds: EngineKind[]
+  active: boolean
+  kioskCount: number
+  mapX: number | null
+  mapY: number | null
+}
+
+const coord = (value: unknown) => (typeof value === 'number' ? value : null)
+
+export async function stationMap(tenantId: string, siteId?: string) {
+  const [sites, stations, kiosks] = await Promise.all([
+    Site.find({ tenantId }).sort({ name: 1 }).lean(),
+    Station.find({ tenantId, ...(siteId ? { siteId } : {}) }).sort({ name: 1 }).lean(),
+    Kiosk.find({ tenantId, ...(siteId ? { siteId } : {}) }).sort({ name: 1 }).lean(),
+  ])
+
+  const siteName = new Map(sites.map((s) => [s._id, s.name]))
+  const stationName = new Map(stations.map((s) => [s._id, s.name]))
+
+  const desks = new Map<string, number>()
+  for (const kiosk of kiosks) desks.set(kiosk.stationId, (desks.get(kiosk.stationId) ?? 0) + 1)
+
+  const points: MapPoint[] = [
+    ...stations.map((s) => ({
+      _id: s._id,
+      kind: 'STATION' as const,
+      name: s.name,
+      siteId: s.siteId,
+      siteName: siteName.get(s.siteId) ?? s.siteId,
+      stationId: null,
+      stationName: null,
+      engineKinds: (s.engineKinds ?? []) as EngineKind[],
+      active: s.active,
+      kioskCount: desks.get(s._id) ?? 0,
+      mapX: coord(s.mapX),
+      mapY: coord(s.mapY),
+    })),
+    ...kiosks.map((k) => ({
+      _id: k._id,
+      kind: 'KIOSK' as const,
+      name: k.name,
+      siteId: k.siteId,
+      siteName: siteName.get(k.siteId) ?? k.siteId,
+      stationId: k.stationId,
+      stationName: stationName.get(k.stationId) ?? k.stationId,
+      engineKinds: [k.engineKind] as EngineKind[],
+      active: k.active,
+      kioskCount: 0,
+      mapX: coord(k.mapX),
+      mapY: coord(k.mapY),
+    })),
+  ]
+
+  return {
+    sites: sites.map((s) => ({ _id: s._id, name: s.name, city: s.city })),
+    points,
+    stations: points.filter((p) => p.kind === 'STATION'),
+  }
+}
+
+export async function saveStationMap(
+  tenantId: string,
+  placements: { id: string; x: number | null; y: number | null }[],
+) {
+  const ids = placements.map((p) => p.id)
+  const [stations, kiosks] = await Promise.all([
+    Station.find({ tenantId, _id: { $in: ids } }, { _id: 1 }).lean(),
+    Kiosk.find({ tenantId, _id: { $in: ids } }, { _id: 1 }).lean(),
+  ])
+  const isStation = new Set(stations.map((s) => s._id))
+  const isKiosk = new Set(kiosks.map((k) => k._id))
+
+  const missing = ids.filter((id) => !isStation.has(id) && !isKiosk.has(id))
+  if (missing.length) throw ApiError.badRequest(`Nothing in this tenant to place: ${missing.join(', ')}.`)
+
+  for (const placement of placements) {
+    const placed = placement.x !== null && placement.y !== null
+    const patch = {
+      mapX: placed ? clampUnit(placement.x as number) : null,
+      mapY: placed ? clampUnit(placement.y as number) : null,
+    }
+    if (isStation.has(placement.id)) {
+      await Station.updateOne({ _id: placement.id, tenantId }, { $set: patch })
+    } else {
+      await Kiosk.updateOne({ _id: placement.id, tenantId }, { $set: patch })
+    }
+  }
+
+  return stationMap(tenantId)
+}
+
+function clampUnit(value: number) {
+  if (!Number.isFinite(value)) return 0
+  return Math.min(1, Math.max(0, Math.round(value * 10000) / 10000))
 }
 
 export async function createSite(scope: ManagerScope, input: SiteInput) {
@@ -136,6 +241,7 @@ export async function updateStation(scope: ManagerScope, id: string, patch: Part
 export async function createKiosk(scope: ManagerScope, input: KioskInput) {
   const station = await Station.findOne({ _id: input.stationId, tenantId: scope.tenantId }).lean()
   if (!station) throw ApiError.badRequest('That station does not exist in this tenant.')
+  assertStationRuns(station.engineKinds, station.name, input.engineKind)
 
   return Kiosk.create({
     _id: await nextId('kiosk'),
@@ -145,7 +251,7 @@ export async function createKiosk(scope: ManagerScope, input: KioskInput) {
     name: input.name.trim(),
     code: input.code ?? '',
     location: input.location ?? '',
-    engineKinds: input.engineKinds ?? station.engineKinds,
+    engineKind: input.engineKind,
     active: true,
   })
 }
@@ -159,9 +265,48 @@ export async function updateKiosk(scope: ManagerScope, id: string, patch: Partia
     if (busy > 0) throw ApiError.unprocessable(`${kiosk.name} has ${busy} unit(s) in use — empty it first.`)
   }
 
+  if (patch.engineKind && patch.engineKind !== kiosk.engineKind) {
+    const held = await AssetUnit.countDocuments({ tenantId: scope.tenantId, kioskId: id })
+    if (held > 0) {
+      throw ApiError.unprocessable(
+        `${kiosk.name} holds ${held} unit(s) of its current activity — move them out before changing what it runs.`,
+      )
+    }
+    const staffed = await User.countDocuments({ tenantId: scope.tenantId, kioskId: id, active: true })
+    if (staffed > 0) {
+      throw ApiError.unprocessable(`${kiosk.name} still has ${staffed} staff member(s) assigned — reassign them first.`)
+    }
+    const station = await Station.findOne({ _id: kiosk.stationId, tenantId: scope.tenantId }).lean()
+    assertStationRuns(station?.engineKinds ?? [], station?.name ?? 'That station', patch.engineKind)
+  }
+
   Object.assign(kiosk, sanitise(patch))
   await kiosk.save()
   return kiosk
+}
+
+export async function removeKiosk(scope: ManagerScope, id: string) {
+  const kiosk = await Kiosk.findOne({ _id: id, tenantId: scope.tenantId })
+  if (!kiosk) throw ApiError.notFound('Kiosk not found.')
+
+  const [units, staff, live] = await Promise.all([
+    AssetUnit.countDocuments({ tenantId: scope.tenantId, kioskId: id }),
+    User.countDocuments({ tenantId: scope.tenantId, kioskId: id }),
+    Booking.countDocuments({ tenantId: scope.tenantId, kioskId: id, status: { $in: LIVE_BOOKING } }),
+  ])
+  if (live > 0) throw ApiError.unprocessable(`${kiosk.name} still has ${live} live session(s) — finish them first.`)
+  if (units > 0) throw ApiError.unprocessable(`${kiosk.name} still holds ${units} unit(s) — move them to another desk first.`)
+  if (staff > 0) throw ApiError.unprocessable(`${kiosk.name} still has ${staff} staff member(s) assigned — reassign them first.`)
+
+  await kiosk.deleteOne()
+  return { removed: id, name: kiosk.name }
+}
+
+function assertStationRuns(runs: EngineKind[], stationName: string, engineKind: EngineKind) {
+  if (!ENGINE_KINDS.includes(engineKind)) throw ApiError.badRequest(`Unknown activity "${engineKind}".`)
+  if (!runs.includes(engineKind)) {
+    throw ApiError.badRequest(`${stationName} does not run ${engineKind.replaceAll('_', ' ').toLowerCase()}.`)
+  }
 }
 
 function sanitise<T extends object>(patch: T): Partial<T> {

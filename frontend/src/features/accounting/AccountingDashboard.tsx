@@ -19,7 +19,6 @@ import type { ActivityFigures, LedgerRow } from '@/api/accounting.api'
 
 const REPORTED_ACTIVITIES: EngineKind[] = ['LAGOON', 'MOBILITY', 'SHOP_AND_DROP']
 
-
 const iso = (d: Date) => d.toISOString().slice(0, 10)
 
 function quarterRange(year: number, index: number): { from: string; to: string; label: string } {
@@ -30,7 +29,6 @@ function quarterRange(year: number, index: number): { from: string; to: string; 
   }
 }
 
-/** All four quarters of the year, so a return can be opened without hunting for dates. */
 function quartersOfYear(year: number) {
   return [0, 1, 2, 3].map((index) => quarterRange(year, index))
 }

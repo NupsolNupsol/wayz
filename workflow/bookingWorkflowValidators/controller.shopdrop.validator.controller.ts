@@ -1,12 +1,6 @@
 import type { ValidationResult, WorkflowContext } from '../shared/types.js'
 import { BAG_DELIVERED, BAG_RETRIEVED } from '../shared/status.js'
-import {
-  requireHeldUnitUsable,
-  requireIdentityVerified,
-  requirePositiveDuration,
-  requireReason,
-  requireTargetUnitAvailable,
-} from './shared.validators.js'
+import { requireHeldUnitUsable, requireIdentityVerified, requirePaid, requirePositiveDuration, requireReason, requireTargetUnitAvailable } from './shared.validators.js'
 
 function validateBagScans(ctx: WorkflowContext): string[] {
   const registered = ctx.booking.bags
@@ -82,6 +76,7 @@ export const useShopDropValidator = (transitionCode: string, ctx: WorkflowContex
 
     case 'TO_STORED': {
       errors.push(
+        ...requirePaid(ctx),
         ...validateCompartmentScan(ctx),
         ...requireHeldUnitUsable(ctx),
         ...validateBagScans(ctx),

@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Building2, MapPin, Plus, Boxes, Power, ChevronRight, Server } from 'lucide-react'
+import { Building2, MapPin, Pencil, Plus, Boxes, Power, ChevronRight, Server, Trash2 } from 'lucide-react'
 import { clsx } from 'clsx'
 import { PageHeader } from '@/components/PageHeader'
 import { Card, SectionTitle, Button, Field, Spinner, Badge, EmptyState } from '@/components/ui'
@@ -11,6 +11,7 @@ import {
   useCreateSite,
   useCreateStation,
   useManagerOrg,
+  useRemoveKiosk,
   useUpdateKiosk,
   useUpdateSite,
   useUpdateStation,
@@ -24,7 +25,7 @@ import type { OrgSite, OrgStation } from '@/api/manager.api'
 type Dialog =
   | { kind: 'site'; id?: string; initial?: Partial<OrgSite> }
   | { kind: 'station'; id?: string; siteId: string; initial?: Partial<OrgStation> }
-  | { kind: 'kiosk'; id?: string; stationId: string; initial?: Record<string, unknown> }
+  | { kind: 'kiosk'; id?: string; stationId: string; runs: EngineKind[]; initial?: Record<string, unknown> }
   | null
 
 export function ManagerOrg() {
@@ -36,9 +37,11 @@ export function ManagerOrg() {
   const updateStation = useUpdateStation()
   const createKiosk = useCreateKiosk()
   const updateKiosk = useUpdateKiosk()
+  const removeKiosk = useRemoveKiosk()
 
   const [dialog, setDialog] = useState<Dialog>(null)
   const [form, setForm] = useState<Record<string, string>>({})
+  const [removing, setRemoving] = useState<{ id: string; name: string } | null>(null)
   const [engines, setEngines] = useState<EngineKind[]>([])
 
   const open = (d: Dialog, initial: Record<string, string> = {}, eng: EngineKind[] = []) => {
@@ -71,7 +74,13 @@ export function ManagerOrg() {
       else createStation.mutate(payload, { onSuccess: () => done('Station created'), onError: fail })
     }
     if (dialog.kind === 'kiosk') {
-      const payload = { stationId: dialog.stationId, name: form.name, code: form.code, location: form.location }
+      const payload = {
+        stationId: dialog.stationId,
+        name: form.name,
+        code: form.code,
+        location: form.location,
+        engineKind: form.engineKind,
+      }
       if (dialog.id) updateKiosk.mutate({ id: dialog.id, patch: payload }, { onSuccess: () => done('Kiosk updated'), onError: fail })
       else createKiosk.mutate(payload, { onSuccess: () => done('Kiosk created'), onError: fail })
     }
@@ -187,7 +196,18 @@ export function ManagerOrg() {
                           <Button variant="ghost" onClick={() => toggle('station', station._id, station.active)} title={station.active ? t('org.deactivate') : t('org.reactivate')}>
                             <Power size={14} />
                           </Button>
-                          <Button variant="ghost" onClick={() => open({ kind: 'kiosk', stationId: station._id })} data-testid={`org-add-kiosk-${station._id}`}>
+                          <Button
+                            variant="ghost"
+                            disabled={station.engineKinds.length === 0}
+                            title={station.engineKinds.length === 0 ? t('org.stationHasNoActivity') : undefined}
+                            onClick={() =>
+                              open(
+                                { kind: 'kiosk', stationId: station._id, runs: station.engineKinds },
+                                { engineKind: station.engineKinds[0] ?? '' },
+                              )
+                            }
+                            data-testid={`org-add-kiosk-${station._id}`}
+                          >
                             <Plus size={14} /> Kiosk
                           </Button>
                         </div>
@@ -202,15 +222,41 @@ export function ManagerOrg() {
                                   <p className="text-sm font-medium text-navy dark:text-dk-text flex items-center gap-1.5">
                                     <Server size={13} /> {k.name}
                                   </p>
+                                  <p className="text-[11px] text-brand mt-0.5" data-testid={`org-kiosk-activity-${k._id}`}>
+                                    {engineLabel(k.engineKind)}
+                                  </p>
                                   {k.location && <p className="text-[11px] text-muted mt-0.5 line-clamp-1">{k.location}</p>}
                                 </div>
-                                <button
-                                  onClick={() => toggle('kiosk', k._id, k.active)}
-                                  className="text-muted hover:text-danger-strong shrink-0"
-                                  title={k.active ? 'Deactivate' : 'Reactivate'}
-                                >
-                                  <Power size={13} />
-                                </button>
+                                <div className="flex items-center gap-1 shrink-0">
+                                  <button
+                                    onClick={() =>
+                                      open(
+                                        { kind: 'kiosk', id: k._id, stationId: station._id, runs: station.engineKinds },
+                                        { name: k.name, code: k.code ?? '', location: k.location ?? '', engineKind: k.engineKind },
+                                      )
+                                    }
+                                    className="text-muted hover:text-brand"
+                                    title={t('common:action.edit')}
+                                    data-testid={`org-edit-kiosk-${k._id}`}
+                                  >
+                                    <Pencil size={13} />
+                                  </button>
+                                  <button
+                                    onClick={() => toggle('kiosk', k._id, k.active)}
+                                    className="text-muted hover:text-danger-strong"
+                                    title={k.active ? t('common:action.suspend') : t('common:action.restore')}
+                                  >
+                                    <Power size={13} />
+                                  </button>
+                                  <button
+                                    onClick={() => setRemoving({ id: k._id, name: k.name })}
+                                    className="text-muted hover:text-danger-strong"
+                                    title={t('common:action.delete')}
+                                    data-testid={`org-remove-kiosk-${k._id}`}
+                                  >
+                                    <Trash2 size={13} />
+                                  </button>
+                                </div>
                               </div>
                               <p className="text-xs text-muted mt-1.5">
                                 <strong className="text-navy dark:text-dk-text">{k.total}</strong> {t('org.kioskLine', { inUse: k.inUse, free: k.available })}
@@ -294,12 +340,54 @@ export function ManagerOrg() {
 
         {dialog?.kind === 'kiosk' && (
           <>
+            <Field
+              label={t('org.kioskActivity')}
+              required
+              hint={t('org.kioskActivityHint')}
+              error={dialog.runs.length === 0 ? t('org.stationHasNoActivity') : undefined}
+            >
+              <Select
+                value={form.engineKind ?? ''}
+                onChange={(v) => setForm({ ...form, engineKind: v })}
+                options={dialog.runs.map((e) => ({ label: engineLabel(e), value: e }))}
+                testId="org-kiosk-activity"
+              />
+            </Field>
             <Field label={t('org.code')}><input className="lf-input" value={form.code ?? ''} onChange={(e) => setForm({ ...form, code: e.target.value })} /></Field>
             <Field label={t('org.location')} hint={t('org.locationHint')}>
               <input className="lf-input" value={form.location ?? ''} onChange={(e) => setForm({ ...form, location: e.target.value })} placeholder={t('org.locationPlaceholder')} />
             </Field>
           </>
         )}
+      </Modal>
+
+      <Modal
+        open={!!removing}
+        onClose={() => setRemoving(null)}
+        title={t('org.removeKiosk', { name: removing?.name ?? '' })}
+        subtitle={t('org.removeKioskSubtitle')}
+        testId="org-remove-kiosk-modal"
+        footer={
+          <>
+            <Button variant="ghost" onClick={() => setRemoving(null)}>{t('common:action.cancel')}</Button>
+            <Button
+              variant="danger"
+              loading={removeKiosk.isPending}
+              onClick={() =>
+                removing &&
+                removeKiosk.mutate(removing.id, {
+                  onSuccess: () => { toast('warning', t('org.kioskRemoved', { name: removing.name })); setRemoving(null) },
+                  onError: fail,
+                })
+              }
+              data-testid="org-remove-kiosk-submit"
+            >
+              {t('common:action.delete')}
+            </Button>
+          </>
+        }
+      >
+        <p className="text-sm text-muted">{t('org.removeKioskBody')}</p>
       </Modal>
     </div>
   )

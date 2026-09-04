@@ -9,6 +9,7 @@ import { Select } from '@/components/Select'
 import { NumberInput } from '@/components/NumberInput'
 import { RefText } from '@/components/RefLink'
 import { AssetQrModal } from './AssetQrModal'
+import { WrongDeskBanner } from './WrongDeskBanner'
 import { useAssetUnit, useUpdateAssetUnit } from '@/hooks'
 import { can } from '@/permissions/permissions'
 import { useAuthStore } from '@/store/auth'
@@ -36,6 +37,8 @@ export function AssetUnitPage() {
   const [note, setNote] = useState('')
   const [ownPrice, setOwnPrice] = useState(false)
   const [unitPrice, setUnitPrice] = useState(0)
+  const [ownPenalty, setOwnPenalty] = useState(false)
+  const [unitPenalty, setUnitPenalty] = useState(0)
 
   if (isLoading) {
     return (
@@ -63,6 +66,8 @@ export function AssetUnitPage() {
     setNote(data.note)
     setOwnPrice(data.priceOverride !== null)
     setUnitPrice(data.priceOverride ?? data.basePrice ?? 0)
+    setOwnPenalty(data.penaltyPrice !== null)
+    setUnitPenalty(data.penaltyPrice ?? data.effectivePenalty ?? 0)
     setEditOpen(true)
   }
 
@@ -75,6 +80,7 @@ export function AssetUnitPage() {
           identifier,
           note,
           priceOverride: ownPrice ? unitPrice : null,
+          penaltyPrice: ownPenalty ? unitPenalty : null,
           ...(busy || status === data.status ? {} : { status }),
         },
       },
@@ -121,6 +127,10 @@ export function AssetUnitPage() {
       />
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-5 items-start">
+        <div className="lg:col-span-3">
+          <WrongDeskBanner unitId={data._id} />
+        </div>
+
         <Card className="lg:col-span-2">
           <div className="flex items-center justify-between mb-4">
             <SectionTitle>{t('unit.state')}</SectionTitle>
@@ -147,6 +157,15 @@ export function AssetUnitPage() {
                 <span className="flex items-center gap-2">
                   {data.effectivePrice === null ? '—' : money(data.effectivePrice)}
                   {data.priceOverride !== null && <Badge tone="warning">{t('table.ownPrice')}</Badge>}
+                </span>
+              }
+            />
+            <Meta
+              label={t('table.penalty')}
+              value={
+                <span className="flex items-center gap-2" data-testid="asset-unit-penalty">
+                  {data.effectivePenalty === null ? '—' : money(data.effectivePenalty)}
+                  {data.penaltyPrice !== null && <Badge tone="warning">{t('table.ownPrice')}</Badge>}
                 </span>
               }
             />
@@ -249,6 +268,15 @@ export function AssetUnitPage() {
         {ownPrice && (
           <Field label={t('edit.unitPrice')} required>
             <NumberInput min={0} step={0.5} value={unitPrice} onChange={setUnitPrice} testId="asset-unit-price" />
+          </Field>
+        )}
+        <label className="flex items-start gap-2 text-sm cursor-pointer select-none mb-3">
+          <input type="checkbox" className="mt-0.5" checked={ownPenalty} onChange={(e) => setOwnPenalty(e.target.checked)} data-testid="asset-unit-own-penalty" />
+          <span>{t('edit.ownPenalty', { price: data.effectivePenalty ? money(data.effectivePenalty) : '—' })}</span>
+        </label>
+        {ownPenalty && (
+          <Field label={t('edit.unitPenalty')} required hint={t('edit.unitPenaltyHint')}>
+            <NumberInput min={0} step={0.5} value={unitPenalty} onChange={setUnitPenalty} testId="asset-unit-penalty-input" />
           </Field>
         )}
       </Modal>

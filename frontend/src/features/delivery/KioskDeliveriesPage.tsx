@@ -1,5 +1,6 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
+import { useSearchParams } from 'react-router-dom'
 import { BellRing, KeyRound, MapPin, ShieldAlert, Truck, UserCheck } from 'lucide-react'
 import { clsx } from 'clsx'
 import { PageHeader } from '@/components/PageHeader'
@@ -133,6 +134,15 @@ export function KioskDeliveriesPage() {
   const { t } = useTranslation('delivery')
   const { data, isLoading } = useStationDeliveries()
   const [approving, setApproving] = useState<string | null>(null)
+  const [params, setParams] = useSearchParams()
+
+  const asked = params.get('open')
+  useEffect(() => {
+    if (!asked) return
+    setApproving(asked)
+    params.delete('open')
+    setParams(params, { replace: true })
+  }, [asked, params, setParams])
 
   if (isLoading || !data) {
     return (
@@ -176,6 +186,20 @@ export function KioskDeliveriesPage() {
                       {d.customerName} · {d.assetUnitIdentifier ? `compartment ${d.assetUnitIdentifier}` : 'compartment'}
                     </p>
                     <p className="text-xs text-muted mt-0.5">A courier is asking for these bags — requested {relativeTime(d.releaseRequestedAt)}</p>
+                    {(d.stops?.length ?? 0) > 1 && (
+                      <p className="text-xs text-muted mt-1" data-testid={`kiosk-stop-note-${d._id}`}>
+                        {t('kiosk.stopOf', {
+                          kiosk: d.activeStop?.kioskName ?? '',
+                          done: (d.stops ?? []).filter((s) => s.status === 'COLLECTED').length + 1,
+                          total: d.stops?.length ?? 0,
+                        })}
+                      </p>
+                    )}
+                    {d.atMyKiosk === false && (
+                      <Badge tone="neutral" className="mt-1" testId={`kiosk-not-mine-${d._id}`}>
+                        {t('kiosk.otherKiosk', { kiosk: d.activeStop?.kioskName ?? '' })}
+                      </Badge>
+                    )}
                   </div>
                   <Button onClick={() => setApproving(d._id)} data-testid={`kiosk-approve-${d._id}`}>
                     <UserCheck size={16} />{t('kiosk.checkCourier')}</Button>
@@ -211,6 +235,31 @@ export function KioskDeliveriesPage() {
                 <div>
                   <RefText className="text-muted">{r._id}</RefText>
                   <p className="font-semibold text-navy dark:text-dk-texthi">{r.customerName}</p>
+                </div>
+              ),
+            },
+            {
+              key: 'kiosk',
+              header: t('kiosk.stopColumn'),
+              sortValue: (r: Delivery) => r.activeStop?.kioskName ?? '',
+              filter: {
+                kind: 'text',
+                value: (r: Delivery) => `${r.activeStop?.kioskName ?? ''} ${r.assetUnitIdentifier ?? ''}`,
+              },
+              render: (r: Delivery) => (
+                <div className="text-xs">
+                  <p className="font-semibold text-navy dark:text-dk-texthi">
+                    {r.activeStop?.kioskName ?? '—'}
+                    {r.atMyKiosk && <span className="ms-1.5 text-brand">{t('kiosk.mine')}</span>}
+                  </p>
+                  <p className="text-muted">
+                    {(r.stops?.length ?? 0) > 1
+                      ? t('kiosk.stopCount', {
+                          done: (r.stops ?? []).filter((s) => s.status === 'COLLECTED').length,
+                          total: r.stops?.length ?? 0,
+                        })
+                      : (r.assetUnitIdentifier ?? '')}
+                  </p>
                 </div>
               ),
             },

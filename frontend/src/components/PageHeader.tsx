@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react'
-import { Link } from 'react-router-dom'
-import { ChevronRight, CircleHelp } from 'lucide-react'
+import { Link, useNavigate } from 'react-router-dom'
+import { ArrowLeft, CircleHelp } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 import { hasManualSection } from '@/config/manual'
 
 export interface Crumb {
@@ -10,34 +11,44 @@ export interface Crumb {
 
 export function PageHeader({
   title,
-  subtitle,
+  subtitle: _subtitle,
   crumbs,
   actions,
   helpId,
+  backTo,
 }: {
   title: string
   subtitle?: string
   crumbs?: Crumb[]
   actions?: ReactNode
   helpId?: string
+  backTo?: string
 }) {
+  const { t } = useTranslation('common')
   const showHelp = !!helpId && hasManualSection(helpId)
+  const navigate = useNavigate()
+  const backLabel = t('action.back')
+
+  const parent = backTo ?? [...(crumbs ?? [])].reverse().find((c) => !!c.to)?.to
+  const goBack = () => (parent ? navigate(parent) : navigate(-1))
 
   return (
     <div className="mb-5">
-      {crumbs && crumbs.length > 0 && (
-        <nav className="flex items-center gap-1 text-xs text-muted mb-2" aria-label="Breadcrumb">
-          {crumbs.map((c, i) => (
-            <span key={i} className="flex items-center gap-1">
-              {c.to ? <Link to={c.to} className="hover:text-navy no-underline">{c.label}</Link> : <span className="text-navy dark:text-dk-text font-medium">{c.label}</span>}
-              {i < crumbs.length - 1 && <ChevronRight size={12} />}
-            </span>
-          ))}
-        </nav>
-      )}
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="min-w-0">
           <div className="flex items-center gap-2">
+            {(parent || window.history.length > 1) && (
+              <button
+                type="button"
+                onClick={goBack}
+                aria-label={backLabel}
+                title={backLabel}
+                data-testid="page-back"
+                className="shrink-0 -ms-1 p-1.5 rounded-lg text-muted hover:text-navy hover:bg-black/5 dark:hover:text-dk-texthi"
+              >
+                <ArrowLeft size={18} className="rtl:rotate-180" />
+              </button>
+            )}
             <h1 className="text-2xl font-bold text-navy dark:text-dk-texthi">{title}</h1>
             {showHelp && (
               <Link
@@ -51,7 +62,6 @@ export function PageHeader({
               </Link>
             )}
           </div>
-          {subtitle && <p className="text-sm text-muted mt-1">{subtitle}</p>}
         </div>
         {actions && <div className="flex items-center gap-2 flex-wrap">{actions}</div>}
       </div>

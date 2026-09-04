@@ -105,7 +105,15 @@
       "HR": "HR — records costs, suppliers and payroll"
     },
     "noAccounts": "No accounts",
-    "addFirst": "Add your first team member."
+    "addFirst": "Add your first team member.",
+    "reportsTo": "Reports to",
+    "reportsToHint": "A manager or supervisor may sit under the project manager.",
+    "reportsToNobody": "Nobody",
+    "pickActivityFirst": "Choose the activity first — the desks follow from it.",
+    "noKioskForActivity": "No desk at that station runs this activity yet.",
+    "headcount": "People",
+    "onShiftNow": "On shift now",
+    "reconciling": "Reconciling"
   },
   "org": {
     "title": "Organisation",
@@ -136,7 +144,14 @@
     "stationLine": "{{open}}–{{close}} · {{units}} unit(s) · {{live}} live",
     "kioskLine": "units · {{inUse}} in use · {{free}} free",
     "deactivate": "Deactivate",
-    "reactivate": "Reactivate"
+    "reactivate": "Reactivate",
+    "kioskActivity": "Activity",
+    "kioskActivityHint": "A desk runs exactly one: its stock, its agents and its takings all hang off it.",
+    "stationHasNoActivity": "Give the station an activity before adding a desk to it.",
+    "removeKiosk": "Remove {{name}}?",
+    "removeKioskSubtitle": "The desk record goes; nothing that was on it does.",
+    "removeKioskBody": "A desk can only be removed once it holds no stock, no staff and no live session. If any of those are still true the platform will refuse and tell you which.",
+    "kioskRemoved": "{{name}} removed"
   },
   "pricing": {
     "title": "Pricing",
@@ -160,7 +175,15 @@
     "noAssetType": "— none —",
     "newBookingsOnly": "new bookings only",
     "note": "Prices are copied onto a booking when it is created, so a change here applies to <1>new bookings only</1> — sessions already running keep the price they were sold at. VAT is {{vat}}% and is calculated on top in Settings.",
-    "noAsset": "no asset"
+    "noAsset": "no asset",
+    "rates": "How it is sold",
+    "ratesHint": "A product can be sold by the hour, by the tour, or both — the counter picks which at the point of sale.",
+    "hourly": "Per hour",
+    "hourlyHint": "Left empty, the base price is the hourly rate.",
+    "perTour": "Per tour",
+    "perTourHint": "Leave it empty and this product is not sold by the tour.",
+    "tourMinutes": "Minutes per tour",
+    "tourMinutesHint": "How long one tour runs. Defaults to 60."
   },
   "estate": {
     "title": "Estate",
@@ -199,7 +222,9 @@
     "lastDays": "Last {{count}}d",
     "txnCount_one": "{{count}} txn",
     "txnCount_other": "{{count}} txn",
-    "rentals": "Rentals"
+    "rentals": "Rentals",
+    "noOccupancy": "No assets to report on",
+    "noOccupancyHint": "Nothing has been provisioned for this activity yet."
   },
   "settings": {
     "title": "Settings",
@@ -245,6 +270,45 @@
     "noIncidents": "No incidents",
     "noIncidentsHint": "Everything is running smoothly.",
     "noShifts": "No shifts",
-    "noShiftsHint": "Shifts open by agents will appear here."
+    "noShiftsHint": "Shifts open by agents will appear here.",
+    "awaitingApproval_one": "{{count}} till is waiting for a variance to be settled",
+    "awaitingApproval_other": "{{count}} tills are waiting for a variance to be settled",
+    "openOneToSettle": "Open one to see what moved through it, and settle it with a note.",
+    "stillOpen_one": "{{count}} till is still open",
+    "stillOpen_other": "{{count}} tills are still open",
+    "stillOpenHint": "A drawer nobody closed can be counted and closed from its own page."
+  },
+  "shifts": {
+    "detailTitle": "{{name}}'s till",
+    "takings": "What it took",
+    "noTakings": "Nothing was taken on this till",
+    "noTakingsHint": "No payment has been booked against this drawer.",
+    "drawer": "The drawer",
+    "noDrawer": "This till has no drawer breakdown.",
+    "drawerLine": {
+      "floatIn": "Opening float",
+      "cashSales": "Cash taken",
+      "cashRefunds": "Cash returned",
+      "paidOut": "Paid out",
+      "dropped": "Dropped to the safe",
+      "expected": "Expected in the drawer",
+      "drift": "Drift against the movements"
+    },
+    "closedBy": "Closed by {{name}}",
+    "resolve": "Record a resolution",
+    "resolveTitle": "Settle this variance",
+    "resolveBlurb": "The drawer is out by {{amount}}. Say what was found, and it closes.",
+    "note": "What happened",
+    "noteHint": "This stays on the shift, so the next person reading it knows why it closed as it did.",
+    "forceClose": "Close this till",
+    "forceCloseTitle": "Close a till that was left open",
+    "forceCloseBlurb": "{{name}} never closed this drawer. Count what is in it and close it in your name.",
+    "counted": "Counted in the drawer",
+    "countedHint": "The platform expects {{amount}}. Enter what is actually there.",
+    "forceNoteHint": "Why you are closing it for them — a forgotten till, an agent who left early.",
+    "resolved": "Variance settled",
+    "forceClosed": "Till closed",
+    "forceClosedDetail": "Variance of {{amount}} recorded against it.",
+    "failed": "That did not go through"
   }
 }

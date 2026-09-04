@@ -4,7 +4,6 @@ import { Pressable, Text, View } from 'react-native'
 import { COLORS } from '@/theme/tokens'
 import { Body, Muted } from './Text'
 
-/** A small set of exclusive choices, laid out in a row. */
 export function Segmented<T extends string>({
   value,
   options,
@@ -42,7 +41,6 @@ export function Segmented<T extends string>({
   )
 }
 
-/** A number the agent nudges rather than types — bag counts, durations, quantities. */
 export function Stepper({
   value,
   onChange,
@@ -100,7 +98,6 @@ export function Stepper({
   )
 }
 
-/** A choice the agent must make deliberately — a safety acknowledgement, a policy tick. */
 export function CheckRow({
   checked,
   onChange,
@@ -139,7 +136,6 @@ export function CheckRow({
   )
 }
 
-/** A single-select list where each option needs a line of explanation. */
 export function OptionRow({
   selected,
   onPress,

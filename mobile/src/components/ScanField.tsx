@@ -6,11 +6,6 @@ import { Icon } from '@/components/Icon'
 import { Body, Button, Input, Muted, Sheet } from '@/components/ui'
 import { COLORS } from '@/theme/tokens'
 
-/**
- * A barcode, however it arrives. A Sunmi's hardware scanner types into the field like a
- * keyboard, so the input is always there; the camera is the fallback for a device without one,
- * and manual entry is the fallback for both.
- */
 export function ScanField({
   value,
   onChangeText,
@@ -69,7 +64,6 @@ export function ScanField({
   )
 }
 
-/** The camera itself, kept behind a sheet so it is only mounted while it is being used. */
 export function CameraSheet({
   open,
   onClose,

@@ -1,6 +1,15 @@
-/** Shared domain vocabulary, mirroring what the LockerFlow API returns. */
 
-export type Role = 'AGENT' | 'CASHIER' | 'DELIVERY_AGENT' | 'MANAGER' | 'HR' | 'ACCOUNTANT' | 'TENANT_ADMIN'
+export type Role =
+  | 'AGENT'
+  | 'DELIVERY_AGENT'
+  | 'SUPERVISOR'
+  | 'LAGOON_WELCOME'
+  | 'CHIEF_CAPTAIN'
+  | 'MANAGER'
+  | 'PROJECT_MANAGER'
+  | 'HR'
+  | 'ACCOUNTANT'
+  | 'TENANT_ADMIN'
 
 export type EngineKind = 'SHOP_AND_DROP' | 'MOBILITY' | 'LAGOON' | 'COTE_RESTAURANT' | 'ANAAM'
 
@@ -30,7 +39,6 @@ export interface Me {
   fullName: string
   role: Role
   phone: string
-  /** The activities an agent is dedicated to; empty for every other role. */
   engineKinds: EngineKind[]
   tenant: { id: string; name: string; branding?: Record<string, string> } | null
   station: { id: string; name: string } | null
@@ -268,7 +276,6 @@ export interface DeliveryDetail {
   mine?: boolean
 }
 
-/** Every response from the API comes in this envelope. */
 export interface ApiEnvelope<T> {
   success: boolean
   data: T

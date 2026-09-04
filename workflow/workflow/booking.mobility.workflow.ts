@@ -28,6 +28,14 @@ export const mobilityWorkflow: EngineWorkflow = {
       style: { backgroundColor: '#1a3470' },
     },
     {
+      code: 'TO_REPLACED',
+      label: 'Replace a faulty vehicle',
+      source: [ACTIVE, OVERTIME],
+      target: ACTIVE,
+      actors: OPS,
+      style: { backgroundColor: '#f9b115' },
+    },
+    {
       code: 'TO_RETURNED',
       label: 'Return asset',
       source: [ACTIVE, OVERTIME],

@@ -12,7 +12,6 @@ export function Card({
   testID,
 }: {
   title?: string
-  /** A button or link that belongs to this card's heading row. */
   action?: ReactNode
   children?: ReactNode
   className?: string
@@ -48,7 +47,6 @@ export function Card({
   )
 }
 
-/** A titled block inside a scroll view, with the heading outside the card. */
 export function Section({
   title,
   action,

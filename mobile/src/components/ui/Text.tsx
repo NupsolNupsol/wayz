@@ -3,7 +3,6 @@ import { Text as RNText, type TextProps } from 'react-native'
 
 type Props = TextProps & { children: ReactNode; className?: string }
 
-/** The type scale, named. Screens never hand-roll a font size. */
 export const Title = ({ children, className = '', ...rest }: Props) => (
   <RNText className={`text-2xl font-extrabold tracking-tight text-navy ${className}`} {...rest}>
     {children}
@@ -34,14 +33,12 @@ export const Label = ({ children, className = '', ...rest }: Props) => (
   </RNText>
 )
 
-/** A reference — a booking ref, a barcode, a unit id. Monospaced so digits line up. */
 export const Ref = ({ children, className = '', ...rest }: Props) => (
   <RNText className={`font-mono text-[15px] font-semibold tracking-wide text-navy ${className}`} {...rest}>
     {children}
   </RNText>
 )
 
-/** Figures that are compared down a column stay tabular so they do not dance. */
 export const Amount = ({ children, className = '', ...rest }: Props) => (
   <RNText className={`text-base font-bold text-navy ${className}`} style={{ fontVariant: ['tabular-nums'] }} {...rest}>
     {children}

@@ -5,6 +5,7 @@ import { Download, TrendingUp, Boxes, Package } from 'lucide-react'
 import { PageHeader } from '@/components/PageHeader'
 import { Card, SectionTitle, Button, Field, Spinner, StatCard, Badge } from '@/components/ui'
 import { BarChart } from '@/components/Charts'
+import { DataTable } from '@/components/DataTable'
 import { useReportOccupancy, useReportRentals, useReportRevenue } from '@/hooks'
 import { managerApi } from '@/api/manager.api'
 import { useAuthStore } from '@/store/auth'
@@ -121,31 +122,49 @@ export function ManagerReports() {
               <Button variant="secondary" onClick={() => exportCsv('occupancy')} data-testid="export-occupancy"><Download size={15} /> CSV</Button>
             </div>
             {occupancy.data && (
-              <div className="overflow-x-auto">
-                <table className="w-full text-sm min-w-[520px]" data-testid="occupancy-table">
-                  <thead>
-                    <tr className="text-start text-[10px] uppercase tracking-wider text-muted">
-                      <th className="pb-2">{t('reports.assetType')}</th><th className="pb-2">{t('common:column.kind')}</th>
-                      <th className="pb-2 text-end">{t('common:field.total')}</th><th className="pb-2 text-end">{t('assets:table.inUse')}</th>
-                      <th className="pb-2 text-end">{t('assets:table.down')}</th><th className="pb-2 text-end">{t('assets:table.utilisation')}</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {occupancy.data.byAssetType.map((row) => (
-                      <tr key={row.assetTypeId} className="border-t border-line">
-                        <td className="py-2 font-medium">{row.name}</td>
-                        <td className="py-2 text-muted">{t(`assets:kind.${row.kind}`, { defaultValue: row.kind })}</td>
-                        <td className="py-2 text-end tabular-nums">{row.total}</td>
-                        <td className="py-2 text-end tabular-nums">{row.inUse}</td>
-                        <td className="py-2 text-end tabular-nums">{row.outOfService}</td>
-                        <td className="py-2 text-end">
-                          <Badge tone={row.utilisationPct > 80 ? 'danger' : row.utilisationPct > 50 ? 'warning' : 'success'}>{row.utilisationPct}%</Badge>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+              <DataTable
+                testId="occupancy-table"
+                rows={occupancy.data.byAssetType}
+                keyOf={(r) => r.assetTypeId}
+                initialSort={{ key: 'utilisation', dir: 'desc' }}
+                pageSize={12}
+                empty={{ title: t('reports.noOccupancy'), message: t('reports.noOccupancyHint') }}
+                columns={[
+                  {
+                    key: 'name',
+                    header: t('reports.assetType'),
+                    sortValue: (r) => r.name,
+                    filter: { kind: 'text', value: (r) => r.name },
+                    render: (r) => <span className="font-medium">{r.name}</span>,
+                  },
+                  {
+                    key: 'kind',
+                    header: t('common:column.kind'),
+                    sortValue: (r) => r.kind,
+                    filter: {
+                      kind: 'select',
+                      options: [...new Set(occupancy.data.byAssetType.map((r) => r.kind))].map((k) => ({
+                        label: t(`assets:kind.${k}`, { defaultValue: k }),
+                        value: k,
+                      })),
+                      value: (r) => r.kind,
+                    },
+                    render: (r) => <span className="text-muted">{t(`assets:kind.${r.kind}`, { defaultValue: r.kind })}</span>,
+                  },
+                  { key: 'total', header: t('common:field.total'), align: 'right', sortValue: (r) => r.total, render: (r) => <span className="tabular-nums">{r.total}</span> },
+                  { key: 'inUse', header: t('assets:table.inUse'), align: 'right', sortValue: (r) => r.inUse, render: (r) => <span className="tabular-nums">{r.inUse}</span> },
+                  { key: 'down', header: t('assets:table.down'), align: 'right', sortValue: (r) => r.outOfService, render: (r) => <span className="tabular-nums">{r.outOfService}</span> },
+                  {
+                    key: 'utilisation',
+                    header: t('assets:table.utilisation'),
+                    align: 'right',
+                    sortValue: (r) => r.utilisationPct,
+                    render: (r) => (
+                      <Badge tone={r.utilisationPct > 80 ? 'danger' : r.utilisationPct > 50 ? 'warning' : 'success'}>{r.utilisationPct}%</Badge>
+                    ),
+                  },
+                ]}
+              />
             )}
           </Card>
 

@@ -199,7 +199,6 @@ export default function DeliveryDetail() {
                     <Body className="font-semibold" numberOfLines={1}>
                       {bag.description || `Bag ${bag.index}`}
                     </Body>
-                    {/* The courier never sees these, so a scan means they physically held the bag. */}
                     <Ref className="text-[12px] text-muted">{bag.barcode}</Ref>
                   </View>
                   <StatusPill status={bag.status} size="sm" />

@@ -31,10 +31,6 @@ const SIZE: Record<Size, string> = {
 
 const TEXT_SIZE: Record<Size, string> = { sm: 'text-sm', md: 'text-[15px]', lg: 'text-base' }
 
-/**
- * Tall by default: these are pressed with a thumb, often gloved, at a counter. A press that
- * changes something in the world gets a haptic tick so the agent feels it land.
- */
 export function Button({
   label,
   onPress,

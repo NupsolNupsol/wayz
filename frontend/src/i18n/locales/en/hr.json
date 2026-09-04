@@ -88,5 +88,33 @@
     "chargeCount_one": "Charge 1 employee · {{total}}",
     "chargeCount_other": "Charge {{count}} employees · {{total}}",
     "nothingToCharge": "Nothing to charge"
+  },
+  "shifts": {
+    "title": "Shifts & hours",
+    "subtitle": "When a shift runs, how long people actually worked, and who came and went.",
+    "window": "Shift window",
+    "length": "Shift length",
+    "peopleCounted": "People counted",
+    "hoursWorked": "Hours worked",
+    "setWindow": "When a shift runs",
+    "setWindowHint": "The working day the floor is rostered to. A window that ends before it starts runs past midnight — 15:00 to 01:00 is ten hours.",
+    "startsAt": "Starts at",
+    "endsAt": "Ends at",
+    "save": "Save the window",
+    "windowSaved": "Shift window saved",
+    "windowSavedDetail": "The floor is rostered {{from}} to {{to}}.",
+    "windowFailed": "That window was refused",
+    "hoursTitle": "Hours worked, per person",
+    "shiftsWorked": "Shifts",
+    "hours": "Hours",
+    "expected": "Rostered",
+    "stillOpen": "Still open",
+    "lastSeen": "Last seen",
+    "noHours": "Nobody has worked a shift yet",
+    "noHoursHint": "Hours are counted from when a till is opened to when it is closed.",
+    "auditTitle": "Who came and went",
+    "auditHint": "Sign-ins, sign-outs, tills opened and closed, and every change to the roster.",
+    "noAudit": "Nothing recorded yet",
+    "noAuditHint": "Sign-ins and shift activity appear here as they happen."
   }
 }

@@ -5,10 +5,6 @@ import { SafeAreaView } from 'react-native-safe-area-context'
 import { useDeviceClass } from '@/hooks/useDeviceClass'
 import { COLORS } from '@/theme/tokens'
 
-/**
- * Every screen sits inside this: safe areas honoured, one page background, and content that
- * stops widening once the screen is wider than a line of text should be.
- */
 export function Screen({
   children,
   scroll = false,
@@ -25,7 +21,6 @@ export function Screen({
   onRefresh?: () => void
   refreshing?: boolean
   edges?: ('top' | 'bottom' | 'left' | 'right')[]
-  /** Pinned under the content — where a wizard's primary action lives. */
   footer?: ReactNode
   testID?: string
 }) {

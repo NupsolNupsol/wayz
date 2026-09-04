@@ -17,6 +17,14 @@ import {
 } from '../models/index.js'
 import { recordAudit } from './audit.service.js'
 import { ApiError } from '../utils/ApiError.js'
+import { tenantRules } from './rules.service.js'
+import {
+  DEFAULT_PENALTY_SCHEDULE,
+  DEFAULT_RENTAL_RULES,
+  resolveRentalRules,
+  type PenaltyRule,
+  type RentalRulesPatch,
+} from '../domain/rules.js'
 import { round2 } from '../utils/helpers.js'
 import { computeOvertime } from '../domain/overtime.js'
 import { ENGINE_KINDS, ROLES, type EngineKind, type Role } from '../domain/types.js'
@@ -82,7 +90,6 @@ export async function tenantOverview(scope: ManagerScope) {
 
   const byRole = Object.fromEntries(ROLES.map((r) => [r, staff.filter((u) => u.role === r).length])) as Record<Role, number>
 
-  // Only what this tenant actually runs: an engine it has switched on, or one it still holds units for.
   const byEngine = ENGINE_KINDS.map((engineKind) => {
     const ids = new Set(
       assetTypes.filter((a) => a.engineKind === engineKind).map((a) => a._id),
@@ -274,6 +281,74 @@ export async function updateCompany(scope: ManagerScope, patch: CompanyPatch) {
   })
 
   return tenant.toObject()
+}
+
+export async function readRules(scope: ManagerScope) {
+  const rules = await tenantRules(scope.tenantId)
+  return {
+    rental: rules.rental,
+    penalties: rules.penalties,
+    engineKinds: [...ENGINE_KINDS],
+    defaults: { rental: DEFAULT_RENTAL_RULES, penalties: DEFAULT_PENALTY_SCHEDULE },
+  }
+}
+
+export async function updateRules(
+  scope: ManagerScope,
+  patch: { rental?: RentalRulesPatch; penalties?: PenaltyRule[] },
+) {
+  const tenant = await Tenant.findById(scope.tenantId)
+  if (!tenant) throw ApiError.notFound('Tenant not found.')
+
+  const changes: string[] = []
+
+  if (patch.rental) {
+    const merged = resolveRentalRules({ ...tenant.rentalRules, ...patch.rental })
+    if (merged.statedGraceMin > merged.graceMin) {
+      throw ApiError.badRequest('The grace you tell the customer cannot be longer than the one the system allows.')
+    }
+    tenant.rentalRules = merged
+    tenant.markModified('rentalRules')
+    changes.push('rental rules')
+  }
+
+  if (patch.penalties) {
+    const codes = new Set<string>()
+    for (const rule of patch.penalties) {
+      const code = rule.code?.trim().toUpperCase()
+      if (!code) throw ApiError.badRequest('Every penalty needs a code.')
+      if (codes.has(code)) throw ApiError.badRequest(`Duplicate penalty code "${code}".`)
+      codes.add(code)
+      if (!rule.label?.trim()) throw ApiError.badRequest(`Penalty "${code}" needs a label.`)
+      if (rule.amount !== null && (!Number.isFinite(rule.amount) || rule.amount < 0)) {
+        throw ApiError.badRequest(`Penalty "${code}" needs an amount of zero or more, or none at all for a replacement value.`)
+      }
+      if (rule.engineKind && !ENGINE_KINDS.includes(rule.engineKind)) {
+        throw ApiError.badRequest(`Penalty "${code}" names an unknown activity.`)
+      }
+    }
+    tenant.penaltySchedule = patch.penalties.map((rule) => ({
+      code: rule.code.trim().toUpperCase(),
+      label: rule.label.trim(),
+      amount: rule.amount,
+      engineKind: rule.engineKind ?? null,
+    }))
+    tenant.markModified('penaltySchedule')
+    changes.push(`${patch.penalties.length} penalty line(s)`)
+  }
+
+  await tenant.save()
+
+  await recordAudit({
+    tenantId: scope.tenantId,
+    actorId: scope.userId,
+    action: 'TENANT_RULES_UPDATED',
+    entity: 'Tenant',
+    entityId: tenant._id,
+    detail: changes.join(', ') || 'no change',
+  })
+
+  return readRules(scope)
 }
 
 export async function tenantIsolationReport(scope: ManagerScope) {

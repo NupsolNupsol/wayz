@@ -6,8 +6,6 @@ const schema = z.object({
   PORT: z.coerce.number().default(4000),
   CORS_ORIGIN: z.string().default('http://localhost:5175'),
   MONGODB_URI: z.string().default('mongodb://localhost:27017/lockerflow'),
-  // No default on purpose: a signing key checked into the repository is a signing key
-  // every reader of the repository can forge tokens with. Boot fails loudly instead.
   JWT_SECRET: z.string().min(16, 'JWT_SECRET must be set to at least 16 characters'),
   JWT_EXPIRES_IN: z.string().default('12h'),
   QUEUE_ENABLED: z
@@ -40,6 +38,11 @@ const schema = z.object({
     .default('false')
     .transform((v) => v === 'true'),
 
+  DEMO_TIME_TRAVEL: z
+    .enum(['true', 'false'])
+    .default('false')
+    .transform((v) => v === 'true'),
+
   MAIL_HOST: z.string().optional(),
   MAIL_PORT: z.coerce.number().int().positive().default(465),
   MAIL_SECURE: z
@@ -61,6 +64,12 @@ const schema = z.object({
   MAIL_FALLBACK_PASSWORD: z.string().optional(),
 
   PUBLIC_APP_URL: z.string().url().default('http://localhost:5175'),
+
+  PUBLIC_API_URL: z
+    .string()
+    .transform((v) => v.trim() || undefined)
+    .refine((v) => !v || /^https?:\/\/\S+$/.test(v), 'PUBLIC_API_URL must be an http(s) address.')
+    .optional(),
 
   EXPIRY_WARNING_MINUTES: z.coerce.number().int().positive().default(15),
 })

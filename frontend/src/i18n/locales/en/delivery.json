@@ -55,7 +55,27 @@
     "submit": "Submit",
     "activity": "Activity",
     "couldNotContinue": "Could not continue",
-    "callCustomer": "Call the customer"
+    "callCustomer": "Call the customer",
+    "collect": "Take payment",
+    "collectTitle": "Money to collect at the door",
+    "collectSubtitle": "{{amount}} outstanding on this booking.",
+    "collectBlurb": "The delivery charge, and anything the customer ran up while their bags were out.",
+    "collected": "Payment taken",
+    "collectedDetail": "{{amount}} collected. It is on the booking and in your drawer.",
+    "collectFailed": "That payment did not go through",
+    "stopsTitle": "Kiosks on this run ({{count}})",
+    "stopsBlurb": "One sub-task per kiosk. Ask each kiosk agent for their compartment code, scan the bags, then move on.",
+    "stopLine": "Compartment {{unit}} · {{count}} bag(s) · {{ref}}",
+    "stopNow": "Go here now",
+    "stopQueued": "Queued",
+    "stopCollectedTag": "Collected",
+    "stopProgress": "Stop {{done}} of {{total}}",
+    "stopCollected": "Collected at {{kiosk}}",
+    "nextKiosk": "Next kiosk: {{kiosk}}",
+    "allKiosksDone": "Every kiosk is done — take the bags to the customer.",
+    "payBeforeHandover": "Take {{amount}} from the customer before handing the bags over.",
+    "yoursToTake": "This job is open — nobody is carrying it yet.",
+    "claimFirst": "Pick it up before asking a kiosk for bags or taking any money."
   },
   "kiosk": {
     "title": "Deliveries",
@@ -80,7 +100,12 @@
     "notApproved": "Not approved",
     "byPhone": "By phone",
     "atStorage": "At the desk",
-    "registeredAgo": "registered {{ago}} ago"
+    "registeredAgo": "registered {{ago}} ago",
+    "stopColumn": "Kiosk",
+    "mine": "· yours",
+    "stopCount": "{{done}} of {{total}} kiosks collected",
+    "stopOf": "Stop {{done}} of {{total}} — the courier is at {{kiosk}}",
+    "otherKiosk": "Another kiosk holds this one: {{kiosk}}"
   },
   "request": {
     "title": "Send these bags to the customer",
@@ -98,7 +123,14 @@
     "verifyIdentity": "Verify identity",
     "verifyToEnable": "Verify the customer to enable the button",
     "create": "Create delivery",
-    "couldNotCreate": "Could not create the delivery"
+    "couldNotCreate": "Could not create the delivery",
+    "fee": "Delivery charge",
+    "feeHint": "Added to what the customer owes on this booking. The courier can take it at the door. Leave it at zero for a free delivery.",
+    "alsoHolding": "This customer has bags at {{count}} other kiosk(s)",
+    "alsoHoldingHint": "Ask them on the call whether they want those brought along. Tick every kiosk the courier should visit.",
+    "bringEverything": "Bring everything",
+    "bagCount": "{{count}} bag(s)",
+    "extraStops": "{{stops}} extra stop(s) · {{bags}} more bag(s) on this run"
   },
   "state": {
     "REQUESTED": {

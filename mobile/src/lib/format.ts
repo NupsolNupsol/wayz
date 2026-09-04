@@ -1,6 +1,5 @@
 const CURRENCY = 'SAR'
 
-/** Money always reads the same way: two decimals, currency last. */
 export const money = (amount: number | null | undefined): string =>
   `${(amount ?? 0).toFixed(2)} ${CURRENCY}`
 
@@ -19,7 +18,6 @@ export const formatDateTime = (value: string | number | Date | null | undefined)
   return `${formatDate(value)} ${formatTime(value)}`
 }
 
-/** "1h 20m" / "45m" / "30s" — for a countdown the agent reads at a glance. */
 export function humanizeMs(ms: number): string {
   const total = Math.max(0, Math.floor(ms / 1000))
   const hours = Math.floor(total / 3600)
@@ -31,7 +29,6 @@ export function humanizeMs(ms: number): string {
   return `${seconds}s`
 }
 
-/** How long ago something happened, in the shortest form that is still exact enough. */
 export function relativeTime(value: string | null | undefined, now = Date.now()): string {
   if (!value) return '—'
   const diff = now - new Date(value).getTime()

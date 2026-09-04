@@ -17,6 +17,11 @@ import {
   CardTransaction,
   CommissionRate,
   Expense,
+  InvoiceDoc,
+  ManualSale,
+  Notification,
+  RefundRequest,
+  Trip,
   Season,
   DeliveryRequest,
   Tenant,
@@ -24,13 +29,15 @@ import {
   Zone,
   hashPassword,
 } from "../models/index.js";
+import { Version } from "../models/index.js";
+import { seedVersions } from "./versions.seed.js";
 import type { UserDoc } from "../models/index.js";
 import type { EngineKind } from "../domain/types.js";
 import { DEFAULT_COMMISSION_RATES, type CardScheme } from "../domain/commission.js";
 import { SCHEME_LABELS } from "../constants/labels.constants.js";
 import { logger } from "../config/logger.js";
+import { DEFAULT_PENALTY_SCHEDULE, DEFAULT_RENTAL_RULES } from "../domain/rules.js";
 
-/** The demo database carries WAYZ alone; the API specs add WIQAR to prove tenant isolation. */
 const SEEDED_TENANTS = (process.env.SEED_TENANTS ?? "wayz")
   .split(",")
   .map((t) => t.trim())
@@ -38,7 +45,6 @@ const SEEDED_TENANTS = (process.env.SEED_TENANTS ?? "wayz")
 
 const seeded = (tenantId: string) => SEEDED_TENANTS.includes(tenantId);
 
-/** What WAYZ actually runs. The other engines stay in the catalogue for tenants that want them. */
 const DEMO_ENGINES: EngineKind[] = ["SHOP_AND_DROP", "MOBILITY", "LAGOON"];
 
 const TENANT_ENGINES: Record<string, EngineKind[]> = {
@@ -80,15 +86,16 @@ const ALL_ENGINES: EngineKind[] = [
 
 function assetTypes(t: string) {
   const compartment = (
+    key: string,
     name: string,
     score: number,
     maxBags: number,
     dims: { w: number; h: number; d: number },
   ) => ({
-    _id: `at_${t}_cmp_${name.toLowerCase()}`,
+    _id: `at_${t}_cmp_${key}`,
     tenantId: t,
     engineKind: "SHOP_AND_DROP",
-    name: `Compartment ${name}`,
+    name: `Bag Size ${name}`,
     kind: "COMPARTMENT",
     capacity: {
       internalDimensions: dims,
@@ -98,34 +105,51 @@ function assetTypes(t: string) {
       capacityScore: score,
     },
   });
-  const vehicle = (key: string, name: string, seats: number) => ({
+
+  const vehicle = (key: string, name: string, seats: number, engineKind: EngineKind = "MOBILITY") => ({
     _id: `at_${t}_veh_${key}`,
     tenantId: t,
-    engineKind: "MOBILITY",
+    engineKind,
     name,
     kind: "VEHICLE",
     capacity: { capacityScore: 0, seats },
   });
+
+  const boat = (key: string, name: string, seats: number) => ({
+    _id: `at_${t}_boat_${key}`,
+    tenantId: t,
+    engineKind: "LAGOON",
+    name,
+    kind: "BOAT",
+    capacity: { capacityScore: 0, seats },
+  });
+
   return [
-    compartment("S", 40, 2, { w: 30, h: 30, d: 40 }),
-    compartment("M", 80, 3, { w: 40, h: 45, d: 55 }),
-    compartment("L", 140, 5, { w: 55, h: 60, d: 70 }),
-    compartment("XL", 220, 8, { w: 70, h: 80, d: 90 }),
-    vehicle("single_scooter", "Single Scooter Bay", 1),
-    vehicle("double_scooter", "Double Scooter Bay", 2),
+    compartment("s", "S", 40, 2, { w: 30, h: 30, d: 40 }),
+    compartment("m", "M", 80, 3, { w: 40, h: 45, d: 55 }),
+    compartment("l", "L", 140, 5, { w: 55, h: 60, d: 70 }),
+    compartment("xl", "XL", 220, 8, { w: 70, h: 80, d: 90 }),
+    compartment("xxl", "XXL", 300, 12, { w: 85, h: 95, d: 110 }),
+
+    vehicle("single_scooter", "Single Electric Scooter", 1),
+    vehicle("double_scooter", "Double Electric Scooter", 2),
     vehicle("wheelchair", "Wheelchair", 1),
-    vehicle("tuktuk", "Tuk Tuk", 4),
-    vehicle("stroller", "Children's Stroller", 1),
+    vehicle("stroller_std", "Children's Stroller (Standard)", 1),
+    vehicle("stroller_vip", "Children's Stroller (VIP)", 1),
+    vehicle("tuktuk", "Electric Tuk-Tuk", 4),
     vehicle("cart", "Shopping Cart", 0),
-    vehicle("kidscar", "Kids Car", 1),
-    {
-      _id: `at_${t}_boat`,
-      tenantId: t,
-      engineKind: "LAGOON",
-      name: "Lagoon Boat",
-      kind: "BOAT",
-      capacity: { capacityScore: 0, seats: 6 },
-    },
+    vehicle("trolley", "Shop Trolley", 0, "SHOP_AND_DROP"),
+
+    boat("abra", "Abra", 8),
+    boat("gondola", "Gondola", 6),
+    boat("feluka_small", "Feluka (Small)", 10),
+    boat("feluka_large", "Feluka (Large)", 20),
+    boat("donut", "Donut Boat", 6),
+    boat("submarine", "Submarine", 12),
+    boat("dragon", "Dragon Boat", 20),
+    boat("amphicar", "Amphicar", 4),
+    boat("rescue", "Rescue Boat", 4),
+
     {
       _id: `at_${t}_table`,
       tenantId: t,
@@ -150,217 +174,259 @@ function products(t: string) {
     tenantId: t,
     category: "General",
     depositRequired: 0,
+    penaltyPrice: 0,
+    saleUnit: "ITEM",
+    saleType: "RENTAL",
     assetTypeId: null,
     billingModel: "PER_BAG",
     emoji: "📦",
     active: true,
     ...o,
   });
-  return [
+
+  const bag = (key: string, size: string, price: number, overtime: number) =>
     p({
-      _id: `pr_${t}_sd_s`,
-      name: "Shop & Drop — S",
+      _id: `pr_${t}_sd_${key}`,
+      name: `Bag Size ${size}`,
       engineKind: "SHOP_AND_DROP",
-      basePrice: 30,
-      overtimeHourlyRate: 20,
       category: "Shop & Drop",
-      billingModel: "PER_BAG",
-      assetTypeId: `at_${t}_cmp_s`,
+      basePrice: price,
+      overtimeHourlyRate: overtime,
+      saleUnit: "BAG",
+      saleType: "SALE",
+      billingModel: key === "s" || key === "m" ? "PER_BAG" : "PER_COMPARTMENT",
+      assetTypeId: `at_${t}_cmp_${key}`,
       emoji: "🛍️",
-    }),
+    });
+
+  const boatTrip = (key: string, name: string, price: number, emoji: string) =>
     p({
-      _id: `pr_${t}_sd_m`,
-      name: "Shop & Drop — M",
-      engineKind: "SHOP_AND_DROP",
-      basePrice: 40,
-      overtimeHourlyRate: 25,
-      category: "Shop & Drop",
-      billingModel: "PER_BAG",
-      assetTypeId: `at_${t}_cmp_m`,
-      emoji: "🛍️",
-    }),
-    p({
-      _id: `pr_${t}_sd_l`,
-      name: "Shop & Drop — L",
-      engineKind: "SHOP_AND_DROP",
-      basePrice: 60,
-      overtimeHourlyRate: 30,
-      category: "Shop & Drop",
-      billingModel: "PER_COMPARTMENT",
-      assetTypeId: `at_${t}_cmp_l`,
-      emoji: "🛍️",
-    }),
-    p({
-      _id: `pr_${t}_sd_xl`,
-      name: "Shop & Drop — XL",
-      engineKind: "SHOP_AND_DROP",
-      basePrice: 70,
-      overtimeHourlyRate: 35,
-      category: "Shop & Drop",
-      billingModel: "PER_COMPARTMENT",
-      assetTypeId: `at_${t}_cmp_xl`,
-      emoji: "🛍️",
-    }),
-    p({
-      _id: `pr_${t}_sd_pack`,
-      name: "Shop & Drop — Family Pack",
-      engineKind: "SHOP_AND_DROP",
-      basePrice: 120,
-      category: "Shop & Drop",
+      _id: `pr_${t}_lag_${key}`,
+      name,
+      engineKind: "LAGOON",
+      category: "Lagoon",
+      basePrice: price,
+      saleUnit: "TOUR",
+      saleType: "RENTAL",
       billingModel: "PACKAGE",
-      assetTypeId: `at_${t}_cmp_xl`,
-      emoji: "👜",
-    }),
+      assetTypeId: `at_${t}_boat_${key}`,
+      emoji,
+    });
+
+  return [
+    bag("s", "S", 30, 20),
+    bag("m", "M", 40, 25),
+    bag("l", "L", 60, 30),
+    bag("xl", "XL", 70, 35),
+    bag("xxl", "XXL", 90, 45),
     p({
-      _id: `pr_${t}_sd_hour`,
-      name: "Shop & Drop — Hourly",
+      _id: `pr_${t}_sd_delivery`,
+      name: "Delivery to Car",
       engineKind: "SHOP_AND_DROP",
-      basePrice: 15,
       category: "Shop & Drop",
-      billingModel: "DURATION_BASED",
-      durationUnit: "HOUR",
-      assetTypeId: `at_${t}_cmp_m`,
-      emoji: "⏱️",
+      basePrice: 40,
+      saleUnit: "DELIVERY",
+      saleType: "SALE",
+      billingModel: "PACKAGE",
+      emoji: "🚚",
     }),
     p({
-      _id: `pr_${t}_mob_single`,
-      name: "Single Scooter",
-      engineKind: "MOBILITY",
-      basePrice: 45,
-      category: "Mobility",
+      _id: `pr_${t}_sd_trolley`,
+      name: "Shop Trolley",
+      engineKind: "SHOP_AND_DROP",
+      category: "Shop & Drop",
+      basePrice: 20,
+      overtimeHourlyRate: 20,
+      saleUnit: "HOUR",
+      saleType: "RENTAL",
       billingModel: "DURATION_BASED",
       durationUnit: "HOUR",
-      depositRequired: 200,
+      assetTypeId: `at_${t}_veh_trolley`,
+      emoji: "🛒",
+    }),
+
+    p({
+      _id: `pr_${t}_mob_single_hour`,
+      name: "Single Electric Scooter",
+      engineKind: "MOBILITY",
+      category: "Mobility",
+      basePrice: 50,
+      hourlyPrice: 50,
+      tourPrice: 80,
+      tourMinutes: 45,
+      overtimeHourlyRate: 50,
+      penaltyPrice: 500,
+      saleUnit: "HOUR",
+      saleType: "RENTAL",
+      billingModel: "DURATION_BASED",
+      durationUnit: "HOUR",
       assetTypeId: `at_${t}_veh_single_scooter`,
       emoji: "🛴",
       proposedPolicy: {
         minAge: 16,
-        licenseRequired: false,
         conditionInspection: "MANDATORY_PHOTO",
         safetyAck: true,
-        overtimeRule: "Billed per 30m",
-        returnLocation: "Any Hub",
-        damageRule: "Deposit capture",
+        overtimeRule: "A full hour once the grace period is gone",
+        returnLocation: "The station it left from",
+        damageRule: "Damage charged at the schedule rate",
       },
     }),
     p({
-      _id: `pr_${t}_mob_double`,
-      name: "Double Scooter",
+      _id: `pr_${t}_mob_single_day`,
+      name: "Single Electric Scooter — Full Day",
       engineKind: "MOBILITY",
-      basePrice: 70,
       category: "Mobility",
-      billingModel: "DURATION_BASED",
-      durationUnit: "HOUR",
-      depositRequired: 300,
-      assetTypeId: `at_${t}_veh_double_scooter`,
-      emoji: "🛵",
-      proposedPolicy: {
-        minAge: 18,
-        conditionInspection: "MANDATORY_PHOTO",
-        safetyAck: true,
-      },
-    }),
-    p({
-      _id: `pr_${t}_mob_wheel`,
-      name: "Wheelchair",
-      engineKind: "MOBILITY",
-      basePrice: 20,
-      category: "Mobility",
+      basePrice: 385,
+      overtimeHourlyRate: 50,
+      penaltyPrice: 500,
+      saleUnit: "FULL_DAY",
+      saleType: "RENTAL",
       billingModel: "DURATION_BASED",
       durationUnit: "DAY",
+      assetTypeId: `at_${t}_veh_single_scooter`,
+      emoji: "🛴",
+    }),
+    p({
+      _id: `pr_${t}_mob_double_hour`,
+      name: "Double Electric Scooter — 1 Hour",
+      engineKind: "MOBILITY",
+      category: "Mobility",
+      basePrice: 70,
+      overtimeHourlyRate: 70,
+      penaltyPrice: 500,
+      saleUnit: "HOUR",
+      saleType: "RENTAL",
+      billingModel: "DURATION_BASED",
+      durationUnit: "HOUR",
+      assetTypeId: `at_${t}_veh_double_scooter`,
+      emoji: "🛵",
+      proposedPolicy: { minAge: 18, conditionInspection: "MANDATORY_PHOTO", safetyAck: true },
+    }),
+    p({
+      _id: `pr_${t}_mob_double_day`,
+      name: "Double Electric Scooter — Full Day",
+      engineKind: "MOBILITY",
+      category: "Mobility",
+      basePrice: 500,
+      overtimeHourlyRate: 70,
+      penaltyPrice: 500,
+      saleUnit: "FULL_DAY",
+      saleType: "RENTAL",
+      billingModel: "DURATION_BASED",
+      durationUnit: "DAY",
+      assetTypeId: `at_${t}_veh_double_scooter`,
+      emoji: "🛵",
+    }),
+    p({
+      _id: `pr_${t}_mob_tuk`,
+      name: "Electric Tuk-Tuk",
+      engineKind: "MOBILITY",
+      category: "Mobility",
+      basePrice: 150,
+      saleUnit: "TOUR",
+      saleType: "RENTAL",
+      billingModel: "PACKAGE",
+      assetTypeId: `at_${t}_veh_tuktuk`,
+      emoji: "🛺",
+      proposedPolicy: { minAge: 18, licenseRequired: true, conditionInspection: "MANDATORY", safetyAck: true },
+    }),
+    p({
+      _id: `pr_${t}_mob_stroller_std`,
+      name: "Children's Stroller (Standard)",
+      engineKind: "MOBILITY",
+      category: "Mobility",
+      basePrice: 35,
+      overtimeHourlyRate: 35,
       depositRequired: 100,
+      penaltyPrice: 150,
+      saleUnit: "HOUR",
+      saleType: "RENTAL",
+      billingModel: "DURATION_BASED",
+      durationUnit: "HOUR",
+      assetTypeId: `at_${t}_veh_stroller_std`,
+      emoji: "🍼",
+      proposedPolicy: { conditionInspection: "VISUAL" },
+    }),
+    p({
+      _id: `pr_${t}_mob_stroller_vip`,
+      name: "Children's Stroller (VIP)",
+      engineKind: "MOBILITY",
+      category: "Mobility",
+      basePrice: 50,
+      overtimeHourlyRate: 50,
+      depositRequired: 100,
+      penaltyPrice: 150,
+      saleUnit: "HOUR",
+      saleType: "RENTAL",
+      billingModel: "DURATION_BASED",
+      durationUnit: "HOUR",
+      assetTypeId: `at_${t}_veh_stroller_vip`,
+      emoji: "👶",
+      proposedPolicy: { conditionInspection: "VISUAL" },
+    }),
+    p({
+      _id: `pr_${t}_mob_wheel_hour`,
+      name: "Wheelchair — 1 Hour",
+      engineKind: "MOBILITY",
+      category: "Mobility",
+      basePrice: 35,
+      overtimeHourlyRate: 35,
+      depositRequired: 100,
+      penaltyPrice: 200,
+      saleUnit: "HOUR",
+      saleType: "RENTAL",
+      billingModel: "DURATION_BASED",
+      durationUnit: "HOUR",
       assetTypeId: `at_${t}_veh_wheelchair`,
       emoji: "♿",
       proposedPolicy: { conditionInspection: "VISUAL" },
     }),
     p({
-      _id: `pr_${t}_mob_tuk`,
-      name: "Tuk Tuk",
+      _id: `pr_${t}_mob_wheel_day`,
+      name: "Wheelchair — Full Day",
       engineKind: "MOBILITY",
-      basePrice: 120,
       category: "Mobility",
-      billingModel: "DURATION_BASED",
-      durationUnit: "HOUR",
-      depositRequired: 500,
-      assetTypeId: `at_${t}_veh_tuktuk`,
-      emoji: "🛺",
-      proposedPolicy: {
-        minAge: 18,
-        licenseRequired: true,
-        conditionInspection: "MANDATORY",
-        safetyAck: true,
-      },
-    }),
-    p({
-      _id: `pr_${t}_mob_stroller`,
-      name: "Children's Stroller",
-      engineKind: "MOBILITY",
-      basePrice: 25,
-      category: "Mobility",
+      basePrice: 250,
+      overtimeHourlyRate: 35,
+      penaltyPrice: 200,
+      saleUnit: "FULL_DAY",
+      saleType: "RENTAL",
       billingModel: "DURATION_BASED",
       durationUnit: "DAY",
-      depositRequired: 50,
-      assetTypeId: `at_${t}_veh_stroller`,
-      emoji: "🍼",
-      proposedPolicy: { conditionInspection: "VISUAL" },
+      assetTypeId: `at_${t}_veh_wheelchair`,
+      emoji: "♿",
     }),
     p({
       _id: `pr_${t}_mob_cart`,
       name: "Shopping Cart",
       engineKind: "MOBILITY",
-      basePrice: 10,
       category: "Mobility",
-      billingModel: "DURATION_BASED",
-      durationUnit: "HOUR",
-      depositRequired: 0,
+      basePrice: 75,
+      saleUnit: "CART",
+      saleType: "SALE",
+      billingModel: "PACKAGE",
       assetTypeId: `at_${t}_veh_cart`,
       emoji: "🛒",
       proposedPolicy: { conditionInspection: "SKIP" },
     }),
-    p({
-      _id: `pr_${t}_mob_kidscar`,
-      name: "Kids Car",
-      engineKind: "MOBILITY",
-      basePrice: 30,
-      category: "Mobility",
-      billingModel: "DURATION_BASED",
-      durationUnit: "FIFTEEN_MIN",
-      depositRequired: 100,
-      assetTypeId: `at_${t}_veh_kidscar`,
-      emoji: "🚗",
-      proposedPolicy: {
-        minAge: 3,
-        safetyAck: true,
-        operatorRequirement: "Parent present",
-      },
-    }),
-    p({
-      _id: `pr_${t}_lag_boat`,
-      name: "Lagoon Boat Trip",
-      engineKind: "LAGOON",
-      basePrice: 90,
-      category: "Lagoon",
-      billingModel: "PACKAGE",
-      assetTypeId: `at_${t}_boat`,
-      emoji: "⛵",
-    }),
-    p({
-      _id: `pr_${t}_lag_pedal`,
-      name: "Pedal Boat",
-      engineKind: "LAGOON",
-      basePrice: 60,
-      category: "Lagoon",
-      billingModel: "DURATION_BASED",
-      durationUnit: "HALF_HOUR",
-      assetTypeId: `at_${t}_boat`,
-      emoji: "🚣",
-    }),
+
+    boatTrip("abra", "Abra Trip", 90, "🛶"),
+    boatTrip("gondola", "Gondola Trip", 120, "🚣"),
+    boatTrip("feluka_small", "Feluka (Small) Trip", 150, "⛵"),
+    boatTrip("feluka_large", "Feluka (Large) Trip", 250, "⛵"),
+    boatTrip("donut", "Donut Boat Trip", 80, "🍩"),
+    boatTrip("submarine", "Submarine Trip", 300, "🚤"),
+    boatTrip("dragon", "Dragon Boat Trip", 200, "🐉"),
+    boatTrip("amphicar", "Amphicar Trip", 180, "🚗"),
+
     p({
       _id: `pr_${t}_cote_burger`,
       name: "COTE Signature Burger",
       engineKind: "COTE_RESTAURANT",
       basePrice: 55,
       category: "Mains",
+      saleUnit: "ITEM",
+      saleType: "SALE",
       billingModel: "PACKAGE",
       emoji: "🍔",
     }),
@@ -370,17 +436,10 @@ function products(t: string) {
       engineKind: "COTE_RESTAURANT",
       basePrice: 35,
       category: "Starters",
+      saleUnit: "ITEM",
+      saleType: "SALE",
       billingModel: "PACKAGE",
       emoji: "🥗",
-    }),
-    p({
-      _id: `pr_${t}_cote_juice`,
-      name: "Fresh Juice",
-      engineKind: "COTE_RESTAURANT",
-      basePrice: 18,
-      category: "Drinks",
-      billingModel: "PACKAGE",
-      emoji: "🧃",
     }),
     p({
       _id: `pr_${t}_anaam_pony`,
@@ -388,19 +447,11 @@ function products(t: string) {
       engineKind: "ANAAM",
       basePrice: 80,
       category: "Ana'am",
+      saleUnit: "TOUR",
+      saleType: "RENTAL",
       billingModel: "PACKAGE",
       assetTypeId: `at_${t}_animal`,
       emoji: "🐴",
-    }),
-    p({
-      _id: `pr_${t}_anaam_falcon`,
-      name: "Falcon Encounter",
-      engineKind: "ANAAM",
-      basePrice: 110,
-      category: "Ana'am",
-      billingModel: "PACKAGE",
-      assetTypeId: `at_${t}_animal`,
-      emoji: "🦅",
     }),
   ];
 }
@@ -408,7 +459,12 @@ function products(t: string) {
 function assetUnits(t: string, stationId: string) {
   const area = `area_${t}_1`;
   const units: Record<string, unknown>[] = [];
-  const push = (typeKey: string, id: string, identifier: string) =>
+  const push = (
+    typeKey: string,
+    id: string,
+    identifier: string,
+    penaltyPrice: number | null = null,
+  ) =>
     units.push({
       _id: id,
       tenantId: t,
@@ -418,274 +474,526 @@ function assetUnits(t: string, stationId: string) {
       identifier,
       status: "AVAILABLE",
       currentBookingId: null,
+      penaltyPrice,
     });
+
   const sizes: [string, string, number][] = [
-    ["cmp_s", "S", 6],
-    ["cmp_m", "M", 8],
-    ["cmp_l", "L", 8],
-    ["cmp_xl", "X", 4],
+    ["cmp_s", "S", 30],
+    ["cmp_m", "M", 30],
+    ["cmp_l", "L", 24],
+    ["cmp_xl", "X", 12],
+    ["cmp_xxl", "Z", 9],
   ];
   let n = 1;
-  for (const [key, letter, count] of sizes)
+  for (const [key, letter, count] of sizes) {
     for (let i = 1; i <= count; i++) {
-      push(
-        key,
-        `unit_${t}_${letter}${i}`,
-        `${letter}-${String(n).padStart(2, "0")}`,
-      );
+      push(key, `unit_${t}_${letter}${i}`, `${letter}-${String(n).padStart(2, "0")}`);
       n++;
     }
-  const veh: [string, string, number][] = [
-    ["veh_single_scooter", "SC", 4],
-    ["veh_double_scooter", "DS", 2],
-    ["veh_wheelchair", "WC", 3],
-    ["veh_tuktuk", "TT", 2],
-    ["veh_stroller", "ST", 3],
-    ["veh_cart", "CT", 5],
-    ["veh_kidscar", "KC", 3],
+  }
+
+  const veh: [string, string, number, number | null][] = [
+    ["veh_single_scooter", "SC", 18, 500],
+    ["veh_double_scooter", "DS", 9, 500],
+    ["veh_wheelchair", "WC", 9, 200],
+    ["veh_stroller_std", "ST", 9, 150],
+    ["veh_stroller_vip", "SV", 6, 150],
+    ["veh_tuktuk", "TT", 6, 2500],
+    ["veh_cart", "CT", 9, null],
+    ["veh_trolley", "TR", 9, null],
   ];
-  for (const [key, pre, count] of veh)
-    for (let i = 1; i <= count; i++)
+  for (const [key, pre, count, penalty] of veh) {
+    for (let i = 1; i <= count; i++) {
+      push(key, `unit_${t}_${pre}${i}`, `${pre}-${String(i).padStart(2, "0")}`, penalty);
+    }
+  }
+
+  const boats: [string, string, number][] = [
+    ["boat_abra", "ABR", 4],
+    ["boat_gondola", "GON", 3],
+    ["boat_feluka_small", "FKS", 1],
+    ["boat_feluka_large", "FKL", 1],
+    ["boat_donut", "DNT", 3],
+    ["boat_submarine", "SUB", 1],
+    ["boat_dragon", "DRG", 1],
+    ["boat_amphicar", "AMP", 3],
+    ["boat_rescue", "RSQ", 2],
+  ];
+  for (const [key, pre, count] of boats) {
+    for (let i = 1; i <= count; i++) {
       push(key, `unit_${t}_${pre}${i}`, `${pre}-${String(i).padStart(2, "0")}`);
-  for (let i = 1; i <= 4; i++) push("boat", `unit_${t}_B${i}`, `BOAT-${i}`);
+    }
+  }
+
   for (let i = 1; i <= 8; i++) push("table", `unit_${t}_T${i}`, `T${i}`);
   for (let i = 1; i <= 4; i++) push("animal", `unit_${t}_A${i}`, `ANM-${i}`);
   return units;
 }
+
+const SHOP_AND_DROP_DESKS: [string, string, string][] = [
+  ["iran", "Iran", "Iran pavilion, ground floor"],
+  ["morocco", "Morocco", "Morocco pavilion, by the souk arch"],
+  ["levant", "Levant", "Levant pavilion, east entrance"],
+];
+
+const MOBILITY_DESKS: [string, string, string][] = [
+  ["gate1", "Gate 1", "Main gate, vehicle bay"],
+  ["gate2", "Gate 2", "South gate, vehicle bay"],
+  ["vip", "VIP Gate", "VIP entrance, covered bay"],
+];
+
+const LAGOON_DESKS: [string, string, string][] = [
+  ["mountain", "Mountain", "Mountain jetty"],
+  ["france", "France", "France jetty"],
+  ["egypt", "Egypt", "Egypt jetty"],
+];
+
+const BOULEVARD_MAP: Record<string, [number, number]> = {
+  iran: [0.18, 0.28],
+  morocco: [0.34, 0.16],
+  levant: [0.52, 0.24],
+  gate1: [0.12, 0.62],
+  gate2: [0.3, 0.78],
+  vip: [0.09, 0.44],
+  mountain: [0.72, 0.2],
+  france: [0.84, 0.44],
+  egypt: [0.66, 0.68],
+};
+
+const boulevardKiosk = (
+  engineKind: EngineKind,
+  prefix: string,
+  [key, name, location]: [string, string, string],
+) => ({
+  _id: `ksk_wayz_${key}`,
+  tenantId: "wayz",
+  siteId: "site_wayz_1",
+  stationId: "stn_wayz_1",
+  name,
+  code: `BLV-${prefix}-${key.toUpperCase()}`,
+  location,
+  engineKind,
+  active: true,
+  mapX: BOULEVARD_MAP[key]?.[0] ?? null,
+  mapY: BOULEVARD_MAP[key]?.[1] ?? null,
+});
+
+async function freeUnitAt(kioskId: string, assetTypeId: string) {
+  const unit = await AssetUnit.findOne({
+    tenantId: "wayz",
+    kioskId,
+    assetTypeId,
+    status: "AVAILABLE",
+  })
+    .sort({ identifier: 1 })
+    .lean();
+  if (!unit) throw new Error(`Seed: ${kioskId} has no free ${assetTypeId} to hand out.`);
+  return { _id: String(unit._id), identifier: String(unit.identifier), kioskId };
+}
+
+async function seedStoredElsewhere(input: {
+  orderId: string;
+  bookingId: string;
+  ref: string;
+  kioskId: string;
+  agentId: string;
+  assetTypeId: string;
+  productId: string;
+  productName: string;
+  price: number;
+  bags: string[];
+  barcodePrefix: string;
+}) {
+  const tax = splitInclusive(input.price);
+  const unit = await freeUnitAt(input.kioskId, input.assetTypeId);
+
+  await Order.create({
+    _id: input.orderId,
+    ref: input.ref.replace("SD-", ""),
+    tenantId: "wayz",
+    stationId: "stn_wayz_1",
+    agentId: input.agentId,
+    customerId: "cust_wayz_1",
+    engineKind: "SHOP_AND_DROP",
+    lines: [
+      {
+        productId: input.productId,
+        name: input.productName,
+        quantity: 1,
+        unitPrice: input.price,
+        isDeposit: false,
+        taxable: true,
+      },
+    ],
+    status: "PAID",
+    subtotal: tax.base,
+    vat: tax.vat,
+    depositTotal: 0,
+    total: input.price,
+    hold: null,
+  });
+
+  await Payment.create({
+    _id: `pay-${input.bookingId}`,
+    tenantId: "wayz",
+    stationId: "stn_wayz_1",
+    kioskId: input.kioskId,
+    orderId: input.orderId,
+    bookingId: input.bookingId,
+    amount: tax.total,
+    baseAmount: tax.base,
+    vatAmount: tax.vat,
+    vatRate: VAT_RATE,
+    engineKind: "SHOP_AND_DROP",
+    method: "CARD",
+    cardScheme: "MADA",
+    kind: "SALE",
+    status: "CAPTURED",
+    takenBy: input.agentId,
+    shiftId: "shift_wayz_open",
+  });
+
+  await Booking.create({
+    _id: input.bookingId,
+    ref: input.ref,
+    tenantId: "wayz",
+    stationId: "stn_wayz_1",
+    kioskId: input.kioskId,
+    agentId: input.agentId,
+    orderId: input.orderId,
+    customerId: "cust_wayz_1",
+    customerName: "Ahmed Saleh",
+    customerPhone: "0599709998",
+    engineKind: "SHOP_AND_DROP",
+    productName: input.productName,
+    status: "ACTIVE",
+    bags: input.bags.map((description, i) => ({
+      index: i + 1,
+      category: "SOFT",
+      description,
+      dimensions: { w: 30, h: 25, d: 20 },
+      weight: 3,
+      barcode: `${input.barcodePrefix}${String(100000 + i)}`,
+      status: "STORED",
+      assignedUnitId: unit._id,
+    })),
+    session: {
+      kind: "STORAGE",
+      status: "ACTIVE",
+      assetUnitId: unit._id,
+      requestedDurationMin: 180,
+      startedAt: new Date(Date.now() - 40 * MIN),
+      expectedEndAt: new Date(Date.now() + 140 * MIN),
+      gracePeriodMin: 15,
+      overtimeHourlyRate: 30,
+      paidAt: new Date(Date.now() - 45 * MIN),
+      expiryWarningSentAt: null,
+    },
+    reservation: { assetUnitId: unit._id, expiresAt: new Date(Date.now() + HOUR), status: "CONSUMED" },
+    assetUnitId: unit._id,
+    packingPlan: {
+      requiredCapacityScore: 30 * input.bags.length,
+      suggestedAssetTypeId: input.assetTypeId,
+      numberOfCompartmentsRequired: 1,
+      allocations: [{ compartmentIndex: 0, bagIndexes: input.bags.map((_, i) => i + 1) }],
+      priceCalculationSummary: `1 compartment(s) × ${input.price} (PER_COMPARTMENT)`,
+    },
+    custody: [
+      { from: "CUSTOMER", to: "AGENT", at: new Date(Date.now() - 45 * MIN), note: "Bags received at desk" },
+      { from: "AGENT", to: "LOCKER", at: new Date(Date.now() - 40 * MIN), note: "Stored — timer started" },
+    ],
+    metadata: { assetTypeId: input.assetTypeId, kioskId: input.kioskId },
+  });
+
+  await AssetUnit.updateOne(
+    { _id: unit._id },
+    { $set: { status: "OCCUPIED", currentBookingId: input.bookingId } },
+  );
+}
+
+function boulevardDeskFor(assetTypeId: string, index: number): string | null {
+  const desks = assetTypeId.includes("cmp")
+    ? SHOP_AND_DROP_DESKS
+    : assetTypeId.includes("veh_trolley")
+      ? SHOP_AND_DROP_DESKS
+      : assetTypeId.includes("veh")
+        ? MOBILITY_DESKS
+        : assetTypeId.includes("boat")
+          ? LAGOON_DESKS
+          : null;
+  if (!desks) return null;
+  return `ksk_wayz_${desks[index % desks.length][0]}`;
+}
+
+const shopAndDropKiosks = () => SHOP_AND_DROP_DESKS.map((d) => boulevardKiosk("SHOP_AND_DROP", "SD", d));
+const mobilityKiosks = () => MOBILITY_DESKS.map((d) => boulevardKiosk("MOBILITY", "MB", d));
+const lagoonKiosks = () => LAGOON_DESKS.map((d) => boulevardKiosk("LAGOON", "LG", d));
 
 type DemoUser = Omit<UserDoc, "comparePassword" | "invite" | "engineKinds"> & {
   engineKinds?: EngineKind[];
 };
 
 function demoUsers(): DemoUser[] {
+  const base = {
+    tenantId: "wayz",
+    siteId: "site_wayz_1",
+    zoneId: "zone_wayz_1",
+    stationId: "stn_wayz_1",
+    kioskId: null,
+    reportsTo: null,
+    active: true,
+  } as const;
+
+  const wiqar = {
+    tenantId: "wiqar",
+    siteId: "site_wiqar_1",
+    zoneId: "zone_wiqar_1",
+    stationId: "stn_wiqar_1",
+    kioskId: null,
+    reportsTo: null,
+    active: true,
+  } as const;
+
   return [
     {
-      _id: "usr_agent_wayz",
-      email: "agent.wayz@lockerflow.demo",
-      passwordHash: hashPassword("Agent@123"),
-      fullName: "Omar Al-Wayz",
-      role: "AGENT",
-      tenantId: "wayz",
-      siteId: "site_wayz_1",
-      zoneId: "zone_wayz_1",
-      stationId: "stn_wayz_1",
-      kioskId: "ksk_wayz_1",
-      engineKinds: ["SHOP_AND_DROP", "MOBILITY"],
-      phone: "0550000001",
-    active: true,
-    },
-    {
+      ...base,
       _id: "usr_admin_wayz",
       email: "admin.wayz@lockerflow.demo",
       passwordHash: hashPassword("Admin@123"),
       fullName: "Nasser Al-Wayz",
       role: "TENANT_ADMIN",
-      tenantId: "wayz",
-      siteId: "site_wayz_1",
-      zoneId: "zone_wayz_1",
-      stationId: "stn_wayz_1",
-      kioskId: null,
       phone: "0550000010",
-      active: true,
     },
     {
+      ...base,
+      _id: "usr_pm_wayz",
+      email: "projects.wayz@lockerflow.demo",
+      passwordHash: hashPassword("Project@123"),
+      fullName: "Rayan Al-Dosari",
+      role: "PROJECT_MANAGER",
+      phone: "0550000015",
+    },
+    {
+      ...base,
       _id: "usr_acct_wayz",
       email: "accountant.wayz@lockerflow.demo",
       passwordHash: hashPassword("Account@123"),
       fullName: "Yara Al-Ghamdi",
       role: "ACCOUNTANT",
-      tenantId: "wayz",
-      siteId: "site_wayz_1",
-      zoneId: "zone_wayz_1",
-      stationId: "stn_wayz_1",
-      kioskId: null,
       phone: "0550000020",
-      active: true,
     },
     {
+      ...base,
       _id: "usr_hr_wayz",
       email: "hr.wayz@lockerflow.demo",
       passwordHash: hashPassword("People@123"),
       fullName: "Mona Al-Rashid",
       role: "HR",
-      tenantId: "wayz",
-      siteId: "site_wayz_1",
-      zoneId: "zone_wayz_1",
-      stationId: "stn_wayz_1",
-      kioskId: null,
       phone: "0550000030",
-      active: true,
     },
+
     {
-      _id: "usr_hr_wiqar",
-      email: "hr.wiqar@lockerflow.demo",
-      passwordHash: hashPassword("People@123"),
-      fullName: "Faris Al-Wiqar",
-      role: "HR",
-      tenantId: "wiqar",
-      siteId: "site_wiqar_1",
-      zoneId: "zone_wiqar_1",
-      stationId: "stn_wiqar_1",
-      kioskId: null,
-      phone: "0550000031",
-      active: true,
-    },
-    {
-      _id: "usr_acct_wiqar",
-      email: "accountant.wiqar@lockerflow.demo",
-      passwordHash: hashPassword("Account@123"),
-      fullName: "Tariq Al-Zahrani",
-      role: "ACCOUNTANT",
-      tenantId: "wiqar",
-      siteId: "site_wiqar_1",
-      zoneId: "zone_wiqar_1",
-      stationId: "stn_wiqar_1",
-      kioskId: null,
-      phone: "0550000021",
-      active: true,
-    },
-    {
-      _id: "usr_admin_wiqar",
-      email: "admin.wiqar@lockerflow.demo",
-      passwordHash: hashPassword("Admin@123"),
-      fullName: "Dana Al-Wiqar",
-      role: "TENANT_ADMIN",
-      tenantId: "wiqar",
-      siteId: "site_wiqar_1",
-      zoneId: "zone_wiqar_1",
-      stationId: "stn_wiqar_1",
-      kioskId: null,
-      phone: "0550000011",
-      active: true,
-    },
-    {
-      _id: "usr_mgr_wiqar",
-      email: "manager.wiqar@lockerflow.demo",
-      passwordHash: hashPassword("Manager@123"),
-      fullName: "Salma Al-Wiqar",
-      role: "MANAGER",
-      tenantId: "wiqar",
-      siteId: "site_wiqar_1",
-      zoneId: "zone_wiqar_1",
-      stationId: "stn_wiqar_1",
-      kioskId: null,
-      phone: "0550000012",
-      active: true,
-    },
-    {
-      _id: "usr_cashier_wiqar",
-      email: "cashier.wiqar@lockerflow.demo",
-      passwordHash: hashPassword("Cashier@123"),
-      fullName: "Rakan Al-Wiqar",
-      role: "CASHIER",
-      tenantId: "wiqar",
-      siteId: "site_wiqar_1",
-      zoneId: "zone_wiqar_1",
-      stationId: "stn_wiqar_1",
-      kioskId: null,
-      phone: "0550000013",
-      active: true,
-    },
-    {
-      _id: "usr_kmgr_wiqar",
-      email: "lagoon.wiqar@lockerflow.demo",
-      passwordHash: hashPassword("Agent@123"),
-      fullName: "Maha Al-Wiqar",
-      role: "AGENT",
-      tenantId: "wiqar",
-      siteId: "site_wiqar_1",
-      zoneId: "zone_wiqar_1",
-      stationId: "stn_wiqar_1",
-      kioskId: null,
-      engineKinds: ["LAGOON"],
-      phone: "0550000014",
-      active: true,
-    },
-    {
-      _id: "usr_agent_wiqar",
-      email: "agent.wiqar@lockerflow.demo",
-      passwordHash: hashPassword("Agent@123"),
-      fullName: "Layla Al-Wiqar",
-      role: "AGENT",
-      tenantId: "wiqar",
-      siteId: "site_wiqar_1",
-      zoneId: "zone_wiqar_1",
-      stationId: "stn_wiqar_1",
-      kioskId: "ksk_wiqar_1",
-      engineKinds: ["SHOP_AND_DROP"],
-      phone: "0550000002",
-    active: true,
-    },
-    {
+      ...base,
       _id: "usr_mgr_wayz",
       email: "manager.wayz@lockerflow.demo",
       passwordHash: hashPassword("Manager@123"),
-      fullName: "Faisal Manager",
+      fullName: "Faisal Al-Mutairi",
       role: "MANAGER",
-      tenantId: "wayz",
-      siteId: "site_wayz_1",
-      zoneId: "zone_wayz_1",
-      stationId: "stn_wayz_1",
-      kioskId: null,
+      engineKinds: ["SHOP_AND_DROP", "MOBILITY"],
+      reportsTo: "usr_pm_wayz",
       phone: "0550000003",
-    active: true,
     },
     {
-      _id: "usr_kmgr_wayz",
-      email: "lagoon.wayz@lockerflow.demo",
-      passwordHash: hashPassword("Agent@123"),
+      ...base,
+      _id: "usr_mgr_lagoon_wayz",
+      email: "lagoon.manager.wayz@lockerflow.demo",
+      passwordHash: hashPassword("Manager@123"),
+      fullName: "Amal Al-Harthy",
+      role: "MANAGER",
+      engineKinds: ["LAGOON"],
+      reportsTo: "usr_pm_wayz",
+      phone: "0550000016",
+    },
+
+    {
+      ...base,
+      _id: "usr_sup_wayz",
+      email: "supervisor.wayz@lockerflow.demo",
+      passwordHash: hashPassword("Super@123"),
+      fullName: "Tariq Al-Anazi",
+      role: "SUPERVISOR",
+      engineKinds: ["SHOP_AND_DROP", "MOBILITY"],
+      reportsTo: "usr_mgr_wayz",
+      phone: "0550000017",
+    },
+    {
+      ...base,
+      _id: "usr_sup_lagoon_wayz",
+      email: "lagoon.supervisor.wayz@lockerflow.demo",
+      passwordHash: hashPassword("Super@123"),
+      fullName: "Nouf Al-Shammari",
+      role: "SUPERVISOR",
+      engineKinds: ["LAGOON"],
+      reportsTo: "usr_mgr_lagoon_wayz",
+      phone: "0550000018",
+    },
+
+    {
+      ...base,
+      _id: "usr_welcome_wayz",
+      email: "welcome.wayz@lockerflow.demo",
+      passwordHash: hashPassword("Lagoon@123"),
       fullName: "Huda Al-Qahtani",
       role: "AGENT",
-      tenantId: "wayz",
-      siteId: "site_wayz_1",
-      zoneId: "zone_wayz_1",
-      stationId: "stn_wayz_1",
-      kioskId: null,
       engineKinds: ["LAGOON"],
+      kioskId: "ksk_wayz_mountain",
       phone: "0550000004",
-      active: true,
     },
     {
+      ...base,
+      _id: "usr_captain_wayz",
+      email: "captain.wayz@lockerflow.demo",
+      passwordHash: hashPassword("Lagoon@123"),
+      fullName: "Saad Al-Balawi",
+      role: "CHIEF_CAPTAIN",
+      engineKinds: ["LAGOON"],
+      kioskId: "ksk_wayz_france",
+      phone: "0550000019",
+    },
+
+    {
+      ...base,
+      _id: "usr_agent_wayz",
+      email: "agent.wayz@lockerflow.demo",
+      passwordHash: hashPassword("Agent@123"),
+      fullName: "Omar Al-Wayz",
+      role: "AGENT",
+      engineKinds: ["SHOP_AND_DROP"],
+      kioskId: "ksk_wayz_iran",
+      phone: "0550000001",
+    },
+    {
+      ...base,
+      _id: "usr_agent_till_wayz",
+      email: "agent.morocco.wayz@lockerflow.demo",
+      passwordHash: hashPassword("Agent@123"),
+      fullName: "Reem Al-Sudairi",
+      role: "AGENT",
+      engineKinds: ["SHOP_AND_DROP"],
+      kioskId: "ksk_wayz_morocco",
+      phone: "0550000007",
+    },
+    {
+      ...base,
+      _id: "usr_agent_gate1_wayz",
+      email: "agent.gate1.wayz@lockerflow.demo",
+      passwordHash: hashPassword("Agent@123"),
+      fullName: "Majed Al-Subaie",
+      role: "AGENT",
+      engineKinds: ["MOBILITY"],
+      kioskId: "ksk_wayz_gate1",
+      phone: "0550000008",
+    },
+    {
+      ...base,
+      _id: "usr_agent_egypt_wayz",
+      email: "agent.egypt.wayz@lockerflow.demo",
+      passwordHash: hashPassword("Agent@123"),
+      fullName: "Lina Al-Faraj",
+      role: "AGENT",
+      engineKinds: ["LAGOON"],
+      kioskId: "ksk_wayz_egypt",
+      phone: "0550000009",
+    },
+
+    {
+      ...base,
       _id: "usr_courier_wayz",
       email: "courier.wayz@lockerflow.demo",
       passwordHash: hashPassword("Courier@123"),
       fullName: "Bilal Al-Harbi",
       role: "DELIVERY_AGENT",
-      tenantId: "wayz",
-      siteId: "site_wayz_1",
-      zoneId: "zone_wayz_1",
-      stationId: "stn_wayz_1",
-      kioskId: null,
       phone: "0550000005",
-      active: true,
     },
     {
-      _id: "usr_cashier_wayz",
-      email: "cashier.wayz@lockerflow.demo",
-      passwordHash: hashPassword("Cashier@123"),
-      fullName: "Reem Al-Sudairi",
-      role: "CASHIER",
-      tenantId: "wayz",
-      siteId: "site_wayz_1",
-      zoneId: "zone_wayz_1",
-      stationId: "stn_wayz_1",
-      kioskId: null,
-      phone: "0550000007",
-      active: true,
-    },
-    {
+      ...base,
       _id: "usr_courier2_wayz",
       email: "courier2.wayz@lockerflow.demo",
       passwordHash: hashPassword("Courier@123"),
       fullName: "Khalid Al-Otaibi",
       role: "DELIVERY_AGENT",
-      tenantId: "wayz",
-      siteId: "site_wayz_1",
-      zoneId: "zone_wayz_1",
-      stationId: "stn_wayz_1",
-      kioskId: null,
       phone: "0550000006",
-      active: true,
+    },
+
+    {
+      ...wiqar,
+      _id: "usr_admin_wiqar",
+      email: "admin.wiqar@lockerflow.demo",
+      passwordHash: hashPassword("Admin@123"),
+      fullName: "Dana Al-Wiqar",
+      role: "TENANT_ADMIN",
+      phone: "0550000011",
+    },
+    {
+      ...wiqar,
+      _id: "usr_acct_wiqar",
+      email: "accountant.wiqar@lockerflow.demo",
+      passwordHash: hashPassword("Account@123"),
+      fullName: "Tariq Al-Zahrani",
+      role: "ACCOUNTANT",
+      phone: "0550000021",
+    },
+    {
+      ...wiqar,
+      _id: "usr_hr_wiqar",
+      email: "hr.wiqar@lockerflow.demo",
+      passwordHash: hashPassword("People@123"),
+      fullName: "Faris Al-Wiqar",
+      role: "HR",
+      phone: "0550000031",
+    },
+    {
+      ...wiqar,
+      _id: "usr_mgr_wiqar",
+      email: "manager.wiqar@lockerflow.demo",
+      passwordHash: hashPassword("Manager@123"),
+      fullName: "Salma Al-Wiqar",
+      role: "MANAGER",
+      engineKinds: ["SHOP_AND_DROP", "MOBILITY", "LAGOON"],
+      phone: "0550000012",
+    },
+    {
+      ...wiqar,
+      _id: "usr_agent_wiqar",
+      email: "agent.wiqar@lockerflow.demo",
+      passwordHash: hashPassword("Agent@123"),
+      fullName: "Layla Al-Wiqar",
+      role: "AGENT",
+      engineKinds: ["SHOP_AND_DROP"],
+      kioskId: "ksk_wiqar_1",
+      phone: "0550000002",
+    },
+    {
+      ...wiqar,
+      _id: "usr_agent_till_wiqar",
+      email: "agent.marina.wiqar@lockerflow.demo",
+      passwordHash: hashPassword("Agent@123"),
+      fullName: "Rakan Al-Wiqar",
+      role: "AGENT",
+      engineKinds: ["LAGOON"],
+      kioskId: "ksk_wiqar_lagoon",
+      phone: "0550000013",
+    },
+    {
+      ...wiqar,
+      _id: "usr_kmgr_wiqar",
+      email: "lagoon.wiqar@lockerflow.demo",
+      passwordHash: hashPassword("Lagoon@123"),
+      fullName: "Maha Al-Wiqar",
+      role: "AGENT",
+      engineKinds: ["LAGOON"],
+      kioskId: "ksk_wiqar_lagoon",
+      phone: "0550000014",
     },
   ];
 }
@@ -715,6 +1023,12 @@ export async function seedFresh() {
     Receipt.deleteMany({}),
     Shift.deleteMany({}),
     Audit.deleteMany({}),
+    Notification.deleteMany({}),
+    ManualSale.deleteMany({}),
+    RefundRequest.deleteMany({}),
+    InvoiceDoc.deleteMany({}),
+    Trip.deleteMany({}),
+    Version.deleteMany({}),
   ]);
 
   await Tenant.insertMany(tenantRows([
@@ -727,6 +1041,8 @@ export async function seedFresh() {
       enabledEngines: DEMO_ENGINES,
       currency: "SAR",
       vatRate: 0.15,
+      rentalRules: DEFAULT_RENTAL_RULES,
+      penaltySchedule: DEFAULT_PENALTY_SCHEDULE,
       branding: {
         primaryColor: "#14b8a6",
         secondaryColor: "#0f766e",
@@ -744,6 +1060,8 @@ export async function seedFresh() {
       enabledEngines: ALL_ENGINES,
       currency: "SAR",
       vatRate: 0.15,
+      rentalRules: DEFAULT_RENTAL_RULES,
+      penaltySchedule: DEFAULT_PENALTY_SCHEDULE,
       branding: {
         primaryColor: "#7c3aed",
         secondaryColor: "#5b21b6",
@@ -758,21 +1076,21 @@ export async function seedFresh() {
     {
       _id: "site_wayz_1",
       tenantId: "wayz",
-      name: "Riyadh Boulevard",
+      name: "Boulevard World",
       city: "Riyadh",
-      venueType: "MALL",
-      address: "Boulevard Riyadh City, Hittin",
+      venueType: "FESTIVAL",
+      address: "Boulevard World, Riyadh Season grounds",
       contactPhone: "0112223344",
       active: true,
     },
     {
       _id: "site_wayz_2",
       tenantId: "wayz",
-      name: "King Khalid International Airport",
-      city: "Riyadh",
-      venueType: "AIRPORT",
-      address: "KKIA, Terminal 1",
-      contactPhone: "0112229999",
+      name: "Winter Wonderland",
+      city: "Jeddah",
+      venueType: "FESTIVAL",
+      address: "Jeddah Season grounds, North Obhur",
+      contactPhone: "0122229999",
       active: true,
     },
     {
@@ -796,7 +1114,7 @@ export async function seedFresh() {
   ]));
 
   await Zone.insertMany(onlySeeded([
-    { _id: "zone_wayz_1", tenantId: "wayz", siteId: "site_wayz_1", name: "Gate 1 Concourse" },
+    { _id: "zone_wayz_1", tenantId: "wayz", siteId: "site_wayz_1", name: "Boulevard World grounds" },
     { _id: "zone_wiqar_1", tenantId: "wiqar", siteId: "site_wiqar_1", name: "Marina Deck" },
   ]));
 
@@ -806,23 +1124,25 @@ export async function seedFresh() {
       tenantId: "wayz",
       siteId: "site_wayz_1",
       zoneId: "zone_wayz_1",
-      name: "Shop & Drop — Gate 1",
-      code: "BLV-1",
+      name: "Boulevard World — Riyadh Season",
+      code: "BLV",
       engineKinds: ALL_ENGINES,
       openingTime: "09:00",
       closingTime: "23:00",
       active: true,
+      mapX: 0.42,
+      mapY: 0.5,
     },
     {
       _id: "stn_wayz_2",
       tenantId: "wayz",
       siteId: "site_wayz_2",
       zoneId: "",
-      name: "KKIA Terminal 1 — Arrivals",
-      code: "KKIA-T1",
+      name: "Winter Wonderland — Jeddah Season",
+      code: "WWL",
       engineKinds: ["SHOP_AND_DROP", "MOBILITY"],
-      openingTime: "00:00",
-      closingTime: "23:59",
+      openingTime: "16:00",
+      closingTime: "01:00",
       active: true,
     },
     {
@@ -849,37 +1169,29 @@ export async function seedFresh() {
   ]));
 
   await Kiosk.insertMany(onlySeeded([
+    ...shopAndDropKiosks(),
+    ...mobilityKiosks(),
+    ...lagoonKiosks(),
     {
-      _id: "ksk_wayz_1",
-      tenantId: "wayz",
-      siteId: "site_wayz_1",
-      stationId: "stn_wayz_1",
-      name: "Kiosk A",
-      code: "BLV-1-A",
-      location: "Main entrance, left of the information desk",
-      engineKinds: ["SHOP_AND_DROP"],
-      active: true,
-    },
-    {
-      _id: "ksk_wayz_2",
-      tenantId: "wayz",
-      siteId: "site_wayz_1",
-      stationId: "stn_wayz_1",
-      name: "Kiosk B",
-      code: "BLV-1-B",
-      location: "Food court, near the north escalator",
-      engineKinds: ["SHOP_AND_DROP"],
-      active: true,
-    },
-    {
-      _id: "ksk_wayz_3",
+      _id: "ksk_wayz_ww_sd",
       tenantId: "wayz",
       siteId: "site_wayz_2",
       stationId: "stn_wayz_2",
-      name: "Arrivals Kiosk",
-      code: "KKIA-T1-A",
-      location: "Baggage reclaim, belt 4",
-      engineKinds: ["SHOP_AND_DROP"],
+      name: "Wonderland Bag Drop",
+      code: "WWL-SD",
+      location: "Main gate, beside the ticket office",
+      engineKind: "SHOP_AND_DROP",
+      active: true,
+    },
+    {
+      _id: "ksk_wayz_ww_mob",
+      tenantId: "wayz",
+      siteId: "site_wayz_2",
+      stationId: "stn_wayz_2",
+      name: "Wonderland Vehicle Bay",
+      code: "WWL-MB",
+      location: "North car park",
+      engineKind: "MOBILITY",
       active: true,
     },
     {
@@ -890,7 +1202,7 @@ export async function seedFresh() {
       name: "Promenade Kiosk",
       code: "CRN-1-A",
       location: "Beside the fountain",
-      engineKinds: ["SHOP_AND_DROP"],
+      engineKind: "SHOP_AND_DROP",
       active: true,
     },
     {
@@ -900,7 +1212,17 @@ export async function seedFresh() {
       stationId: "stn_wiqar_1",
       name: "Marina Kiosk",
       code: "MAR-1",
-      engineKinds: ["SHOP_AND_DROP"],
+      engineKind: "SHOP_AND_DROP",
+      active: true,
+    },
+    {
+      _id: "ksk_wiqar_lagoon",
+      tenantId: "wiqar",
+      siteId: "site_wiqar_1",
+      stationId: "stn_wiqar_1",
+      name: "Marina Jetty",
+      code: "MAR-LG",
+      engineKind: "LAGOON",
       active: true,
     },
   ]));
@@ -912,35 +1234,51 @@ export async function seedFresh() {
   await AssetType.insertMany(types);
   const wayzUnits = assetUnits("wayz", "stn_wayz_1").map((u, i) => ({
     ...u,
-    kioskId: String((u as { assetTypeId: string }).assetTypeId).includes("cmp")
-      ? i % 2 === 0
-        ? "ksk_wayz_1"
-        : "ksk_wayz_2"
-      : null,
+    kioskId: boulevardDeskFor(String((u as { assetTypeId: string }).assetTypeId), i),
   }));
-  // The airport station carries its own estate, otherwise nothing sold there can be handed over.
-  const airportUnits = assetUnits("wayz", "stn_wayz_2").map((u) => ({
-    ...u,
-    _id: `${u._id}_t1`,
-    identifier: `${u.identifier}T`,
-    kioskId: String((u as { assetTypeId: string }).assetTypeId).includes("cmp") ? "ksk_wayz_3" : null,
-  }));
+  const jeddahUnits = assetUnits("wayz", "stn_wayz_2")
+    .filter((u) => {
+      const type = String((u as { assetTypeId: string }).assetTypeId);
+      return type.includes("cmp") || type.includes("veh");
+    })
+    .map((u) => {
+      const type = String((u as { assetTypeId: string }).assetTypeId);
+      return {
+        ...u,
+        _id: `${u._id}_ww`,
+        identifier: `${u.identifier}W`,
+        kioskId: type.includes("cmp") ? "ksk_wayz_ww_sd" : "ksk_wayz_ww_mob",
+      };
+    });
 
   await AssetUnit.insertMany(onlySeeded([
     ...wayzUnits,
-    ...airportUnits,
-    ...assetUnits("wiqar", "stn_wiqar_1").map((u) => ({ ...u, kioskId: "ksk_wiqar_1" })),
-    ...assetUnits("wiqar", "stn_wiqar_2").map((u) => ({
+    ...jeddahUnits,
+    ...assetUnits("wiqar", "stn_wiqar_1").map((u) => ({
       ...u,
-      _id: `${u._id}_b`,
-      identifier: `${u.identifier}B`,
-      kioskId: "ksk_wiqar_2",
+      kioskId: String((u as { assetTypeId: string }).assetTypeId).includes("boat") ? "ksk_wiqar_lagoon" : "ksk_wiqar_1",
     })),
+    ...assetUnits("wiqar", "stn_wiqar_2")
+      .filter((u) => String((u as { assetTypeId: string }).assetTypeId).includes("cmp"))
+      .map((u) => ({
+        ...u,
+        _id: `${u._id}_b`,
+        identifier: `${u.identifier}B`,
+        kioskId: "ksk_wiqar_2",
+      })),
   ]).filter((u) => typeIds.has(String((u as unknown as { assetTypeId: string }).assetTypeId))));
   await CatalogueProduct.insertMany(
     onlyRunEngines(onlySeeded([...products("wayz"), ...products("wiqar")])),
   );
   await Customer.insertMany(onlySeeded([
+    {
+      _id: "cust_wayz_whatsapp",
+      tenantId: "wayz",
+      name: "Mouad Houmada",
+      phone: "+212 628436082",
+      email: "mouadhoumada@gmail.com",
+      createdAt: new Date(Date.now() - 86400000),
+    },
     {
       _id: "cust_wayz_1",
       tenantId: "wayz",
@@ -988,6 +1326,7 @@ export async function seedFresh() {
     expectedCash: 0,
   });
 
+  const demoLarge = await freeUnitAt("ksk_wayz_iran", "at_wayz_cmp_l");
   const order = await Order.create({
     _id: "ord-0001",
     ref: "100011",
@@ -1018,6 +1357,7 @@ export async function seedFresh() {
     _id: "pay-0001",
     tenantId: "wayz",
     stationId: "stn_wayz_1",
+    kioskId: "ksk_wayz_iran",
     orderId: order._id,
     bookingId: "bk-0001",
     amount: demoTax.total,
@@ -1043,6 +1383,7 @@ export async function seedFresh() {
     customerName: "Ahmed Saleh",
     customerPhone: "0599709998",
     engineKind: "SHOP_AND_DROP",
+    kioskId: "ksk_wayz_iran",
     productName: "Shop & Drop — L (3 bags)",
     status: "ACTIVE",
     bags: [1, 2, 3].map((i) => ({
@@ -1053,12 +1394,12 @@ export async function seedFresh() {
       weight: 3,
       barcode: `78${i}45012398${i}0`,
       status: "STORED",
-      assignedUnitId: "unit_wayz_L1",
+      assignedUnitId: demoLarge._id,
     })),
     session: {
       kind: "STORAGE",
       status: "ACTIVE",
-      assetUnitId: "unit_wayz_L1",
+      assetUnitId: demoLarge._id,
       requestedDurationMin: 120,
       startedAt: new Date(Date.now() - 80 * MIN),
       expectedEndAt: new Date(Date.now() + 40 * MIN),
@@ -1067,11 +1408,11 @@ export async function seedFresh() {
       expiryWarningSentAt: null,
     },
     reservation: {
-      assetUnitId: "unit_wayz_L1",
+      assetUnitId: demoLarge._id,
       expiresAt: new Date(Date.now() + HOUR),
       status: "CONSUMED",
     },
-    assetUnitId: "unit_wayz_L1",
+    assetUnitId: demoLarge._id,
     packingPlan: {
       requiredCapacityScore: 63,
       suggestedAssetTypeId: "at_wayz_cmp_l",
@@ -1096,7 +1437,7 @@ export async function seedFresh() {
     metadata: { assetTypeId: "at_wayz_cmp_l" },
   });
   await AssetUnit.updateOne(
-    { _id: "unit_wayz_L1" },
+    { _id: demoLarge._id },
     { $set: { status: "OCCUPIED", currentBookingId: "bk-0001" } },
   );
   await Receipt.create({
@@ -1107,6 +1448,34 @@ export async function seedFresh() {
     bookingId: "bk-0001",
     kind: "SALE",
     qrPayload: "ZATCA|WAYZ|100011|60.00",
+  });
+
+  await seedStoredElsewhere({
+    orderId: "ord-multi-morocco",
+    bookingId: "bk-multi-morocco",
+    ref: "SD-100031",
+    kioskId: "ksk_wayz_morocco",
+    agentId: "usr_agent_morocco_wayz",
+    assetTypeId: "at_wayz_cmp_m",
+    productId: "pr_wayz_sd_m",
+    productName: "Shop & Drop — M (2 bags)",
+    price: 45,
+    bags: ["Tote bag", "Carrier bag"],
+    barcodePrefix: "9012",
+  });
+
+  await seedStoredElsewhere({
+    orderId: "ord-multi-levant",
+    bookingId: "bk-multi-levant",
+    ref: "SD-100032",
+    kioskId: "ksk_wayz_levant",
+    agentId: "usr_agent_wayz",
+    assetTypeId: "at_wayz_cmp_s",
+    productId: "pr_wayz_sd_s",
+    productName: "Shop & Drop — S (1 bag)",
+    price: 30,
+    bags: ["Gift box"],
+    barcodePrefix: "9013",
   });
 
   await Order.create({
@@ -1125,6 +1494,7 @@ export async function seedFresh() {
     total: 45,
     hold: null,
   });
+  const demoMedium = await freeUnitAt("ksk_wayz_iran", "at_wayz_cmp_m");
   await Booking.create({
     _id: "bk-0002",
     ref: "SD-100012",
@@ -1147,12 +1517,12 @@ export async function seedFresh() {
       weight: 5,
       barcode: `78${i}45077712${i}0`,
       status: "STORED",
-      assignedUnitId: "unit_wayz_M1",
+      assignedUnitId: demoMedium._id,
     })),
     session: {
       kind: "STORAGE",
       status: "ACTIVE",
-      assetUnitId: "unit_wayz_M1",
+      assetUnitId: demoMedium._id,
       requestedDurationMin: 240,
       startedAt: new Date(Date.now() - 50 * MIN),
       expectedEndAt: new Date(Date.now() + 190 * MIN),
@@ -1160,23 +1530,23 @@ export async function seedFresh() {
       overtimeHourlyRate: 25,
       expiryWarningSentAt: null,
     },
-    reservation: { assetUnitId: "unit_wayz_M1", expiresAt: new Date(Date.now() + HOUR), status: "CONSUMED" },
-    assetUnitId: "unit_wayz_M1",
+    reservation: { assetUnitId: demoMedium._id, expiresAt: new Date(Date.now() + HOUR), status: "CONSUMED" },
+    assetUnitId: demoMedium._id,
     packingPlan: null,
     custody: [
       { from: "CUSTOMER", to: "AGENT", at: new Date(Date.now() - 55 * MIN), note: "Bags received at desk" },
       { from: "AGENT", to: "LOCKER", at: new Date(Date.now() - 50 * MIN), note: "Stored — timer started" },
     ],
-    metadata: { assetTypeId: "at_wayz_cmp_m", kioskId: "ksk_wayz_1" },
+    metadata: { assetTypeId: "at_wayz_cmp_m", kioskId: "ksk_wayz_iran" },
   });
-  await AssetUnit.updateOne({ _id: "unit_wayz_M1" }, { $set: { status: "OCCUPIED", currentBookingId: "bk-0002" } });
+  await AssetUnit.updateOne({ _id: demoMedium._id }, { $set: { status: "OCCUPIED", currentBookingId: "bk-0002" } });
 
   await DeliveryRequest.create({
     _id: "dlv-0001",
     tenantId: "wayz",
     siteId: "site_wayz_1",
     stationId: "stn_wayz_1",
-    kioskId: "ksk_wayz_1",
+    kioskId: "ksk_wayz_iran",
     bookingId: "bk-0002",
     bookingRef: "SD-100012",
     customerId: "cust_wayz_2",
@@ -1194,8 +1564,8 @@ export async function seedFresh() {
     verificationMethod: null,
     requestedBy: "usr_agent_wayz",
     requestedAt: new Date(Date.now() - 12 * MIN),
-    assetUnitId: "unit_wayz_M1",
-    assetUnitIdentifier: "M-07",
+    assetUnitId: demoMedium._id,
+    assetUnitIdentifier: demoMedium.identifier,
     fee: 25,
     timeline: [
       { status: "REQUESTED", at: new Date(Date.now() - 12 * MIN), by: "usr_agent_wayz", note: "Requested (at the desk)" },
@@ -1251,12 +1621,13 @@ export async function seedFresh() {
     ],
     metadata: { assetTypeId: "at_wayz_cmp_s" },
   });
+  const demoSmall = await freeUnitAt("ksk_wayz_iran", "at_wayz_cmp_s");
   await DeliveryRequest.create({
     _id: "dlv-0002",
     tenantId: "wayz",
     siteId: "site_wayz_1",
     stationId: "stn_wayz_1",
-    kioskId: "ksk_wayz_2",
+    kioskId: "ksk_wayz_morocco",
     bookingId: "bk-0003",
     bookingRef: "SD-100010",
     customerId: "cust_wayz_3",
@@ -1277,8 +1648,8 @@ export async function seedFresh() {
     releaseApprovedAt: new Date(Date.now() - 4 * HOUR),
     compartmentCode: null,
     compartmentCodeExpiresAt: null,
-    assetUnitId: "unit_wayz_S1",
-    assetUnitIdentifier: "S-01",
+    assetUnitId: demoSmall._id,
+    assetUnitIdentifier: demoSmall.identifier,
     pickedUpAt: new Date(Date.now() - 4 * HOUR),
     scannedBarcodes: ["7845099911230"],
     deliveredAt: new Date(Date.now() - 3 * HOUR),
@@ -1298,7 +1669,7 @@ export async function seedFresh() {
     _id: "shift_wayz_cashier",
     tenantId: "wayz",
     stationId: "stn_wayz_1",
-    agentId: "usr_cashier_wayz",
+    agentId: "usr_agent_till_wayz",
     status: "OPEN",
     openedAt: new Date(Date.now() - 5 * HOUR),
     expectedCash: 180,
@@ -1309,7 +1680,7 @@ export async function seedFresh() {
       tenantId: "wayz",
       stationId: "stn_wayz_1",
       shiftId: "shift_wayz_cashier",
-      actorId: "usr_cashier_wayz",
+      actorId: "usr_agent_till_wayz",
       kind: "FLOAT_IN",
       amount: 500,
       reason: "Opening float for the morning shift",
@@ -1321,7 +1692,7 @@ export async function seedFresh() {
       tenantId: "wayz",
       stationId: "stn_wayz_1",
       shiftId: "shift_wayz_cashier",
-      actorId: "usr_cashier_wayz",
+      actorId: "usr_agent_till_wayz",
       kind: "PAY_OUT",
       amount: 120,
       reason: "Replacement barcode label rolls",
@@ -1333,7 +1704,7 @@ export async function seedFresh() {
       tenantId: "wayz",
       stationId: "stn_wayz_1",
       shiftId: "shift_wayz_cashier",
-      actorId: "usr_cashier_wayz",
+      actorId: "usr_agent_till_wayz",
       kind: "DROP",
       amount: 200,
       reason: "Midday banking drop — drawer above the safe limit",
@@ -1407,8 +1778,11 @@ export async function seedFresh() {
     });
   }
 
+  await stampDesks();
   await seedFinancialHistory();
   await seedCostHistory();
+  await seedNotifications();
+  await seedManualSales();
 
   await Counter.insertMany([
     { _id: "expense", seq: 2000 },
@@ -1419,9 +1793,112 @@ export async function seedFresh() {
     { _id: "order", seq: 4 },
     { _id: "delivery", seq: 2 },
     { _id: "cashMovement", seq: 3 },
+    { _id: "manualSale", seq: 2 },
   ]);
+  await seedVersions();
+
 
   logger.info("Seed complete", { tenants: SEEDED_TENANTS.length, deliveries: 2, queued: 2 });
+}
+
+async function stampDesks() {
+  for (const user of onlySeeded(demoUsers())) {
+    if (!user.kioskId) continue;
+    await Promise.all([
+      Booking.updateMany({ agentId: user._id, kioskId: null }, { $set: { kioskId: user.kioskId } }),
+      Order.updateMany({ agentId: user._id, kioskId: null }, { $set: { kioskId: user.kioskId } }),
+      Payment.updateMany({ takenBy: user._id, kioskId: null }, { $set: { kioskId: user.kioskId } }),
+    ]);
+  }
+}
+
+async function seedNotifications() {
+  await Notification.insertMany(onlySeeded([
+    {
+      _id: "ntf_seed_1",
+      tenantId: "wayz",
+      stationId: "stn_wayz_1",
+      kioskId: "ksk_wayz_iran",
+      engineKind: "SHOP_AND_DROP",
+      title: "Bag drop ending soon",
+      body: "SD-100012 ends in about 25 minutes. The customer has been warned on WhatsApp.",
+      level: "info",
+      audience: [],
+      link: "/bookings/bk-0002",
+      readBy: [],
+      createdAt: new Date(Date.now() - 12 * MIN),
+    },
+    {
+      _id: "ntf_seed_2",
+      tenantId: "wayz",
+      stationId: "stn_wayz_1",
+      kioskId: null,
+      engineKind: "MOBILITY",
+      title: "Scooter taken out of service",
+      body: "SC-03 was reported with a soft rear tyre and moved to maintenance.",
+      level: "warning",
+      audience: ["SUPERVISOR", "MANAGER", "PROJECT_MANAGER", "TENANT_ADMIN"],
+      link: "/assets",
+      readBy: [],
+      createdAt: new Date(Date.now() - 90 * MIN),
+    },
+    {
+      _id: "ntf_seed_3",
+      tenantId: "wayz",
+      stationId: "",
+      kioskId: null,
+      engineKind: null,
+      title: "Season rules reviewed",
+      body: "Grace stays at 15 minutes in the system and 10 minutes to the customer.",
+      level: "success",
+      audience: ["TENANT_ADMIN", "PROJECT_MANAGER"],
+      link: "/admin/rules",
+      readBy: [],
+      createdAt: new Date(Date.now() - 6 * HOUR),
+    },
+  ]));
+}
+
+async function seedManualSales() {
+  const gross = (total: number) => {
+    const base = Math.round((total / 1.15) * 100) / 100;
+    return { amount: total, baseAmount: base, vatAmount: Math.round((total - base) * 100) / 100, vatRate: 0.15 };
+  };
+
+  await ManualSale.insertMany(onlySeeded([
+    {
+      _id: "man-0001",
+      ref: "MAN-0001",
+      tenantId: "wayz",
+      stationId: "stn_wayz_1",
+      engineKind: "LAGOON",
+      description: "Coach party of 40, paid by transfer on the day the terminal was down.",
+      ...gross(3600),
+      method: "CARD",
+      occurredAt: new Date(Date.now() - 3 * 86_400_000),
+      status: "PENDING",
+      enteredBy: "usr_acct_wayz",
+      reviewedBy: null,
+      reviewedAt: null,
+      reviewNote: "",
+    },
+    {
+      _id: "man-0002",
+      ref: "MAN-0002",
+      tenantId: "wayz",
+      stationId: "stn_wayz_1",
+      engineKind: "MOBILITY",
+      description: "Paper receipts from the opening weekend, before the tills were live.",
+      ...gross(1250),
+      method: "CASH",
+      occurredAt: new Date(Date.now() - 21 * 86_400_000),
+      status: "APPROVED",
+      enteredBy: "usr_acct_wayz",
+      reviewedBy: "usr_admin_wayz",
+      reviewedAt: new Date(Date.now() - 19 * 86_400_000),
+      reviewNote: "Matched against the 12 March bank deposit.",
+    },
+  ]));
 }
 
 async function ensureDemoUsers() {
@@ -1481,11 +1958,13 @@ async function seedFinancialHistory() {
         const tax = splitInclusive(gross);
         const method = next() > 0.42 ? "CARD" : "CASH";
         const cardScheme = method === "CARD" ? pickScheme(next()).scheme : null;
+        const historyOrderId = `ord-h${String(paySeq).padStart(5, "0")}`;
         payments.push({
           _id: `pay-${String(paySeq++).padStart(5, "0")}`,
           tenantId: "wayz",
           stationId: "stn_wayz_1",
-          orderId: "ord-0001",
+          kioskId: "ksk_wayz_morocco",
+          orderId: historyOrderId,
           bookingId: null,
           amount: tax.total,
           baseAmount: tax.base,
@@ -1496,7 +1975,7 @@ async function seedFinancialHistory() {
           cardScheme,
           kind: "SALE",
           status: "CAPTURED",
-          takenBy: "usr_cashier_wayz",
+          takenBy: "usr_agent_till_wayz",
           shiftId: null,
           createdAt: at,
           updatedAt: at,
@@ -1510,7 +1989,7 @@ async function seedFinancialHistory() {
             _id: `pay-${String(paySeq++).padStart(5, "0")}`,
             tenantId: "wayz",
             stationId: "stn_wayz_1",
-            orderId: "ord-0001",
+            orderId: historyOrderId,
             bookingId: null,
             amount: rtax.total,
             baseAmount: rtax.base,
@@ -1521,7 +2000,7 @@ async function seedFinancialHistory() {
             cardScheme,
             kind: "REFUND",
             status: "CAPTURED",
-            takenBy: "usr_cashier_wayz",
+            takenBy: "usr_agent_till_wayz",
             shiftId: null,
             createdAt: rAt,
             updatedAt: rAt,
@@ -1539,7 +2018,7 @@ async function seedFinancialHistory() {
         tenantId: "wayz",
         stationId: "stn_wayz_1",
         shiftId: "shift_wayz_history",
-        actorId: "usr_cashier_wayz",
+        actorId: "usr_agent_till_wayz",
         kind: "PAY_OUT",
         amount: etax.total,
         baseAmount: etax.base,
@@ -1561,7 +2040,6 @@ async function seedFinancialHistory() {
   await seedAuditTrail(payments, movements);
 }
 
-/** Every action leaves a trace, so the trail reads like a real one from the first day. */
 async function seedAuditTrail(
   payments: Record<string, unknown>[],
   movements: Record<string, unknown>[],
@@ -1727,6 +2205,11 @@ async function seedCardTransactions(payments: Record<string, unknown>[], next: (
     record(`RRN${ref++}`, scheme, bin, Math.round((60 + next() * 900) * 100) / 100, at, null, "LAGOON", "TPE");
   }
 
+  for (const { scheme, bin } of SCHEME_MIX) {
+    const at = new Date(Date.now() - 6 * 3600000);
+    record(`RRN${ref++}`, scheme, bin, Math.round((120 + next() * 400) * 100) / 100, at, null, "MOBILITY", "TPE");
+  }
+
   await CardTransaction.insertMany(transactions);
 
   const commissionExpenses: Record<string, unknown>[] = [];
@@ -1763,7 +2246,6 @@ async function seedCardTransactions(payments: Record<string, unknown>[], next: (
 }
 
 async function seedCostHistory() {
-  // Month arithmetic on a 31st rolls into the following month, so the day is clamped.
   const addMonths = (from: Date, months: number) => {
     const day = from.getDate();
     const target = new Date(from.getFullYear(), from.getMonth() + months, 1);
@@ -1843,11 +2325,17 @@ async function seedCostHistory() {
 
   const payroll: [string, string, number][] = [
     ["usr_agent_wayz", "Omar Al-Wayz — kiosk agent", 5500],
-    ["usr_kmgr_wayz", "Huda Al-Qahtani — lagoon agent", 8500],
-    ["usr_cashier_wayz", "Reem Al-Sudairi — cashier", 5000],
+    ["usr_agent_till_wayz", "Reem Al-Sudairi — kiosk agent", 5000],
+    ["usr_agent_gate1_wayz", "Majed Al-Subaie — kiosk agent", 5500],
+    ["usr_agent_egypt_wayz", "Lina Al-Faraj — kiosk agent", 5500],
+    ["usr_welcome_wayz", "Huda Al-Qahtani — welcoming staff", 6000],
+    ["usr_captain_wayz", "Saad Al-Balawi — chief captain", 7500],
+    ["usr_sup_wayz", "Tariq Al-Anazi — supervisor", 9000],
+    ["usr_sup_lagoon_wayz", "Nouf Al-Shammari — supervisor", 9000],
     ["usr_courier_wayz", "Bilal Al-Harbi — delivery agent", 4500],
     ["usr_courier2_wayz", "Khalid Al-Otaibi — delivery agent", 4500],
-    ["usr_mgr_wayz", "Faisal Manager — manager", 14000],
+    ["usr_mgr_wayz", "Faisal Al-Mutairi — activity manager", 14000],
+    ["usr_mgr_lagoon_wayz", "Amal Al-Harthy — activity manager", 14000],
   ];
   for (const [userId, label, monthly] of payroll) {
     const total = monthly * 6;

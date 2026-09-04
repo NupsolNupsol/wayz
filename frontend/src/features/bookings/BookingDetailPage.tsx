@@ -1,7 +1,7 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useNavigate, useParams } from 'react-router-dom'
-import { Printer, TriangleAlert, Package, Boxes, ScanLine, Check, RefreshCw, User, Phone, ShieldCheck, FileDown, Truck, Undo2 } from 'lucide-react'
+import { Banknote, Hourglass, Printer, Receipt, TriangleAlert, Package, Boxes, ScanLine, Check, RefreshCw, User, Phone, ShieldCheck, ReceiptText, Truck, Undo2 } from 'lucide-react'
 import { PageHeader } from '@/components/PageHeader'
 import { Card, SectionTitle, StatusBadge, Button, EmptyState, Field, Spinner } from '@/components/ui'
 import { Modal } from '@/components/Modal'
@@ -14,9 +14,12 @@ import { useStationDeliveries } from '@/hooks'
 import { Select } from '@/components/Select'
 import { Barcode } from '@/components/Barcode'
 import { Timer } from '@/components/Timer'
-import { useBooking, useBookingOrder, useTransitions, useTransition, useScanOut, useReassign, useCreateIncident, useIncidentCatalogue, useUnits, useRefundPosition, useRefundBooking } from '@/hooks'
+import { useAssetUnit, useBooking, useBookingOrder, useTransitions, useTransition, useScanOut, useReassign, useCreateIncident, useIncidentCatalogue, useUnits, useRefundPosition, useRefundBooking } from '@/hooks'
 import { NumberInput } from '@/components/NumberInput'
-import { useInvoiceDownload } from '@/features/invoice/useInvoiceDownload'
+import { InvoiceModal } from '@/features/invoice/InvoiceModal'
+import { AmountDuePanel } from './AmountDuePanel'
+import { isUnfinishedSale, resumeRoute } from './resumeDraft'
+import { DevClockPanel } from './DevClockPanel'
 import { ApiError } from '@/api/client'
 import { formatDateTime, money } from '@/utils'
 import { useActionLabel } from '@/i18n/useActionLabel'
@@ -35,7 +38,6 @@ export function BookingDetailPage() {
   const { data: order } = useBookingOrder(id)
   const { data: catalogue } = useIncidentCatalogue()
   const { data: trans } = useTransitions(id)
-  const { download: downloadInvoice, generating: invoicePending } = useInvoiceDownload()
   const transitionMut = useTransition()
   const scanMut = useScanOut()
   const reassignMut = useReassign()
@@ -46,6 +48,10 @@ export function BookingDetailPage() {
   const { data: stationDeliveries } = useStationDeliveries({ bookingId: id }, !!id && mayArrangeDelivery)
 
   const [labelsOpen, setLabelsOpen] = useState(false)
+  const [invoiceOpen, setInvoiceOpen] = useState(false)
+  const [replaceOpen, setReplaceOpen] = useState(false)
+  const [replaceUnit, setReplaceUnit] = useState('')
+  const [replaceReason, setReplaceReason] = useState('')
   const [reassignOpen, setReassignOpen] = useState(false)
   const [reassignUnit, setReassignUnit] = useState('')
   const [reassignReason, setReassignReason] = useState('')
@@ -56,11 +62,24 @@ export function BookingDetailPage() {
   const [verifyOpen, setVerifyOpen] = useState(false)
   const [storeOpen, setStoreOpen] = useState(false)
   const [deliveryOpen, setDeliveryOpen] = useState(false)
+  const [dueNow, setDueNow] = useState(0)
+  const [collectSignal, setCollectSignal] = useState(0)
   const [refundOpen, setRefundOpen] = useState(false)
   const [refundAmount, setRefundAmount] = useState(0)
   const [refundReason, setRefundReason] = useState('')
   const { data: refundPosition } = useRefundPosition(id)
+  const reservedId = booking?.reservation?.assetUnitId ?? booking?.assetUnitId ?? undefined
+  const heldByAnotherDesk = !!reservedId && !units.some((u) => u._id === reservedId)
+  const { data: heldUnitDetail } = useAssetUnit(heldByAnotherDesk ? reservedId : undefined)
+  const heldUnit = heldUnitDetail ? { _id: heldUnitDetail._id, identifier: heldUnitDetail.identifier } : undefined
   const refundMut = useRefundBooking()
+
+  const unfinished = !!booking && !!order && isUnfinishedSale(booking, order)
+  const outstanding = Math.max(0, Math.round(((order?.total ?? 0) - (refundPosition?.paid ?? 0)) * 100) / 100)
+  const resumable = unfinished && can(role, 'pos.use')
+  useEffect(() => {
+    if (resumable && booking) navigate(resumeRoute(booking), { replace: true })
+  }, [resumable, booking, navigate])
 
   if (isLoading) return <Spinner />
   if (!booking || !id) {
@@ -79,9 +98,22 @@ export function BookingDetailPage() {
   }))
 
   const verifications = booking.verifications ?? []
+  const overtimeState = booking.session?.overtime
+  const lastChargeStartedAt =
+    overtimeState && overtimeState.chargeableHours > 0 && overtimeState.graceEndsAt
+      ? new Date(overtimeState.graceEndsAt).getTime() + (overtimeState.chargeableHours - 1) * 3_600_000
+      : null
   const hasFreshVerification = verifications.some(
-    (v) => v.purpose === 'RETRIEVAL' && v.status === 'VERIFIED' && new Date(v.expiresAt).getTime() > Date.now(),
+    (v) =>
+      v.purpose === 'RETRIEVAL' &&
+      v.status === 'VERIFIED' &&
+      new Date(v.expiresAt).getTime() > Date.now() &&
+      (lastChargeStartedAt === null || new Date(v.verifiedAt).getTime() >= lastChargeStartedAt),
   )
+  const outstayedTheirCheck =
+    lastChargeStartedAt !== null &&
+    !hasFreshVerification &&
+    verifications.some((v) => v.purpose === 'RETRIEVAL' && v.status === 'VERIFIED')
 
   const buildPayload = (code: string): TransitionPayload => {
     switch (code) {
@@ -104,6 +136,12 @@ export function BookingDetailPage() {
     )
 
   const runTransition = (transition: AvailableTransition) => {
+    if (transition.code === 'TO_REPLACED') {
+      setReplaceUnit(availableAssetUnits[0]?._id ?? '')
+      setReplaceReason('')
+      setReplaceOpen(true)
+      return
+    }
     if (transition.code === 'TO_REASSIGNED') {
       setReassignUnit(units.find((u) => u.assetTypeId === (booking.metadata?.assetTypeId as string) && u.status === 'AVAILABLE')?._id ?? '')
       setReassignOpen(true)
@@ -118,6 +156,19 @@ export function BookingDetailPage() {
       return
     }
     fire(transition.code, transition.label)
+  }
+
+  const doReplace = () => {
+    transitionMut.mutate(
+      { id, code: 'TO_REPLACED', payload: { unitId: replaceUnit, reason: replaceReason } },
+      {
+        onSuccess: () => {
+          toast('warning', t('replace.done'), t('replace.doneDetail'))
+          setReplaceOpen(false)
+        },
+        onError: (e) => toast('danger', t('replace.failed'), e instanceof ApiError ? (e.errors?.join(' ') ?? e.message) : ''),
+      },
+    )
   }
 
   const scanOut = (barcode: string) => {
@@ -136,7 +187,8 @@ export function BookingDetailPage() {
 
   const refundable = refundPosition?.refundable ?? 0
   const refundedSoFar = refundPosition?.refunded ?? 0
-  const mayRefund = can(role, 'refund.request') && refundable > 0
+  const awaitingApproval = refundPosition?.pending ?? null
+  const mayRefund = can(role, 'refund.request') && refundable > 0 && !awaitingApproval
 
   const openRefund = () => {
     setRefundAmount(refundable)
@@ -150,7 +202,11 @@ export function BookingDetailPage() {
       {
         onSuccess: (res) => {
           setRefundOpen(false)
-          toast('success', t('toast.refundDone'), t('toast.refundDetail', { amount: money(res.refunded), ref: booking.ref }))
+          if (res.approved) {
+            toast('success', t('toast.refundDone'), t('toast.refundDetail', { amount: money(res.refunded), ref: booking.ref }))
+          } else {
+            toast('info', t('toast.refundAsked'), t('toast.refundAskedDetail', { ref: res.request?.ref ?? '', amount: money(refundAmount) }))
+          }
         },
         onError: (e) =>
           toast('danger', t('toast.refundRefused'), e instanceof ApiError ? (e.errors?.join(' ') ?? e.message) : ''),
@@ -172,7 +228,7 @@ export function BookingDetailPage() {
   const s = booking.session
   const unit = units.find((u) => u._id === booking.assetUnitId)
   const reservedUnitId = booking.reservation?.assetUnitId ?? booking.assetUnitId
-  const reservedUnit = units.find((u) => u._id === reservedUnitId)
+  const reservedUnit = units.find((u) => u._id === reservedUnitId) ?? heldUnit
   const availableAssetUnits = units.filter((u) => u.assetTypeId === (booking.metadata?.assetTypeId as string) && u.status === 'AVAILABLE')
   const inRetrieval = booking.status === 'RETRIEVAL_IN_PROGRESS'
   const canDeliver =
@@ -181,6 +237,10 @@ export function BookingDetailPage() {
     (d) => !['DELIVERED', 'CANCELLED', 'FAILED'].includes(d.status),
   )
   const canBeginRetrieval = (trans?.transitions ?? []).some((tr) => tr.code === 'TO_RETRIEVAL')
+  const workflowActions = trans?.transitions ?? []
+  const HANDS_BACK = ['TO_RETRIEVAL', 'TO_COMPLETED', 'TO_SERVED', 'TO_RETURNED']
+  const owed = Math.max(dueNow, outstanding)
+  const blockedByMoney = (code: string) => owed > 0 && HANDS_BACK.includes(code)
   const awaitingRetrievalCheck = canBeginRetrieval && !hasFreshVerification
 
   return (
@@ -193,8 +253,8 @@ export function BookingDetailPage() {
         actions={
           <>
             {order && (
-              <Button variant="secondary" onClick={() => void downloadInvoice(booking, order)} loading={invoicePending} data-testid="booking-invoice">
-                <FileDown size={16} /> {t('page.invoice')}
+              <Button variant="secondary" onClick={() => setInvoiceOpen(true)} data-testid="booking-invoice-slip">
+                <ReceiptText size={16} /> {t('page.salesInvoice')}
               </Button>
             )}
             {booking.bags.length > 0 && <Button variant="secondary" onClick={() => setLabelsOpen(true)} data-testid="booking-labels"><Printer size={16} /> {t('page.labels')}</Button>}
@@ -227,6 +287,29 @@ export function BookingDetailPage() {
           <Button variant="secondary" onClick={() => navigate('/deliveries')} data-testid="booking-open-delivery-link">
             {t('page.openDeliveries')}
           </Button>
+        </Card>
+      )}
+
+      {awaitingApproval && (
+        <Card className="mb-5 p-4 border-amber-400/50 bg-amber-50/60 dark:bg-amber-900/10" data-testid="booking-refund-pending">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div className="flex items-start gap-3 min-w-0">
+              <Hourglass size={18} className="text-amber-600 shrink-0 mt-0.5" />
+              <div className="min-w-0">
+                <p className="text-sm font-semibold text-navy dark:text-dk-texthi">
+                  {t('page.refundWaiting', { ref: awaitingApproval.ref, amount: money(awaitingApproval.amount) })}
+                </p>
+                <p className="text-xs text-muted">
+                  {t('page.refundWaitingWho', { name: awaitingApproval.requestedByName })} · {awaitingApproval.reason}
+                </p>
+              </div>
+            </div>
+            {refundPosition?.canApprove && (
+              <Button variant="secondary" onClick={() => navigate('/refund-requests')} data-testid="booking-refund-review">
+                {t('page.refundReview')}
+              </Button>
+            )}
+          </div>
         </Card>
       )}
 
@@ -266,7 +349,7 @@ export function BookingDetailPage() {
           <div className="lf-card p-3 mb-3 flex flex-wrap items-center justify-between gap-3 border-brand/40 bg-brand/5" data-testid="verify-required">
             <p className="text-sm flex items-center gap-2">
               <ShieldCheck size={16} className="text-brand" />
-              <span>{t('page.verifyLocked')}</span>
+              <span>{outstayedTheirCheck ? t('page.verifyAgain') : t('page.verifyLocked')}</span>
             </p>
             <Button variant="secondary" onClick={() => setVerifyOpen(true)} data-testid="verify-open">{t('page.verifyOpen')}</Button>
           </div>
@@ -277,15 +360,35 @@ export function BookingDetailPage() {
             <span className="text-sm text-success font-medium">{t('page.verified')}</span>
           </div>
         )}
+        {owed > 0 && workflowActions.some((tr) => HANDS_BACK.includes(tr.code)) && (
+          <div
+            className="lf-card p-3 mb-3 flex flex-wrap items-center gap-2 border-amber-300 bg-amber-50 dark:bg-amber-900/20"
+            data-testid="handover-blocked"
+          >
+            <Banknote size={16} className="text-amber-600 dark:text-amber-300" />
+            <span className="text-sm text-navy dark:text-dk-texthi flex-1 min-w-0">
+              {awaitingRetrievalCheck ? t('page.verifyBeforePayment', { amount: money(owed) }) : t('page.payFirst', { amount: money(owed) })}
+            </span>
+            <Button
+              onClick={() => setCollectSignal((n) => n + 1)}
+              disabled={awaitingRetrievalCheck}
+              title={awaitingRetrievalCheck ? t('page.verifyBeforePayment', { amount: money(owed) }) : undefined}
+              data-testid="handover-take-payment"
+            >
+              <Banknote size={16} /> {t('page.takePayment', { amount: money(owed) })}
+            </Button>
+          </div>
+        )}
         <div className="flex flex-wrap gap-2" data-testid="transition-actions">
-          {(trans?.transitions ?? []).length === 0 && <p className="text-sm text-muted">{t('page.noActions')}</p>}
-          {(trans?.transitions ?? []).map((transition) => (
+          {workflowActions.length === 0 && <p className="text-sm text-muted">{t('page.noActions')}</p>}
+          {workflowActions.map((transition) => (
             <button
               key={transition.code}
               onClick={() => runTransition(transition)}
-              disabled={transitionMut.isPending}
+              disabled={transitionMut.isPending || blockedByMoney(transition.code)}
+              title={blockedByMoney(transition.code) ? t('page.payFirst', { amount: money(owed) }) : undefined}
               data-testid={`action-${transition.code}`}
-              className="lf-btn text-white shadow-card disabled:opacity-50"
+              className="lf-btn text-white shadow-card disabled:opacity-50 disabled:cursor-not-allowed"
               style={{ backgroundColor: transition.style?.backgroundColor ?? 'rgb(var(--brand))' }}
             >
               {transition.code === 'TO_REASSIGNED' && <RefreshCw size={15} />} {actionLabel(transition.label)}
@@ -363,12 +466,63 @@ export function BookingDetailPage() {
               <button type="button" onClick={() => navigate(`/customers/${booking.customerId}`)} className="mt-3 text-xs font-medium text-brand hover:underline">{t('page.viewProfile')}</button>
             )}
           </Card>
+          {order && (
+            <Card data-testid="booking-charges">
+              <SectionTitle className="mb-3 flex items-center gap-2"><Receipt size={18} /> {t('page.charges')}</SectionTitle>
+              <div className="flex flex-col gap-1.5 text-sm">
+                {order.lines.map((line, i) => (
+                  <div key={`${line.productId}-${i}`} className="flex items-baseline justify-between gap-3" data-testid={`booking-charge-${i}`}>
+                    <span className="text-muted">
+                      {line.name}
+                      {line.quantity > 1 && <span className="text-xs"> × {line.quantity}</span>}
+                    </span>
+                    <span className="tabular-nums">{money(line.unitPrice * line.quantity)}</span>
+                  </div>
+                ))}
+                <div className="flex items-baseline justify-between gap-3 text-muted pt-1.5 border-t border-line">
+                  <span>{t('page.subtotal')}</span>
+                  <span className="tabular-nums">{money(order.subtotal)}</span>
+                </div>
+                <div className="flex items-baseline justify-between gap-3 text-muted">
+                  <span>{t('page.vat')}</span>
+                  <span className="tabular-nums">{money(order.vat)}</span>
+                </div>
+                <div className="flex items-baseline justify-between gap-3 font-bold text-navy dark:text-dk-texthi text-base">
+                  <span>{t('page.charged')}</span>
+                  <span className="tabular-nums" data-testid="booking-charged-total">{money(order.total)}</span>
+                </div>
+                <div className="flex items-baseline justify-between gap-3 text-xs text-muted">
+                  <span>{t('page.paidSoFar')}</span>
+                  <span className="tabular-nums" data-testid="booking-paid-total">{money(refundPosition?.paid ?? 0)}</span>
+                </div>
+                {outstanding > 0 && (
+                  <div className="flex items-baseline justify-between gap-3 text-xs font-semibold text-amber-700 dark:text-amber-300">
+                    <span>{t('page.outstanding')}</span>
+                    <span className="tabular-nums" data-testid="booking-outstanding">{money(outstanding)}</span>
+                  </div>
+                )}
+              </div>
+            </Card>
+          )}
+
           {verifications.length > 0 && (
             <Card>
               <SectionTitle className="mb-3 flex items-center gap-2"><ShieldCheck size={18} /> {t('page.identityChecks')}</SectionTitle>
               <VerificationTrail verifications={verifications} />
             </Card>
           )}
+          {!unfinished && (
+            <AmountDuePanel
+              bookingId={id}
+              overtime={booking.session?.overtime}
+              openSignal={collectSignal}
+              blockedReason={awaitingRetrievalCheck ? t('page.verifyBeforePayment', { amount: money(dueNow) }) : null}
+              onDueChange={setDueNow}
+            />
+          )}
+
+          <DevClockPanel bookingId={id} hasStarted={!!s.startedAt} />
+
           <Card>
             <SectionTitle className="mb-3 flex items-center gap-2"><Package size={18} /> {t('page.custody')}</SectionTitle>
             {booking.custody.length === 0 ? <p className="text-sm text-muted">{t('page.noCustody')}</p> : (
@@ -385,6 +539,48 @@ export function BookingDetailPage() {
           </Card>
         </div>
       </div>
+
+      <Modal
+        open={replaceOpen}
+        onClose={() => setReplaceOpen(false)}
+        title={t('replace.title')}
+        subtitle={t('replace.subtitle')}
+        testId="replace-modal"
+        footer={
+          <>
+            <Button variant="ghost" onClick={() => setReplaceOpen(false)}>{t('common:action.cancel')}</Button>
+            <Button
+              variant="danger"
+              onClick={doReplace}
+              loading={transitionMut.isPending}
+              disabled={!replaceUnit || replaceReason.trim().length < 3}
+              data-testid="replace-submit"
+            >
+              {t('replace.submit')}
+            </Button>
+          </>
+        }
+      >
+        <Field
+          label={t('replace.unit')}
+          required
+          error={availableAssetUnits.length === 0 ? t('replace.noneFree') : undefined}
+        >
+          <Select
+            value={replaceUnit}
+            onChange={setReplaceUnit}
+            searchable
+            placeholder={t('reassign.choose')}
+            options={availableAssetUnits.map((u) => ({ label: u.identifier, value: u._id }))}
+            testId="replace-unit-select"
+          />
+        </Field>
+        <Field label={t('replace.reason')} required hint={t('replace.reasonHint')}>
+          <input className="lf-input" value={replaceReason} onChange={(e) => setReplaceReason(e.target.value)} data-testid="replace-reason" />
+        </Field>
+      </Modal>
+
+      <InvoiceModal bookingId={id} trackingToken={booking.trackingToken} open={invoiceOpen} onClose={() => setInvoiceOpen(false)} />
 
       <Modal open={labelsOpen} onClose={() => setLabelsOpen(false)} title={t('labelsModal.title')} subtitle={t('labelsModal.subtitle')} size="md"
         footer={<><Button variant="ghost" onClick={() => setLabelsOpen(false)}>{t('common:action.close')}</Button><Button onClick={() => window.print()} className="no-print"><Printer size={15} /> {t('labelsModal.print')}</Button></>}>
@@ -446,7 +642,7 @@ export function BookingDetailPage() {
         customerEmail={booking.customerEmail}
         onVerified={() => {
           setVerifyOpen(false)
-          fire('TO_RETRIEVAL', 'Begin retrieval')
+          if (dueNow <= 0) fire('TO_RETRIEVAL', 'Begin retrieval')
         }}
       />
 

@@ -10,12 +10,16 @@ export interface BagInput {
   weight?: number
 }
 
+export type RateMode = 'HOURS' | 'TOURS'
+
 export interface CreateBookingInput {
   customerId: string
   engineKind: EngineKind
   productId: string
   quantity?: number
   durationMin?: number
+  rateMode?: RateMode
+  tours?: number
   bags?: BagInput[]
   metadata?: Record<string, unknown>
 }
@@ -35,6 +39,7 @@ export interface ApplyTransitionParams {
   actor: { id: string; role: Role }
   tenantId: string
   stationId: string
+  kioskId?: string | null
   now?: Date
 }
 

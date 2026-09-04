@@ -1,13 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { clsx } from 'clsx'
 
-/**
- * A number field you can actually empty.
- *
- * `value={n} onChange={parseInt(e.target.value) || 1}` snaps the field back to 1 the
- * moment you clear it, so the only way to change 1 to 25 is the spinner. This keeps the
- * raw text while you type and only coerces on blur.
- */
 export function NumberInput({
   value,
   onChange,

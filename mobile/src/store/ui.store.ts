@@ -4,7 +4,6 @@ type Theme = 'light' | 'dark'
 
 interface UiState {
   theme: Theme
-  /** Handhelds are used one-handed on the move; larger touch targets help. */
   compact: boolean
   toggleTheme: () => void
   setCompact: (compact: boolean) => void

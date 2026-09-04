@@ -1,12 +1,18 @@
-import type { BillingModel, DurationUnit, EngineKind, IncidentType } from '../domain/types.js'
+import type { BillingModel, DurationUnit, EngineKind, IncidentType, SaleType, SaleUnit } from '../domain/types.js'
 
 export interface ProductInput {
   name: string
   engineKind: EngineKind
   category?: string
   basePrice: number
+  hourlyPrice?: number | null
+  tourPrice?: number | null
+  tourMinutes?: number | null
+  saleUnit?: SaleUnit
+  saleType?: SaleType
   overtimeHourlyRate?: number | null
   depositRequired?: number
+  penaltyPrice?: number
   assetTypeId?: string | null
   billingModel: BillingModel
   durationUnit?: DurationUnit

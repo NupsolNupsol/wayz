@@ -3,16 +3,31 @@ import { asyncHandler } from '../utils/asyncHandler.js'
 import { scopeFromReq } from '../utils/scope.js'
 import { ApiError } from '../utils/ApiError.js'
 import { DELIVERY_ORIGINS } from '../domain/workflow.js'
-import { applyDeliveryTransition, availableDeliveryTransitions, courierBoard, courierScopeFrom, createDeliveryRequest, deliveryDetail, stationDeliveries } from '../services/delivery.service.js'
+import { PAYMENT_METHODS } from '../domain/types.js'
+import { CARD_SCHEMES } from '../domain/commission.js'
+import { applyDeliveryTransition, availableDeliveryTransitions, collectOnDelivery, collectStop, courierBoard, customerBagsElsewhere, courierScopeFrom, createDeliveryRequest, deliveryDetail, stationDeliveries } from '../services/delivery.service.js'
 import type { DeliveryActor } from '../interfaces/index.js'
 
 const createSchema = z.object({
   bookingId: z.string().min(1),
+  alsoBookingIds: z.array(z.string()).optional(),
   address: z.string().min(3, 'A delivery address is required.'),
   notes: z.string().max(500).optional(),
   contactPhone: z.string().max(40).optional(),
   origin: z.enum(DELIVERY_ORIGINS as unknown as [string, ...string[]]),
   fee: z.number().min(0).optional(),
+})
+
+const collectSchema = z.object({
+  splits: z
+    .array(
+      z.object({
+        method: z.enum(PAYMENT_METHODS),
+        cardScheme: z.enum(CARD_SCHEMES).nullable().optional(),
+        amount: z.number().positive(),
+      }),
+    )
+    .min(1, 'Say how the customer paid.'),
 })
 
 const transitionSchema = z.object({
@@ -73,6 +88,23 @@ export const deliveryController = {
     res.json({ success: true, data: await courierBoard(s) })
   }),
 
+  customerBags: asyncHandler(async (req, res) => {
+    res.json({ success: true, data: await customerBagsElsewhere(scopeFromReq(req), req.params.bookingId) })
+  }),
+
+  collectStop: asyncHandler(async (req, res) => {
+    const body = z.object({ scannedBarcodes: z.array(z.string()).default([]) }).parse(req.body ?? {})
+    const delivery = await collectStop(await courierActor(req), req.params.id, body)
+    res.json({ success: true, data: delivery })
+  }),
+
+  courierCollect: asyncHandler(async (req, res) => {
+    if (!req.auth) throw ApiError.unauthorized()
+    const body = collectSchema.parse(req.body)
+    const s = await courierScopeFrom(req.auth.tenantId, req.auth.stationId, req.auth.sub, req.auth.role)
+    res.json({ success: true, data: await collectOnDelivery(s, req.params.id, body.splits) })
+  }),
+
   courierTransition: asyncHandler(async (req, res) => {
     const body = transitionSchema.parse(req.body)
     const { delivery } = await applyDeliveryTransition({
@@ -94,7 +126,6 @@ export const deliveryController = {
         : kioskActor(req)
     const data = await deliveryDetail(req.auth.tenantId, req.params.id, actor)
 
-    // A claimed task belongs to the courier who claimed it; the others may look, not act.
     const claimedByAnother =
       req.auth.role === 'DELIVERY_AGENT' &&
       !!data.delivery.assignedTo &&

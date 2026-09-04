@@ -8,11 +8,6 @@ import { Loading } from '@/components/ui'
 import { useSessionStore } from '@/store/session.store'
 import { COLORS } from '@/theme/tokens'
 
-/**
- * Everything past the sign-in screen. The token proves there is a session; `me` is fetched
- * again on every launch so a role or activity change on the server reaches the device without
- * the agent having to sign out.
- */
 export default function AgentLayout() {
   const ready = useSessionStore((s) => s.ready)
   const token = useSessionStore((s) => s.token)

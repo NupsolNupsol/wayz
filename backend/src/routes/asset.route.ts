@@ -1,12 +1,12 @@
 import { Router } from 'express'
 import { authenticate, requireRole } from '../middlewares/auth.js'
 import { assetController } from '../controllers/asset.controller.js'
+import { ESTATE_OWNERS, ESTATE_READERS } from '../domain/roles.js'
 
 const router = Router()
 
-/** One estate, read by everyone who works it; changed only by the three roles that own it. */
-const readers = requireRole('MANAGER', 'TENANT_ADMIN', 'HR', 'AGENT')
-const owners = requireRole('MANAGER', 'TENANT_ADMIN', 'HR')
+const readers = requireRole(...ESTATE_READERS)
+const owners = requireRole(...ESTATE_OWNERS)
 
 router.use(authenticate)
 
@@ -19,6 +19,7 @@ router.post('/types/:id/units', owners, assetController.addUnits)
 router.patch('/types/:id/price', owners, assetController.price)
 
 router.get('/units/:id', readers, assetController.unit)
+router.get('/units/:id/return-position', readers, assetController.returnPosition)
 router.patch('/units/:id', owners, assetController.updateUnit)
 router.delete('/units/:id', owners, assetController.removeUnit)
 

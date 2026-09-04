@@ -5,10 +5,6 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { useDeviceClass } from '@/hooks/useDeviceClass'
 import { Heading, Muted } from './Text'
 
-/**
- * A bottom sheet on a handheld, a centred dialog once there is room. Same component either
- * way, because the content is identical — only where it sits changes.
- */
 export function Sheet({
   open,
   onClose,

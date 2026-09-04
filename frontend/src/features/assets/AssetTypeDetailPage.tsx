@@ -23,9 +23,8 @@ import { engineLabel } from '@/config/engineMeta'
 import { ApiError } from '@/api/client'
 import { toast } from '@/state/toastStore'
 import { money } from '@/utils'
-import type { AssetUnitRow } from '@/api/asset.api'
+import { SALE_TYPES, SALE_UNITS, type AssetUnitRow, type SaleType, type SaleUnit } from '@/api/asset.api'
 
-/** The statuses a person may set by hand; the rest are moved by the booking workflow. */
 const SETTABLE = ['AVAILABLE', 'OUT_OF_SERVICE', 'MAINTENANCE', 'BLOCKED']
 
 export function AssetTypeDetailPage() {
@@ -52,12 +51,19 @@ export function AssetTypeDetailPage() {
   const [note, setNote] = useState('')
   const [ownPrice, setOwnPrice] = useState(false)
   const [unitPrice, setUnitPrice] = useState(0)
+  const [moveStation, setMoveStation] = useState('')
+  const [moveKiosk, setMoveKiosk] = useState('')
 
   const [qrFor, setQrFor] = useState<AssetUnitRow | null>(null)
   const [removing, setRemoving] = useState<AssetUnitRow | null>(null)
   const [freeing, setFreeing] = useState<AssetUnitRow | null>(null)
 
   const [priceOpen, setPriceOpen] = useState(false)
+  const [penalty, setPenalty] = useState(0)
+  const [saleUnit, setSaleUnit] = useState<SaleUnit>('ITEM')
+  const [saleType, setSaleType] = useState<SaleType>('RENTAL')
+  const [ownPenalty, setOwnPenalty] = useState(false)
+  const [unitPenalty, setUnitPenalty] = useState(0)
   const [basePrice, setBasePrice] = useState(0)
   const [deposit, setDeposit] = useState(0)
   const [overtime, setOvertime] = useState(0)
@@ -74,6 +80,9 @@ export function AssetTypeDetailPage() {
 
   const type = data.assetType
   const kiosksHere = data.kiosks.filter((k) => k.stationId === stationId)
+
+  const stationsForType = data.stations.filter((st) => st.engineKinds.includes(type.engineKind))
+  const desksForMove = data.kiosks.filter((k) => k.stationId === moveStation)
 
   const openAdd = () => {
     setStationId(data.stations.find((s) => s.engineKinds.includes(type.engineKind))?._id ?? data.stations[0]?._id ?? '')
@@ -102,6 +111,10 @@ export function AssetTypeDetailPage() {
     setNote(unit.note)
     setOwnPrice(unit.priceOverride !== null)
     setUnitPrice(unit.priceOverride ?? type.basePrice ?? 0)
+    setOwnPenalty(unit.penaltyPrice !== null)
+    setUnitPenalty(unit.penaltyPrice ?? type.penaltyPrice ?? 0)
+    setMoveStation(unit.stationId)
+    setMoveKiosk(unit.kioskId ?? '')
   }
 
   const submitEdit = () => {
@@ -114,6 +127,9 @@ export function AssetTypeDetailPage() {
           identifier,
           note,
           priceOverride: ownPrice ? unitPrice : null,
+          penaltyPrice: ownPenalty ? unitPenalty : null,
+          ...(moveStation && moveStation !== editing.stationId ? { stationId: moveStation } : {}),
+          ...((moveKiosk || null) !== editing.kioskId ? { kioskId: moveKiosk || null } : {}),
           ...(busy || status === editing.status ? {} : { status }),
         },
       },
@@ -151,13 +167,27 @@ export function AssetTypeDetailPage() {
     setBasePrice(type.basePrice ?? 0)
     setDeposit(type.depositRequired ?? 0)
     setOvertime(type.overtimeHourlyRate ?? 0)
+    setPenalty(type.penaltyPrice ?? 0)
+    setSaleUnit(type.saleUnit ?? 'ITEM')
+    setSaleType(type.saleType ?? 'RENTAL')
     setClearOverrides(false)
     setPriceOpen(true)
   }
 
   const submitPrice = () => {
     priceType.mutate(
-      { id, body: { basePrice, depositRequired: deposit, overtimeHourlyRate: overtime || null, clearOverrides } },
+      {
+        id,
+        body: {
+          basePrice,
+          depositRequired: deposit,
+          penaltyPrice: penalty,
+          saleUnit,
+          saleType,
+          overtimeHourlyRate: saleType === 'SALE' ? null : overtime || null,
+          clearOverrides,
+        },
+      },
       {
         onSuccess: (r) => {
           toast('success', t('toast.priced', { name: type.name }), r.cleared ? t('toast.overridesCleared', { count: r.cleared }) : t('toast.appliesToAll'))
@@ -399,6 +429,29 @@ export function AssetTypeDetailPage() {
         <Field label={t('edit.note')}>
           <input className="lf-input" value={note} onChange={(e) => setNote(e.target.value)} data-testid="asset-edit-note" />
         </Field>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4">
+          <Field label={t('edit.station')} hint={t('edit.stationHint')}>
+            <Select
+              value={moveStation}
+              onChange={(v) => {
+                setMoveStation(v)
+                setMoveKiosk('')
+              }}
+              options={stationsForType.map((st) => ({ label: st.name, value: st._id }))}
+              disabled={!!editing && !SETTABLE.includes(editing.status)}
+              testId="asset-edit-station"
+            />
+          </Field>
+          <Field label={t('edit.desk')} hint={t('edit.deskHint')}>
+            <Select
+              value={moveKiosk}
+              onChange={setMoveKiosk}
+              options={[{ label: t('edit.noDesk'), value: '' }, ...desksForMove.map((k) => ({ label: k.name, value: k._id }))]}
+              disabled={!!editing && !SETTABLE.includes(editing.status)}
+              testId="asset-edit-desk"
+            />
+          </Field>
+        </div>
         <label className="flex items-start gap-2 text-sm cursor-pointer select-none mb-3">
           <input type="checkbox" className="mt-0.5" checked={ownPrice} onChange={(e) => setOwnPrice(e.target.checked)} data-testid="asset-edit-own-price" />
           <span>{t('edit.ownPrice', { price: type.basePrice === null ? '—' : money(type.basePrice) })}</span>
@@ -406,6 +459,15 @@ export function AssetTypeDetailPage() {
         {ownPrice && (
           <Field label={t('edit.unitPrice')} required>
             <NumberInput min={0} step={0.5} value={unitPrice} onChange={setUnitPrice} testId="asset-edit-price" />
+          </Field>
+        )}
+        <label className="flex items-start gap-2 text-sm cursor-pointer select-none mb-3">
+          <input type="checkbox" className="mt-0.5" checked={ownPenalty} onChange={(e) => setOwnPenalty(e.target.checked)} data-testid="asset-edit-own-penalty" />
+          <span>{t('edit.ownPenalty', { price: type.penaltyPrice ? money(type.penaltyPrice) : '—' })}</span>
+        </label>
+        {ownPenalty && (
+          <Field label={t('edit.unitPenalty')} required hint={t('edit.unitPenaltyHint')}>
+            <NumberInput min={0} step={0.5} value={unitPenalty} onChange={setUnitPenalty} testId="asset-edit-penalty" />
           </Field>
         )}
       </Modal>
@@ -450,12 +512,35 @@ export function AssetTypeDetailPage() {
             <Field label={t('price.base')} required hint={t('price.baseHint')}>
               <NumberInput min={0} step={0.5} value={basePrice} onChange={setBasePrice} testId="asset-detail-price-base" />
             </Field>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4">
+              <Field label={t('price.saleUnit')} hint={t('price.saleUnitHint')}>
+                <Select
+                  value={saleUnit}
+                  onChange={(v) => setSaleUnit(v as SaleUnit)}
+                  options={SALE_UNITS.map((value) => ({ label: t(`price.unit.${value}`), value }))}
+                  testId="asset-detail-price-unit"
+                />
+              </Field>
+              <Field label={t('price.saleType')} hint={t('price.saleTypeHint')}>
+                <Select
+                  value={saleType}
+                  onChange={(v) => setSaleType(v as SaleType)}
+                  options={SALE_TYPES.map((value) => ({ label: t(`price.type.${value}`), value }))}
+                  testId="asset-detail-price-type"
+                />
+              </Field>
+            </div>
             <Field label={t('price.deposit')}>
               <NumberInput min={0} step={0.5} value={deposit} onChange={setDeposit} testId="asset-detail-price-deposit" />
             </Field>
-            <Field label={t('price.overtime')} hint={t('price.overtimeHint')}>
-              <NumberInput min={0} step={0.5} value={overtime} onChange={setOvertime} testId="asset-detail-price-overtime" />
+            <Field label={t('price.penalty')} hint={t('price.penaltyHint')}>
+              <NumberInput min={0} step={0.5} value={penalty} onChange={setPenalty} testId="asset-detail-price-penalty" />
             </Field>
+            {saleType === 'RENTAL' && (
+              <Field label={t('price.overtime')} hint={t('price.overtimeHint')}>
+                <NumberInput min={0} step={0.5} value={overtime} onChange={setOvertime} testId="asset-detail-price-overtime" />
+              </Field>
+            )}
             <label className="flex items-start gap-2 text-sm cursor-pointer select-none">
               <input type="checkbox" className="mt-0.5" checked={clearOverrides} onChange={(e) => setClearOverrides(e.target.checked)} data-testid="asset-detail-price-clear" />
               <span>{t('price.clearOverrides')}</span>

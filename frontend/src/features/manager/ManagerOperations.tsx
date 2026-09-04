@@ -1,3 +1,4 @@
+import { useNavigate } from 'react-router-dom'
 import { PageHeader } from '@/components/PageHeader'
 import { useTranslation } from 'react-i18next'
 import { Card, StatusBadge, Spinner, Button } from '@/components/ui'
@@ -83,19 +84,28 @@ export function ManagerIncidents() {
 
 export function ManagerShifts() {
   const { t } = useTranslation(['manager', 'common'])
+  const navigate = useNavigate()
   const { data = [], isLoading } = useManagerShifts()
   const reconciling = data.filter((s) => s.status === 'RECONCILING')
+  const stillOpen = data.filter((s) => s.status === 'OPEN')
 
   return (
     <div data-testid="manager-shifts">
       <PageHeader title={t('operations.shifts')} subtitle={t('operations.shiftsSubtitle')} crumbs={[{ label: t('common:crumb.manager') }, { label: t('common:crumb.shifts') }]} />
 
       {reconciling.length > 0 && (
-        <Card className="mb-5 border-amber-400/60 bg-amber-50 dark:bg-amber-900/20">
+        <Card className="mb-5 border-amber-400/60 bg-amber-50 dark:bg-amber-900/20" data-testid="mgr-shifts-reconciling">
           <p className="text-sm font-semibold text-amber-700 dark:text-amber-300">
-            {reconciling.length} shift(s) awaiting variance approval
+            {t('operations.awaitingApproval', { count: reconciling.length })}
           </p>
-          <p className="text-xs text-muted mt-1">{t('operations.blindCountNote')}</p>
+          <p className="text-xs text-muted mt-1">{t('operations.openOneToSettle')}</p>
+        </Card>
+      )}
+
+      {stillOpen.length > 0 && (
+        <Card className="mb-5" data-testid="mgr-shifts-open">
+          <p className="text-sm font-semibold text-navy dark:text-dk-texthi">{t('operations.stillOpen', { count: stillOpen.length })}</p>
+          <p className="text-xs text-muted mt-1">{t('operations.stillOpenHint')}</p>
         </Card>
       )}
 
@@ -104,10 +114,21 @@ export function ManagerShifts() {
           testId="mgr-shifts-table"
           rows={data}
           keyOf={(r) => r._id}
+          onRowClick={(r) => navigate(`/manager/shifts/${r._id}`)}
           empty={{ title: t('operations.noShifts'), message: t('operations.noShiftsHint') }}
           columns={[
             { key: 'agent', header: t('common:column.agent'), filter: { kind: 'text', value: (r) => r.agentName }, render: (r) => r.agentName },
-            { key: 'station', header: t('common:column.station'), filter: { kind: 'text', value: (r) => r.stationName }, render: (r) => <span className="text-muted">{r.stationName}</span> },
+            {
+              key: 'station',
+              header: t('common:column.station'),
+              filter: { kind: 'text', value: (r) => `${r.stationName} ${r.kioskName ?? ''}` },
+              render: (r) => (
+                <div>
+                  <p className="text-muted">{r.stationName}</p>
+                  {r.kioskName && <p className="text-xs text-muted">{r.kioskName}</p>}
+                </div>
+              ),
+            },
             { key: 'opened', header: t('common:column.opened'), sortValue: (r) => new Date(r.openedAt).getTime(), render: (r) => formatDateTime(new Date(r.openedAt).getTime()) },
             { key: 'expected', header: t('common:column.expected'), align: 'right', sortValue: (r) => r.expectedCash, render: (r) => money(r.expectedCash) },
             { key: 'counted', header: t('common:column.counted'), align: 'right', render: (r) => r.countedCash != null ? money(r.countedCash) : <span className="text-muted">—</span> },

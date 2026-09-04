@@ -14,10 +14,6 @@ const SCHEMES: { value: CardScheme; label: string }[] = [
   { value: 'GCC', label: 'GCC' },
 ]
 
-/**
- * How the money comes in. Cash and card can be mixed, and the total is checked here as well as
- * on the server — the agent should not discover a short payment after pressing confirm.
- */
 export function usePaymentSplits(order: Order | null) {
   const [method, setMethod] = useState<'CASH' | 'CARD' | 'SPLIT'>('CARD')
   const [scheme, setScheme] = useState<CardScheme>('MADA')

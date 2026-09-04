@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useTranslation } from 'react-i18next'
-import { useNavigate } from "react-router-dom";
-import { Eye, EyeOff, Lock, Mail, PackageOpen } from "lucide-react";
+import { Link, useNavigate } from "react-router-dom";
+import { ArrowRight, Eye, EyeOff, Lock, Mail, PackageOpen, Rocket } from "lucide-react";
 import { authApi } from "@/api/auth.api";
 import { ApiError } from "@/api/client";
 import { useAuthStore } from "@/store/auth";
@@ -9,24 +9,34 @@ import { homeForRole } from "@/permissions/permissions";
 
 const DEMO = [
   {
-    label: "Agent · Shop & Drop + Mobility",
-    email: "agent.wayz@lockerflow.demo",
-    password: "Agent@123",
-  },
-  {
-    label: "Agent · Lagoon",
-    email: "lagoon.wayz@lockerflow.demo",
-    password: "Agent@123",
-  },
-  {
-    label: "Tenant admin",
+    label: "CEO / tenant admin",
     email: "admin.wayz@lockerflow.demo",
     password: "Admin@123",
   },
   {
-    label: "Manager",
+    label: "Project manager",
+    email: "projects.wayz@lockerflow.demo",
+    password: "Project@123",
+  },
+  {
+    label: "Manager · Shop & Drop + Mobility",
     email: "manager.wayz@lockerflow.demo",
     password: "Manager@123",
+  },
+  {
+    label: "Manager · Lagoon",
+    email: "lagoon.manager.wayz@lockerflow.demo",
+    password: "Manager@123",
+  },
+  {
+    label: "Supervisor · Shop & Drop + Mobility",
+    email: "supervisor.wayz@lockerflow.demo",
+    password: "Super@123",
+  },
+  {
+    label: "Supervisor · Lagoon",
+    email: "lagoon.supervisor.wayz@lockerflow.demo",
+    password: "Super@123",
   },
   {
     label: "Accountant",
@@ -34,14 +44,39 @@ const DEMO = [
     password: "Account@123",
   },
   {
-    label: "HR",
+    label: "HR & expenses",
     email: "hr.wayz@lockerflow.demo",
     password: "People@123",
   },
   {
-    label: "Cashier",
-    email: "cashier.wayz@lockerflow.demo",
-    password: "Cashier@123",
+    label: "Kiosk agent · Iran (Shop & Drop)",
+    email: "agent.wayz@lockerflow.demo",
+    password: "Agent@123",
+  },
+  {
+    label: "Kiosk agent · Morocco (Shop & Drop)",
+    email: "agent.morocco.wayz@lockerflow.demo",
+    password: "Agent@123",
+  },
+  {
+    label: "Kiosk agent · Gate 1 (Mobility)",
+    email: "agent.gate1.wayz@lockerflow.demo",
+    password: "Agent@123",
+  },
+  {
+    label: "Kiosk agent · Egypt (Lagoon)",
+    email: "agent.egypt.wayz@lockerflow.demo",
+    password: "Agent@123",
+  },
+  {
+    label: "Kiosk agent · Mountain jetty (Lagoon)",
+    email: "welcome.wayz@lockerflow.demo",
+    password: "Lagoon@123",
+  },
+  {
+    label: "Chief captain · France jetty",
+    email: "captain.wayz@lockerflow.demo",
+    password: "Lagoon@123",
   },
   {
     label: "Courier · Bilal",
@@ -186,6 +221,23 @@ export function LoginPage() {
                 {loading ? t('login.signingIn') : t('login.signIn')}
               </button>
 
+              <Link
+                to="/versions"
+                className="mt-4 flex items-center justify-between gap-3 rounded-xl2 border border-line hover:border-brand bg-canvas hover:bg-brand/5 px-4 h-12 no-underline transition-colors group"
+                data-testid="login-versions"
+              >
+                <span className="flex items-center gap-2.5 min-w-0">
+                  <span className="w-8 h-8 rounded-lg bg-brand/10 text-brand flex items-center justify-center shrink-0">
+                    <Rocket size={16} />
+                  </span>
+                  <span className="min-w-0">
+                    <span className="block text-sm font-semibold text-navy truncate">{t('login.whatsNew')}</span>
+                    <span className="block text-[11px] text-muted truncate">{t('login.whatsNewHint')}</span>
+                  </span>
+                </span>
+                <ArrowRight size={16} className="text-muted group-hover:text-brand shrink-0 rtl:rotate-180" />
+              </Link>
+
               <div className="mt-6 pt-5 border-t border-line">
                 <p className="text-[11px] uppercase tracking-wide text-muted font-bold mb-2">{t('login.demoAccounts')}</p>
                 <div className="flex flex-col gap-1.5">
@@ -206,7 +258,7 @@ export function LoginPage() {
                   ))}
                 </div>
                 <p className="text-[11px] text-muted mt-2">
-                  Admin@123 · Account@123 · Manager@123 · People@123 · Agent@123 · Cashier@123 · Courier@123
+                  Admin@123 · Project@123 · Manager@123 · Super@123 · Account@123 · People@123 · Agent@123 · Lagoon@123 · Courier@123
                 </p>
               </div>
             </form>

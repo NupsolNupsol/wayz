@@ -1,6 +1,15 @@
 export type ID = string
 
-export type Role = 'AGENT' | 'CASHIER' | 'DELIVERY_AGENT' | 'MANAGER' | 'HR' | 'ACCOUNTANT' | 'TENANT_ADMIN'
+export type Role =
+  | 'AGENT'
+  | 'DELIVERY_AGENT'
+  | 'SUPERVISOR'
+  | 'CHIEF_CAPTAIN'
+  | 'MANAGER'
+  | 'PROJECT_MANAGER'
+  | 'HR'
+  | 'ACCOUNTANT'
+  | 'TENANT_ADMIN'
 
 export type EngineKind =
   | 'SHOP_AND_DROP'

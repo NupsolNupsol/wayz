@@ -35,6 +35,23 @@ function useInvalidateDeliveries() {
   }
 }
 
+export function useCustomerBagsElsewhere(bookingId: string | undefined, enabled = true) {
+  return useQuery({
+    queryKey: qk.delivery.customerBags(bookingId ?? ''),
+    queryFn: () => deliveryApi.customerBags(bookingId!),
+    enabled: !!bookingId && enabled,
+    staleTime: 30_000,
+  })
+}
+
+export function useCollectStop() {
+  const invalidate = useInvalidateDeliveries()
+  return useMutation({
+    mutationFn: (v: { id: string; scannedBarcodes: string[] }) => deliveryApi.collectStop(v.id, v.scannedBarcodes),
+    onSuccess: (_d, v) => invalidate(v.id),
+  })
+}
+
 export function useCreateDelivery() {
   const invalidate = useInvalidateDeliveries()
   return useMutation({ mutationFn: (input: CreateDeliveryInput) => deliveryApi.create(input), onSuccess: () => invalidate() })
@@ -45,6 +62,15 @@ export function useCourierTransition() {
   return useMutation({
     mutationFn: (v: { id: string; code: string; payload?: DeliveryTransitionPayload }) =>
       deliveryApi.courierTransition(v.id, v.code, v.payload),
+    onSuccess: (_d, v) => invalidate(v.id),
+  })
+}
+
+export function useCollectOnDelivery() {
+  const invalidate = useInvalidateDeliveries()
+  return useMutation({
+    mutationFn: (v: { id: string; splits: { method: 'CASH' | 'CARD'; cardScheme?: string | null; amount: number }[] }) =>
+      deliveryApi.collect(v.id, v.splits),
     onSuccess: (_d, v) => invalidate(v.id),
   })
 }

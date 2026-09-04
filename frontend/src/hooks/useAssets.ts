@@ -12,7 +12,6 @@ export const useAssetType = (id: string | undefined) =>
 export const useAssetUnit = (id: string | undefined) =>
   useQuery({ queryKey: qk.assets.unit(id ?? ''), queryFn: () => assetApi.unit(id!), enabled: !!id })
 
-/** Every change touches both the list totals and the detail rows, so both are refreshed. */
 function useAssetInvalidation() {
   const qc = useQueryClient()
   return () => {
@@ -86,5 +85,13 @@ export const usePriceAssetType = () => {
       void qc.invalidateQueries({ queryKey: qk.manager.pricing })
       void qc.invalidateQueries({ queryKey: ['products'] })
     },
+  })
+}
+
+export function useUnitReturnPosition(id: string | undefined, enabled = true) {
+  return useQuery({
+    queryKey: qk.assets.returnPosition(id ?? ''),
+    queryFn: () => assetApi.returnPosition(id!),
+    enabled: !!id && enabled,
   })
 }

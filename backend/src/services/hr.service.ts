@@ -1,6 +1,8 @@
 import {
+  Audit,
   Expense,
   Season,
+  Shift,
   Tenant,
   User,
   EXPENSE_CATEGORIES,
@@ -12,6 +14,8 @@ import { ApiError } from '../utils/ApiError.js'
 import { round2 } from '../utils/helpers.js'
 import { nextId } from './counter.service.js'
 import { DEFAULT_VAT_RATE, noVat, splitInclusive } from '../domain/tax.js'
+import { isValidClock, resolveShiftWindow, shiftWindowMinutes } from '../domain/rules.js'
+import { tenantRules } from './rules.service.js'
 import { ENGINE_KINDS, type Role } from '../domain/types.js'
 import type {
   ExpenseFilter,
@@ -22,7 +26,13 @@ import type {
   SeasonInput,
 } from '../interfaces/index.js'
 
-const PAYROLL_ROLES: Role[] = ['AGENT', 'CASHIER', 'DELIVERY_AGENT', 'MANAGER']
+const PAYROLL_ROLES: Role[] = [
+  'AGENT',
+  'DELIVERY_AGENT',
+  'CHIEF_CAPTAIN',
+  'SUPERVISOR',
+  'MANAGER',
+]
 
 const NO_VAT_CATEGORIES: ExpenseCategory[] = ['PAYROLL', ...SYSTEM_CATEGORIES]
 
@@ -370,5 +380,124 @@ export async function chargeSeasonPayroll(scope: HrScope, input: PayrollInput) {
     noRateGiven: skipped.filter((s) => s.reason === 'NO_RATE_GIVEN').length,
     people: created.map((e) => ({ name: e.description.split(' — ')[0], amount: e.baseAmount })),
     totalBase: round2(created.reduce((t, e) => t + e.baseAmount, 0)),
+  }
+}
+
+export async function hrShiftWindow(scope: HrScope) {
+  const rules = await tenantRules(scope.tenantId)
+  return { ...rules.shiftWindow, lengthMin: shiftWindowMinutes(rules.shiftWindow) }
+}
+
+export async function setShiftWindow(scope: HrScope, input: { startsAt: string; endsAt: string }) {
+  if (!isValidClock(input.startsAt) || !isValidClock(input.endsAt)) {
+    throw ApiError.badRequest('Give the times as 24-hour clock, like 15:00.')
+  }
+  if (input.startsAt === input.endsAt) throw ApiError.badRequest('A shift that starts and ends at the same minute is not a shift.')
+
+  const tenant = await Tenant.findById(scope.tenantId)
+  if (!tenant) throw ApiError.notFound('Tenant not found.')
+  tenant.shiftWindow = { startsAt: input.startsAt, endsAt: input.endsAt }
+  await tenant.save()
+
+  await recordAudit({
+    tenantId: scope.tenantId,
+    actorId: scope.userId,
+    action: 'SHIFT_WINDOW_SET',
+    entity: 'Tenant',
+    entityId: scope.tenantId,
+    detail: `${input.startsAt} → ${input.endsAt}`,
+  })
+
+  const window = resolveShiftWindow(tenant.shiftWindow)
+  return { ...window, lengthMin: shiftWindowMinutes(window) }
+}
+
+export async function hoursWorked(scope: HrScope, range: { from?: string; to?: string } = {}) {
+  const from = range.from ? new Date(range.from) : new Date(Date.now() - 30 * 24 * 60 * 60_000)
+  const to = range.to ? new Date(range.to) : new Date()
+
+  const [shifts, staff, rules] = await Promise.all([
+    Shift.find({ tenantId: scope.tenantId, openedAt: { $gte: from, $lte: to } }).sort({ openedAt: -1 }).lean(),
+    User.find({ tenantId: scope.tenantId }).lean(),
+    tenantRules(scope.tenantId),
+  ])
+
+  const person = new Map(staff.map((u) => [u._id, u]))
+  const expected = shiftWindowMinutes(rules.shiftWindow)
+  const byAgent = new Map<string, { minutes: number; shifts: number; open: number; lastSeen: Date | null }>()
+
+  for (const shift of shifts) {
+    const closedAt = shift.closedAt ? new Date(shift.closedAt) : null
+    const minutes = closedAt ? Math.max(0, Math.round((closedAt.getTime() - new Date(shift.openedAt).getTime()) / 60_000)) : 0
+    const row = byAgent.get(shift.agentId) ?? { minutes: 0, shifts: 0, open: 0, lastSeen: null }
+    row.minutes += minutes
+    row.shifts += 1
+    if (!closedAt) row.open += 1
+    const seen = closedAt ?? new Date(shift.openedAt)
+    if (!row.lastSeen || seen > row.lastSeen) row.lastSeen = seen
+    byAgent.set(shift.agentId, row)
+  }
+
+  const rows = [...byAgent.entries()].map(([agentId, row]) => ({
+    agentId,
+    name: person.get(agentId)?.fullName ?? agentId,
+    role: person.get(agentId)?.role ?? null,
+    shifts: row.shifts,
+    stillOpen: row.open,
+    minutes: row.minutes,
+    hours: Math.round((row.minutes / 60) * 100) / 100,
+    expectedHours: Math.round(((row.shifts * expected) / 60) * 100) / 100,
+    lastSeen: row.lastSeen,
+  }))
+
+  rows.sort((a, b) => b.minutes - a.minutes)
+  return {
+    from,
+    to,
+    window: { ...rules.shiftWindow, lengthMin: expected },
+    rows,
+    totalHours: Math.round((rows.reduce((sum, r) => sum + r.minutes, 0) / 60) * 100) / 100,
+  }
+}
+
+const PEOPLE_ACTIONS = [
+  'SIGNED_IN',
+  'SIGNED_OUT',
+  'SHIFT_OPENED',
+  'SHIFT_FORCE_CLOSED',
+  'SHIFT_VARIANCE_RESOLVED',
+  'SHIFT_WINDOW_SET',
+  'STAFF_INVITED',
+  'STAFF_REINVITED',
+  'INVITATION_ACCEPTED',
+  'CASH_FLOAT_IN',
+  'CASH_PAY_OUT',
+  'CASH_DROP',
+]
+
+export async function peopleAudit(scope: HrScope, filter: { action?: string; agentId?: string; limit?: number } = {}) {
+  const q: Record<string, unknown> = { tenantId: scope.tenantId }
+  q.action = filter.action ? filter.action : { $in: PEOPLE_ACTIONS }
+  if (filter.agentId) q.actorId = filter.agentId
+
+  const [rows, staff] = await Promise.all([
+    Audit.find(q).sort({ at: -1 }).limit(Math.min(filter.limit ?? 300, 1000)).lean(),
+    User.find({ tenantId: scope.tenantId }, { fullName: 1, role: 1 }).lean(),
+  ])
+  const name = new Map(staff.map((u) => [u._id, u.fullName]))
+
+  return {
+    actions: PEOPLE_ACTIONS,
+    rows: rows.map((r) => ({
+      _id: r._id,
+      action: r.action,
+      entity: r.entity,
+      entityId: r.entityId,
+      detail: r.detail ?? null,
+      reason: r.reason ?? null,
+      actorId: r.actorId,
+      actorName: name.get(r.actorId) ?? r.actorId,
+      at: r.at,
+    })),
   }
 }

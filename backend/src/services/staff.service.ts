@@ -12,6 +12,13 @@ import {
 } from '../models/index.js'
 import { recordAudit } from './audit.service.js'
 import { ENGINE_KINDS, ROLES, type EngineKind, type Role } from '../domain/types.js'
+import {
+  ACTIVITY_SCOPED,
+  ASSIGNABLE_BY,
+  KIOSK_SCOPED,
+  LAGOON_ONLY,
+  SUB_MANAGER_ROLES,
+} from '../domain/roles.js'
 import { ROLE_LABELS } from '../constants/labels.constants.js'
 import { ApiError } from '../utils/ApiError.js'
 import { env } from '../config/env.js'
@@ -22,14 +29,9 @@ import { invitationEmail, isEmailConfigured, sendEmail } from './email.service.j
 import type { InviteResult, StaffInput } from '../interfaces/index.js'
 import type { ManagerScope } from '../interfaces/index.js'
 
-const OPERATIONAL_ROLES: Role[] = ['AGENT', 'CASHIER', 'DELIVERY_AGENT']
+export { ASSIGNABLE_BY } from '../domain/roles.js'
 
-export const ASSIGNABLE_BY: Record<string, Role[]> = {
-  MANAGER: OPERATIONAL_ROLES,
-  TENANT_ADMIN: [...OPERATIONAL_ROLES, 'MANAGER', 'ACCOUNTANT', 'HR'],
-}
-
-export const ASSIGNABLE_ROLES: Role[] = ASSIGNABLE_BY.TENANT_ADMIN
+export const ASSIGNABLE_ROLES: Role[] = ASSIGNABLE_BY.TENANT_ADMIN ?? []
 
 async function sendInvitation(user: UserDoc, invitedBy: string): Promise<InviteResult> {
   const { token, tokenHash, expiresAt } = newInviteToken()
@@ -83,21 +85,24 @@ async function sendInvitation(user: UserDoc, invitedBy: string): Promise<InviteR
     : { emailed: false, deliveredTo: user.email, expiresAt, reason: result.error, link }
 }
 
-/** Only an agent is narrowed to activities; every other role works the whole tenant. */
-const ACTIVITY_SCOPED: Role[] = ['AGENT']
-
-/** Bags live in compartments, so an agent on Shop & Drop answers for one kiosk. */
-const NEEDS_KIOSK: EngineKind = 'SHOP_AND_DROP'
+const LAGOON: EngineKind = 'LAGOON'
 
 function resolveEngines(role: Role, engineKinds?: EngineKind[] | null): EngineKind[] {
   if (!ACTIVITY_SCOPED.includes(role)) return []
 
   const engines = [...new Set(engineKinds ?? [])]
   if (!engines.length) {
-    throw ApiError.badRequest('Choose the activity this agent works — they only see the one they are assigned to.')
+    throw ApiError.badRequest('Choose the activity this person works — they only see the ones they are assigned to.')
   }
   for (const engine of engines) {
     if (!ENGINE_KINDS.includes(engine)) throw ApiError.badRequest(`Unknown activity "${engine}".`)
+  }
+
+  if (LAGOON_ONLY.includes(role) && engines.some((e) => e !== LAGOON)) {
+    throw ApiError.badRequest(`${ROLE_LABELS[role] ?? role} only works the lagoon.`)
+  }
+  if (KIOSK_SCOPED.includes(role) && engines.length > 1) {
+    throw ApiError.badRequest('Someone who answers for one desk works one activity — choose a single one.')
   }
   return engines
 }
@@ -109,12 +114,10 @@ async function resolveKiosk(
   stationId: string,
   kioskId?: string | null,
 ) {
-  if (!ACTIVITY_SCOPED.includes(role)) return null
+  if (!KIOSK_SCOPED.includes(role)) return null
 
-  const mustHaveKiosk = engines.includes(NEEDS_KIOSK)
   if (!kioskId) {
-    if (mustHaveKiosk) throw ApiError.badRequest('A Shop & Drop agent answers for one kiosk — choose which.')
-    return null
+    throw ApiError.badRequest(`A ${(ROLE_LABELS[role] ?? role).toLowerCase()} answers for one kiosk — choose which.`)
   }
 
   const kiosk = await Kiosk.findOne({ _id: kioskId, tenantId }).lean()
@@ -122,7 +125,21 @@ async function resolveKiosk(
   if (kiosk.stationId !== stationId) {
     throw ApiError.badRequest('That kiosk belongs to a different station.')
   }
+  if (!engines.includes(kiosk.engineKind)) {
+    throw ApiError.badRequest(`${kiosk.name} runs ${kiosk.engineKind.replaceAll('_', ' ').toLowerCase()}, not the activity you chose.`)
+  }
   return kiosk._id
+}
+
+async function resolveReportsTo(tenantId: string, role: Role, reportsTo?: string | null): Promise<string | null> {
+  if (!SUB_MANAGER_ROLES.includes(role) || !reportsTo) return null
+
+  const lead = await User.findOne({ _id: reportsTo, tenantId }).lean()
+  if (!lead) throw ApiError.badRequest('That manager does not exist in this tenant.')
+  if (!(ASSIGNABLE_BY[lead.role] ?? []).includes(role)) {
+    throw ApiError.badRequest(`A ${(ROLE_LABELS[lead.role] ?? lead.role).toLowerCase()} does not lead a ${(ROLE_LABELS[role] ?? role).toLowerCase()}.`)
+  }
+  return lead._id
 }
 
 function assertAssignableRole(actorRole: Role, role: Role) {
@@ -150,7 +167,13 @@ export async function listStaff(scope: ManagerScope) {
   const stationName = new Map(stations.map((s) => [s._id, s.name]))
   const kiosks = await Kiosk.find({ tenantId: scope.tenantId }).lean()
   const kioskName = new Map(kiosks.map((k) => [k._id, k.name]))
+  const leadName = new Map(users.map((u) => [u._id, u.fullName]))
   const openShifts = new Map(shiftAgg.map((s: { _id: string; openShifts: number }) => [s._id, s.openShifts]))
+  const openShiftRows = await Shift.find(
+    { tenantId: scope.tenantId, status: { $ne: 'CLOSED' } },
+    { agentId: 1, status: 1 },
+  ).lean()
+  const shiftStatus = new Map(openShiftRows.map((row) => [row.agentId, row.status]))
   const bookings = new Map(bookingAgg.map((b: { _id: string; bookings: number }) => [b._id, b.bookings]))
 
   const now = Date.now()
@@ -169,8 +192,11 @@ export async function listStaff(scope: ManagerScope) {
     kioskId: u.kioskId ?? null,
     kioskName: u.kioskId ? (kioskName.get(u.kioskId) ?? u.kioskId) : null,
     engineKinds: u.engineKinds ?? [],
+    reportsTo: u.reportsTo ?? null,
+    reportsToName: u.reportsTo ? (leadName.get(u.reportsTo) ?? u.reportsTo) : null,
     lastLoginAt: u.lastLoginAt ?? null,
     hasOpenShift: (openShifts.get(u._id) ?? 0) > 0,
+    shiftStatus: shiftStatus.get(u._id) ?? null,
     bookingsHandled: bookings.get(u._id) ?? 0,
   }))
 }
@@ -199,6 +225,7 @@ export async function createStaff(scope: ManagerScope, input: StaffInput) {
     stationId: input.stationId,
     kioskId: await resolveKiosk(scope.tenantId, input.role, engines, input.stationId, input.kioskId),
     engineKinds: engines,
+    reportsTo: await resolveReportsTo(scope.tenantId, input.role, input.reportsTo),
     phone: input.phone ?? '',
     active: true,
   })
@@ -291,6 +318,11 @@ export async function updateStaff(
     user.engineKinds,
     user.stationId,
     patch.kioskId !== undefined ? patch.kioskId : user.kioskId,
+  )
+  user.reportsTo = await resolveReportsTo(
+    scope.tenantId,
+    user.role,
+    patch.reportsTo !== undefined ? patch.reportsTo : user.reportsTo,
   )
 
   await user.save()

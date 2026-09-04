@@ -6,10 +6,6 @@ import type { EngineKind, Me } from '@/types'
 
 const TOKEN_KEY = 'lockerflow.token'
 
-/**
- * SecureStore is a native keychain; on web it does not exist, so the browser build falls back
- * to localStorage. Only the dev/web preview takes that path — devices always use the keychain.
- */
 const storage = {
   get: async (key: string): Promise<string | null> => {
     if (Platform.OS === 'web') return globalThis.localStorage?.getItem(key) ?? null
@@ -34,7 +30,6 @@ const storage = {
 interface SessionState {
   token: string | null
   me: Me | null
-  /** False until the stored token has been read back from the device. */
   ready: boolean
   restore: () => Promise<void>
   signIn: (token: string, me: Me) => Promise<void>
@@ -42,10 +37,6 @@ interface SessionState {
   setMe: (me: Me) => void
 }
 
-/**
- * Who is signed in on this device. The token lives in SecureStore so it survives a restart;
- * everything else is in memory because the server is the source of truth.
- */
 export const useSessionStore = create<SessionState>((set) => ({
   token: null,
   me: null,
@@ -69,8 +60,6 @@ export const useSessionStore = create<SessionState>((set) => ({
   setMe: (me) => set({ me }),
 }))
 
-/** Read outside React — the API client needs the token on every request. */
 export const currentToken = () => useSessionStore.getState().token
 
-/** The activities this agent works. Anything not in here is not theirs to sell. */
 export const useMyEngines = (): EngineKind[] => useSessionStore((s) => s.me?.engineKinds ?? [])

@@ -36,6 +36,9 @@ export {
   OVERRIDE_ROLES,
   COURIER,
   KIOSK_OPS,
+  LAGOON_OPS,
+  LAGOON_TILL,
+  TILL,
 } from '@wayz/workflow'
 
 export type {

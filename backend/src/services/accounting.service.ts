@@ -1,4 +1,4 @@
-import { Booking, CashMovement, Expense, Payment, Tenant } from '../models/index.js'
+import { Booking, CashMovement, Expense, ManualSale, Payment, Tenant } from '../models/index.js'
 import { ApiError } from '../utils/ApiError.js'
 import { round2 } from '../utils/helpers.js'
 import {
@@ -74,10 +74,15 @@ export async function activityBreakdown(scope: AccountingScope, filter: PeriodFi
   if (when) expenseQuery.incurredAt = when
   if (filter.engineKind) expenseQuery.engineKind = filter.engineKind
 
-  const [payments, movements, expenses] = await Promise.all([
+  const manualQuery: Record<string, unknown> = { tenantId: scope.tenantId, status: 'APPROVED' }
+  if (when) manualQuery.occurredAt = when
+  if (filter.engineKind) manualQuery.engineKind = filter.engineKind
+
+  const [payments, movements, expenses, manualSales] = await Promise.all([
     Payment.find(paymentQuery).lean(),
     filter.engineKind ? [] : CashMovement.find(movementQuery).lean(),
     Expense.find(expenseQuery).lean(),
+    ManualSale.find(manualQuery).lean(),
   ])
 
   const byActivity = new Map<EngineKind, Buckets>()
@@ -98,6 +103,13 @@ export async function activityBreakdown(scope: AccountingScope, filter: PeriodFi
       b.salesVat += p.vatAmount
       b.salesTotal += p.amount
     }
+  }
+
+  for (const sale of manualSales) {
+    const b = bucket(sale.engineKind as EngineKind)
+    b.salesBase += sale.baseAmount
+    b.salesVat += sale.vatAmount
+    b.salesTotal += sale.amount
   }
 
   let purchasesBase = 0

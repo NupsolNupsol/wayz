@@ -20,12 +20,14 @@ export const SCHEME_LABELS: Record<CardScheme, BilingualLabel> = {
 
 export const ROLE_LABELS: Record<Role, string> = {
   AGENT: 'Kiosk agent',
-  CASHIER: 'Cashier',
   DELIVERY_AGENT: 'Delivery agent',
-  MANAGER: 'Manager',
-  HR: 'HR',
+  SUPERVISOR: 'Supervisor',
+  CHIEF_CAPTAIN: 'Chief captain',
+  MANAGER: 'Activity manager',
+  PROJECT_MANAGER: 'Project manager',
+  HR: 'HR & expenses',
   ACCOUNTANT: 'Accountant',
-  TENANT_ADMIN: 'Tenant admin',
+  TENANT_ADMIN: 'CEO / tenant admin',
 }
 
 export const INCIDENT_LABELS: Record<IncidentType, string> = {

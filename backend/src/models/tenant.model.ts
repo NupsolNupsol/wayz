@@ -1,5 +1,6 @@
 import mongoose, { Schema } from 'mongoose'
 import type { EngineKind, TenantBranding } from '../domain/types.js'
+import type { PenaltyRule, RentalRulesPatch } from '../domain/rules.js'
 
 export interface TenantDoc {
   _id: string
@@ -29,6 +30,9 @@ export interface TenantDoc {
     paymentMethods: string[]
     verificationChannels: string[]
   }
+  rentalRules: RentalRulesPatch
+  shiftWindow?: { startsAt?: string; endsAt?: string }
+  penaltySchedule: PenaltyRule[]
   createdAt: Date
   updatedAt: Date
 }
@@ -69,6 +73,16 @@ const settingsSchema = new Schema(
   { _id: false },
 )
 
+const penaltyRuleSchema = new Schema<PenaltyRule>(
+  {
+    code: { type: String, required: true },
+    label: { type: String, required: true },
+    amount: { type: Number, default: null },
+    engineKind: { type: String, default: null },
+  },
+  { _id: false },
+)
+
 const tenantSchema = new Schema<TenantDoc>(
   {
     _id: { type: String, required: true },
@@ -83,6 +97,9 @@ const tenantSchema = new Schema<TenantDoc>(
     currency: { type: String, default: 'SAR' },
     company: { type: companySchema, default: () => ({}) },
     settings: { type: settingsSchema, default: () => ({}) },
+    rentalRules: { type: Schema.Types.Mixed, default: () => ({}) },
+    shiftWindow: { type: Schema.Types.Mixed, default: () => ({}) },
+    penaltySchedule: { type: [penaltyRuleSchema], default: () => [] },
   },
   { timestamps: true, _id: false },
 )

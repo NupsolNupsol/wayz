@@ -9,7 +9,6 @@ export type Language = (typeof LANGUAGES)[number]
 
 export const LANGUAGE_LABEL: Record<Language, string> = { en: 'English', ar: 'العربية' }
 
-/** The one place that knows Arabic reads right to left. */
 export const directionOf = (language: Language): 'ltr' | 'rtl' => (language === 'ar' ? 'rtl' : 'ltr')
 
 export const isLanguage = (value: unknown): value is Language =>
@@ -20,15 +19,10 @@ void i18n.use(initReactI18next).init({
   lng: 'en',
   fallbackLng: 'en',
   defaultNS: 'common',
-  // The screens are trusted source, and React escapes for us.
   interpolation: { escapeValue: false },
   returnNull: false,
 })
 
-/**
- * Puts the language on the document so CSS, the browser and assistive tech all agree.
- * Tailwind's logical utilities key off `dir`, which is what flips the layout.
- */
 export function applyLanguage(language: Language): void {
   const html = document.documentElement
   html.setAttribute('lang', language)

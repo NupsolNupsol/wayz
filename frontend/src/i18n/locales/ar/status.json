@@ -212,5 +212,12 @@
     "SALE": "بيع",
     "RETURN": "مرتجع",
     "EXPENSE": "مصروف"
+  },
+  "trip": {
+    "READY": "بانتظار قبطان",
+    "CLAIMED": "مأخوذة",
+    "RUNNING": "جارية",
+    "COMPLETED": "منتهية",
+    "CANCELLED": "ملغاة"
   }
 }

@@ -24,7 +24,8 @@
     "ownPrice": "Own price",
     "qr": "QR",
     "noStation": "Not provisioned anywhere yet",
-    "stationsMore": "{{first}} +{{count}}"
+    "stationsMore": "{{first}} +{{count}}",
+    "penalty": "Penalty"
   },
   "action": {
     "add": "Add assets",
@@ -58,7 +59,15 @@
     "note": "Note",
     "statusLocked": "Held by a live booking ({{status}}) — finish or reassign it first.",
     "ownPrice": "Price this one apart from its kind (kind price: {{price}})",
-    "unitPrice": "Price for this asset"
+    "unitPrice": "Price for this asset",
+    "ownPenalty": "Give this one its own damage penalty (kind penalty: {{price}})",
+    "unitPenalty": "Penalty for this asset",
+    "unitPenaltyHint": "What this particular one is worth if it is damaged or lost.",
+    "station": "Station",
+    "stationHint": "Moving it here transfers it to that station’s inventory.",
+    "desk": "Desk",
+    "deskHint": "Which counter at that station holds it.",
+    "noDesk": "No desk"
   },
   "remove": {
     "title": "Remove {{identifier}}",
@@ -76,7 +85,26 @@
     "clearOverrides": "Also reset every asset that carries its own price",
     "submit": "Save price",
     "noProduct": "This kind is not sold by any product yet, so it has no price. Create a product for it under Pricing first.",
-    "noProductShort": "No product"
+    "noProductShort": "No product",
+    "saleUnit": "Sold by",
+    "saleUnitHint": "What the customer is buying one of.",
+    "saleType": "Sale type",
+    "saleTypeHint": "A rental comes back and can run into overtime; a sale is finished when paid.",
+    "penalty": "Damage penalty",
+    "penaltyHint": "What is charged if one comes back damaged. A single asset can carry its own value.",
+    "unit": {
+      "HOUR": "1 Hour",
+      "FULL_DAY": "Full day",
+      "TOUR": "Per tour",
+      "BAG": "Per bag",
+      "CART": "Per cart",
+      "DELIVERY": "Per delivery",
+      "ITEM": "Per item"
+    },
+    "type": {
+      "RENTAL": "Rental",
+      "SALE": "Sale"
+    }
   },
   "qr": {
     "title": "QR code — {{identifier}}",
@@ -148,5 +176,23 @@
   "editKind": {
     "title": "Rename {{name}}",
     "subtitle": "The product the counter sells is renamed with it."
+  },
+  "wrongDesk": {
+    "title": "This one is not yours",
+    "anotherDesk": "another desk",
+    "body": "{{unit}} belongs to {{desk}}. Taking it back here charges the customer the wrong-desk penalty and moves the vehicle to your desk.",
+    "onRental": "On {{ref}} · {{customer}}",
+    "noRental": "Nobody has it out right now, so there is nothing to charge.",
+    "penalty": "Penalty {{amount}}",
+    "calculate": "Calculate penalty",
+    "confirmTitle": "Take it back here?",
+    "confirmSubtitle": "Three things happen at once.",
+    "willCharge": "{{amount}} is added to the customer’s bill.",
+    "willEnd": "{{ref}} is ended and the clock stops.",
+    "willRehome": "The vehicle becomes this desk’s stock.",
+    "takeBack": "Take it back and charge",
+    "takenBack": "Returned at this desk",
+    "charged": "{{amount}} added to the customer’s bill.",
+    "failed": "Could not take it back"
   }
 }

@@ -8,10 +8,9 @@ import { useCreateAssetKind } from '@/hooks'
 import { engineLabel, VISIBLE_ENGINES } from '@/config/engineMeta'
 import { ApiError } from '@/api/client'
 import { toast } from '@/state/toastStore'
-import { ASSET_KINDS, type AssetKind, type AssetStation } from '@/api/asset.api'
+import { ASSET_KINDS, SALE_TYPES, SALE_UNITS, type AssetKind, type AssetStation, type SaleType, type SaleUnit } from '@/api/asset.api'
 import type { EngineKind } from '@/api/types'
 
-/** The activity a kind of asset naturally belongs to, so the form starts in the right place. */
 const KIND_ENGINE: Record<AssetKind, EngineKind> = {
   COMPARTMENT: 'SHOP_AND_DROP',
   VEHICLE: 'MOBILITY',
@@ -44,6 +43,9 @@ export function NewAssetKindModal({
   const [basePrice, setBasePrice] = useState(25)
   const [deposit, setDeposit] = useState(0)
   const [overtime, setOvertime] = useState(0)
+  const [penalty, setPenalty] = useState(0)
+  const [saleUnit, setSaleUnit] = useState<SaleUnit>('ITEM')
+  const [saleType, setSaleType] = useState<SaleType>('RENTAL')
 
   const [w, setW] = useState(40)
   const [h, setH] = useState(40)
@@ -82,8 +84,11 @@ export function NewAssetKindModal({
         engineKind,
         kind,
         basePrice,
+        saleUnit,
+        saleType,
         depositRequired: deposit,
-        overtimeHourlyRate: overtime || null,
+        penaltyPrice: penalty,
+        overtimeHourlyRate: saleType === 'SALE' ? null : overtime || null,
         capacity:
           kind === 'COMPARTMENT'
             ? { internalDimensions: { w, h, d }, maxWeight, maxRecommendedBagCount: bagCount, capacityScore: bagCount }
@@ -169,16 +174,39 @@ export function NewAssetKindModal({
       </Field>
 
       <FieldGroupTitle>{t('newKind.pricing')}</FieldGroupTitle>
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <Field label={t('price.saleUnit')} required hint={t('price.saleUnitHint')}>
+          <Select
+            value={saleUnit}
+            onChange={(v) => setSaleUnit(v as SaleUnit)}
+            options={SALE_UNITS.map((value) => ({ label: t(`price.unit.${value}`), value }))}
+            testId="asset-new-kind-sale-unit"
+          />
+        </Field>
+        <Field label={t('price.saleType')} required hint={t('price.saleTypeHint')}>
+          <Select
+            value={saleType}
+            onChange={(v) => setSaleType(v as SaleType)}
+            options={SALE_TYPES.map((value) => ({ label: t(`price.type.${value}`), value }))}
+            testId="asset-new-kind-sale-type"
+          />
+        </Field>
+      </div>
+      <div className="grid grid-cols-1 sm:grid-cols-4 gap-3">
         <Field label={t('price.base')} required>
           <NumberInput min={0} step={0.5} value={basePrice} onChange={setBasePrice} testId="asset-new-kind-price" />
         </Field>
         <Field label={t('price.deposit')}>
           <NumberInput min={0} step={0.5} value={deposit} onChange={setDeposit} testId="asset-new-kind-deposit" />
         </Field>
-        <Field label={t('price.overtime')}>
-          <NumberInput min={0} step={0.5} value={overtime} onChange={setOvertime} testId="asset-new-kind-overtime" />
+        <Field label={t('price.penalty')}>
+          <NumberInput min={0} step={0.5} value={penalty} onChange={setPenalty} testId="asset-new-kind-penalty" />
         </Field>
+        {saleType === 'RENTAL' && (
+          <Field label={t('price.overtime')}>
+            <NumberInput min={0} step={0.5} value={overtime} onChange={setOvertime} testId="asset-new-kind-overtime" />
+          </Field>
+        )}
       </div>
 
       <FieldGroupTitle>{t('newKind.capacity')}</FieldGroupTitle>

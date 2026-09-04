@@ -8,6 +8,20 @@ export interface DeliveryTimelineEntryDoc {
   note?: string
 }
 
+export interface DeliveryStopDoc {
+  bookingId: string
+  bookingRef: string
+  kioskId: string | null
+  kioskName: string
+  assetUnitId: string | null
+  assetUnitIdentifier: string | null
+  bagBarcodes: string[]
+  bagCount: number
+  status: 'PENDING' | 'COLLECTED'
+  scannedBarcodes: string[]
+  collectedAt: Date | null
+}
+
 export interface DeliveryRequestDoc {
   _id: string
   tenantId: string
@@ -41,6 +55,7 @@ export interface DeliveryRequestDoc {
   deliveredAt: Date | null
   failureReason: string | null
   fee: number
+  stops: DeliveryStopDoc[]
   timeline: DeliveryTimelineEntryDoc[]
   createdAt: Date
   updatedAt: Date
@@ -52,6 +67,23 @@ const timelineSchema = new Schema<DeliveryTimelineEntryDoc>(
     at: { type: Date, default: Date.now },
     by: { type: String, required: true },
     note: { type: String },
+  },
+  { _id: false },
+)
+
+const stopSchema = new Schema<DeliveryStopDoc>(
+  {
+    bookingId: { type: String, required: true },
+    bookingRef: { type: String, default: '' },
+    kioskId: { type: String, default: null },
+    kioskName: { type: String, default: '' },
+    assetUnitId: { type: String, default: null },
+    assetUnitIdentifier: { type: String, default: null },
+    bagBarcodes: { type: [String], default: [] },
+    bagCount: { type: Number, default: 0 },
+    status: { type: String, default: 'PENDING' },
+    scannedBarcodes: { type: [String], default: [] },
+    collectedAt: { type: Date, default: null },
   },
   { _id: false },
 )
@@ -94,6 +126,7 @@ const deliverySchema = new Schema<DeliveryRequestDoc>(
     deliveredAt: { type: Date, default: null },
     failureReason: { type: String, default: null },
     fee: { type: Number, default: 0 },
+    stops: { type: [stopSchema], default: [] },
     timeline: { type: [timelineSchema], default: [] },
   },
   { timestamps: true, versionKey: false, _id: false },

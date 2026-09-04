@@ -14,6 +14,7 @@ export function ShiftPage() {
   const openMut = useOpenShift()
   const countMut = useBlindCount()
   const [counted, setCounted] = useState('')
+  const [float, setFloat] = useState('')
 
   const close = () => {
     if (!shift) return
@@ -33,7 +34,12 @@ export function ShiftPage() {
               <div className="text-center py-8">
                 <Clock className="mx-auto text-muted mb-3" size={32} />
                 <p className="text-muted mb-4">{t('shift.noOpenShift')}</p>
-                <Button onClick={() => openMut.mutate()} loading={openMut.isPending} data-testid="shift-open"><PlayCircle size={16} />{t('shift.openShift')}</Button>
+                <div className="max-w-[260px] mx-auto text-start">
+                  <Field label={t('shift.openingFloat')} hint={t('shift.openingFloatHint')}>
+                    <input type="number" step="0.01" min="0" className="lf-input" value={float} onChange={(e) => setFloat(e.target.value)} placeholder="0.00" data-testid="shift-opening-float" />
+                  </Field>
+                </div>
+                <Button onClick={() => openMut.mutate(parseFloat(float) || 0)} loading={openMut.isPending} data-testid="shift-open"><PlayCircle size={16} />{t('shift.openShift')}</Button>
               </div>
             ) : shift.status === 'RECONCILING' ? (
               <div data-testid="shift-reconciling">
@@ -45,19 +51,22 @@ export function ShiftPage() {
                 </div>
               </div>
             ) : shift.status === 'CLOSED' ? (
-              <div className="text-center py-8" data-testid="shift-closed"><StatusBadge status="CLOSED" /><p className="text-muted mt-3">Shift closed {formatDateTime(shift.closedAt ? new Date(shift.closedAt).getTime() : null)}.</p><Button className="mt-4" onClick={() => openMut.mutate()}>{t('shift.openNewShift')}</Button></div>
+              <div className="text-center py-8" data-testid="shift-closed"><StatusBadge status="CLOSED" /><p className="text-muted mt-3">Shift closed {formatDateTime(shift.closedAt ? new Date(shift.closedAt).getTime() : null)}.</p><Button className="mt-4" onClick={() => openMut.mutate(0)} data-testid="shift-open-new">{t('shift.openNewShift')}</Button></div>
             ) : (
               <div data-testid="shift-open-state">
                 <div className="flex items-center justify-between mb-4"><SectionTitle>{t('shift.blindCount')}</SectionTitle><StatusBadge status={shift.status} /></div>
                 <p className="text-sm text-muted mb-4">{t('shift.blindCountHint')}</p>
-                <Field label={t('cashier:shift.countedCash', { currency: t('common:money.currency') })} required><input type="number" step="0.01" className="lf-input" value={counted} onChange={(e) => setCounted(e.target.value)} placeholder="0.00" data-testid="shift-counted" /></Field>
+                <Field label={t('till:shift.countedCash', { currency: t('common:money.currency') })} required><input type="number" step="0.01" className="lf-input" value={counted} onChange={(e) => setCounted(e.target.value)} placeholder="0.00" data-testid="shift-counted" /></Field>
                 <Button onClick={close} loading={countMut.isPending} disabled={counted === ''} data-testid="shift-close"><Lock size={16} />{t('shift.closeShift')}</Button>
               </div>
             )}
           </Card>
           <div className="flex flex-col gap-4">
             <StatCard label={t('shift.opened')} value={formatDateTime(shift?.openedAt ? new Date(shift.openedAt).getTime() : null)} tone="neutral" />
-            <StatCard label={t('shift.expectedLedger')} value={money(shift?.expectedCash ?? 0)} tone="success" />
+            <StatCard label={t('shift.expectedLedger')} value={money(shift?.expectedCash ?? 0)} tone="success" testId="shift-expected" />
+            {!!shift?.openingFloat && (
+              <StatCard label={t('shift.openingFloat')} value={money(shift.openingFloat)} tone="neutral" testId="shift-float" />
+            )}
           </div>
         </div>
       )}

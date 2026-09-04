@@ -10,7 +10,13 @@ import otpRouter from './otp.route.js'
 import dashboardRouter from './dashboard.route.js'
 import managerRouter from './manager.route.js'
 import deliveryRouter from './delivery.route.js'
-import cashierRouter from './cashier.route.js'
+import tillRouter from './till.route.js'
+import notificationRouter from './notification.route.js'
+import manualSaleRouter from './manualSale.route.js'
+import refundRequestRouter from './refundRequest.route.js'
+import tripRouter from './trip.route.js'
+import pricingRouter from './pricing.route.js'
+import devClockRouter from './devClock.route.js'
 import tenantAdminRouter from './tenantAdmin.route.js'
 import accountingRouter from './accounting.route.js'
 import hrRouter from './hr.route.js'
@@ -34,7 +40,13 @@ export function mountRoutes(app: Express) {
   app.use('/api/otp', otpRouter)
   app.use('/api/dashboard', dashboardRouter)
   app.use('/api/deliveries', deliveryRouter)
-  app.use('/api/cashier', cashierRouter)
+  app.use('/api/till', tillRouter)
+  app.use('/api/notifications', notificationRouter)
+  app.use('/api/manual-sales', manualSaleRouter)
+  app.use('/api/refund-requests', refundRequestRouter)
+  app.use('/api/lagoon/trips', tripRouter)
+  app.use('/api/pricing', pricingRouter)
+  app.use('/api/dev-clock', devClockRouter)
   app.use('/api/admin', tenantAdminRouter)
   app.use('/api/accounting', accountingRouter)
   app.use('/api/hr', hrRouter)

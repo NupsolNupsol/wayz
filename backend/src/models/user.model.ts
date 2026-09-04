@@ -26,6 +26,7 @@ export interface UserDoc {
   stationId: string
   kioskId: string | null
   engineKinds: EngineKind[]
+  reportsTo: string | null
   phone: string
   active: boolean
   lastLoginAt?: Date | null
@@ -57,6 +58,7 @@ const userSchema = new Schema<UserDoc>(
     stationId: { type: String, required: true, index: true },
     kioskId: { type: String, default: null, index: true },
     engineKinds: { type: [String], default: [], index: true },
+    reportsTo: { type: String, default: null, index: true },
     phone: { type: String, default: '' },
     active: { type: Boolean, default: true },
     lastLoginAt: { type: Date, default: null },

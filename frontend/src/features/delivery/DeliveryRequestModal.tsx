@@ -1,15 +1,16 @@
 import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { MapPin, ShieldCheck, Truck, Phone, CircleCheck } from 'lucide-react'
+import { MapPin, ShieldCheck, Truck, Phone, CircleCheck, PackageSearch } from 'lucide-react'
 import { clsx } from 'clsx'
 import { Modal } from '@/components/Modal'
 import { Button, Field, Badge } from '@/components/ui'
 import { IdentityVerificationModal } from '@/components/IdentityVerification'
-import { useCreateDelivery } from '@/hooks'
+import { useCreateDelivery, useCustomerBagsElsewhere } from '@/hooks'
 import { ApiError } from '@/api/client'
 import { toast } from '@/state/toastStore'
 import type { DeliveryOrigin } from '@/api/delivery.api'
 import { PhoneInput } from '@/components/PhoneInput'
+import { NumberInput } from '@/components/NumberInput'
 
 const ORIGINS: { value: DeliveryOrigin; title: string; blurb: string; icon: typeof MapPin }[] = [
   {
@@ -45,17 +46,30 @@ export function DeliveryRequestModal({
 }) {
   const { t } = useTranslation('delivery')
   const create = useCreateDelivery()
+  const elsewhere = useCustomerBagsElsewhere(bookingId, open)
+  const otherKiosks = elsewhere.data ?? []
 
   const [origin, setOrigin] = useState<DeliveryOrigin>('AT_STORAGE')
   const [address, setAddress] = useState('')
   const [notes, setNotes] = useState('')
   const [contactPhone, setContactPhone] = useState(customerPhone ?? '')
+  const [fee, setFee] = useState(0)
   const [verifyOpen, setVerifyOpen] = useState(false)
   const [verified, setVerified] = useState(false)
+  const [alsoBookingIds, setAlsoBookingIds] = useState<string[]>([])
 
   const reset = () => {
-    setOrigin('AT_STORAGE'); setAddress(''); setNotes(''); setContactPhone(customerPhone ?? ''); setVerified(false)
+    setOrigin('AT_STORAGE'); setAddress(''); setNotes(''); setContactPhone(customerPhone ?? ''); setVerified(false); setFee(0)
+    setAlsoBookingIds([])
   }
+
+  const toggleKiosk = (id: string) =>
+    setAlsoBookingIds((ids) => (ids.includes(id) ? ids.filter((x) => x !== id) : [...ids, id]))
+  const allPicked = otherKiosks.length > 0 && alsoBookingIds.length === otherKiosks.length
+  const toggleAll = () => setAlsoBookingIds(allPicked ? [] : otherKiosks.map((k) => k.bookingId))
+  const extraBags = otherKiosks
+    .filter((k) => alsoBookingIds.includes(k.bookingId))
+    .reduce((sum, k) => sum + k.bagCount, 0)
 
   useEffect(() => {
     if (open) setContactPhone(customerPhone ?? '')
@@ -67,7 +81,15 @@ export function DeliveryRequestModal({
 
   const submit = () => {
     create.mutate(
-      { bookingId, address: address.trim(), notes: notes.trim() || undefined, contactPhone: contactPhone.trim() || undefined, origin },
+      {
+        bookingId,
+        alsoBookingIds: alsoBookingIds.length ? alsoBookingIds : undefined,
+        address: address.trim(),
+        notes: notes.trim() || undefined,
+        contactPhone: contactPhone.trim() || undefined,
+        origin,
+        fee,
+      },
       {
         onSuccess: (d) => {
           toast('success', `Delivery ${d._id} created`, 'Couriers at this site can see it now.')
@@ -148,6 +170,61 @@ export function DeliveryRequestModal({
           </div>
         )}
 
+        {otherKiosks.length > 0 && (
+          <div className="lf-card p-3 mb-5" data-testid="delivery-other-kiosks">
+            <div className="flex flex-wrap items-center justify-between gap-2 mb-2">
+              <p className="font-semibold text-navy dark:text-dk-texthi flex items-center gap-2 text-sm">
+                <PackageSearch size={16} className="text-brand" />
+                {t('request.alsoHolding', { count: otherKiosks.length })}
+              </p>
+              <label className="flex items-center gap-2 text-xs font-semibold text-brand cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={allPicked}
+                  onChange={toggleAll}
+                  data-testid="delivery-kiosk-all"
+                />
+                {t('request.bringEverything')}
+              </label>
+            </div>
+            <p className="text-xs text-muted mb-3">{t('request.alsoHoldingHint')}</p>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+              {otherKiosks.map((k) => {
+                const picked = alsoBookingIds.includes(k.bookingId)
+                return (
+                  <label
+                    key={k.bookingId}
+                    className={clsx(
+                      'lf-card p-3 flex items-start gap-3 cursor-pointer transition-colors',
+                      picked ? 'border-brand ring-1 ring-brand/30 bg-brand/5' : 'hover:border-brand',
+                    )}
+                    data-testid={`delivery-kiosk-${k.kioskId ?? k.bookingId}`}
+                  >
+                    <input
+                      type="checkbox"
+                      className="mt-0.5"
+                      checked={picked}
+                      onChange={() => toggleKiosk(k.bookingId)}
+                      data-testid={`delivery-kiosk-check-${k.bookingId}`}
+                    />
+                    <span className="min-w-0">
+                      <span className="block font-semibold text-sm text-navy dark:text-dk-texthi truncate">{k.kioskName}</span>
+                      <span className="block text-xs text-muted truncate">
+                        {k.assetUnitIdentifier ?? '—'} · {t('request.bagCount', { count: k.bagCount })} · {k.bookingRef}
+                      </span>
+                    </span>
+                  </label>
+                )
+              })}
+            </div>
+            {alsoBookingIds.length > 0 && (
+              <Badge tone="info" className="mt-3" testId="delivery-extra-summary">
+                {t('request.extraStops', { stops: alsoBookingIds.length, bags: extraBags })}
+              </Badge>
+            )}
+          </div>
+        )}
+
         <Field label={t('request.deliverTo')} required hint={t('request.addressHint')}>
           <input
             className="lf-input"
@@ -156,6 +233,10 @@ export function DeliveryRequestModal({
             placeholder={t('request.addressPlaceholder')}
             data-testid="delivery-address"
           />
+        </Field>
+
+        <Field label={t('request.fee')} hint={t('request.feeHint')}>
+          <NumberInput value={fee} onChange={setFee} min={0} step={5} testId="delivery-fee" />
         </Field>
 
         <Field label={t('request.notes')} hint={t('request.notesHint')}>

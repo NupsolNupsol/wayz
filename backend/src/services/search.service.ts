@@ -1,5 +1,6 @@
 import { Booking, CardTransaction, Customer, Payment } from '../models/index.js'
 import { engineFilter } from '../domain/access.js'
+import { SCOPE_LEVEL } from '../domain/roles.js'
 import type { Scope } from '../interfaces/index.js'
 
 export interface SearchHit {
@@ -9,29 +10,31 @@ export interface SearchHit {
   sublabel: string
 }
 
-const OPERATIONS: Scope['role'][] = ['AGENT', 'CASHIER', 'MANAGER', 'TENANT_ADMIN']
+const OPERATIONS: Scope['role'][] = [
+  'AGENT',
+  'CHIEF_CAPTAIN',
+  'SUPERVISOR',
+  'MANAGER',
+  'PROJECT_MANAGER',
+  'TENANT_ADMIN',
+]
 const FINANCE: Scope['role'][] = ['ACCOUNTANT', 'TENANT_ADMIN']
 
 function safeRegex(query: string): RegExp {
   return new RegExp(query.trim().replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i')
 }
 
-/** True when this role has anything to search at all — the box is hidden otherwise. */
 export function canSearch(role: Scope['role']): boolean {
   return OPERATIONS.includes(role) || FINANCE.includes(role)
 }
 
-/**
- * One box over the whole workspace: a booking reference, a customer, or — for the accountant —
- * a payment or a terminal transaction. Everything is narrowed the same way the screens are.
- */
 export async function search(scope: Scope, query: string, limit = 6): Promise<SearchHit[]> {
   const q = query.trim()
   if (q.length < 2) return []
   const rx = safeRegex(q)
 
   const hits: SearchHit[] = []
-  const stationBound = scope.role === 'AGENT' || scope.role === 'CASHIER'
+  const stationBound = SCOPE_LEVEL[scope.role] === 'kiosk'
   const base: Record<string, unknown> = { tenantId: scope.tenantId }
   if (stationBound) base.stationId = scope.stationId
 

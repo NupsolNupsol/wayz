@@ -12,18 +12,7 @@ import {
   UNIT_RETRIEVAL_PENDING,
 } from '../shared/status.js'
 import { beginOperation, unknownTransition } from '../utils/clone.js'
-import {
-  addCustody,
-  cancelRelease,
-  completeAndRelease,
-  consumeVerification,
-  markUnit,
-  reassignUnit,
-  reserveUnit,
-  setStatus,
-  startTimer,
-  storeBagsAndOccupy,
-} from './shared.operations.js'
+import { addCustody, cancelRelease, completeAndRelease, consumeVerification, markUnit, reassignUnit, reserveUnit, setStatus, startTimer, storeBagsAndOccupy } from './shared.operations.js'
 
 export const useShopDropOperation = (transitionCode: string, ctx: WorkflowContext): OperationResult => {
   const result = beginOperation(ctx)

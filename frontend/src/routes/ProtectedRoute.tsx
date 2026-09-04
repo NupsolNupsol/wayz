@@ -19,13 +19,14 @@ export function ProtectedRoute({ children, allow = AGENT_ROLES }: { children: Re
   if (!token) return <Navigate to="/login" replace />
 
   const role = me?.role ?? meQuery.data?.role
-  if (!role && meQuery.isLoading) {
+  if (!role) {
+    if (meQuery.isError) return <Navigate to="/login" replace />
     return (
       <div className="min-h-screen flex items-center justify-center text-muted">
         <Loader2 className="animate-spin" />
       </div>
     )
   }
-  if (role && !allow.includes(role)) return <Navigate to={homeForRole(role)} replace />
+  if (!allow.includes(role)) return <Navigate to={homeForRole(role)} replace />
   return <>{children}</>
 }

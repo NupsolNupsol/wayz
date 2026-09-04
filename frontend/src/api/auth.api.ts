@@ -12,6 +12,7 @@ export interface Invitation {
 }
 
 export const authApi = {
+  logout: () => unwrap<{ ok: boolean }>(http.post('/auth/logout', {})),
   login: (email: string, password: string) =>
     unwrap<{ token: string; user: Me }>(http.post('/auth/login', { email, password })),
   me: () => unwrap<Me>(http.get('/auth/me')),

@@ -17,7 +17,7 @@ import { ApiError } from '@/api/client'
 import { toast } from '@/state/toastStore'
 import { money } from '@/utils'
 import { NewAssetKindModal } from './NewAssetKindModal'
-import type { AssetTypeRow } from '@/api/asset.api'
+import { SALE_TYPES, SALE_UNITS, type AssetTypeRow, type SaleType, type SaleUnit } from '@/api/asset.api'
 import type { EngineKind } from '@/api/types'
 
 type Filter = EngineKind | 'ALL'
@@ -48,6 +48,9 @@ export function AssetsPage() {
   const [basePrice, setBasePrice] = useState(0)
   const [deposit, setDeposit] = useState(0)
   const [overtime, setOvertime] = useState(0)
+  const [penalty, setPenalty] = useState(0)
+  const [saleUnit, setSaleUnit] = useState<SaleUnit>('ITEM')
+  const [saleType, setSaleType] = useState<SaleType>('RENTAL')
   const [clearOverrides, setClearOverrides] = useState(false)
 
   const rows = useMemo(
@@ -94,6 +97,9 @@ export function AssetsPage() {
     setBasePrice(row.basePrice ?? 0)
     setDeposit(row.depositRequired ?? 0)
     setOvertime(row.overtimeHourlyRate ?? 0)
+    setPenalty(row.penaltyPrice ?? 0)
+    setSaleUnit(row.saleUnit ?? 'ITEM')
+    setSaleType(row.saleType ?? 'RENTAL')
     setClearOverrides(false)
   }
 
@@ -102,7 +108,15 @@ export function AssetsPage() {
     priceType.mutate(
       {
         id: priceFor._id,
-        body: { basePrice, depositRequired: deposit, overtimeHourlyRate: overtime || null, clearOverrides },
+        body: {
+          basePrice,
+          depositRequired: deposit,
+          penaltyPrice: penalty,
+          saleUnit,
+          saleType,
+          overtimeHourlyRate: saleType === 'SALE' ? null : overtime || null,
+          clearOverrides,
+        },
       },
       {
         onSuccess: (r) => {
@@ -220,7 +234,30 @@ export function AssetsPage() {
       align: 'right',
       sortValue: (r) => r.basePrice ?? -1,
       render: (r) =>
-        r.basePrice === null ? <span className="text-muted">—</span> : <span className="tabular-nums whitespace-nowrap">{money(r.basePrice)}</span>,
+        r.basePrice === null ? (
+          <span className="text-muted">—</span>
+        ) : (
+          <div className="text-end">
+            <span className="tabular-nums whitespace-nowrap">{money(r.basePrice)}</span>
+            {r.saleUnit && (
+              <p className="text-[11px] text-muted whitespace-nowrap">
+                {t(`price.unit.${r.saleUnit}`)} · {t(`price.type.${r.saleType ?? 'RENTAL'}`)}
+              </p>
+            )}
+          </div>
+        ),
+    },
+    {
+      key: 'penalty',
+      header: t('table.penalty'),
+      align: 'right',
+      sortValue: (r) => r.penaltyPrice ?? -1,
+      render: (r) =>
+        r.penaltyPrice ? (
+          <span className="tabular-nums whitespace-nowrap">{money(r.penaltyPrice)}</span>
+        ) : (
+          <span className="text-muted">—</span>
+        ),
     },
   ]
 
@@ -426,6 +463,27 @@ export function AssetsPage() {
           <>
             <Field label={t('price.base')} required hint={t('price.baseHint')}>
               <NumberInput min={0} step={0.5} value={basePrice} onChange={setBasePrice} testId="asset-price-base" />
+            </Field>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4">
+              <Field label={t('price.saleUnit')} hint={t('price.saleUnitHint')}>
+                <Select
+                  value={saleUnit}
+                  onChange={(v) => setSaleUnit(v as SaleUnit)}
+                  options={SALE_UNITS.map((value) => ({ label: t(`price.unit.${value}`), value }))}
+                  testId="asset-price-sale-unit"
+                />
+              </Field>
+              <Field label={t('price.saleType')} hint={t('price.saleTypeHint')}>
+                <Select
+                  value={saleType}
+                  onChange={(v) => setSaleType(v as SaleType)}
+                  options={SALE_TYPES.map((value) => ({ label: t(`price.type.${value}`), value }))}
+                  testId="asset-price-sale-type"
+                />
+              </Field>
+            </div>
+            <Field label={t('price.penalty')} hint={t('price.penaltyHint')}>
+              <NumberInput min={0} step={0.5} value={penalty} onChange={setPenalty} testId="asset-price-penalty" />
             </Field>
             <Field label={t('price.deposit')}>
               <NumberInput min={0} step={0.5} value={deposit} onChange={setDeposit} testId="asset-price-deposit" />

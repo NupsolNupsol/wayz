@@ -1,9 +1,9 @@
 import { AssetType, AssetUnit, CatalogueProduct, Tenant } from '../models/index.js'
-import { engineFilter } from '../domain/access.js'
+import { engineFilter, kioskFilter } from '../domain/access.js'
 import { ENGINE_KINDS, type EngineKind } from '../domain/types.js'
 import type { Scope } from '../interfaces/index.js'
 
-type Caller = Pick<Scope, 'role' | 'engineKinds'>
+type Caller = Pick<Scope, 'role' | 'engineKinds'> & Partial<Pick<Scope, 'kioskId'>>
 
 export function listProducts(tenantId: string, engineKind?: EngineKind, caller?: Caller) {
   const q: Record<string, unknown> = { tenantId, active: true }
@@ -36,12 +36,13 @@ export async function listUnits(tenantId: string, stationId: string, caller?: Ca
       const types = await AssetType.find({ tenantId, engineKind: engines }, { _id: 1 }).lean()
       q.assetTypeId = { $in: types.map((t) => t._id) }
     }
+    const kiosk = kioskFilter(caller)
+    if (kiosk !== undefined) q.kioskId = kiosk
   }
 
   return AssetUnit.find(q).sort({ assetTypeId: 1, identifier: 1 }).lean()
 }
 
-/** The engines a tenant offers. Reports list these and nothing else. */
 export async function tenantEngines(tenantId: string): Promise<EngineKind[]> {
   const tenant = await Tenant.findById(tenantId, { enabledEngines: 1 }).lean()
   const engines = tenant?.enabledEngines ?? []

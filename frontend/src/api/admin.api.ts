@@ -1,4 +1,5 @@
 import { http, unwrap } from './client'
+import type { MapPoint } from '@/components/StationMap'
 import type { EngineKind, Role } from './types'
 
 export interface TenantOverview {
@@ -108,9 +109,22 @@ export interface CompanyPatch {
   branding?: Record<string, string>
 }
 
+export interface StationMap {
+  sites: { _id: string; name: string; city: string }[]
+  points: MapPoint[]
+  stations: MapPoint[]
+}
+
+export interface MapPlacement {
+  id: string
+  x: number | null
+  y: number | null
+}
+
 export const adminApi = {
+  stationMap: () => unwrap<StationMap>(http.get('/admin/station-map')),
+  saveStationMap: (placements: MapPlacement[]) => unwrap<StationMap>(http.patch('/admin/station-map', { placements })),
   overview: () => unwrap<TenantOverview>(http.get('/admin/overview')),
-  people: () => unwrap<TenantPerson[]>(http.get('/admin/people')),
   audit: () => unwrap<TenantAuditRow[]>(http.get('/admin/audit')),
   isolation: () => unwrap<IsolationReport>(http.get('/admin/isolation')),
   updateCompany: (patch: CompanyPatch) => unwrap<Record<string, unknown>>(http.patch('/admin/company', patch)),

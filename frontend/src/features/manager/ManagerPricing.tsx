@@ -28,7 +28,7 @@ export function ManagerPricing() {
   const money = (n: number) => `${n.toFixed(2)} ${data?.currency ?? 'SAR'}`
 
   const openCreate = () => {
-    setForm({ name: '', engineKind: 'SHOP_AND_DROP', category: 'General', basePrice: '0', overtimeHourlyRate: '', depositRequired: '0', billingModel: 'PER_BAG', assetTypeId: '' })
+    setForm({ name: '', engineKind: 'SHOP_AND_DROP', category: 'General', basePrice: '0', hourlyPrice: '', tourPrice: '', tourMinutes: '', overtimeHourlyRate: '', depositRequired: '0', billingModel: 'PER_BAG', assetTypeId: '' })
     setCreating(true)
   }
 
@@ -38,6 +38,9 @@ export function ManagerPricing() {
       engineKind: p.engineKind,
       category: p.category,
       basePrice: String(p.basePrice),
+      hourlyPrice: p.hourlyPrice == null ? '' : String(p.hourlyPrice),
+      tourPrice: p.tourPrice == null ? '' : String(p.tourPrice),
+      tourMinutes: p.tourMinutes == null ? '' : String(p.tourMinutes),
       overtimeHourlyRate: p.overtimeHourlyRate == null ? '' : String(p.overtimeHourlyRate),
       depositRequired: String(p.depositRequired),
       billingModel: p.billingModel,
@@ -51,6 +54,9 @@ export function ManagerPricing() {
     engineKind: form.engineKind as EngineKind,
     category: form.category,
     basePrice: Number(form.basePrice || 0),
+    hourlyPrice: form.hourlyPrice === '' || form.hourlyPrice == null ? null : Number(form.hourlyPrice),
+    tourPrice: form.tourPrice === '' || form.tourPrice == null ? null : Number(form.tourPrice),
+    tourMinutes: form.tourMinutes === '' || form.tourMinutes == null ? null : Number(form.tourMinutes),
     overtimeHourlyRate: form.overtimeHourlyRate === '' ? null : Number(form.overtimeHourlyRate),
     depositRequired: Number(form.depositRequired || 0),
     billingModel: form.billingModel,
@@ -222,6 +228,20 @@ export function ManagerPricing() {
           </Field>
           <Field label={`Deposit (${data.currency})`} hint={t('pricing.depositHint')}>
             <input type="number" min={0} step="0.01" className="lf-input" value={form.depositRequired ?? '0'} onChange={(e) => setForm({ ...form, depositRequired: e.target.value })} />
+          </Field>
+        </div>
+
+        <FieldGroupTitle><Tag size={14} />{t('pricing.rates')}</FieldGroupTitle>
+        <p className="text-xs text-muted -mt-2 mb-3">{t('pricing.ratesHint')}</p>
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-x-4">
+          <Field label={`${t('pricing.hourly')} (${data.currency})`} hint={t('pricing.hourlyHint')}>
+            <input type="number" min={0} step="0.01" className="lf-input" value={form.hourlyPrice ?? ''} onChange={(e) => setForm({ ...form, hourlyPrice: e.target.value })} placeholder={t('pricing.fromBase')} data-testid="pricing-hourly" />
+          </Field>
+          <Field label={`${t('pricing.perTour')} (${data.currency})`} hint={t('pricing.perTourHint')}>
+            <input type="number" min={0} step="0.01" className="lf-input" value={form.tourPrice ?? ''} onChange={(e) => setForm({ ...form, tourPrice: e.target.value })} data-testid="pricing-tour" />
+          </Field>
+          <Field label={t('pricing.tourMinutes')} hint={t('pricing.tourMinutesHint')}>
+            <input type="number" min={1} step="1" className="lf-input" value={form.tourMinutes ?? ''} onChange={(e) => setForm({ ...form, tourMinutes: e.target.value })} placeholder="60" data-testid="pricing-tour-minutes" />
           </Field>
         </div>
       </Modal>

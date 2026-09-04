@@ -1,7 +1,7 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { useNavigate } from 'react-router-dom'
-import { Minus, Plus, Check, Printer, ArrowLeft, ArrowRight, PackageCheck, Boxes, Sparkles, Loader2, FileDown, Truck } from 'lucide-react'
+import { useNavigate, useSearchParams } from 'react-router-dom'
+import { Minus, Plus, Check, Printer, ArrowLeft, ArrowRight, PackageCheck, Boxes, Sparkles, Loader2, ReceiptText, Truck } from 'lucide-react'
 import { clsx } from 'clsx'
 import { PageHeader } from '@/components/PageHeader'
 import { Card, Button, Field, SectionTitle, StatusBadge, Badge } from '@/components/ui'
@@ -15,13 +15,15 @@ import { Timer } from '@/components/Timer'
 import { Modal } from '@/components/Modal'
 import { StorageScanPanel, type StorageScanPayload } from '@/components/StorageScanPanel'
 import { DeliveryRequestModal } from '@/features/delivery/DeliveryRequestModal'
-import { useInvoiceDownload } from '@/features/invoice/useInvoiceDownload'
+import { InvoiceModal } from '@/features/invoice/InvoiceModal'
+import { isUnfinishedSale } from '@/features/bookings/resumeDraft'
 import { trackingUrl } from '@/api/public.api'
-import { useProducts, useUnits, useCreateBooking, usePay, useReserve, useTransition, usePackingSuggestions } from '@/hooks'
+import { useProducts, useUnits, useBooking, useBookingOrder, useCreateBooking, useCustomer, usePay, useReserve, useTransition, usePackingSuggestions } from '@/hooks'
 import { ApiError } from '@/api/client'
 import { useAuthStore } from '@/store/auth'
 import { money } from '@/utils'
 import { toast } from '@/state/toastStore'
+import { sendInvoiceOnPayment } from '@/features/invoice/sendInvoiceOnPayment'
 import type { Booking, Customer, Order, PackingSuggestion } from '@/api/types'
 import { NumberInput } from '@/components/NumberInput'
 
@@ -40,8 +42,10 @@ const defaultBag = (i: number): BagRow => ({ description: `Bag ${i}`, category: 
 const toSuggestBag = (b: BagRow) => ({ category: b.category, dimensions: { w: b.w, h: b.h, d: b.d }, weight: b.weight })
 
 export function ShopDropPage() {
-  const { t } = useTranslation(['agent', 'common'])
+  const { t } = useTranslation(['agent', 'bookings', 'common'])
   const navigate = useNavigate()
+  const [params, setParams] = useSearchParams()
+  const resumeId = params.get('resume') ?? ''
   const online = useAuthStore((s) => s.online)
   const { data: products = [] } = useProducts('SHOP_AND_DROP')
   const { data: units = [] } = useUnits()
@@ -50,7 +54,6 @@ export function ShopDropPage() {
   const payMut = usePay()
   const reserveMut = useReserve()
   const transitionMut = useTransition()
-  const { download: downloadInvoice, generating: invoicePending } = useInvoiceDownload()
 
   const [step, setStep] = useState(0)
   const [deliveryOpen, setDeliveryOpen] = useState(false)
@@ -65,6 +68,29 @@ export function ShopDropPage() {
   const [order, setOrder] = useState<Order | null>(null)
   const [phoneVerified, setPhoneVerified] = useState(false)
   const [labelsOpen, setLabelsOpen] = useState(false)
+  const [invoiceOpen, setInvoiceOpen] = useState(false)
+
+  const { data: resuming } = useBooking(resumeId || undefined)
+  const { data: resumingOrder } = useBookingOrder(resumeId || undefined)
+  const { data: resumingCustomer } = useCustomer(resuming?.customerId)
+
+  useEffect(() => {
+    if (!resumeId || booking) return
+    if (!resuming || !resumingOrder || !resumingCustomer) return
+    if (!isUnfinishedSale(resuming, resumingOrder)) {
+      setParams({}, { replace: true })
+      navigate(`/bookings/${resumeId}`, { replace: true })
+      return
+    }
+    setCustomer(resumingCustomer)
+    setBags(
+      resuming.bags.map((b, i) => ({ ...defaultBag(i + 1), description: b.description || `Bag ${i + 1}` })),
+    )
+    setBooking(resuming)
+    setOrder(resumingOrder)
+    setStep(3)
+    setParams({}, { replace: true })
+  }, [resumeId, resuming, resumingOrder, resumingCustomer, booking, navigate, setParams])
 
   const priceOf = (pid: string) => products.find((p) => p._id === pid)?.basePrice ?? 0
   const selected = suggestions.find((s) => s.productId === productId)
@@ -78,8 +104,6 @@ export function ShopDropPage() {
     setBooking(null); setOrder(null); setPhoneVerified(false)
   }
 
-  // Customer, bags and the compartment plan are all still editable. Stepping back from
-  // Payment releases the held capacity along with the unpaid draft.
   const paid = step > 3
   const canRevisit = (target: number) => !paid && target < step
 
@@ -135,6 +159,7 @@ export function ShopDropPage() {
     try {
       const res = await payMut.mutateAsync({ id: booking.id, splits: splits.map((s) => ({ method: s.method, cardScheme: s.cardScheme ?? null, amount: s.amount, kind: 'SALE' })) })
       setBooking(res.booking)
+      void sendInvoiceOnPayment(res.booking.id, res.booking.trackingToken)
       toast('success', t('shopdrop.paymentCaptured'), t('shopdrop.bookingConfirmed'))
       setStep(4)
     } catch (e) { toast('danger', t('shopdrop.paymentFailed'), e instanceof ApiError ? e.message : '') }
@@ -336,8 +361,8 @@ export function ShopDropPage() {
 
           <div className="mt-5 flex flex-wrap items-center justify-center gap-2">
             {order && (
-              <Button variant="secondary" onClick={() => void downloadInvoice(booking, order)} loading={invoicePending} data-testid="sd-invoice">
-                <FileDown size={15} />{t('shopdrop.downloadInvoice')}</Button>
+              <Button variant="secondary" onClick={() => setInvoiceOpen(true)} data-testid="sd-invoice-slip">
+                <ReceiptText size={15} />{t('bookings:invoice.title')}</Button>
             )}
             <Button variant="secondary" onClick={() => navigate(`/bookings/${booking.id}`)} data-testid="sd-view-booking">{t('shopdrop.viewBooking')}</Button>
             <Button onClick={reset} data-testid="sd-new-another">{t('shopdrop.newTransaction')}</Button>
@@ -359,6 +384,8 @@ export function ShopDropPage() {
           onCreated={(dlvId) => setDeliveryId(dlvId)}
         />
       )}
+
+      {booking && <InvoiceModal bookingId={booking.id} trackingToken={booking.trackingToken} open={invoiceOpen} onClose={() => setInvoiceOpen(false)} />}
 
       <Modal open={labelsOpen} onClose={() => setLabelsOpen(false)} title={t('shopdrop.bagLabels')} subtitle={t('shopdrop.oneBarcode')} size="md"
         footer={<><Button variant="ghost" onClick={() => setLabelsOpen(false)}>{t('common:action.close')}</Button><Button onClick={() => window.print()} className="no-print"><Printer size={15} />{t('shopdrop.print')}</Button></>}>

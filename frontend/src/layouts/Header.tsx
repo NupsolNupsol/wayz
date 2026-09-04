@@ -1,30 +1,41 @@
 import { useState, useRef, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Menu, Search, Wifi, WifiOff, Moon, Sun, ChevronDown, LogOut, UserCog, MapPin } from 'lucide-react'
+import { Menu, Search, Wifi, WifiOff, Moon, Sun, ChevronDown, LogOut, UserCog, MapPin, Rocket } from 'lucide-react'
 import { clsx } from 'clsx'
 import { useTranslation } from 'react-i18next'
 import { useAuthStore } from '@/store/auth'
 import { LanguageToggle } from '@/components/LanguageToggle'
+import { NotificationBell } from '@/components/NotificationBell'
+import { TillButton } from '@/components/TillButton'
+import { SignOutDialog } from '@/components/SignOutDialog'
 import { originFromEvent } from '@/lib/viewTransition'
 import { useSearch } from '@/hooks'
 import { initials } from '@/utils'
 import type { Me, Role } from '@/api/types'
 import type { SearchHit } from '@/api/search.api'
 
-const SEARCHABLE_ROLES: Role[] = ['AGENT', 'CASHIER', 'MANAGER', 'TENANT_ADMIN', 'ACCOUNTANT']
+const SEARCHABLE_ROLES: Role[] = [
+  'AGENT',
+  'CHIEF_CAPTAIN',
+  'SUPERVISOR',
+  'MANAGER',
+  'PROJECT_MANAGER',
+  'TENANT_ADMIN',
+  'ACCOUNTANT',
+]
 
-/** Which of the placeholder wordings this role gets. */
 const SEARCH_SCOPE: Partial<Record<Role, string>> = {
   AGENT: 'operations',
-  CASHIER: 'operations',
+  CHIEF_CAPTAIN: 'operations',
+  SUPERVISOR: 'operations',
   MANAGER: 'operations',
+  PROJECT_MANAGER: 'operations',
   TENANT_ADMIN: 'admin',
   ACCOUNTANT: 'finance',
 }
 
-/** Every role reaches the same record through its own workspace. */
 function routeForHit(hit: SearchHit, role: Role): string {
-  const manager = role === 'MANAGER' || role === 'TENANT_ADMIN'
+  const manager = ['SUPERVISOR', 'MANAGER', 'PROJECT_MANAGER', 'TENANT_ADMIN'].includes(role)
   switch (hit.kind) {
     case 'BOOKING':
       return manager ? `/manager/rentals/${hit.id}` : `/bookings/${hit.id}`
@@ -44,10 +55,10 @@ export function Header({ onOpenMobile, me, dataSw }: { onOpenMobile: () => void;
   const setOnline = useAuthStore((s) => s.setOnline)
   const theme = useAuthStore((s) => s.theme)
   const toggleTheme = useAuthStore((s) => s.toggleTheme)
-  const logout = useAuthStore((s) => s.logout)
 
   const [query, setQuery] = useState('')
   const [userOpen, setUserOpen] = useState(false)
+  const [signOutOpen, setSignOutOpen] = useState(false)
   const ref = useRef<HTMLDivElement>(null)
   const searchRef = useRef<HTMLDivElement>(null)
   const [searchOpen, setSearchOpen] = useState(false)
@@ -137,6 +148,19 @@ export function Header({ onOpenMobile, me, dataSw }: { onOpenMobile: () => void;
         <button onClick={() => setOnline(!online)} title={online ? t('header.online') : t('header.offline')} data-testid="connectivity-toggle" className={clsx('p-2 rounded-lg', online ? 'text-success hover:bg-black/5' : 'text-danger-strong bg-red-50')}>
           {online ? <Wifi size={18} /> : <WifiOff size={18} />}
         </button>
+        <a
+          href="/versions"
+          target="_blank"
+          rel="noreferrer"
+          title={t('header.whatsNew')}
+          aria-label={t('header.whatsNew')}
+          data-testid="header-versions"
+          className="p-2 rounded-lg text-muted hover:text-brand hover:bg-black/5 no-underline"
+        >
+          <Rocket size={18} />
+        </a>
+        <TillButton />
+        <NotificationBell />
         <LanguageToggle compact />
         <button onClick={(e) => toggleTheme(originFromEvent(e))} className="p-2 rounded-lg text-muted hover:bg-black/5" aria-label={t('header.toggleTheme')} data-testid="theme-toggle">
           {theme === 'light' ? <Moon size={18} /> : <Sun size={18} />}
@@ -156,13 +180,14 @@ export function Header({ onOpenMobile, me, dataSw }: { onOpenMobile: () => void;
               <button onClick={() => { navigate('/profile'); setUserOpen(false) }} className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm hover:bg-canvas dark:hover:bg-dk-elevated text-start">
                 <UserCog size={15} /> {t('header.profile')}
               </button>
-              <button onClick={() => { logout(); navigate('/login') }} className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm hover:bg-red-50 text-danger-strong text-start" data-testid="logout-btn">
+              <button onClick={() => { setUserOpen(false); setSignOutOpen(true) }} className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm hover:bg-red-50 text-danger-strong text-start" data-testid="logout-btn">
                 <LogOut size={15} /> {t('action.signOut')}
               </button>
             </div>
           )}
         </div>
       </div>
+      <SignOutDialog open={signOutOpen} onClose={() => setSignOutOpen(false)} />
     </header>
   )
 }

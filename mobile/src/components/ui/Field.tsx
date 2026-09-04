@@ -31,7 +31,6 @@ export function Field({
   )
 }
 
-/** One input style for the whole app, sized for a thumb rather than a mouse. */
 export function Input({
   className = '',
   invalid = false,

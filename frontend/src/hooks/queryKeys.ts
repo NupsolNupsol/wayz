@@ -21,6 +21,7 @@ export const qk = {
     estate: (engineKind: string) => ['assets', 'estate', engineKind] as const,
     type: (id: string) => ['assets', 'type', id] as const,
     unit: (id: string) => ['assets', 'unit', id] as const,
+    returnPosition: (id: string) => ['assets', 'unit', id, 'return-position'] as const,
   },
   manager: {
     overview: ['manager', 'overview'] as const,
@@ -65,16 +66,26 @@ export const qk = {
     people: ['admin', 'people'] as const,
     audit: ['admin', 'audit'] as const,
     isolation: ['admin', 'isolation'] as const,
+    stationMap: ['admin', 'station-map'] as const,
+    rules: ['admin', 'rules'] as const,
   },
-  cashier: {
-    overview: ['cashier', 'overview'] as const,
-    queue: ['cashier', 'queue'] as const,
-    transactions: (f: object) => ['cashier', 'transactions', f] as const,
-    drawer: (id: string) => ['cashier', 'drawer', id] as const,
+  notifications: {
+    feed: (f: object) => ['notifications', 'feed', f] as const,
+  },
+  manualSales: (f: object) => ['manual-sales', f] as const,
+  invoice: (id: string) => ['invoice', id] as const,
+  devClock: ['dev-clock'] as const,
+  refundRequests: (f: object) => ['refund-requests', f] as const,
+  till: {
+    overview: ['till', 'overview'] as const,
+    queue: ['till', 'queue'] as const,
+    transactions: (f: object) => ['till', 'transactions', f] as const,
+    drawer: (id: string) => ['till', 'drawer', id] as const,
   },
   delivery: {
     board: ['delivery', 'board'] as const,
     station: (f: object) => ['delivery', 'station', f] as const,
     detail: (id: string) => ['delivery', 'detail', id] as const,
+    customerBags: (bookingId: string) => ['delivery', 'customer-bags', bookingId] as const,
   },
 }

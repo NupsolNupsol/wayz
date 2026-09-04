@@ -12,12 +12,14 @@ import type { EngineKind, Role } from '@/api/types'
 import type { TenantOverview } from '@/api/admin.api'
 
 const ROLE_LABEL: Record<Role, string> = {
-  TENANT_ADMIN: 'Tenant admin',
-  MANAGER: 'Manager',
+  TENANT_ADMIN: 'CEO / tenant admin',
+  PROJECT_MANAGER: 'Project manager',
+  MANAGER: 'Activity manager',
+  SUPERVISOR: 'Supervisor',
   ACCOUNTANT: 'Accountant',
-  HR: 'HR',
-  AGENT: 'Agent',
-  CASHIER: 'Cashier',
+  HR: 'HR & expenses',
+  AGENT: 'Kiosk agent',
+  CHIEF_CAPTAIN: 'Chief captain',
   DELIVERY_AGENT: 'Delivery agent',
 }
 
@@ -79,7 +81,7 @@ export function AdminOverview() {
           icon={<Users size={18} />}
           tone="neutral"
           sublabel={t('overview.activeCount', { count: data.people.active })}
-          onClick={() => navigate('/admin/people')}
+          onClick={() => navigate('/manager/team')}
           testId="admin-stat-people"
         />
         <StatCard
@@ -128,7 +130,7 @@ export function AdminOverview() {
               <span className="tabular-nums font-semibold">{data.people.byRole[role] ?? 0}</span>
             </div>
           ))}
-          <Button variant="secondary" className="mt-4" onClick={() => navigate('/admin/people')} data-testid="admin-go-people">{t('overview.everyEmployee')}</Button>
+          <Button variant="secondary" className="mt-4" onClick={() => navigate('/manager/team')} data-testid="admin-go-people">{t('overview.everyEmployee')}</Button>
         </Card>
 
         <Card className="p-4" data-testid="admin-operations">

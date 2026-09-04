@@ -41,8 +41,8 @@ export interface AssetUnitDoc {
   status: AssetUnitStatus
   currentBookingId: string | null
   note?: string
-  /** Set when this one unit is priced apart from the rest of its type. */
   priceOverride?: number | null
+  penaltyPrice?: number | null
 }
 
 const assetUnitSchema = new Schema<AssetUnitDoc>(
@@ -58,6 +58,7 @@ const assetUnitSchema = new Schema<AssetUnitDoc>(
     currentBookingId: { type: String, default: null },
     note: { type: String },
     priceOverride: { type: Number, default: null },
+    penaltyPrice: { type: Number, default: null },
   },
   { _id: false, timestamps: true },
 )

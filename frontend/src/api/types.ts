@@ -1,4 +1,13 @@
-export type Role = 'AGENT' | 'CASHIER' | 'DELIVERY_AGENT' | 'MANAGER' | 'HR' | 'ACCOUNTANT' | 'TENANT_ADMIN'
+export type Role =
+  | 'AGENT'
+  | 'DELIVERY_AGENT'
+  | 'SUPERVISOR'
+  | 'CHIEF_CAPTAIN'
+  | 'MANAGER'
+  | 'PROJECT_MANAGER'
+  | 'HR'
+  | 'ACCOUNTANT'
+  | 'TENANT_ADMIN'
 export type EngineKind = 'SHOP_AND_DROP' | 'MOBILITY' | 'LAGOON' | 'COTE_RESTAURANT' | 'ANAAM'
 export type BillingModel = 'PER_BAG' | 'PER_COMPARTMENT' | 'PACKAGE' | 'DURATION_BASED'
 export type BookingStatus = 'DRAFT' | 'CONFIRMED' | 'RESERVED' | 'ACTIVE' | 'OVERTIME' | 'RETRIEVAL_IN_PROGRESS' | 'PREPARING' | 'SERVED' | 'COMPLETED' | 'CANCELLED'
@@ -19,7 +28,6 @@ export interface Me {
   fullName: string
   role: Role
   phone: string
-  /** The activities an agent is dedicated to; empty for every other role, which sees all. */
   engineKinds: EngineKind[]
   tenant: {
     id: string
@@ -53,6 +61,9 @@ export interface Product {
   name: string
   category: string
   basePrice: number
+  hourlyPrice?: number | null
+  tourPrice?: number | null
+  tourMinutes?: number | null
   depositRequired: number
   assetTypeId: string | null
   billingModel: BillingModel
@@ -208,8 +219,14 @@ export interface Booking {
   ref: string
   tenantId: string
   stationId: string
+  kioskId: string | null
   agentId: string
   orderId: string
+  amountDue?: number
+  amountCharged?: number
+  baseAmount: number
+  vatAmount: number
+  totalAmount: number
   customerId: string
   customerName: string
   customerPhone: string
@@ -295,12 +312,17 @@ export interface DashboardStats {
 export interface Shift {
   _id: string
   status: 'OPEN' | 'RECONCILING' | 'CLOSED'
+  kioskId?: string | null
+  agentId?: string
   openedAt: string
   closedAt?: string | null
+  openingFloat?: number
   expectedCash: number
   countedCash?: number | null
   variance?: number | null
   resolutionNote?: string
+  closedBy?: string | null
+  closedByName?: string | null
 }
 
 export type IncidentType =

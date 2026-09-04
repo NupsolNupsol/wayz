@@ -36,7 +36,6 @@ export function EmptyState({
   )
 }
 
-/** A failure the agent can act on: what went wrong, and a way to try again. */
 export function ErrorState({ message, onRetry }: { message: string; onRetry?: ReactNode }) {
   return (
     <View className="gap-2 rounded-xl2 border border-danger/30 bg-danger-soft p-4" testID="error-state">
@@ -47,7 +46,6 @@ export function ErrorState({ message, onRetry }: { message: string; onRetry?: Re
   )
 }
 
-/** A quiet note that explains a rule, rather than reporting a failure. */
 export function Notice({
   tone = 'info',
   children,

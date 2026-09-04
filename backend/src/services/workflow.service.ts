@@ -1,7 +1,8 @@
-import { AssetUnit } from '../models/index.js'
+import { AssetType, AssetUnit, Kiosk } from '../models/index.js'
 import type { BookingHydrated } from '../models/booking.model.js'
 import type { Role } from '../domain/types.js'
 import { ApiError } from '../utils/ApiError.js'
+import { tenantRules } from './rules.service.js'
 import {
   getOperator,
   getValidator,
@@ -60,6 +61,7 @@ async function gatherAssets(
   payload: TransitionPayload,
   tenantId: string,
   stationId: string,
+  kioskId?: string | null,
 ): Promise<WorkflowContext['assets']> {
   const assetTypeId = booking.metadata?.assetTypeId as string | undefined
   const currentId = booking.reservation?.assetUnitId ?? booking.assetUnitId ?? null
@@ -69,7 +71,16 @@ async function gatherAssets(
   const [current, available, referenced] = await Promise.all([
     currentId ? AssetUnit.findOne({ _id: currentId, tenantId }).lean() : null,
     assetTypeId
-      ? AssetUnit.find({ tenantId, stationId, assetTypeId, status: 'AVAILABLE' }).sort({ identifier: 1 }).limit(25).lean()
+      ? AssetUnit.find({
+          tenantId,
+          stationId,
+          assetTypeId,
+          status: 'AVAILABLE',
+          ...(kioskId ? { kioskId } : {}),
+        })
+          .sort({ identifier: 1 })
+          .limit(25)
+          .lean()
       : [],
     AssetUnit.find({ _id: { $in: [requestedId, scannedId].filter(Boolean) }, tenantId }).lean(),
   ])
@@ -111,8 +122,48 @@ async function applyAssetIntents(intents: AssetIntent[], tenantId: string): Prom
   }
 }
 
+const NO_UNIT_ERRORS = ['No available unit to reserve.', 'No replacement unit available.']
+
+async function noUnitHere(
+  tenantId: string,
+  stationId: string,
+  kioskId: string | null,
+  assetTypeId: string | undefined,
+): Promise<string[]> {
+  if (!assetTypeId) return []
+
+  const [type, kiosk, elsewhere, otherSizes] = await Promise.all([
+    AssetType.findOne({ _id: assetTypeId, tenantId }, { name: 1, kind: 1 }).lean(),
+    kioskId ? Kiosk.findOne({ _id: kioskId, tenantId }, { name: 1 }).lean() : null,
+    AssetUnit.countDocuments({ tenantId, stationId, assetTypeId, status: 'AVAILABLE', ...(kioskId ? { kioskId: { $ne: kioskId } } : {}) }),
+    kioskId
+      ? AssetUnit.aggregate<{ _id: string; free: number }>([
+          { $match: { tenantId, stationId, kioskId, status: 'AVAILABLE' } },
+          { $group: { _id: '$assetTypeId', free: { $sum: 1 } } },
+        ])
+      : [],
+  ])
+
+  const here = kiosk?.name ?? 'this desk'
+  const size = type?.name ?? 'that size'
+  const names = await AssetType.find(
+    { _id: { $in: otherSizes.map((row) => row._id).filter((id) => id !== assetTypeId) }, tenantId, kind: type?.kind },
+    { name: 1 },
+  ).lean()
+  const nameOf = new Map(names.map((t) => [t._id, t.name]))
+  const free = otherSizes
+    .filter((row) => row._id !== assetTypeId && nameOf.has(row._id))
+    .map((row) => `${nameOf.get(row._id)} (${row.free})`)
+
+  const lines = [`${here} has no ${size} free right now.`]
+  if (free.length) lines.push(`Free at ${here}: ${free.join(', ')} — go back and pick one of those.`)
+  if (elsewhere > 0) lines.push(`${elsewhere} ${size} are free at other desks, but a desk can only lock its own.`)
+  return lines
+}
+
 export async function applyTransition(params: ApplyTransitionParams): Promise<ApplyTransitionResult> {
   const { booking, code, actor, tenantId, stationId } = params
+  const kioskId = params.kioskId ?? booking.kioskId ?? null
   const payload = params.payload ?? {}
   const now = params.now ?? new Date()
 
@@ -127,12 +178,17 @@ export async function applyTransition(params: ApplyTransitionParams): Promise<Ap
     throw ApiError.forbidden(`Role ${actor.role} may not perform "${code}".`)
   }
 
+  const rules = await tenantRules(tenantId)
   const ctx: WorkflowContext = {
     booking: toSnapshot(booking),
     payload,
     actor,
     now,
-    assets: await gatherAssets(booking, payload, tenantId, stationId),
+    assets: await gatherAssets(booking, payload, tenantId, stationId, kioskId),
+    rules: {
+      timer: rules.rental.timers[booking.engineKind],
+      replacementBonusMin: rules.rental.replacementBonusMin,
+    },
   }
 
   const validator = getValidator(booking.engineKind)
@@ -143,7 +199,13 @@ export async function applyTransition(params: ApplyTransitionParams): Promise<Ap
   const operator = getOperator(booking.engineKind)
   if (!operator) throw ApiError.unprocessable(`No operator registered for "${booking.engineKind}".`)
   const result = await operator(code, ctx)
-  if (result.errors.length) throw ApiError.unprocessable(`Cannot ${transition.label}.`, result.errors)
+  if (result.errors.length) {
+    if (result.errors.some((e) => NO_UNIT_ERRORS.includes(e))) {
+      const detail = await noUnitHere(tenantId, stationId, kioskId, booking.metadata?.assetTypeId as string | undefined)
+      if (detail.length) throw ApiError.unprocessable(detail[0], detail.slice(1))
+    }
+    throw ApiError.unprocessable(`Cannot ${transition.label}.`, result.errors)
+  }
 
   const from = booking.status
   applySnapshot(booking, result.booking)

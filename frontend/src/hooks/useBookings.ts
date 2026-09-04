@@ -1,16 +1,27 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { bookingApi, type ConfirmVerificationInput, type CreateBookingInput, type TransitionPayload } from '../api/booking.api'
 import { qk } from './queryKeys'
+import { OPERATIONS_POLL_MS } from './pollIntervals'
 import type { EngineKind, OtpChannel, PaymentMethod, VerificationPurpose } from '../api/types'
 
-export const useBookings = (filter?: { status?: string; engineKind?: EngineKind }) => useQuery({ queryKey: qk.bookings(filter), queryFn: () => bookingApi.list(filter) })
+export const useBookings = (
+  filter?: { status?: string; engineKind?: EngineKind },
+  options?: { enabled?: boolean },
+) =>
+  useQuery({
+    queryKey: qk.bookings(filter),
+    queryFn: () => bookingApi.list(filter),
+    enabled: options?.enabled ?? true,
+    refetchInterval: OPERATIONS_POLL_MS,
+    refetchOnWindowFocus: true,
+    staleTime: 0,
+  })
 export const useBooking = (id: string | undefined) => useQuery({ queryKey: qk.booking(id ?? ''), queryFn: () => bookingApi.get(id!), enabled: !!id })
 export const useBookingOrder = (id: string | undefined) => useQuery({ queryKey: qk.bookingOrder(id ?? ''), queryFn: () => bookingApi.order(id!), enabled: !!id })
 export const useRefundPosition = (id: string | undefined, enabled = true) =>
   useQuery({ queryKey: qk.bookingRefund(id ?? ''), queryFn: () => bookingApi.refundPosition(id!), enabled: !!id && enabled })
 
 export const useTransitions = (id: string | undefined) => useQuery({ queryKey: qk.transitions(id ?? ''), queryFn: () => bookingApi.transitions(id!), enabled: !!id })
-
 
 export function useInvalidateBooking() {
   const qc = useQueryClient()
@@ -24,11 +35,10 @@ export function useInvalidateBooking() {
     qc.invalidateQueries({ queryKey: ['bookings'] })
     qc.invalidateQueries({ queryKey: qk.dashboard })
     qc.invalidateQueries({ queryKey: qk.units })
-    qc.invalidateQueries({ queryKey: ['cashier'] })
+    qc.invalidateQueries({ queryKey: ['till'] })
     qc.invalidateQueries({ queryKey: qk.shift })
   }
 }
-
 
 export function useCreateBooking() {
   const invalidate = useInvalidateBooking()
@@ -82,6 +92,21 @@ export function useRefundBooking() {
       await invalidate(v.id)
       qc.invalidateQueries({ queryKey: qk.bookingRefund(v.id) })
       qc.invalidateQueries({ queryKey: ['accounting'] })
+    },
+  })
+}
+
+export function useSettleBooking() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (v: { id: string; splits: { method: PaymentMethod; cardScheme?: string | null; amount: number }[] }) =>
+      bookingApi.settle(v.id, v.splits),
+    onSuccess: (_r, v) => {
+      qc.invalidateQueries({ queryKey: qk.booking(v.id) })
+      qc.invalidateQueries({ queryKey: qk.bookingOrder(v.id) })
+      qc.invalidateQueries({ queryKey: ['bookings'] })
+      qc.invalidateQueries({ queryKey: ['till'] })
+      qc.invalidateQueries({ queryKey: qk.shift })
     },
   })
 }

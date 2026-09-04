@@ -7,10 +7,6 @@ import { Button } from '@/components/ui'
 import { toast } from '@/state/toastStore'
 import { assetUnitUrl } from './assetUrl'
 
-/**
- * Draws the code onto a canvas at print resolution so the sticker stays sharp,
- * then hands the browser a PNG.
- */
 async function downloadPng(svg: SVGSVGElement, fileName: string, caption: string): Promise<void> {
   const size = 900
   const pad = 60

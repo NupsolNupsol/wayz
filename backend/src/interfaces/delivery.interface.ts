@@ -8,6 +8,7 @@ export interface CreateDeliveryInput {
   contactPhone?: string
   origin: DeliveryOrigin
   fee?: number
+  alsoBookingIds?: string[]
 }
 
 export interface DeliveryActor {

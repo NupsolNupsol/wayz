@@ -22,8 +22,11 @@ export function requireRole(...roles: Role[]) {
   }
 }
 
-export const requireAgent = requireRole('AGENT', 'CASHIER')
+export const requireAgent = requireRole('AGENT')
 
+export const requireLagoonDesk = requireRole('AGENT', 'CHIEF_CAPTAIN')
+
+export const requireOverride = requireRole('SUPERVISOR', 'MANAGER', 'PROJECT_MANAGER', 'TENANT_ADMIN')
 
 export const requireTenantAdmin = requireRole('TENANT_ADMIN')
 

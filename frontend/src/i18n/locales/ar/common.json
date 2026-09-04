@@ -37,7 +37,8 @@
     "goBackTo": "العودة إلى {{step}}",
     "retire": "سحب",
     "restore": "إعادة",
-    "suspend": "إيقاف"
+    "suspend": "إيقاف",
+    "remove": "إزالة"
   },
   "field": {
     "name": "الاسم",
@@ -132,29 +133,34 @@
       "CUSTOMER": "عميل",
       "PAYMENT": "دفعة",
       "TRANSACTION": "جهاز الشبكة"
-    }
+    },
+    "whatsNew": "ما الجديد — الإصدارات وكيفية اختبارها"
   },
   "offline": {
     "title": "أنت غير متصل بالإنترنت",
     "message": "العمليات المالية تحتاج إلى اتصال. أعد الاتصال لإنشاء الحجوزات واستلام المدفوعات وتشغيل إجراءات الأصول."
   },
   "role": {
-    "AGENT": "موظف",
-    "CASHIER": "أمين صندوق",
-    "DELIVERY_AGENT": "مندوب توصيل",
-    "MANAGER": "مدير",
-    "HR": "الموارد البشرية",
+    "AGENT": "موظف الكشك",
+    "DELIVERY_AGENT": "مندوب التوصيل",
+    "MANAGER": "مدير النشاط",
+    "HR": "الموارد البشرية والمصروفات",
     "ACCOUNTANT": "محاسب",
-    "TENANT_ADMIN": "مدير المنشأة"
+    "TENANT_ADMIN": "الرئيس التنفيذي / مدير المستأجر",
+    "SUPERVISOR": "مشرف",
+    "CHIEF_CAPTAIN": "رئيس القباطنة",
+    "PROJECT_MANAGER": "مدير المشاريع"
   },
   "workspace": {
-    "AGENT": "نقطة البيع",
-    "CASHIER": "الصندوق",
+    "AGENT": "الكشك",
     "DELIVERY_AGENT": "التوصيل",
-    "MANAGER": "الإدارة",
+    "MANAGER": "المدير",
     "HR": "الموارد البشرية والتكاليف",
     "ACCOUNTANT": "المحاسبة",
-    "TENANT_ADMIN": "إدارة المنشأة"
+    "TENANT_ADMIN": "مدير المستأجر",
+    "SUPERVISOR": "الإشراف",
+    "CHIEF_CAPTAIN": "قوارب البحيرة",
+    "PROJECT_MANAGER": "المشاريع"
   },
   "engine": {
     "SHOP_AND_DROP": "حفظ الأمتعة",
@@ -177,7 +183,6 @@
     "home": "الرئيسية",
     "manager": "الإدارة",
     "tenantadmin": "إدارة المنشأة",
-    "cashier": "الصندوق",
     "delivery": "التوصيل",
     "accounting": "المحاسبة",
     "hr": "الموارد البشرية",
@@ -212,7 +217,9 @@
     "company": "المنشأة",
     "people": "الموظفون",
     "costs": "التكاليف",
-    "commissions": "العمولات"
+    "commissions": "العمولات",
+    "till": "الصندوق",
+    "admin": "مدير المستأجر"
   },
   "time": {
     "min": "دقيقة",
@@ -220,10 +227,22 @@
     "justNow": "الآن",
     "minsAgo": "قبل {{count}} دقيقة",
     "inMins": "خلال {{count}} دقيقة",
-    "hoursAgo": "قبل {{count}} ساعة",
+    "hoursAgo": "منذ {{hours}}س {{minutes}}د",
     "inHours": "خلال {{count}} ساعة",
     "daysAgo": "قبل {{count}} يوم",
-    "inDays": "خلال {{count}} يوم"
+    "inDays": "خلال {{count}} يوم",
+    "minutesAgo_zero": "منذ {{count}} دقيقة",
+    "minutesAgo_one": "منذ دقيقة",
+    "minutesAgo_two": "منذ دقيقتين",
+    "minutesAgo_few": "منذ {{count}} دقائق",
+    "minutesAgo_many": "منذ {{count}} دقيقة",
+    "minutesAgo_other": "منذ {{count}} دقيقة",
+    "daysAgo_zero": "منذ {{count}} يوم",
+    "daysAgo_one": "منذ يوم",
+    "daysAgo_two": "منذ يومين",
+    "daysAgo_few": "منذ {{count}} أيام",
+    "daysAgo_many": "منذ {{count}} يومًا",
+    "daysAgo_other": "منذ {{count}} يوم"
   },
   "column": {
     "status": "الحالة",
@@ -387,7 +406,6 @@
     "email": "البريد الإلكتروني",
     "website": "الموقع الإلكتروني",
     "agentrunsthecounterforoneactivity": "موظف — يدير الكاونتر لنشاط واحد",
-    "cashierthetillpaymentsrefundsdrawer": "أمين صندوق — المدفوعات والمرتجعات والدرج",
     "deliveryagenttakesbagstocustomers": "مندوب توصيل — يوصل الأمتعة للعملاء",
     "managertenantwideoversight": "مدير — إشراف على كامل المنشأة",
     "accountantreadonlyvatandfinance": "محاسب — اطلاع على الضريبة والمالية فقط",
@@ -433,5 +451,18 @@
     "LAGOON": "البحيرة",
     "COTE_RESTAURANT": "كوت",
     "ANAAM": "الأنعام"
+  },
+  "method": {
+    "CASH": "نقدًا",
+    "CARD": "بطاقة"
+  },
+  "live": {
+    "live": "مباشر",
+    "updated": "حُدِّث {{when}}"
+  },
+  "signOut": {
+    "title": "تسجيل الخروج؟",
+    "subtitle": "ستحتاج كلمة المرور للعودة.",
+    "nothingOpen": "لم يتبقَّ شيء مفتوح على مكتبك."
   }
 }

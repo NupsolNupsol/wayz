@@ -48,6 +48,19 @@ export interface SessionSnapshot {
   chargeableEndedAt?: string | null
   gracePeriodMin: number
   overtimeHourlyRate: number
+  paidAt?: string | null
+}
+
+export type TimerStart = 'FULFILMENT' | 'PAYMENT'
+
+export interface TimerPolicy {
+  startsOn: TimerStart
+  startDelayMin: number
+}
+
+export interface WorkflowRules {
+  timer: TimerPolicy
+  replacementBonusMin: number
 }
 
 export interface ReservationSnapshot {
@@ -118,6 +131,7 @@ export interface WorkflowContext {
     available: AssetUnitSnapshot[]
     byId: Record<string, AssetUnitSnapshot>
   }
+  rules?: WorkflowRules
 }
 
 export interface AssetIntent {

@@ -29,7 +29,6 @@ const ENGLISH_CATEGORIES: Record<ExpenseCategory, string> = {
   OTHER: 'Other',
 }
 
-/** What the cost is for, in the reader's language. */
 export const categoryLabel = (category: ExpenseCategory | string): string =>
   i18n.t(`status:expenseCategory.${category}`, {
     defaultValue: ENGLISH_CATEGORIES[category as ExpenseCategory] ?? String(category).replaceAll('_', ' '),
@@ -131,7 +130,51 @@ export interface HrFilter {
   seasonId?: string
 }
 
+export interface ShiftWindow {
+  startsAt: string
+  endsAt: string
+  lengthMin: number
+}
+
+export interface HoursRow {
+  agentId: string
+  name: string
+  role: Role | null
+  shifts: number
+  stillOpen: number
+  minutes: number
+  hours: number
+  expectedHours: number
+  lastSeen: string | null
+}
+
+export interface HoursWorked {
+  from: string
+  to: string
+  window: ShiftWindow
+  rows: HoursRow[]
+  totalHours: number
+}
+
+export interface PeopleAuditRow {
+  _id: string
+  action: string
+  entity: string
+  entityId: string
+  detail: string | null
+  reason: string | null
+  actorId: string
+  actorName: string
+  at: string
+}
+
 export const hrApi = {
+  shiftWindow: () => unwrap<ShiftWindow>(http.get('/hr/shift-window')),
+  setShiftWindow: (input: { startsAt: string; endsAt: string }) =>
+    unwrap<ShiftWindow>(http.patch('/hr/shift-window', input)),
+  hours: (params: { from?: string; to?: string } = {}) => unwrap<HoursWorked>(http.get('/hr/hours', { params })),
+  peopleAudit: (params: { action?: string; agentId?: string } = {}) =>
+    unwrap<{ actions: string[]; rows: PeopleAuditRow[] }>(http.get('/hr/audit', { params })),
   overview: (params: HrFilter = {}) => unwrap<HrOverview>(http.get('/hr/overview', { params })),
   expenses: (params: HrFilter = {}) => unwrap<Expense[]>(http.get('/hr/expenses', { params })),
   createExpense: (input: ExpenseInput) => unwrap<Expense>(http.post('/hr/expenses', input)),

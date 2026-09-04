@@ -1,9 +1,10 @@
-import { AssetUnit, Booking, Customer, Incident, Order, Payment, Shift, Station, User } from '../models/index.js'
+import { AssetUnit, Booking, Customer, Incident, Kiosk, Order, Payment, Shift, Station, User } from '../models/index.js'
 import { tenantEngines } from './catalogue.service.js'
 import { ApiError } from '../utils/ApiError.js'
 import { round2 } from '../utils/helpers.js'
 import type { EngineKind } from '../domain/types.js'
 import { computeOvertime } from '../domain/overtime.js'
+import { canWorkEngine, engineFilter } from '../domain/access.js'
 import type { ManagerScope } from '../interfaces/index.js'
 
 function startOfDay(d = new Date()): Date {
@@ -18,9 +19,24 @@ function daysAgo(n: number): Date {
 
 const ACTIVE_STATUSES = ['ACTIVE', 'OVERTIME', 'RETRIEVAL_IN_PROGRESS']
 
+function scoped(scope: ManagerScope, extra: Record<string, unknown> = {}): Record<string, unknown> {
+  const q: Record<string, unknown> = { tenantId: scope.tenantId, ...extra }
+  const engines = engineFilter({ role: scope.role, engineKinds: scope.engineKinds })
+  if (engines !== undefined) q.engineKind = engines
+  return q
+}
+
+function owns(scope: ManagerScope, engineKind?: EngineKind | null): boolean {
+  if (!engineKind) return true
+  return canWorkEngine({ role: scope.role, engineKinds: scope.engineKinds }, engineKind)
+}
+
 export async function managerOverview(scope: ManagerScope) {
-  const engines = await tenantEngines(scope.tenantId)
-  const base = { tenantId: scope.tenantId }
+  const allEngines = await tenantEngines(scope.tenantId)
+  const mine = scope.engineKinds?.length ? scope.engineKinds : null
+  const engines = mine ? allEngines.filter((e) => mine.includes(e)) : allEngines
+  const base = scoped(scope)
+  const tenantOnly = { tenantId: scope.tenantId }
   const now = new Date()
   const today = startOfDay()
 
@@ -46,7 +62,7 @@ export async function managerOverview(scope: ManagerScope) {
     Booking.countDocuments({ ...base, status: { $in: ACTIVE_STATUSES } }),
     Booking.countDocuments({ ...base, status: { $in: ['ACTIVE', 'OVERTIME'] }, 'session.expectedEndAt': { $lt: now } }),
     Incident.countDocuments({ ...base, status: { $nin: ['RESOLVED', 'REJECTED'] } }),
-    Shift.countDocuments({ ...base, status: 'RECONCILING' }),
+    Shift.countDocuments({ ...tenantOnly, status: 'RECONCILING' }),
 
     Payment.aggregate([
       { $match: { ...base, status: 'CAPTURED', createdAt: { $gte: daysAgo(29) } } },
@@ -142,7 +158,7 @@ async function sumRevenue(base: Record<string, unknown>, since: Date): Promise<n
 
 export async function managerIncidents(scope: ManagerScope) {
   const [incidents, stations] = await Promise.all([
-    Incident.find({ tenantId: scope.tenantId }).sort({ createdAt: -1 }).limit(300).lean(),
+    Incident.find(scoped(scope)).sort({ createdAt: -1 }).limit(300).lean(),
     Station.find({ tenantId: scope.tenantId }).lean(),
   ])
   const stationName = new Map(stations.map((s) => [s._id, s.name]))
@@ -150,18 +166,28 @@ export async function managerIncidents(scope: ManagerScope) {
 }
 
 export async function managerShifts(scope: ManagerScope) {
-  const [shifts, stations, users] = await Promise.all([
+  const [shifts, stations, kiosks, users] = await Promise.all([
     Shift.find({ tenantId: scope.tenantId }).sort({ openedAt: -1 }).limit(200).lean(),
     Station.find({ tenantId: scope.tenantId }).lean(),
+    Kiosk.find({ tenantId: scope.tenantId }).lean(),
     User.find({ tenantId: scope.tenantId }).lean(),
   ])
   const stationName = new Map(stations.map((s) => [s._id, s.name]))
+  const kioskName = new Map(kiosks.map((k) => [k._id, k.name]))
   const userName = new Map(users.map((u) => [u._id, u.fullName]))
   return shifts.map((s) => ({
     ...s,
     stationName: stationName.get(s.stationId) ?? s.stationId,
+    kioskName: s.kioskId ? (kioskName.get(s.kioskId) ?? s.kioskId) : null,
     agentName: userName.get(s.agentId) ?? s.agentId,
   }))
+}
+
+export async function managerShift(scope: ManagerScope, shiftId: string) {
+  const rows = await managerShifts(scope)
+  const shift = rows.find((s) => s._id === shiftId)
+  if (!shift) throw ApiError.notFound('Shift not found.')
+  return shift
 }
 
 export async function managerStaff(scope: ManagerScope) {
@@ -182,7 +208,7 @@ export async function managerStaff(scope: ManagerScope) {
 
 export async function managerLiveSessions(scope: ManagerScope) {
   const [bookings, stations] = await Promise.all([
-    Booking.find({ tenantId: scope.tenantId, status: { $in: ACTIVE_STATUSES } })
+    Booking.find(scoped(scope, { status: { $in: ACTIVE_STATUSES } }))
       .sort({ 'session.expectedEndAt': 1 })
       .limit(200)
       .lean(),
@@ -217,7 +243,7 @@ const RENTAL_SCOPES = {
 
 export async function managerRentals(scope: ManagerScope, which: keyof typeof RENTAL_SCOPES = 'all') {
   const statuses = RENTAL_SCOPES[which]
-  const query: Record<string, unknown> = { tenantId: scope.tenantId }
+  const query = scoped(scope)
   if (which === 'expired') {
     query.status = { $in: ['ACTIVE', 'OVERTIME'] }
   } else if (statuses.length) {
@@ -261,6 +287,7 @@ export async function managerRentals(scope: ManagerScope, which: keyof typeof RE
 export async function managerRentalDetail(scope: ManagerScope, bookingId: string) {
   const booking = await Booking.findOne({ _id: bookingId, tenantId: scope.tenantId }).lean()
   if (!booking) throw ApiError.notFound('Rental not found.')
+  if (!owns(scope, booking.engineKind)) throw ApiError.notFound('Rental not found.')
 
   const [order, payments, station, agent] = await Promise.all([
     Order.findById(booking.orderId).lean(),
@@ -343,7 +370,7 @@ export async function managerCustomerDetail(scope: ManagerScope, customerId: str
 export async function managerPayments(scope: ManagerScope) {
   const [payments, stations] = await Promise.all([
     Payment.aggregate([
-      { $match: { tenantId: scope.tenantId } },
+      { $match: scoped(scope) },
       { $sort: { createdAt: -1 } },
       { $limit: 500 },
       { $lookup: { from: 'bookings', localField: 'bookingId', foreignField: '_id', as: 'b' } },

@@ -1,9 +1,10 @@
-import { Booking, Notification } from '../models/index.js'
+import { Booking } from '../models/index.js'
 import type { BookingHydrated } from '../models/booking.model.js'
 import { env } from '../config/env.js'
 import { logger } from '../config/logger.js'
 import { computeOvertime, describeOvertime, OVERTIME_BLOCK_MINUTES } from '../domain/overtime.js'
 import { sendWhatsAppText } from './whatsapp.service.js'
+import { raise } from './notification.service.js'
 
 export function trackingUrl(trackingToken: string): string {
   return `${env.PUBLIC_APP_URL.replace(/\/$/, '')}/track/${trackingToken}`
@@ -40,14 +41,17 @@ export async function sweepExpiryWarnings(now: Date = new Date()): Promise<numbe
       ? await sendWhatsAppText(booking.customerPhone, warningMessage(booking, minutesLeft))
       : { ok: false, error: 'Booking has no customer phone.' }
 
-    await Notification.create({
+    await raise({
       tenantId: booking.tenantId,
       stationId: booking.stationId,
+      kioskId: booking.kioskId,
+      engineKind: booking.engineKind,
       title: result.ok ? 'Expiry warning sent' : 'Expiry warning NOT delivered',
       body: result.ok
         ? `${booking.ref}: customer warned that storage ends in ~${minutesLeft} min.`
         : `${booking.ref}: could not WhatsApp the customer (${result.error}). Call them before overtime starts.`,
       level: result.ok ? 'info' : 'warning',
+      link: `/bookings/${booking._id}`,
     })
     if (result.ok) sent += 1
   }
@@ -72,12 +76,15 @@ export async function sweepOvertime(now: Date = new Date()): Promise<number> {
     await booking.save()
     flipped += 1
 
-    await Notification.create({
+    await raise({
       tenantId: booking.tenantId,
       stationId: booking.stationId,
+      kioskId: booking.kioskId,
+      engineKind: booking.engineKind,
       title: 'Overtime accruing',
       body: `${booking.ref} passed its ${state.gracePeriodMin}-minute grace period. ${describeOvertime(state)}`,
       level: 'danger',
+      link: `/bookings/${booking._id}`,
     })
   }
 

@@ -6,7 +6,6 @@ export interface Scope {
   agentId: string
   role: Role
   kioskId?: string | null
-  /** Empty means "every activity". An agent is narrowed to the ones they were assigned. */
   engineKinds?: EngineKind[]
 }
 
@@ -18,6 +17,7 @@ export interface ManagerScope {
   tenantId: string
   userId: string
   role: Role
+  engineKinds?: EngineKind[]
 }
 
 export interface AccountingScope {

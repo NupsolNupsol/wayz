@@ -212,5 +212,12 @@
     "SALE": "Sale",
     "RETURN": "Return",
     "EXPENSE": "Expense"
+  },
+  "trip": {
+    "READY": "Waiting for a captain",
+    "CLAIMED": "Taken",
+    "RUNNING": "Under way",
+    "COMPLETED": "Finished",
+    "CANCELLED": "Cancelled"
   }
 }

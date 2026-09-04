@@ -5,7 +5,6 @@ export interface EngineMeta {
   short: string
   tagline: string
   icon: 'ShoppingBag' | 'Bike' | 'Sailboat' | 'UtensilsCrossed' | 'Rabbit'
-  /** Which wizard sells it: bags need packing, everything else is a straight rental. */
   flow: 'bags' | 'rental'
   route: '/new/shop-drop' | '/new/rental'
 }
@@ -53,13 +52,8 @@ export const ENGINE_META: Record<EngineKind, EngineMeta> = {
   },
 }
 
-/** The three activities this tenant actually runs. */
 export const VISIBLE_ENGINES: EngineKind[] = ['SHOP_AND_DROP', 'MOBILITY', 'LAGOON']
 
-/**
- * An agent is dedicated to specific activities and must not be offered the others. An empty
- * assignment means the account was set up wrong, so it grants nothing rather than everything.
- */
 export const enginesFor = (assigned: EngineKind[]): EngineKind[] =>
   VISIBLE_ENGINES.filter((kind) => assigned.includes(kind))
 

@@ -9,6 +9,18 @@ import { ROLE_LABELS } from '../constants/labels.constants.js'
 
 export const MIN_PASSWORD_LENGTH = 8
 
+export async function signOut(tenantId: string, userId: string) {
+  await recordAudit({
+    tenantId,
+    actorId: userId,
+    action: 'SIGNED_OUT',
+    entity: 'Session',
+    entityId: userId,
+    detail: 'Signed out',
+  })
+  return { ok: true }
+}
+
 export async function login(email: string, password: string) {
   const user = await User.findOne({ email: email.trim().toLowerCase() })
   if (!user) throw ApiError.unauthorized('Invalid email or password.')

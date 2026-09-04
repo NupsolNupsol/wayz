@@ -74,7 +74,6 @@ const REGISTRY = {
 
 export type IconName = keyof typeof REGISTRY
 
-/** One import surface for icons, so a screen never reaches into the icon library directly. */
 export function Icon({
   name,
   size = 20,

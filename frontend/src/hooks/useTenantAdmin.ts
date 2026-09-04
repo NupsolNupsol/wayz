@@ -6,16 +6,27 @@ export function useTenantOverview(enabled = true) {
   return useQuery({ queryKey: qk.admin.overview, queryFn: adminApi.overview, enabled, refetchInterval: 30_000 })
 }
 
-export function useTenantPeople(enabled = true) {
-  return useQuery({ queryKey: qk.admin.people, queryFn: adminApi.people, enabled })
-}
-
 export function useTenantAudit(enabled = true) {
   return useQuery({ queryKey: qk.admin.audit, queryFn: adminApi.audit, enabled })
 }
 
 export function useTenantIsolation(enabled = true) {
   return useQuery({ queryKey: qk.admin.isolation, queryFn: adminApi.isolation, enabled })
+}
+
+export function useStationMap(enabled = true) {
+  return useQuery({ queryKey: qk.admin.stationMap, queryFn: adminApi.stationMap, enabled })
+}
+
+export function useSaveStationMap() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: adminApi.saveStationMap,
+    onSuccess: (data) => {
+      qc.setQueryData(qk.admin.stationMap, data)
+      qc.invalidateQueries({ queryKey: ['trip'] })
+    },
+  })
 }
 
 export function useUpdateCompany() {

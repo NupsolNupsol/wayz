@@ -1,11 +1,11 @@
 import { NavLink } from 'react-router-dom'
 import { clsx } from 'clsx'
 import { PanelLeftClose, X, PackageOpen } from 'lucide-react'
-import { ACCOUNTANT_NAV, AGENT_NAV, CASHIER_NAV, COURIER_NAV, HR_NAV, MANAGER_NAV, TENANT_ADMIN_NAV } from '@/config/navigation'
+import { ACCOUNTANT_NAV, AGENT_NAV, COURIER_NAV, HR_NAV, MANAGER_NAV, TENANT_ADMIN_NAV } from '@/config/navigation'
 import { APP } from '@/config/appConfig'
 import { Icon } from '@/components/Icon'
 import { useTranslation } from 'react-i18next'
-import { can, homeForRole, isAccountantRole, isAgentRole, isCashierRole, isCourierRole, isHrRole, isTenantAdminRole } from '@/permissions/permissions'
+import { can, homeForRole, isAccountantRole, isAgentRole, isCourierRole, isHrRole, isTenantAdminRole } from '@/permissions/permissions'
 import { useAuthStore } from '@/store/auth'
 import type { EngineKind, Role } from '@/models'
 
@@ -14,11 +14,9 @@ function navFor(role: Role) {
   if (isAccountantRole(role)) return ACCOUNTANT_NAV
   if (isHrRole(role)) return HR_NAV
   if (isCourierRole(role)) return COURIER_NAV
-  if (isCashierRole(role)) return CASHIER_NAV
   return isAgentRole(role) ? AGENT_NAV : MANAGER_NAV
 }
 
-/** Which workspace this role lands in, as a translation key. */
 const WORKSPACE_KEY = (role: Role): Role =>
   isAccountantRole(role)
     ? 'ACCOUNTANT'
@@ -28,11 +26,9 @@ const WORKSPACE_KEY = (role: Role): Role =>
         ? 'TENANT_ADMIN'
         : isCourierRole(role)
           ? 'DELIVERY_AGENT'
-          : isCashierRole(role)
-            ? 'CASHIER'
-            : isAgentRole(role)
-              ? 'AGENT'
-              : 'MANAGER'
+          : isAgentRole(role)
+            ? 'AGENT'
+            : 'MANAGER'
 
 export function Sidebar({
   collapsed,

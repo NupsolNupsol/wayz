@@ -14,7 +14,6 @@ import {
 } from '@/api/endpoints'
 import type { EngineKind } from '@/types'
 
-/** Every cache key in one place, so an invalidation can never miss a screen. */
 export const keys = {
   stats: ['stats'] as const,
   products: (engine?: EngineKind) => ['products', engine ?? 'all'] as const,
@@ -32,7 +31,6 @@ export const keys = {
   incidentCatalogue: ['incidents', 'catalogue'] as const,
 }
 
-// A counter screen is glanced at, not studied: live figures refresh themselves.
 const LIVE = 15_000
 
 export const useStats = () => useQuery({ queryKey: keys.stats, queryFn: dashboardApi.stats, refetchInterval: LIVE })
@@ -78,10 +76,6 @@ export const useIncidents = () => useQuery({ queryKey: keys.incidents, queryFn: 
 export const useIncidentCatalogue = () =>
   useQuery({ queryKey: keys.incidentCatalogue, queryFn: incidentApi.catalogue, staleTime: Infinity })
 
-/**
- * A booking touched anywhere invalidates everything that shows it: the booking itself, its
- * order, what it is allowed to do next, the lists it appears in, and the day's figures.
- */
 function useBookingInvalidation() {
   const qc = useQueryClient()
   return (id?: string) => {

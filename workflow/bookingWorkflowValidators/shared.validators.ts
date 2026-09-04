@@ -63,3 +63,9 @@ export function requirePositiveDuration(ctx: WorkflowContext): string[] {
   const value = Number(requested)
   return Number.isFinite(value) && value > 0 ? [] : ['A positive duration is required to start the timer.']
 }
+
+export function requirePaid(ctx: WorkflowContext): string[] {
+  return ctx.booking.session.paidAt
+    ? []
+    : ['This booking has not been paid for yet — take the payment before handing anything over.']
+}

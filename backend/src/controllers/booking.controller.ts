@@ -1,5 +1,6 @@
 import { z } from 'zod'
 import { asyncHandler } from '../utils/asyncHandler.js'
+import { ApiError } from '../utils/ApiError.js'
 import { scopeFromReq } from '../utils/scope.js'
 import { ENGINE_KINDS, ID_DOCUMENT_TYPES, VERIFICATION_PURPOSES } from '../domain/types.js'
 import {
@@ -16,14 +17,17 @@ import {
   payBooking,
   reassignBooking,
   reserveBooking,
+  returnAtStation,
   scanBagOut,
+  settleBooking,
   transitionBooking,
 } from '../services/booking.service.js'
-import { bookingDTO } from '../services/serializers.js'
+import { bookingDTO, bookingListWithDue } from '../services/serializers.js'
+import { buildInvoice, whatsAppInvoice } from '../services/invoice.service.js'
 import { PAYMENT_METHODS } from '../domain/types.js'
 import { CARD_SCHEMES } from '../domain/commission.js'
-import { bookingRefundPosition, refundBooking } from '../services/cashier.service.js'
-import { User } from '../models/index.js'
+import { bookingRefundPosition } from '../services/till.service.js'
+import { canApproveRefund, pendingRefundRequest, requestRefund } from '../services/refundRequest.service.js'
 
 const bagSchema = z.object({
   category: z.enum(['SOFT', 'HARD', 'OVERSIZE', 'FRAGILE']).optional(),
@@ -37,6 +41,8 @@ const createSchema = z.object({
   productId: z.string().min(1),
   quantity: z.number().int().positive().optional(),
   durationMin: z.number().int().positive().optional(),
+  rateMode: z.enum(['HOURS', 'TOURS']).optional(),
+  tours: z.number().int().positive().optional(),
   bags: z.array(bagSchema).optional(),
   metadata: z.record(z.unknown()).optional(),
 })
@@ -94,6 +100,13 @@ const refundSchema = z.object({
   reason: z.string().min(3, 'A refund needs a reason.'),
 })
 
+const whatsappSchema = z.object({ pdfBase64: z.string().min(16) })
+
+const returnSchema = z.object({
+  code: z.string().min(1),
+  payload: z.record(z.string(), z.unknown()).optional(),
+})
+
 export const bookingController = {
   create: asyncHandler(async (req, res) => {
     const s = scopeFromReq(req)
@@ -104,7 +117,7 @@ export const bookingController = {
   list: asyncHandler(async (req, res) => {
     const s = scopeFromReq(req)
     const list = await listBookings(s, { status: req.query.status as string | undefined, engineKind: req.query.engineKind as never })
-    res.json({ success: true, data: list.map(bookingDTO) })
+    res.json({ success: true, data: await bookingListWithDue(s.tenantId, list) })
   }),
 
   get: asyncHandler(async (req, res) => {
@@ -115,6 +128,11 @@ export const bookingController = {
   order: asyncHandler(async (req, res) => {
     const s = scopeFromReq(req)
     res.json({ success: true, data: await getBookingOrder(s, req.params.id) })
+  }),
+
+  invoice: asyncHandler(async (req, res) => {
+    const s = scopeFromReq(req)
+    res.json({ success: true, data: await buildInvoice(s, await loadBooking(s, req.params.id)) })
   }),
 
   transitions: asyncHandler(async (req, res) => {
@@ -142,6 +160,33 @@ export const bookingController = {
     res.json({ success: true, data: bookingDTO(await reassignBooking(s, req.params.id, body.unitId, body.reason)) })
   }),
 
+  settle: asyncHandler(async (req, res) => {
+    const s = scopeFromReq(req)
+    const { splits } = paySchema.parse(req.body)
+    const result = await settleBooking(s, req.params.id, splits)
+    res.json({
+      success: true,
+      data: { booking: bookingDTO(result.booking), order: result.order, collected: result.collected, due: result.due },
+    })
+  }),
+
+  whatsappInvoice: asyncHandler(async (req, res) => {
+    const s = scopeFromReq(req)
+    const body = whatsappSchema.parse(req.body)
+    const booking = await loadBooking(s, req.params.id)
+    const pdf = Buffer.from(body.pdfBase64, 'base64')
+    if (pdf.length === 0) throw ApiError.badRequest('The invoice came through empty.')
+    if (pdf.length > 5_000_000) throw ApiError.badRequest('That invoice is too large to send.')
+    res.json({ success: true, data: await whatsAppInvoice(s, booking, pdf) })
+  }),
+
+  returnHere: asyncHandler(async (req, res) => {
+    const s = scopeFromReq(req)
+    const body = returnSchema.parse(req.body ?? {})
+    const { booking, wrongStation } = await returnAtStation(s, req.params.id, body.code, body.payload ?? {})
+    res.json({ success: true, data: { booking: bookingDTO(booking), wrongStation } })
+  }),
+
   scanOut: asyncHandler(async (req, res) => {
     const s = scopeFromReq(req)
     const body = z.object({ barcode: z.string().min(1) }).parse(req.body)
@@ -159,6 +204,8 @@ export const bookingController = {
         refunded: position.refunded,
         refundable: position.refundable,
         methods: [...new Set(position.payments.map((p) => p.method))],
+        pending: await pendingRefundRequest(s.tenantId, booking._id),
+        canApprove: canApproveRefund(s.role),
       },
     })
   }),
@@ -166,14 +213,13 @@ export const bookingController = {
   refund: asyncHandler(async (req, res) => {
     const s = scopeFromReq(req)
     const body = refundSchema.parse(req.body)
-    const booking = await loadBooking(s, req.params.id)
-    const actor = await User.findById(s.agentId, { fullName: 1 }).lean()
-    const result = await refundBooking(s, booking, body, actor?.fullName ?? s.agentId)
+    const result = await requestRefund(s, req.params.id, body)
     res.json({
       success: true,
       data: {
-        booking: bookingDTO(result.booking),
-        paid: result.paid,
+        approved: result.approved,
+        request: result.request,
+        booking: 'booking' in result && result.booking ? bookingDTO(result.booking) : undefined,
         refunded: result.refunded,
         refundable: result.refundable,
       },

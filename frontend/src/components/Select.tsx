@@ -52,11 +52,6 @@ export function Select({
     return () => { document.removeEventListener('mousedown', onClick); document.removeEventListener('keydown', onKey) }
   }, [])
 
-  // The menu is portalled to the body so a scrolling parent — a modal, a card — cannot
-  // clip it or gain a scrollbar because of it. That means measuring the trigger instead
-  // of relying on absolute positioning.
-  // The menu is measured, never guessed: a guessed height flips it by the wrong amount and
-  // leaves it floating above the field. It is rendered hidden until the real height is known.
   const place = useCallback(() => {
     const el = ref.current
     const menu = menuRef.current
@@ -80,7 +75,6 @@ export function Select({
       return
     }
     place()
-    // Searching filters the list, so the menu changes height while it is open.
     const observer = new ResizeObserver(place)
     if (menuRef.current) observer.observe(menuRef.current)
     window.addEventListener('scroll', place, true)

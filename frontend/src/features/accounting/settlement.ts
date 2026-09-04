@@ -3,7 +3,6 @@ import { CARD_SCHEMES, schemeFullLabel } from '@/config/cardSchemes'
 
 export { schemeFullLabel as schemeLabel }
 
-/** The scheme filter's options, in the reader's language. */
 export const schemeOptions = () => CARD_SCHEMES.map((value) => ({ label: schemeFullLabel(value), value }))
 
 const ENGLISH_RECON: Record<string, string> = {

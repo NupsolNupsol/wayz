@@ -12,9 +12,11 @@ export const engineApi = {
 
 export const shiftApi = {
   current: () => unwrap<Shift | null>(http.get('/shift/current')),
-  open: () => unwrap<Shift>(http.post('/shift/open')),
+  open: (openingFloat = 0) => unwrap<Shift>(http.post('/shift/open', { openingFloat })),
   blindCount: (id: string, countedCash: number) => unwrap<Shift>(http.post(`/shift/${id}/blind-count`, { countedCash })),
   resolve: (id: string, note: string) => unwrap<Shift>(http.post(`/shift/${id}/resolve`, { note })),
+  forceClose: (id: string, input: { countedCash: number; reason: string }) =>
+    unwrap<Shift>(http.post(`/shift/${id}/force-close`, input)),
 }
 
 export const incidentApi = {

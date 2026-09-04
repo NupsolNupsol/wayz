@@ -9,10 +9,6 @@ export interface WizardStep {
   label: string
 }
 
-/**
- * Where the agent is in a multi-step job. A finished step can be tapped to go back; a step
- * ahead cannot, because the wizard has not gathered what it needs yet.
- */
 export function StepBar({
   steps,
   current,
@@ -84,7 +80,6 @@ export function StepBar({
   )
 }
 
-/** A plain proportion bar — capacity used, bags scanned, money collected. */
 export function Meter({
   value,
   max,

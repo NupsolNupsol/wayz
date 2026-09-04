@@ -7,6 +7,7 @@ export interface PaymentDoc {
   _id: string
   tenantId: string
   stationId: string
+  kioskId: string | null
   orderId: string
   bookingId?: string | null
   amount: number
@@ -29,6 +30,7 @@ const paymentSchema = new Schema<PaymentDoc>(
     _id: { type: String, default: () => `pay_${nanoid(10)}` },
     tenantId: { type: String, required: true, index: true },
     stationId: { type: String, required: true, index: true },
+    kioskId: { type: String, default: null, index: true },
     orderId: { type: String, required: true, index: true },
     bookingId: { type: String, default: null },
     amount: { type: Number, required: true },

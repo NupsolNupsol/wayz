@@ -1,10 +1,6 @@
 import { APP } from '@/config/appConfig'
 import i18n from '@/i18n'
 
-/**
- * Wraps a value in Unicode isolates so a figure keeps its own direction wherever it lands.
- * Without this, "1,063.94 SAR" comes out as "SAR 1,063.94" in an Arabic paragraph.
- */
 export const ltr = (value: string): string => `\u2068${value}\u2069`
 
 const currency = () => i18n.t('common:money.currency', { defaultValue: APP.currency })
@@ -56,7 +52,6 @@ export function initials(name: string): string {
     .join('')
 }
 
-/** Arabic reads Gregorian dates with Arabic month names; the locale decides. */
 const locale = () => (i18n.language === 'ar' ? 'ar-SA-u-ca-gregory-nu-latn' : 'en-GB')
 
 export function formatTime(ts?: number | null): string {
@@ -81,7 +76,6 @@ export function formatDate(ts?: number | null): string {
   return ltr(new Date(ts).toLocaleDateString(locale(), { year: 'numeric', month: 'short', day: 'numeric' }))
 }
 
-/** A short axis label: "17 Aug" / "١٧ أغسطس". */
 export function formatDayLabel(date: string | number | Date): string {
   return new Date(date).toLocaleDateString(locale(), { day: 'numeric', month: 'short' })
 }
@@ -95,3 +89,18 @@ export function humanizeRemaining(ms: number): string {
   const core = h > 0 ? `${h}h ${m}m` : m > 0 ? `${m}m ${s}s` : `${s}s`
   return ltr(neg ? `-${core}` : core)
 }
+
+export function sinceLabel(ts?: number | null): string {
+  if (!ts) return i18n.t('common:time.never', { defaultValue: 'never' })
+  const seconds = Math.max(0, Math.round((Date.now() - ts) / 1000))
+  if (seconds < 45) return i18n.t('common:time.justNow', { defaultValue: 'just now' })
+  const minutes = Math.round(seconds / 60)
+  if (minutes < 60) return i18n.t('common:time.minutesAgo', { count: minutes, defaultValue: `${minutes} min ago` })
+  const hours = Math.floor(minutes / 60)
+  const rest = minutes % 60
+  if (hours < 24) return i18n.t('common:time.hoursAgo', { hours, minutes: rest, defaultValue: `${hours}h ${rest}m ago` })
+  const days = Math.floor(hours / 24)
+  return i18n.t('common:time.daysAgo', { count: days, defaultValue: `${days}d ago` })
+}
+
+export * from './validation'

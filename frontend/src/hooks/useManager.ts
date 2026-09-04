@@ -8,6 +8,8 @@ export const useManagerLiveSessions = () =>
   useQuery({ queryKey: qk.manager.live, queryFn: managerApi.liveSessions, refetchInterval: 20_000 })
 export const useManagerIncidents = () => useQuery({ queryKey: qk.manager.incidents, queryFn: managerApi.incidents })
 export const useManagerShifts = () => useQuery({ queryKey: qk.manager.shifts, queryFn: managerApi.shifts })
+export const useManagerShift = (id: string | undefined) =>
+  useQuery({ queryKey: [...qk.manager.shifts, id ?? ''], queryFn: () => managerApi.shift(id!), enabled: !!id })
 export const useManagerStaff = () => useQuery({ queryKey: qk.manager.staff, queryFn: managerApi.staff })
 
 export const useManagerRentals = (scope: 'active' | 'completed' | 'expired' | 'all') =>
@@ -45,6 +47,7 @@ export const useCreateStation = () => useOrgMutation((v: Record<string, unknown>
 export const useUpdateStation = () => useOrgMutation((v: { id: string; patch: Record<string, unknown> }) => managerApi.updateStation(v.id, v.patch))
 export const useCreateKiosk = () => useOrgMutation((v: Record<string, unknown>) => managerApi.createKiosk(v))
 export const useUpdateKiosk = () => useOrgMutation((v: { id: string; patch: Record<string, unknown> }) => managerApi.updateKiosk(v.id, v.patch))
+export const useRemoveKiosk = () => useOrgMutation((id: string) => managerApi.removeKiosk(id))
 
 function useStaffMutation<V, R>(fn: (v: V) => Promise<R>) {
   const qc = useQueryClient()

@@ -12,10 +12,6 @@ export interface AuditEntry {
   detail?: string
 }
 
-/**
- * Tracks whether the request being served has already written a rich audit entry, so the
- * catch-all recorder does not double up on an action the domain layer already described.
- */
 const perRequest = new AsyncLocalStorage<{ written: boolean }>()
 
 export function inAuditContext<T>(fn: () => T): T {

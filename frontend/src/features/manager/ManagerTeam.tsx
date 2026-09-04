@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { UserPlus, KeyRound, MailCheck, Power, Send } from 'lucide-react'
+import { Clock, KeyRound, MailCheck, Power, Send, ShieldCheck, UserPlus, Users } from 'lucide-react'
 import { PageHeader } from '@/components/PageHeader'
-import { Button, Field, Spinner, Badge } from '@/components/ui'
+import { Button, Field, Spinner, Badge, StatCard } from '@/components/ui'
 import { DataTable } from '@/components/DataTable'
 import { Modal } from '@/components/Modal'
 import { Select } from '@/components/Select'
@@ -13,25 +13,17 @@ import { formatDateTime } from '@/utils'
 import { toast } from '@/state/toastStore'
 import { clsx } from 'clsx'
 import { engineLabel, visibleEngineOptions } from '@/config/engineMeta'
+import {
+  ROLE_ORDER,
+  assignableBy,
+  isActivityScoped,
+  isKioskScoped,
+  isLagoonOnly,
+  isSubManager,
+} from '@/config/roleRules'
 import type { EngineKind, Role } from '@/api/types'
 import type { ManagerStaff } from '@/api/manager.api'
 import { useAuthStore } from '@/store/auth'
-
-const ROLE_OPTIONS: Role[] = ['AGENT', 'CASHIER', 'DELIVERY_AGENT']
-
-const ADMIN_ONLY_ROLE_OPTIONS: Role[] = ['MANAGER', 'ACCOUNTANT', 'HR']
-
-function assignableBy(role: Role | undefined): Role[] {
-  return role === 'TENANT_ADMIN' ? [...ROLE_OPTIONS, ...ADMIN_ONLY_ROLE_OPTIONS] : ROLE_OPTIONS
-}
-
-const ALL_ROLE_OPTIONS = [...ROLE_OPTIONS, ...ADMIN_ONLY_ROLE_OPTIONS]
-
-/** Only an agent is dedicated to activities; every other role works the whole tenant. */
-const ACTIVITY_SCOPED: Role[] = ['AGENT']
-
-/** Bags live in compartments, so a Shop & Drop agent answers for one kiosk. */
-const KIOSK_ENGINE: EngineKind = 'SHOP_AND_DROP'
 
 const readEngines = (value?: string): EngineKind[] =>
   (value ?? '').split(',').filter(Boolean) as EngineKind[]
@@ -54,8 +46,19 @@ export function ManagerTeam() {
 
   const stations = (org?.sites ?? []).flatMap((s) => s.stations.map((st) => ({ label: `${s.name} — ${st.name}`, value: st._id })))
   const kiosksByStation = (org?.sites ?? []).flatMap((s) =>
-    s.stations.flatMap((st) => st.kiosks.map((k) => ({ label: k.name, value: k._id, stationId: st._id }))),
+    s.stations.flatMap((st) =>
+      st.kiosks.map((k) => ({
+        label: `${k.name} · ${engineLabel(k.engineKind)}`,
+        value: k._id,
+        stationId: st._id,
+        engineKind: k.engineKind,
+      })),
+    ),
   )
+
+  const leadOptions = staff
+    .filter((u) => u.role === 'PROJECT_MANAGER' || u.role === 'MANAGER')
+    .map((u) => ({ label: `${u.fullName} · ${t(`common:role.${u.role}`)}`, value: u._id }))
 
   useEffect(() => {
     if (!creating && !editing) return
@@ -63,21 +66,46 @@ export function ManagerTeam() {
     setForm((prev) => (prev.stationId ? prev : { ...prev, stationId: stations[0].value }))
   }, [creating, editing, form.stationId, stations])
 
-  const kiosksHere = kiosksByStation.filter((k) => k.stationId === form.stationId)
   const engines = readEngines(form.engineKinds)
-  const scopedToActivities = ACTIVITY_SCOPED.includes(form.role as Role)
-  const needsKiosk = scopedToActivities && engines.includes(KIOSK_ENGINE)
+  const role = (form.role ?? 'AGENT') as Role
+  const scopedToActivities = isActivityScoped(role)
+  const needsKiosk = isKioskScoped(role)
+
+  const kiosksHere = kiosksByStation.filter(
+    (k) => k.stationId === form.stationId && (!engines.length || engines.includes(k.engineKind)),
+  )
 
   useEffect(() => {
     if (!needsKiosk) return
     if (form.kioskId && kiosksHere.some((k) => k.value === form.kioskId)) return
     setForm((prev) => ({ ...prev, kioskId: kiosksHere[0]?.value ?? '' }))
-  }, [needsKiosk, form.stationId, form.kioskId, kiosksHere])
+  }, [needsKiosk, form.stationId, form.kioskId, form.engineKinds, kiosksHere])
+
+  useEffect(() => {
+    if (!scopedToActivities) return
+    const trimmed = isLagoonOnly(role)
+      ? (['LAGOON'] as EngineKind[])
+      : needsKiosk && engines.length > 1
+        ? engines.slice(0, 1)
+        : engines
+    if (trimmed.join(',') !== engines.join(',')) {
+      setForm((prev) => ({ ...prev, engineKinds: trimmed.join(',') }))
+    }
+  }, [role, scopedToActivities, needsKiosk, engines])
 
   const fail = (e: unknown) => toast('danger', t('common:error.couldNotSave'), e instanceof ApiError ? (e.errors?.join(' ') ?? e.message) : '')
 
   const openCreate = () => {
-    setForm({ fullName: '', email: '', role: 'AGENT', stationId: stations[0]?.value ?? '', kioskId: '', engineKinds: '', phone: '' })
+    setForm({
+      fullName: '',
+      email: '',
+      role: 'AGENT',
+      stationId: stations[0]?.value ?? '',
+      kioskId: '',
+      engineKinds: '',
+      reportsTo: '',
+      phone: '',
+    })
     setCreating(true)
   }
 
@@ -89,6 +117,7 @@ export function ManagerTeam() {
       stationId: u.stationId,
       kioskId: u.kioskId ?? '',
       engineKinds: (u.engineKinds ?? []).join(','),
+      reportsTo: u.reportsTo ?? '',
       phone: u.phone ?? '',
     })
     setEditing(u)
@@ -122,6 +151,7 @@ export function ManagerTeam() {
         stationId: form.stationId,
         kioskId: needsKiosk ? form.kioskId : null,
         engineKinds: engines,
+        reportsTo: isSubManager(role) ? form.reportsTo || null : null,
         phone: form.phone,
       },
       {
@@ -150,6 +180,7 @@ export function ManagerTeam() {
           stationId: form.stationId,
           kioskId: needsKiosk ? form.kioskId : null,
           engineKinds: engines,
+          reportsTo: isSubManager(role) ? form.reportsTo || null : null,
           phone: form.phone,
         },
       },
@@ -181,6 +212,12 @@ export function ManagerTeam() {
         actions={<Button onClick={openCreate} data-testid="team-add"><UserPlus size={16} />{t('team.addMember')}</Button>}
       />
 
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-5">
+        <StatCard label={t('team.headcount')} value={staff.length} icon={<Users size={18} />} tone="neutral" testId="team-stat-total" />
+        <StatCard label={t('common:state.active')} value={staff.filter((u) => u.active).length} icon={<ShieldCheck size={18} />} tone="success" testId="team-stat-active" />
+        <StatCard label={t('team.onShiftNow')} value={staff.filter((u) => u.hasOpenShift).length} icon={<Clock size={18} />} tone="info" testId="team-stat-onshift" />
+      </div>
+
       {isLoading ? <Spinner /> : (
         <DataTable
           testId="team-table"
@@ -203,10 +240,20 @@ export function ManagerTeam() {
             {
               key: 'role',
               header: t('common:column.role'),
-              filter: { kind: 'select', options: ALL_ROLE_OPTIONS.map((value) => ({ label: t(`common:role.${value}`), value })), value: (r) => r.role },
+              filter: { kind: 'select', options: ROLE_ORDER.map((value) => ({ label: t(`common:role.${value}`), value })), value: (r) => r.role },
               render: (r) => <Badge tone="neutral">{t(`common:role.${r.role}`)}</Badge>,
             },
-            { key: 'station', header: t('common:column.station'), filter: { kind: 'text', value: (r) => r.stationName }, render: (r) => <span className="text-muted">{r.stationName}</span> },
+            {
+              key: 'station',
+              header: t('common:column.station'),
+              filter: { kind: 'text', value: (r) => `${r.stationName} ${r.kioskName ?? ''}` },
+              render: (r) => (
+                <div>
+                  <p className="text-sm text-muted">{r.stationName}</p>
+                  {r.kioskName && <p className="text-[11px] text-muted">{t('common:field.kiosk')} · {r.kioskName}</p>}
+                </div>
+              ),
+            },
             {
               key: 'activities',
               header: t('common:column.activities'),
@@ -239,7 +286,11 @@ export function ManagerTeam() {
                   ) : (
                     <Badge tone={r.active ? 'success' : 'danger'}>{r.active ? t('common:state.active') : t('common:state.suspended')}</Badge>
                   )}
-                  {r.hasOpenShift && <Badge tone="info">{t('team.onShift')}</Badge>}
+                  {r.hasOpenShift && (
+                    <Badge tone={r.shiftStatus === 'RECONCILING' ? 'danger' : 'info'}>
+                      {r.shiftStatus === 'RECONCILING' ? t('team.reconciling') : t('team.onShift')}
+                    </Badge>
+                  )}
                 </div>
               ),
             },
@@ -283,7 +334,7 @@ export function ManagerTeam() {
           </>
         }
       >
-        <StaffFields form={form} setForm={setForm} stations={stations} kiosks={kiosksHere} />
+        <StaffFields form={form} setForm={setForm} stations={stations} kiosks={kiosksHere} leads={leadOptions} />
         <div className="flex items-start gap-2 text-sm text-muted" data-testid="team-invite-note">
           <MailCheck size={16} className="text-brand shrink-0 mt-0.5" />
           <p>
@@ -305,7 +356,7 @@ export function ManagerTeam() {
           </>
         }
       >
-        <StaffFields form={form} setForm={setForm} stations={stations} kiosks={kiosksHere} />
+        <StaffFields form={form} setForm={setForm} stations={stations} kiosks={kiosksHere} leads={leadOptions} />
       </Modal>
 
       <Modal
@@ -357,18 +408,25 @@ function StaffFields({
   setForm,
   stations,
   kiosks,
+  leads,
 }: {
   form: Record<string, string>
   setForm: (f: Record<string, string>) => void
   stations: { label: string; value: string }[]
   kiosks: { label: string; value: string }[]
+  leads: { label: string; value: string }[]
 }) {
   const { t } = useTranslation(['manager', 'common'])
   const myRole = useAuthStore((s) => s.me?.role)
-  const roleOptions = assignableBy(myRole).map((value) => ({ label: t(`manager:team.roleOption.${value}`), value }))
+  const roleOptions = assignableBy(myRole).map((value) => ({ label: t(`common:role.${value}`), value }))
   const engines = readEngines(form.engineKinds)
-  const scopedToActivities = ACTIVITY_SCOPED.includes(form.role as Role)
-  const needsKiosk = scopedToActivities && engines.includes(KIOSK_ENGINE)
+  const role = (form.role ?? 'AGENT') as Role
+  const scopedToActivities = isActivityScoped(role)
+  const needsKiosk = isKioskScoped(role)
+  const oneActivityOnly = needsKiosk
+  const activityOptions = isLagoonOnly(role)
+    ? visibleEngineOptions().filter((o) => o.value === 'LAGOON')
+    : visibleEngineOptions()
   const set = (k: string) => (e: React.ChangeEvent<HTMLInputElement>) => setForm({ ...form, [k]: e.target.value })
   return (
     <>
@@ -397,7 +455,7 @@ function StaffFields({
           error={engines.length === 0 ? 'Choose at least one activity.' : undefined}
         >
           <div className="flex flex-wrap gap-2" data-testid="team-activities">
-            {visibleEngineOptions().map((opt) => {
+            {activityOptions.map((opt) => {
               const on = engines.includes(opt.value)
               return (
                 <button
@@ -408,7 +466,15 @@ function StaffFields({
                   onClick={() =>
                     setForm({
                       ...form,
-                      engineKinds: (on ? engines.filter((e) => e !== opt.value) : [...engines, opt.value]).join(','),
+                      engineKinds: (oneActivityOnly
+                        ? on
+                          ? []
+                          : [opt.value]
+                        : on
+                          ? engines.filter((e) => e !== opt.value)
+                          : [...engines, opt.value]
+                      ).join(','),
+                      kioskId: '',
                     })
                   }
                   className={clsx(
@@ -430,9 +496,25 @@ function StaffFields({
           label={t('common:field.kiosk')}
           required
           hint={t('team.kioskHint')}
-          error={kiosks.length === 0 ? 'That station has no kiosks yet — add one under Organisation first.' : undefined}
+          error={
+            engines.length === 0
+              ? t('team.pickActivityFirst')
+              : kiosks.length === 0
+                ? t('team.noKioskForActivity')
+                : undefined
+          }
         >
           <Select value={form.kioskId ?? ''} onChange={(v) => setForm({ ...form, kioskId: v })} options={kiosks} testId="team-kiosk" />
+        </Field>
+      )}
+      {isSubManager(role) && (
+        <Field label={t('team.reportsTo')} hint={t('team.reportsToHint')}>
+          <Select
+            value={form.reportsTo ?? ''}
+            onChange={(v) => setForm({ ...form, reportsTo: v })}
+            options={[{ label: t('team.reportsToNobody'), value: '' }, ...leads]}
+            testId="team-reports-to"
+          />
         </Field>
       )}
       <Field label={t('common:field.phone')}>

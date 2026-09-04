@@ -1,9 +1,5 @@
 import { useTranslation } from 'react-i18next'
 
-/**
- * Where to look a code up, most specific first. A caller that knows the domain passes it in;
- * the rest of the platform hands over a bare code and this finds it.
- */
 const GROUPS = [
   'booking',
   'delivery',
@@ -24,7 +20,6 @@ const GROUPS = [
 
 export type StatusGroup = (typeof GROUPS)[number]
 
-/** Turns `RETRIEVAL_IN_PROGRESS` into words, in whichever language is on. */
 export function useStatusLabel() {
   const { t } = useTranslation('status')
 

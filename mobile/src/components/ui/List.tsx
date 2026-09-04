@@ -5,10 +5,6 @@ import { Pressable, View } from 'react-native'
 import { COLORS } from '@/theme/tokens'
 import { Body, Label, Muted } from './Text'
 
-/**
- * One row in a list: a leading mark, a title, a supporting line, and something on the right.
- * Every list in the app is built from this so they all press, wrap and align identically.
- */
 export function ListRow({
   title,
   subtitle,
@@ -49,7 +45,6 @@ export function ListRow({
   )
 }
 
-/** Rows grouped into one card, hairlines between them and none at the ends. */
 export function ListGroup({ children, className = '' }: { children: ReactNode; className?: string }) {
   return (
     <View className={`overflow-hidden rounded-xl2 border border-line bg-surface ${className}`}>{children}</View>
@@ -58,7 +53,6 @@ export function ListGroup({ children, className = '' }: { children: ReactNode; c
 
 export const Divider = () => <View className="h-px bg-line" />
 
-/** A label/value pair — the vocabulary of every detail screen. */
 export function KeyValue({ label, value, className = '' }: { label: string; value: ReactNode; className?: string }) {
   return (
     <View className={`gap-1 ${className}`}>

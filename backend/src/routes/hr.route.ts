@@ -14,4 +14,9 @@ router.post('/seasons', hrController.createSeason)
 router.get('/seasons/:id', hrController.season)
 router.post('/seasons/payroll', hrController.chargePayroll)
 
+router.get('/shift-window', hrController.shiftWindow)
+router.patch('/shift-window', hrController.setShiftWindow)
+router.get('/hours', hrController.hours)
+router.get('/audit', hrController.peopleAudit)
+
 export default router

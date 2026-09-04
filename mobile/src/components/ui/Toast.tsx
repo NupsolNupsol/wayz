@@ -27,10 +27,6 @@ const useToastStore = create<ToastState>((set) => ({
   dismiss: (id) => set((s) => ({ toasts: s.toasts.filter((t) => t.id !== id) })),
 }))
 
-/**
- * Called from anywhere, including outside React — a mutation's onError needs it. The haptic
- * matches the tone so a failure is felt as well as seen.
- */
 export function toast(tone: ToastTone, title: string, detail?: string) {
   if (Platform.OS !== 'web') {
     const style =
@@ -55,7 +51,6 @@ function ToastRow({ item }: { item: Toast }) {
   const dismiss = useToastStore((s) => s.dismiss)
 
   useEffect(() => {
-    // A failure stays long enough to be read; a confirmation gets out of the way.
     const ms = item.tone === 'danger' ? 6000 : 3200
     const timer = setTimeout(() => dismiss(item.id), ms)
     return () => clearTimeout(timer)
@@ -76,7 +71,6 @@ function ToastRow({ item }: { item: Toast }) {
   )
 }
 
-/** Mounted once at the root, above every screen. */
 export function ToastHost() {
   const toasts = useToastStore((s) => s.toasts)
   const insets = useSafeAreaInsets()
@@ -85,7 +79,6 @@ export function ToastHost() {
 
   return (
     <View pointerEvents="box-none" className="absolute left-0 right-0 z-50" style={{ top: insets.top + 8 }}>
-      {/* Full width on a phone, a centred card on a counter screen — a 1280px toast is a banner. */}
       <View pointerEvents="box-none" className="w-full max-w-md self-center px-4" testID="toast-host">
         {toasts.map((item) => (
           <ToastRow key={item.id} item={item} />

@@ -55,7 +55,27 @@
     "submit": "إرسال",
     "activity": "السجل",
     "couldNotContinue": "تعذّر المتابعة",
-    "callCustomer": "الاتصال بالعميل"
+    "callCustomer": "الاتصال بالعميل",
+    "collect": "استلام الدفعة",
+    "collectTitle": "مبلغ يُستلم عند الباب",
+    "collectSubtitle": "يتبقى {{amount}} على هذا الحجز.",
+    "collectBlurb": "رسوم التوصيل وما استحق على العميل أثناء وجود أمتعته خارج المكتب.",
+    "collected": "تم الاستلام",
+    "collectedDetail": "استُلم {{amount}}. مسجّل على الحجز وفي صندوقك.",
+    "collectFailed": "تعذّرت عملية الدفع",
+    "stopsTitle": "الأكشاك في هذه الجولة ({{count}})",
+    "stopsBlurb": "مهمة فرعية لكل كشك. اطلب من وكيل كل كشك رمز الخزانة، امسح الحقائب، ثم انتقل.",
+    "stopLine": "الخزانة {{unit}} · {{count}} حقيبة · {{ref}}",
+    "stopNow": "توجه إلى هنا الآن",
+    "stopQueued": "في الانتظار",
+    "stopCollectedTag": "تم الاستلام",
+    "stopProgress": "المحطة {{done}} من {{total}}",
+    "stopCollected": "تم الاستلام في {{kiosk}}",
+    "nextKiosk": "الكشك التالي: {{kiosk}}",
+    "allKiosksDone": "انتهت كل الأكشاك — أوصل الحقائب إلى العميل.",
+    "payBeforeHandover": "استلم {{amount}} من العميل قبل تسليم الحقائب.",
+    "yoursToTake": "هذه المهمة متاحة — لم يأخذها أحد بعد.",
+    "claimFirst": "خذ المهمة قبل طلب الحقائب من أي كشك أو استلام أي مبلغ."
   },
   "kiosk": {
     "title": "التوصيل",
@@ -80,7 +100,12 @@
     "notApproved": "لم يتم الاعتماد",
     "byPhone": "عبر الهاتف",
     "atStorage": "عند المكتب",
-    "registeredAgo": "سُجّل قبل {{ago}}"
+    "registeredAgo": "سُجّل قبل {{ago}}",
+    "stopColumn": "الكشك",
+    "mine": "· كشكك",
+    "stopCount": "{{done}} من {{total}} أكشاك تم استلامها",
+    "stopOf": "المحطة {{done}} من {{total}} — المندوب في {{kiosk}}",
+    "otherKiosk": "كشك آخر يحتفظ بهذه: {{kiosk}}"
   },
   "request": {
     "title": "إرسال هذه الأمتعة إلى العميل",
@@ -98,7 +123,14 @@
     "verifyIdentity": "التحقق من الهوية",
     "verifyToEnable": "تحقق من العميل لتفعيل الزر",
     "create": "إنشاء التوصيل",
-    "couldNotCreate": "تعذّر إنشاء التوصيل"
+    "couldNotCreate": "تعذّر إنشاء التوصيل",
+    "fee": "رسوم التوصيل",
+    "feeHint": "تُضاف إلى ما يستحقه هذا الحجز. يمكن للمندوب استلامها عند الباب. اتركها صفراً للتوصيل المجاني.",
+    "alsoHolding": "لدى هذا العميل حقائب في {{count}} كشك آخر",
+    "alsoHoldingHint": "اسأله في المكالمة إن كان يريد إحضارها كذلك. اختر كل كشك يجب أن يمر عليه المندوب.",
+    "bringEverything": "إحضار كل شيء",
+    "bagCount": "{{count}} حقيبة",
+    "extraStops": "{{stops}} محطة إضافية · {{bags}} حقيبة إضافية في هذه الجولة"
   },
   "state": {
     "REQUESTED": {

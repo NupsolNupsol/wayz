@@ -55,8 +55,18 @@ const BADGE_TONES: Record<Tone, string> = {
   warning: 'bg-amber-50 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300',
   danger: 'bg-red-50 text-danger-strong dark:bg-red-900/30 dark:text-red-300',
 }
-export function Badge({ tone = 'neutral', children, className }: { tone?: Tone; children: ReactNode; className?: string }) {
-  return <span className={clsx('lf-chip', BADGE_TONES[tone], className)}>{children}</span>
+export function Badge({
+  tone = 'neutral',
+  children,
+  className,
+  testId,
+}: {
+  tone?: Tone
+  children: ReactNode
+  className?: string
+  testId?: string
+}) {
+  return <span className={clsx('lf-chip', BADGE_TONES[tone], className)} data-testid={testId}>{children}</span>
 }
 
 export function StatusBadge({ status, group }: { status: string; group?: StatusGroup }) {

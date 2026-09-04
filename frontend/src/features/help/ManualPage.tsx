@@ -34,7 +34,6 @@ export function ManualPage() {
   const scrolledFor = useRef<string | null>(null)
 
   const term = query.trim().toLowerCase()
-  // The book is read in the current language, so searching it searches what is on screen.
   const groups = MANUAL_GROUPS.map((g) => ({
     id: g.id,
     label: t(`group.${g.id}`),

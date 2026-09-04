@@ -55,6 +55,8 @@ export interface StationDoc {
   closingTime?: string
   contactPhone?: string
   active: boolean
+  mapX?: number | null
+  mapY?: number | null
 }
 const stationSchema = new Schema<StationDoc>(
   {
@@ -69,6 +71,8 @@ const stationSchema = new Schema<StationDoc>(
     closingTime: { type: String, default: '22:00' },
     contactPhone: { type: String, default: '' },
     active: { type: Boolean, default: true },
+    mapX: { type: Number, default: null },
+    mapY: { type: Number, default: null },
   },
   { _id: false, timestamps: true },
 )
@@ -82,8 +86,10 @@ export interface KioskDoc {
   name: string
   code?: string
   location?: string
-  engineKinds: EngineKind[]
+  engineKind: EngineKind
   active: boolean
+  mapX?: number | null
+  mapY?: number | null
   createdAt: Date
   updatedAt: Date
 }
@@ -97,8 +103,10 @@ const kioskSchema = new Schema<KioskDoc>(
     name: { type: String, required: true },
     code: { type: String, default: '' },
     location: { type: String, default: '' },
-    engineKinds: { type: [String], default: [] },
+    engineKind: { type: String, required: true, index: true },
     active: { type: Boolean, default: true },
+    mapX: { type: Number, default: null },
+    mapY: { type: Number, default: null },
   },
   { _id: false, timestamps: true },
 )

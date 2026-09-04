@@ -24,6 +24,8 @@ export interface CreateBookingInput {
   productId: string
   quantity?: number
   durationMin?: number
+  rateMode?: 'HOURS' | 'TOURS'
+  tours?: number
   bags?: BagInput[]
   metadata?: Record<string, unknown>
 }
@@ -72,6 +74,20 @@ export interface RefundPosition {
   refunded: number
   refundable: number
   methods?: string[]
+  pending?: {
+    ref: string
+    amount: number
+    reason: string
+    requestedByName: string
+    at: string
+  } | null
+  canApprove?: boolean
+}
+
+export interface RefundOutcome extends RefundPosition {
+  approved: boolean
+  request: { ref: string; amount: number } | null
+  booking?: Booking
 }
 
 export const bookingApi = {
@@ -85,9 +101,19 @@ export const bookingApi = {
   reserve: (id: string, unitId?: string) => unwrap<Booking>(http.post(`/bookings/${id}/reserve`, unitId ? { unitId } : {})),
   reassign: (id: string, unitId: string, reason: string) => unwrap<Booking>(http.post(`/bookings/${id}/reassign`, { unitId, reason })),
   scanOut: (id: string, barcode: string) => unwrap<Booking>(http.post(`/bookings/${id}/scan-out`, { barcode })),
+  settle: (id: string, splits: { method: PaymentMethod; cardScheme?: string | null; amount: number }[]) =>
+    unwrap<{ booking: Booking; order: Order; collected: number; due: number }>(
+      http.post(`/bookings/${id}/settle`, { splits }),
+    ),
+  returnHere: (id: string, code: string) =>
+    unwrap<{ booking: Booking; wrongStation: boolean }>(http.post(`/bookings/${id}/return`, { code })),
+  whatsappInvoice: (id: string, pdfBase64: string) =>
+    unwrap<{ sent: boolean; asText: boolean; url: string; reason?: string }>(
+      http.post(`/bookings/${id}/invoice/whatsapp`, { pdfBase64 }),
+    ),
   refundPosition: (id: string) => unwrap<RefundPosition>(http.get(`/bookings/${id}/refund`)),
   refund: (id: string, input: { amount?: number; reason: string }) =>
-    unwrap<{ booking: Booking } & RefundPosition>(http.post(`/bookings/${id}/refund`, input)),
+    unwrap<RefundOutcome>(http.post(`/bookings/${id}/refund`, input)),
   transition: (id: string, code: string, payload?: TransitionPayload) => unwrap<Booking>(http.post(`/bookings/${id}/transition`, { code, payload })),
 
   sendVerification: (id: string, purpose: VerificationPurpose = 'RETRIEVAL', channel: OtpChannel = 'WHATSAPP') =>

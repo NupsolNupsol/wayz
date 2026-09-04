@@ -29,7 +29,6 @@ export function RefLink({
   )
 }
 
-/** A reference with nowhere to go — same shape and weight as RefLink, without the affordance. */
 export function RefText({ children, className }: { children: React.ReactNode; className?: string }) {
   return <span className={clsx(REF_STYLE, 'text-navy dark:text-dk-text', className)}>{children}</span>
 }

@@ -1,4 +1,4 @@
-import { OPS, TILL } from '../shared/access.js'
+import { LAGOON_OPS, LAGOON_TILL } from '../shared/access.js'
 import { ACTIVE, CANCELLED, COMPLETED, CONFIRMED, DRAFT, OVERTIME } from '../shared/status.js'
 import type { EngineWorkflow, OperationResult, ValidationResult, WorkflowContext } from '../shared/types.js'
 import { useLagoonValidator } from '../bookingWorkflowValidators/controller.lagoon.validator.controller.js'
@@ -9,14 +9,14 @@ export const lagoonWorkflow: EngineWorkflow = {
   assetKind: 'BOAT',
   sessionKind: 'ACTIVITY',
   initialStatus: DRAFT,
-  actors: OPS,
+  actors: LAGOON_OPS,
   transitions: [
     {
       code: 'TO_CONFIRMED',
       label: 'Confirm payment',
       source: [DRAFT],
       target: CONFIRMED,
-      actors: TILL,
+      actors: LAGOON_TILL,
       style: { backgroundColor: '#249542' },
     },
     {
@@ -24,7 +24,7 @@ export const lagoonWorkflow: EngineWorkflow = {
       label: 'Start trip',
       source: [CONFIRMED],
       target: ACTIVE,
-      actors: OPS,
+      actors: LAGOON_OPS,
       style: { backgroundColor: '#1a3470' },
     },
     {
@@ -32,7 +32,7 @@ export const lagoonWorkflow: EngineWorkflow = {
       label: 'Return & complete',
       source: [ACTIVE, OVERTIME],
       target: COMPLETED,
-      actors: OPS,
+      actors: LAGOON_OPS,
       style: { backgroundColor: '#2ECC71' },
     },
     {
@@ -40,7 +40,7 @@ export const lagoonWorkflow: EngineWorkflow = {
       label: 'Cancel',
       source: [DRAFT, CONFIRMED],
       target: CANCELLED,
-      actors: OPS,
+      actors: LAGOON_OPS,
       style: { backgroundColor: '#db5d5d' },
     },
   ],

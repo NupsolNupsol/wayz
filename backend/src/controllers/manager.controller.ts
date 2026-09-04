@@ -2,13 +2,14 @@ import { z } from 'zod'
 import type { Request } from 'express'
 import { asyncHandler } from '../utils/asyncHandler.js'
 import { ApiError } from '../utils/ApiError.js'
-import { ENGINE_KINDS, BILLING_MODELS, DURATION_UNITS, ROLES } from '../domain/types.js'
-import { managerIncidents, managerLiveSessions, managerOverview, managerRentals, managerRentalDetail, managerCustomers, managerCustomerDetail, managerPayments, managerShifts } from '../services/manager.service.js'
-import { createKiosk, createSite, createStation, orgTree, updateKiosk, updateSite, updateStation } from '../services/org.service.js'
+import { ENGINE_KINDS, BILLING_MODELS, DURATION_UNITS, ROLES, SALE_TYPES, SALE_UNITS } from '../domain/types.js'
+import { managerIncidents, managerLiveSessions, managerOverview, managerRentals, managerRentalDetail, managerCustomers, managerCustomerDetail, managerPayments, managerShift, managerShifts } from '../services/manager.service.js'
+import { createKiosk, createSite, createStation, orgTree, removeKiosk, updateKiosk, updateSite, updateStation } from '../services/org.service.js'
 import { createStaff, listStaff, reinviteStaff, resetStaffPassword, updateStaff } from '../services/staff.service.js'
 import { createProduct, getSettings, listPricing, updateProduct, updateSettings } from '../services/pricing.service.js'
 import {
   activityLog,
+  agentRevenueReport,
   customersReport,
   occupancyReport,
   rentalsReport,
@@ -21,7 +22,12 @@ import type { ManagerScope } from '../interfaces/index.js'
 
 function managerScope(req: Request): ManagerScope {
   if (!req.auth) throw ApiError.unauthorized()
-  return { tenantId: req.auth.tenantId, userId: req.auth.sub, role: req.auth.role }
+  return {
+    tenantId: req.auth.tenantId,
+    userId: req.auth.sub,
+    role: req.auth.role,
+    engineKinds: req.auth.engineKinds ?? [],
+  }
 }
 
 const engineKind = z.enum(ENGINE_KINDS)
@@ -50,7 +56,7 @@ const kioskSchema = z.object({
   name: z.string().min(1),
   code: z.string().optional(),
   location: z.string().optional(),
-  engineKinds: z.array(engineKind).optional(),
+  engineKind,
 })
 
 const staffSchema = z.object({
@@ -60,6 +66,7 @@ const staffSchema = z.object({
   stationId: z.string().min(1),
   kioskId: z.string().nullable().optional(),
   engineKinds: z.array(z.enum(ENGINE_KINDS)).optional(),
+  reportsTo: z.string().nullable().optional(),
   phone: z.string().optional(),
 })
 
@@ -68,8 +75,14 @@ const productSchema = z.object({
   engineKind,
   category: z.string().optional(),
   basePrice: z.coerce.number().min(0),
+  hourlyPrice: z.coerce.number().min(0).nullable().optional(),
+  tourPrice: z.coerce.number().min(0).nullable().optional(),
+  tourMinutes: z.coerce.number().int().min(1).nullable().optional(),
+  saleUnit: z.enum(SALE_UNITS).optional(),
+  saleType: z.enum(SALE_TYPES).optional(),
   overtimeHourlyRate: z.coerce.number().min(0).nullable().optional(),
   depositRequired: z.coerce.number().min(0).optional(),
+  penaltyPrice: z.coerce.number().min(0).optional(),
   assetTypeId: z.string().nullable().optional(),
   billingModel: z.enum(BILLING_MODELS),
   durationUnit: z.enum(DURATION_UNITS).optional(),
@@ -119,6 +132,9 @@ export const managerController = {
   createKiosk: asyncHandler(async (req, res) => {
     res.status(201).json({ success: true, data: await createKiosk(managerScope(req), kioskSchema.parse(req.body)) })
   }),
+  removeKiosk: asyncHandler(async (req, res) => {
+    res.json({ success: true, data: await removeKiosk(managerScope(req), req.params.id) })
+  }),
   updateKiosk: asyncHandler(async (req, res) => {
     const body = kioskSchema.partial().extend({ active: z.boolean().optional() }).parse(req.body)
     res.json({ success: true, data: await updateKiosk(managerScope(req), req.params.id, body) })
@@ -138,6 +154,10 @@ export const managerController = {
     const scope = managerScope(req)
     const data = await updateIncidentStatus({ tenantId: scope.tenantId } as never, req.params.id, body.status)
     res.json({ success: true, data })
+  }),
+
+  shift: asyncHandler(async (req, res) => {
+    res.json({ success: true, data: await managerShift(managerScope(req), req.params.id) })
   }),
 
   shifts: asyncHandler(async (req, res) => {
@@ -194,6 +214,9 @@ export const managerController = {
   reportRevenue: asyncHandler(async (req, res) => {
     res.json({ success: true, data: await revenueReport(managerScope(req), rangeSchema.parse(req.query)) })
   }),
+  reportAgents: asyncHandler(async (req, res) => {
+    res.json({ success: true, data: await agentRevenueReport(managerScope(req), rangeSchema.parse(req.query)) })
+  }),
   reportOccupancy: asyncHandler(async (req, res) => {
     res.json({ success: true, data: await occupancyReport(managerScope(req)) })
   }),
@@ -204,7 +227,7 @@ export const managerController = {
     res.json({ success: true, data: await customersReport(managerScope(req)) })
   }),
   exportReport: asyncHandler(async (req, res) => {
-    const params = z.object({ kind: z.enum(['revenue', 'occupancy', 'rentals', 'payments']) }).parse(req.params)
+    const params = z.object({ kind: z.enum(['revenue', 'occupancy', 'rentals', 'payments', 'agents']) }).parse(req.params)
     const rows = await reportRows(managerScope(req), params.kind, rangeSchema.parse(req.query))
     const csv = toCsv(rows)
     res.setHeader('Content-Type', 'text/csv; charset=utf-8')

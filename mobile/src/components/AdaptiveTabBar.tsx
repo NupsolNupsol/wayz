@@ -8,11 +8,6 @@ import { Icon, type IconName } from '@/components/Icon'
 import { useDeviceClass } from '@/hooks/useDeviceClass'
 import { COLORS } from '@/theme/tokens'
 
-/**
- * One navigation, two shapes. On a handheld it is a bottom bar under the thumb; from a tablet
- * up it becomes a left rail, because a 1280px screen with a bottom bar wastes the width and
- * puts the controls a hand-span away from the content.
- */
 type TabBarProps = Parameters<NonNullable<ComponentProps<typeof Tabs>['tabBar']>>[0]
 
 export function AdaptiveTabBar({ state, descriptors, navigation }: TabBarProps) {

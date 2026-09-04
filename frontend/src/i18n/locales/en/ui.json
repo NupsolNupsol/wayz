@@ -18,19 +18,27 @@
     "confirm": "Confirm payment",
     "note": "Payment records the sale and confirms the booking — it does",
     "noteNot": "not",
-    "noteRest": "start any operational timer."
+    "noteRest": "start any operational timer.",
+    "noTimerNote": "Payment records the sale and confirms the booking — it does not start any operational timer.",
+    "tillShut": "Your till is shut. Open it from the header before taking money — nothing can be sold at a closed drawer."
   },
   "customer": {
     "search": "Search customer name or phone…",
     "fullName": "Full name",
-    "phone": "Phone",
+    "phone": "Mobile",
     "email": "Email",
     "emailPlaceholder": "name@example.com",
     "emailHint": "Optional — enables email as a verification channel at retrieval.",
     "change": "Change",
     "newCustomer": "New customer",
     "createSelect": "Create & select",
-    "created": "Customer created"
+    "created": "Customer created",
+    "phoneHint": "The invoice, the confirmation code and the expiry warning all go here.",
+    "nameTooShort": "Enter the customer’s full name.",
+    "phoneIncomplete": "That is not a complete mobile number.",
+    "emailInvalid": "That email address does not look right.",
+    "cancel": "Cancel",
+    "orSearch": "or find one below"
   },
   "storage": {
     "scanPlaceholder": "Scan or type a barcode",

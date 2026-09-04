@@ -22,6 +22,10 @@ export const ID_PREFIX = {
   expense: 'exp',
   season: 'ssn',
   cardTransaction: 'txn',
+  manualSale: 'man',
+  refundRequest: 'rfr',
+  trip: 'trp',
+  version: 'ver',
 } as const
 
 export type CounterName = keyof typeof ID_PREFIX

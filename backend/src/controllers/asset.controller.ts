@@ -2,7 +2,7 @@ import { z } from 'zod'
 import type { Request } from 'express'
 import { asyncHandler } from '../utils/asyncHandler.js'
 import { ApiError } from '../utils/ApiError.js'
-import { BILLING_MODELS, ENGINE_KINDS } from '../domain/types.js'
+import { BILLING_MODELS, ENGINE_KINDS, SALE_TYPES, SALE_UNITS } from '../domain/types.js'
 import {
   addUnits,
   ASSET_KINDS,
@@ -15,13 +15,19 @@ import {
   SETTABLE_STATUSES,
   updateAssetKind,
   updateTypePrice,
+  unitReturnPosition,
   updateUnit,
 } from '../services/asset.service.js'
 import type { AssetScope } from '../services/asset.service.js'
 
 function assetScope(req: Request): AssetScope {
   if (!req.auth) throw ApiError.unauthorized()
-  return { tenantId: req.auth.tenantId, userId: req.auth.sub }
+  return {
+    tenantId: req.auth.tenantId,
+    userId: req.auth.sub,
+    role: req.auth.role,
+    engineKinds: req.auth.engineKinds ?? [],
+  }
 }
 
 const capacitySchema = z.object({
@@ -38,7 +44,10 @@ const kindSchema = z.object({
   engineKind: z.enum(ENGINE_KINDS),
   kind: z.enum(ASSET_KINDS),
   basePrice: z.number().min(0),
+  saleUnit: z.enum(SALE_UNITS).optional(),
+  saleType: z.enum(SALE_TYPES).optional(),
   depositRequired: z.number().min(0).optional(),
+  penaltyPrice: z.number().min(0).optional(),
   overtimeHourlyRate: z.number().min(0).nullable().optional(),
   billingModel: z.enum(BILLING_MODELS).optional(),
   capacity: capacitySchema.optional(),
@@ -64,17 +73,25 @@ const unitSchema = z
     note: z.string().max(400).optional(),
     identifier: z.string().min(1).max(40).optional(),
     priceOverride: z.number().min(0).nullable().optional(),
+    penaltyPrice: z.number().min(0).nullable().optional(),
+    stationId: z.string().min(1).optional(),
+    kioskId: z.string().min(1).nullish(),
   })
   .refine((v) => Object.keys(v).length > 0, { message: 'Nothing to change.' })
+
+const PRICE_FIELDS = ['basePrice', 'depositRequired', 'penaltyPrice', 'saleUnit', 'saleType', 'overtimeHourlyRate'] as const
 
 const priceSchema = z
   .object({
     basePrice: z.number().min(0).optional(),
     depositRequired: z.number().min(0).optional(),
+    penaltyPrice: z.number().min(0).optional(),
+    saleUnit: z.enum(SALE_UNITS).optional(),
+    saleType: z.enum(SALE_TYPES).optional(),
     overtimeHourlyRate: z.number().min(0).nullable().optional(),
     clearOverrides: z.boolean().optional(),
   })
-  .refine((v) => v.basePrice !== undefined || v.depositRequired !== undefined || v.overtimeHourlyRate !== undefined, {
+  .refine((v) => PRICE_FIELDS.some((field) => v[field] !== undefined), {
     message: 'Give a price to change.',
   })
 
@@ -112,6 +129,24 @@ export const assetController = {
   price: asyncHandler(async (req, res) => {
     const body = priceSchema.parse(req.body)
     res.json({ success: true, data: await updateTypePrice(assetScope(req), req.params.id, body) })
+  }),
+
+  returnPosition: asyncHandler(async (req, res) => {
+    if (!req.auth) throw ApiError.unauthorized()
+    res.json({
+      success: true,
+      data: await unitReturnPosition(
+        {
+          tenantId: req.auth.tenantId,
+          stationId: req.auth.stationId,
+          agentId: req.auth.sub,
+          role: req.auth.role,
+          kioskId: req.auth.kioskId ?? null,
+          engineKinds: req.auth.engineKinds ?? [],
+        },
+        req.params.id,
+      ),
+    })
   }),
 
   unit: asyncHandler(async (req, res) => {

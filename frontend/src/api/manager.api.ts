@@ -75,6 +75,8 @@ export interface OrgKiosk {
   name: string
   code?: string
   location?: string
+  stationId: string
+  engineKind: EngineKind
   active: boolean
   total: number
   available: number
@@ -135,8 +137,11 @@ export interface ManagerStaff {
   kioskId: string | null
   kioskName: string | null
   engineKinds: EngineKind[]
+  reportsTo: string | null
+  reportsToName: string | null
   lastLoginAt: string | null
   hasOpenShift: boolean
+  shiftStatus: string | null
   bookingsHandled: number
 }
 
@@ -146,6 +151,9 @@ export interface PricingProduct {
   engineKind: EngineKind
   category: string
   basePrice: number
+  hourlyPrice: number | null
+  tourPrice: number | null
+  tourMinutes: number | null
   overtimeHourlyRate: number | null
   effectiveOvertimeRate: number
   depositRequired: number
@@ -247,6 +255,7 @@ export interface ManagerIncident extends Incident {
 }
 export interface ManagerShift extends Shift {
   stationName: string
+  kioskName: string | null
   agentName: string
 }
 
@@ -271,6 +280,7 @@ export const managerApi = {
   updateStation: (id: string, d: Record<string, unknown>) => unwrap<OrgStation>(http.patch(`/manager/org/stations/${id}`, d)),
   createKiosk: (d: Record<string, unknown>) => unwrap<OrgKiosk>(http.post('/manager/org/kiosks', d)),
   updateKiosk: (id: string, d: Record<string, unknown>) => unwrap<OrgKiosk>(http.patch(`/manager/org/kiosks/${id}`, d)),
+  removeKiosk: (id: string) => unwrap<{ removed: string; name: string }>(http.delete(`/manager/org/kiosks/${id}`)),
 
   provision: (d: { assetTypeId: string; stationId: string; kioskId?: string; count: number }) =>
     unwrap<{ created: number }>(http.post('/manager/estate/provision', d)),
@@ -279,6 +289,7 @@ export const managerApi = {
   incidents: () => unwrap<ManagerIncident[]>(http.get('/manager/incidents')),
   updateIncident: (id: string, status: string) => unwrap<Incident>(http.patch(`/manager/incidents/${id}`, { status })),
   shifts: () => unwrap<ManagerShift[]>(http.get('/manager/shifts')),
+  shift: (id: string) => unwrap<ManagerShift>(http.get(`/manager/shifts/${id}`)),
 
   staff: () => unwrap<ManagerStaff[]>(http.get('/manager/staff')),
   createStaff: (d: Record<string, unknown>) => unwrap<ManagerStaff>(http.post('/manager/staff', d)),
@@ -286,9 +297,9 @@ export const managerApi = {
   updateStaff: (id: string, d: Record<string, unknown>) => unwrap<ManagerStaff>(http.patch(`/manager/staff/${id}`, d)),
   resetPassword: (id: string, password: string) => unwrap<{ ok: boolean }>(http.post(`/manager/staff/${id}/password`, { password })),
 
-  pricing: () => unwrap<PricingCatalogue>(http.get('/manager/pricing')),
-  createProduct: (d: Record<string, unknown>) => unwrap<PricingProduct>(http.post('/manager/pricing/products', d)),
-  updateProduct: (id: string, d: Record<string, unknown>) => unwrap<PricingProduct>(http.patch(`/manager/pricing/products/${id}`, d)),
+  pricing: () => unwrap<PricingCatalogue>(http.get('/pricing')),
+  createProduct: (d: Record<string, unknown>) => unwrap<PricingProduct>(http.post('/pricing/products', d)),
+  updateProduct: (id: string, d: Record<string, unknown>) => unwrap<PricingProduct>(http.patch(`/pricing/products/${id}`, d)),
 
   settings: () => unwrap<TenantSettings>(http.get('/manager/settings')),
   updateSettings: (d: Record<string, unknown>) => unwrap<TenantSettings>(http.patch('/manager/settings', d)),

@@ -379,11 +379,6 @@ export function HrSeasons() {
   const [startsAt, setStartsAt] = useState(new Date().toISOString().slice(0, 10))
   const [endsAt, setEndsAt] = useState('')
 
-  /**
-   * Six months on, in whole months. Naive month arithmetic rolls 31 August over into
-   * 2 March, and reading the date back in a local timezone can shift it by a day, so
-   * this stays in UTC and clamps to the last day of the target month.
-   */
   const defaultEnd = (start: string) => {
     const [year, month, day] = start.split('-').map(Number)
     if (!year || !month || !day) return ''

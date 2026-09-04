@@ -1,7 +1,7 @@
 import type { OperationResult, WorkflowContext } from '../shared/types.js'
 import { CANCELLED, COMPLETED, CONFIRMED } from '../shared/status.js'
 import { beginOperation, unknownTransition } from '../utils/clone.js'
-import { cancelRelease, completeAndRelease, handOverToCustomer, setStatus } from './shared.operations.js'
+import { cancelRelease, completeAndRelease, handOverToCustomer, replaceUnit, setStatus } from './shared.operations.js'
 
 export const useMobilityOperation = (transitionCode: string, ctx: WorkflowContext): OperationResult => {
   const result = beginOperation(ctx)
@@ -14,6 +14,11 @@ export const useMobilityOperation = (transitionCode: string, ctx: WorkflowContex
 
     case 'TO_HANDOVER': {
       handOverToCustomer(result, ctx, 'Asset handed to customer')
+      break
+    }
+
+    case 'TO_REPLACED': {
+      replaceUnit(result, ctx)
       break
     }
 

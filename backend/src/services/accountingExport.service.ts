@@ -151,12 +151,6 @@ function addSummarySheet(
   return sheet
 }
 
-/**
- * The VAT return is its own four-column table — description, base, rate, tax — so the
- * rows are written positionally rather than through the activity table's column keys.
- * Sharing those keys put the tax amounts in a column that was never headed for them and
- * dropped the tax due under "sales ex-VAT".
- */
 function addZatcaReturn(sheet: ExcelJS.Worksheet, figures: Awaited<ReturnType<typeof vatReturn>>) {
   const rate = `${(figures.vatRate * 100).toFixed(0)}%`
 

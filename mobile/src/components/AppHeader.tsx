@@ -6,10 +6,6 @@ import { Icon } from '@/components/Icon'
 import { Muted, Title } from '@/components/ui'
 import { COLORS } from '@/theme/tokens'
 
-/**
- * The top of every screen: where you are, how you get back, and the one or two things you can
- * do from here. A pushed screen gets a back affordance; a tab root does not.
- */
 export function AppHeader({
   title,
   subtitle,

@@ -22,6 +22,7 @@ export interface OrderDoc {
   ref: string
   tenantId: string
   stationId: string
+  kioskId: string | null
   agentId: string
   customerId: string
   engineKind: string
@@ -64,6 +65,7 @@ const orderSchema = new Schema<OrderDoc>(
     ref: { type: String, required: true },
     tenantId: { type: String, required: true, index: true },
     stationId: { type: String, required: true, index: true },
+    kioskId: { type: String, default: null, index: true },
     agentId: { type: String, required: true },
     customerId: { type: String, required: true },
     engineKind: { type: String, required: true },

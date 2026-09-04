@@ -4,7 +4,7 @@ import { asyncHandler } from '../utils/asyncHandler.js'
 import { ApiError } from '../utils/ApiError.js'
 import { EXPENSE_CATEGORIES } from '../models/index.js'
 import { ENGINE_KINDS, ROLES } from '../domain/types.js'
-import { chargeSeasonPayroll, createSeason, hrOverview, listExpenses, listSeasons, recordExpense, seasonDetail, voidExpense } from '../services/hr.service.js'
+import { chargeSeasonPayroll, createSeason, hoursWorked, hrOverview, hrShiftWindow, listExpenses, listSeasons, peopleAudit, recordExpense, seasonDetail, setShiftWindow, voidExpense } from '../services/hr.service.js'
 import type { HrScope } from '../interfaces/index.js'
 
 function hrScope(req: Request): HrScope {
@@ -44,7 +44,32 @@ const payrollSchema = z.object({
   monthlyCostByRole: z.record(z.enum(ROLES), z.number().min(0)),
 })
 
+const shiftWindowSchema = z.object({
+  startsAt: z.string().min(4),
+  endsAt: z.string().min(4),
+})
+
 export const hrController = {
+  shiftWindow: asyncHandler(async (req, res) => {
+    res.json({ success: true, data: await hrShiftWindow(hrScope(req)) })
+  }),
+
+  setShiftWindow: asyncHandler(async (req, res) => {
+    const body = shiftWindowSchema.parse(req.body)
+    res.json({ success: true, data: await setShiftWindow(hrScope(req), body) })
+  }),
+
+  hours: asyncHandler(async (req, res) => {
+    const q = z.object({ from: z.string().optional(), to: z.string().optional() }).parse(req.query)
+    res.json({ success: true, data: await hoursWorked(hrScope(req), q) })
+  }),
+
+  peopleAudit: asyncHandler(async (req, res) => {
+    const q = z
+      .object({ action: z.string().optional(), agentId: z.string().optional(), limit: z.coerce.number().optional() })
+      .parse(req.query)
+    res.json({ success: true, data: await peopleAudit(hrScope(req), q) })
+  }),
   overview: asyncHandler(async (req, res) => {
     res.json({ success: true, data: await hrOverview(hrScope(req), filterSchema.parse(req.query)) })
   }),
