@@ -55,6 +55,17 @@ export function requireHeldUnitUsable(ctx: WorkflowContext): string[] {
 export function requireAvailableUnit(ctx: WorkflowContext): string[] {
   const assetTypeId = ctx.booking.metadata?.assetTypeId as string | undefined
   if (!assetTypeId) return []
+
+  // When the desk names a unit, it is that unit that has to be free — checking only that *some*
+  // unit is free would let the same vehicle go out with two customers at once.
+  const requested = typeof ctx.payload.unitId === 'string' ? ctx.payload.unitId.trim() : ''
+  if (requested) {
+    if (!ctx.assets.byId[requested]) return ['That unit does not belong to this desk.']
+    const free = ctx.assets.available.some((u) => u._id === requested)
+    const alreadyThisBooking = ctx.booking.assetUnitId === requested || ctx.booking.reservation?.assetUnitId === requested
+    return free || alreadyThisBooking ? [] : ['That unit is already out with someone else.']
+  }
+
   return ctx.assets.available.length > 0 ? [] : ['No available unit to assign.']
 }
 

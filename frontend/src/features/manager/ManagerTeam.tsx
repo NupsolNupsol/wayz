@@ -1,13 +1,13 @@
 import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Clock, KeyRound, MailCheck, Power, Send, ShieldCheck, UserPlus, Users } from 'lucide-react'
+import { Clock, KeyRound, MailCheck, Power, Send, ShieldCheck, Trash2, UserPlus, Users } from 'lucide-react'
 import { PageHeader } from '@/components/PageHeader'
 import { Button, Field, Spinner, Badge, StatCard } from '@/components/ui'
 import { DataTable } from '@/components/DataTable'
 import { Modal } from '@/components/Modal'
 import { Select } from '@/components/Select'
 import { PhoneInput } from '@/components/PhoneInput'
-import { useCreateStaff, useManagerOrg, useManagerStaff, useReinviteStaff, useResetStaffPassword, useUpdateStaff } from '@/hooks'
+import { useCreateStaff, useManagerOrg, useManagerStaff, useReinviteStaff, useRemoveStaff, useResetStaffPassword, useUpdateStaff } from '@/hooks'
 import { ApiError } from '@/api/client'
 import { formatDateTime } from '@/utils'
 import { toast } from '@/state/toastStore'
@@ -36,6 +36,8 @@ export function ManagerTeam() {
   const updateStaff = useUpdateStaff()
   const resetPassword = useResetStaffPassword()
   const reinvite = useReinviteStaff()
+  const removeStaff = useRemoveStaff()
+  const [removing, setRemoving] = useState<ManagerStaff | null>(null)
 
   const [editing, setEditing] = useState<ManagerStaff | null>(null)
   const [creating, setCreating] = useState(false)
@@ -309,6 +311,7 @@ export function ManagerTeam() {
                     <Button variant="ghost" onClick={(e) => { e.stopPropagation(); resend(r) }} loading={reinvite.isPending} title={t('team.resendInvitation')} data-testid={`team-reinvite-${r._id}`}><Send size={14} /></Button>
                   )}
                   <Button variant="ghost" onClick={(e) => { e.stopPropagation(); toggleActive(r) }} title={r.active ? t('common:action.suspend') : t('common:action.restore')}><Power size={14} /></Button>
+                  <Button variant="ghost" onClick={(e) => { e.stopPropagation(); setRemoving(r) }} title={t('common:action.delete')} data-testid={`team-remove-${r._id}`}><Trash2 size={14} /></Button>
                 </div>
               ),
             },
@@ -357,6 +360,38 @@ export function ManagerTeam() {
         }
       >
         <StaffFields form={form} setForm={setForm} stations={stations} kiosks={kiosksHere} leads={leadOptions} />
+      </Modal>
+
+      <Modal
+        open={!!removing}
+        onClose={() => setRemoving(null)}
+        title={t('team.remove.title', { name: removing?.fullName ?? '' })}
+        subtitle={t('team.remove.subtitle')}
+        testId="team-remove-modal"
+        footer={
+          <>
+            <Button variant="ghost" onClick={() => setRemoving(null)}>{t('common:action.cancel')}</Button>
+            <Button
+              variant="danger"
+              loading={removeStaff.isPending}
+              onClick={() =>
+                removing &&
+                removeStaff.mutate(removing._id, {
+                  onSuccess: () => {
+                    toast('warning', t('team.remove.done', { name: removing.fullName }))
+                    setRemoving(null)
+                  },
+                  onError: (e) => toast('danger', t('team.remove.refused'), e instanceof ApiError ? (e.errors?.join(' ') ?? e.message) : ''),
+                })
+              }
+              data-testid="team-remove-submit"
+            >
+              {t('common:action.delete')}
+            </Button>
+          </>
+        }
+      >
+        <p className="text-sm text-muted">{t('team.remove.body')}</p>
       </Modal>
 
       <Modal

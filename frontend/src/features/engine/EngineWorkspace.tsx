@@ -9,6 +9,9 @@ import { Stepper, type Step } from '@/components/Stepper'
 import { CustomerPicker } from '@/components/CustomerPicker'
 import { isUnfinishedSale } from '@/features/bookings/resumeDraft'
 import { OtpBox } from '@/components/OtpBox'
+import { DiscountInline } from '@/components/DiscountInline'
+import { VoucherField } from '@/components/VoucherField'
+import { bookingApi } from '@/api/booking.api'
 import { PaymentPanel, type PaymentSplit } from '@/components/PaymentPanel'
 import { Timer } from '@/components/Timer'
 import { Icon } from '@/components/Icon'
@@ -40,6 +43,38 @@ const STEPS: Step[] = [
   { key: 'fulfil', labelKey: 'agent:engine.step.fulfil' },
 ]
 
+type Snapshot = {
+  step: number
+  productId: string | null
+  customerId: string | null
+  duration: number
+  rateMode: 'HOURS' | 'TOURS'
+  tours: number
+  visitors: number
+  boatId: string
+  bookingId: string | null
+}
+
+const draftKey = (engineKind: string) => `wayz.workspace.${engineKind}`
+
+function readSnapshot(engineKind: string): Snapshot | null {
+  try {
+    const raw = window.sessionStorage.getItem(draftKey(engineKind))
+    return raw ? (JSON.parse(raw) as Snapshot) : null
+  } catch {
+    return null
+  }
+}
+
+function writeSnapshot(engineKind: string, snapshot: Snapshot | null) {
+  try {
+    if (!snapshot) window.sessionStorage.removeItem(draftKey(engineKind))
+    else window.sessionStorage.setItem(draftKey(engineKind), JSON.stringify(snapshot))
+  } catch {
+    /* a private window just loses the resume, nothing else */
+  }
+}
+
 export function EngineWorkspace({ engineKind }: { engineKind: EngineKind }) {
   const [params, setParams] = useSearchParams()
   const resumeId = params.get('resume') ?? ''
@@ -52,6 +87,7 @@ export function EngineWorkspace({ engineKind }: { engineKind: EngineKind }) {
   const { data: units = [] } = useUnits()
   const createMut = useCreateBooking()
   const payMut = usePay()
+
   const transitionMut = useTransition()
 
   const [step, setStep] = useState(0)
@@ -67,6 +103,12 @@ export function EngineWorkspace({ engineKind }: { engineKind: EngineKind }) {
   const [unitId, setUnitId] = useState('')
   const [booking, setBooking] = useState<Booking | null>(null)
   const [order, setOrder] = useState<Order | null>(null)
+  /** What a code or a discount took off this sale, shown against the total the customer pays. */
+  const discountOff = (order?.lines ?? [])
+    .filter((l) => l.unitPrice < 0)
+    .reduce((sum, l) => sum + Math.abs(l.unitPrice * (l.quantity ?? 1)), 0)
+  const [restoring, setRestoring] = useState(() => !!readSnapshot(engineKind))
+  const [resumed, setResumed] = useState(false)
 
   const customerReachable = !!customer && isCustomerComplete({ name: customer.name, phone: customer.phone })
 
@@ -89,7 +131,7 @@ export function EngineWorkspace({ engineKind }: { engineKind: EngineKind }) {
   const fulfilment = FULFILMENT[engineKind]
   const active = bookings.filter((b) => ['ACTIVE', 'OVERTIME', 'PREPARING', 'CONFIRMED'].includes(b.status))
 
-  const reset = () => { setStep(0); setProduct(null); setCustomer(null); setPhoneVerified(false); setFlag(false); setUnitId(''); setBooking(null); setOrder(null); setDuration(1); setVisitors(2) }
+  const reset = () => { writeSnapshot(engineKind, null); setResumed(false); setStep(0); setProduct(null); setCustomer(null); setPhoneVerified(false); setFlag(false); setUnitId(''); setBooking(null); setOrder(null); setDuration(1); setVisitors(2) }
 
   const freeUnits = units.filter((u) => u.assetTypeId === product?.assetTypeId && u.status === 'AVAILABLE')
 
@@ -170,6 +212,65 @@ export function EngineWorkspace({ engineKind }: { engineKind: EngineKind }) {
     setUnitId(freeUnits[0]?._id ?? '')
   }, [step, unitId, freeUnits])
 
+  const snapshotBookingId = restoring ? (readSnapshot(engineKind)?.bookingId ?? null) : null
+  const { data: snapshotBooking } = useBooking(snapshotBookingId || undefined)
+  const { data: snapshotOrder } = useBookingOrder(snapshotBookingId || undefined)
+  const { data: snapshotCustomer } = useCustomer(restoring ? (readSnapshot(engineKind)?.customerId ?? undefined) : undefined)
+
+  /** Coming back to the tab picks the sale up where it was left, rather than starting over. */
+  useEffect(() => {
+    if (!restoring || resumeId) {
+      if (resumeId) setRestoring(false)
+      return
+    }
+    const snap = readSnapshot(engineKind)
+    if (!snap) {
+      setRestoring(false)
+      return
+    }
+    if (!products.length) return
+    if (snap.customerId && !snapshotCustomer) return
+    if (snap.bookingId && (!snapshotBooking || !snapshotOrder)) return
+
+    if (snap.bookingId && snapshotBooking && snapshotOrder && !isUnfinishedSale(snapshotBooking, snapshotOrder)) {
+      writeSnapshot(engineKind, null)
+      setRestoring(false)
+      return
+    }
+
+    setProduct(products.find((p) => p._id === snap.productId) ?? null)
+    if (snapshotCustomer) setCustomer(snapshotCustomer)
+    setDuration(snap.duration)
+    setRateMode(snap.rateMode)
+    setTours(snap.tours)
+    setVisitors(snap.visitors)
+    setBoatId(snap.boatId)
+    if (snapshotBooking) setBooking(snapshotBooking)
+    if (snapshotOrder) setOrder(snapshotOrder)
+    setStep(snap.step)
+    setResumed(true)
+    setRestoring(false)
+  }, [restoring, resumeId, engineKind, products, snapshotBooking, snapshotOrder, snapshotCustomer])
+
+  useEffect(() => {
+    if (restoring) return
+    if (step === 0 && !product && !customer && !booking) {
+      writeSnapshot(engineKind, null)
+      return
+    }
+    writeSnapshot(engineKind, {
+      step,
+      productId: product?._id ?? null,
+      customerId: customer?._id ?? null,
+      duration,
+      rateMode,
+      tours,
+      visitors,
+      boatId,
+      bookingId: booking?.id ?? null,
+    })
+  }, [restoring, engineKind, step, product, customer, duration, rateMode, tours, visitors, boatId, booking])
+
   const fulfil = async () => {
     if (!booking || !fulfilment) return
     try {
@@ -195,16 +296,26 @@ export function EngineWorkspace({ engineKind }: { engineKind: EngineKind }) {
         />
       </div>
 
+      {resumed && step < 3 && (
+        <Card className="mb-4 p-3 flex flex-wrap items-center justify-between gap-3 border-brand/40 bg-brand/5" data-testid="engine-resumed">
+          <p className="text-sm text-navy dark:text-dk-text">{t('engine.resumed')}</p>
+          <Button variant="ghost" onClick={reset} data-testid="engine-resumed-discard">{t('engine.startFresh')}</Button>
+        </Card>
+      )}
+
       {step === 0 && (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3" data-testid="engine-products">
           {products.map((p) => (
             <button key={p._id} onClick={() => { setProduct(p); setStep(1) }} data-testid={`product-${p._id}`} className="text-start">
               <Card className="lf-card-hover h-full">
                 <div className="flex items-start justify-between">
-                  <div className="w-11 h-11 rounded-xl bg-brand/10 text-brand flex items-center justify-center"><Icon name={productIcon(p.name, engineKind)} size={22} /></div>
+                  <div className="w-11 h-11 rounded-xl bg-brand/10 text-brand flex items-center justify-center text-2xl leading-none">
+                    {p.emoji ? <span aria-hidden>{p.emoji}</span> : <Icon name={productIcon(p.name, engineKind)} size={22} />}
+                  </div>
                   <div className="text-end"><p className="font-bold text-navy dark:text-dk-texthi">{money(p.basePrice)}</p>{p.durationUnit && <p className="text-[11px] text-muted">{t(`status:durationUnit.${p.durationUnit}`, { defaultValue: p.durationUnit.replace('_', ' ').toLowerCase() })}</p>}</div>
                 </div>
                 <h3 className="font-semibold mt-2">{p.name}</h3>
+                {p.nameAr ? <p className="text-xs text-muted" dir="rtl">{p.nameAr}</p> : null}
                 <div className="flex flex-wrap gap-1 mt-2">
                   {p.depositRequired > 0 && <Badge tone="warning">{t('common:field.deposit', { defaultValue: 'Deposit' })} {money(p.depositRequired)}</Badge>}
                   {p.proposedPolicy && <Badge tone="neutral">{t('engine.proposedPolicy')}</Badge>}
@@ -348,7 +459,28 @@ export function EngineWorkspace({ engineKind }: { engineKind: EngineKind }) {
           <Card>
             <SectionTitle className="mb-3">{t('engine.verifyAndPay')}</SectionTitle>
             <div className="mb-4"><OtpBox phone={customer.phone} email={customer.email} intent="VERIFY_PHONE" verified={phoneVerified} onVerified={setPhoneVerified} /></div>
-            <PaymentPanel total={order.total} onConfirm={pay} confirming={payMut.isPending} disabled={!online || !phoneVerified} />
+            <VoucherField
+              bookingId={booking.id}
+              onApplied={async () => {
+                const fresh = await bookingApi.order(booking.id)
+                setOrder(fresh)
+              }}
+            />
+            <DiscountInline
+              bookingId={booking.id}
+              total={order.total}
+              onApplied={async () => {
+                const fresh = await bookingApi.order(booking.id)
+                setOrder(fresh)
+              }}
+            />
+            <PaymentPanel
+              total={order.total}
+              discountOff={discountOff}
+              onConfirm={pay}
+              confirming={payMut.isPending}
+              disabled={!online || !phoneVerified}
+            />
           </Card>
           <Card>
             <SectionTitle className="mb-3">{t('engine.summary')}</SectionTitle>
@@ -400,7 +532,7 @@ export function EngineWorkspace({ engineKind }: { engineKind: EngineKind }) {
               <Card key={b.id} data-testid={`engine-active-${b.ref}`}>
                 <div className="flex items-center justify-between mb-1"><span className="font-semibold text-sm">{b.ref}</span><StatusBadge status={b.status} /></div>
                 <p className="text-sm">{b.productName}</p>
-                <div className="flex items-center justify-between mt-3 pt-3 border-t border-line"><Timer expectedEndAt={b.session.expectedEndAt} /><Button variant="secondary" onClick={() => navigate(`/bookings/${b.id}`)}>{t('common:action.open')}</Button></div>
+                <div className="flex items-center justify-between mt-3 pt-3 border-t border-line"><Timer expectedEndAt={b.session.expectedEndAt} endedAt={b.session.endedAt ?? b.session.chargeableEndedAt} /><Button variant="secondary" onClick={() => navigate(`/bookings/${b.id}`)}>{t('common:action.open')}</Button></div>
               </Card>
             ))}
           </div>

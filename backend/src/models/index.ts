@@ -49,3 +49,5 @@ export type { CardTransactionDoc, CommissionRateDoc, TransactionSource, Transact
 export type { CashMovementDoc, CashMovementKind } from './cashMovement.model.js'
 export { Version } from './version.model.js'
 export type { VersionDoc, VersionChange, VersionLink, VersionCheck, VersionIssue } from './version.model.js'
+export { Voucher, VoucherCampaign } from './voucher.model.js'
+export type { VoucherDoc, VoucherCampaignDoc, VoucherStatus } from './voucher.model.js'

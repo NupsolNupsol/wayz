@@ -129,7 +129,7 @@ export function DashboardPage() {
                     <p className="text-xs text-muted truncate">{b.productName}</p>
                   </div>
                   <div className="text-end shrink-0">
-                    <Timer expectedEndAt={b.session.expectedEndAt} />
+                    <Timer expectedEndAt={b.session.expectedEndAt} endedAt={b.session.endedAt ?? b.session.chargeableEndedAt} />
                     <p className="text-[11px] text-muted">{t('dashboard.endsAt', { time: formatTime(b.session.expectedEndAt ? new Date(b.session.expectedEndAt).getTime() : null) })}</p>
                   </div>
                 </button>

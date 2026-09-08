@@ -32,6 +32,9 @@ export async function ageBooking(scope: Scope, bookingId: string, minutes: numbe
   booking.session.startedAt = shift(booking.session.startedAt, forward)
   booking.session.expectedEndAt = shift(booking.session.expectedEndAt, forward)
   booking.session.paidAt = shift(booking.session.paidAt, forward)
+  // A session that has already stopped moves as a whole, or the testing clock would invent
+  // overtime on a rental that finished.
+  booking.session.chargeableEndedAt = shift(booking.session.chargeableEndedAt, forward)
   booking.session.expiryWarningSentAt = null
   booking.markModified('session')
   await booking.save()

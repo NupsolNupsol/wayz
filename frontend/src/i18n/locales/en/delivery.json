@@ -33,9 +33,8 @@
     "agentWillCheck": "The agent will check this task is assigned to you before opening anything.",
     "requestBags": "Request the bags",
     "waitingForAgent": "Waiting for the kiosk agent",
-    "showThemYourName": "Show them your name. Once they confirm you are the assigned courier, the compartment code appears here.",
+    "showThemYourName": "Show them your name. Once they confirm you are the assigned courier, they open the compartment and hand the bags over.",
     "expiresIn": "Expires in",
-    "expired": "Expired. Ask the agent at the kiosk to approve again — they will give you a new code.",
     "askAgain": "Ask the agent again",
     "scan": "Scan",
     "scanAll": "Scan all bags",
@@ -64,7 +63,7 @@
     "collectedDetail": "{{amount}} collected. It is on the booking and in your drawer.",
     "collectFailed": "That payment did not go through",
     "stopsTitle": "Kiosks on this run ({{count}})",
-    "stopsBlurb": "One sub-task per kiosk. Ask each kiosk agent for their compartment code, scan the bags, then move on.",
+    "stopsBlurb": "One sub-task per kiosk. Ask each kiosk agent to release the bags, scan them, then move on to the next.",
     "stopLine": "Compartment {{unit}} · {{count}} bag(s) · {{ref}}",
     "stopNow": "Go here now",
     "stopQueued": "Queued",
@@ -75,7 +74,9 @@
     "allKiosksDone": "Every kiosk is done — take the bags to the customer.",
     "payBeforeHandover": "Take {{amount}} from the customer before handing the bags over.",
     "yoursToTake": "This job is open — nobody is carrying it yet.",
-    "claimFirst": "Pick it up before asking a kiosk for bags or taking any money."
+    "claimFirst": "Pick it up before asking a kiosk for bags or taking any money.",
+    "handedOver": "The desk has handed you the bags from {{unit}}.",
+    "scanThemNow": "Scan every bag before you leave the kiosk."
   },
   "kiosk": {
     "title": "Deliveries",
@@ -93,8 +94,6 @@
     "checkPerson": "Check the person in front of you before anything opens.",
     "assignedTo": "This delivery is assigned to",
     "noCourier": "No courier is assigned — do not release anything.",
-    "codeHint": "Read it off the kiosk. The courier sees it for 15 minutes, then it dies.",
-    "codeFormat": "4–12 letters or digits",
     "approveRelease": "Approve & release",
     "released": "Compartment released",
     "notApproved": "Not approved",
@@ -105,7 +104,10 @@
     "mine": "· yours",
     "stopCount": "{{done}} of {{total}} kiosks collected",
     "stopOf": "Stop {{done}} of {{total}} — the courier is at {{kiosk}}",
-    "otherKiosk": "Another kiosk holds this one: {{kiosk}}"
+    "otherKiosk": "Another kiosk holds this one: {{kiosk}}",
+    "handOverHint": "Open compartment {{unit}} and hand the bags over. Nothing else is needed — no code, no fee.",
+    "courierAsking": "A courier is asking for these bags — requested {{when}}",
+    "courierAssigned": "A courier has this job — hand the bags over when they reach your counter"
   },
   "request": {
     "title": "Send these bags to the customer",
@@ -130,7 +132,14 @@
     "alsoHoldingHint": "Ask them on the call whether they want those brought along. Tick every kiosk the courier should visit.",
     "bringEverything": "Bring everything",
     "bagCount": "{{count}} bag(s)",
-    "extraStops": "{{stops}} extra stop(s) · {{bags}} more bag(s) on this run"
+    "extraStops": "{{stops}} extra stop(s) · {{bags}} more bag(s) on this run",
+    "whereTo": "Where do the bags go?",
+    "whereToHint": "Shop & Drop bags are collected at an exit gate.",
+    "toExitGate": "An exit gate",
+    "toAddress": "An address",
+    "exitGate": "Which gate",
+    "exitGateHint": "The customer collects from the agent at this gate.",
+    "pickGate": "Choose a gate…"
   },
   "state": {
     "REQUESTED": {

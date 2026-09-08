@@ -24,6 +24,9 @@ import {
   resolveRentalRules,
   type PenaltyRule,
   type RentalRulesPatch,
+  DEFAULT_DISCOUNT_REASONS,
+  resolveDiscountReasons,
+  type DiscountReason,
 } from '../domain/rules.js'
 import { round2 } from '../utils/helpers.js'
 import { computeOvertime } from '../domain/overtime.js'
@@ -288,14 +291,19 @@ export async function readRules(scope: ManagerScope) {
   return {
     rental: rules.rental,
     penalties: rules.penalties,
+    discountReasons: rules.discountReasons,
     engineKinds: [...ENGINE_KINDS],
-    defaults: { rental: DEFAULT_RENTAL_RULES, penalties: DEFAULT_PENALTY_SCHEDULE },
+    defaults: {
+      rental: DEFAULT_RENTAL_RULES,
+      penalties: DEFAULT_PENALTY_SCHEDULE,
+      discountReasons: DEFAULT_DISCOUNT_REASONS,
+    },
   }
 }
 
 export async function updateRules(
   scope: ManagerScope,
-  patch: { rental?: RentalRulesPatch; penalties?: PenaltyRule[] },
+  patch: { rental?: RentalRulesPatch; penalties?: PenaltyRule[]; discountReasons?: DiscountReason[] },
 ) {
   const tenant = await Tenant.findById(scope.tenantId)
   if (!tenant) throw ApiError.notFound('Tenant not found.')
@@ -335,6 +343,24 @@ export async function updateRules(
     }))
     tenant.markModified('penaltySchedule')
     changes.push(`${patch.penalties.length} penalty line(s)`)
+  }
+
+  if (patch.discountReasons) {
+    const seen = new Set<string>()
+    for (const reason of patch.discountReasons) {
+      const code = reason.code?.trim().toUpperCase()
+      if (!code) throw ApiError.badRequest('Every discount reason needs a code.')
+      if (seen.has(code)) throw ApiError.badRequest(`Duplicate discount reason "${code}".`)
+      seen.add(code)
+      if (!reason.label?.trim()) throw ApiError.badRequest(`Discount reason "${code}" needs a label.`)
+      const pct = Number(reason.maxPercent)
+      if (!Number.isFinite(pct) || pct < 0 || pct > 100) {
+        throw ApiError.badRequest(`Discount reason "${code}" needs a ceiling between 0 and 100 percent.`)
+      }
+    }
+    tenant.discountReasons = resolveDiscountReasons(patch.discountReasons)
+    tenant.markModified('discountReasons')
+    changes.push(`${patch.discountReasons.length} discount reason(s)`)
   }
 
   await tenant.save()

@@ -97,8 +97,12 @@ export const bookingApi = {
   order: (id: string) => unwrap<Order>(http.get(`/bookings/${id}/order`)),
   transitions: (id: string) => unwrap<{ allowed: boolean; message: string; transitions: AvailableTransition[] }>(http.get(`/bookings/${id}/transitions`)),
   create: (input: CreateBookingInput) => unwrap<{ booking: Booking; order: Order }>(http.post('/bookings', input)),
+  discount: (id: string, body: { reasonCode: string; percent?: number; amount?: number; note?: string }) =>
+    unwrap<{ booking: Booking; order: Order }>(http.post(`/bookings/${id}/discount`, body)),
   pay: (id: string, splits: { method: PaymentMethod; amount: number; kind?: string }[]) =>
     unwrap<{ booking: Booking; order: Order; receipt: Receipt }>(http.post(`/bookings/${id}/pay`, { splits })),
+  redeemVoucher: (id: string, code: string) =>
+    unwrap<{ code: string; percent: number; name: string; order: Order }>(http.post(`/bookings/${id}/voucher`, { code })),
   reserve: (id: string, unitId?: string) => unwrap<Booking>(http.post(`/bookings/${id}/reserve`, unitId ? { unitId } : {})),
   reassign: (id: string, unitId: string, reason: string) => unwrap<Booking>(http.post(`/bookings/${id}/reassign`, { unitId, reason })),
   scanOut: (id: string, barcode: string) => unwrap<Booking>(http.post(`/bookings/${id}/scan-out`, { barcode })),

@@ -1,14 +1,18 @@
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Banknote, ClipboardCheck, Clock, Printer, TriangleAlert, User } from 'lucide-react'
+import { Banknote, ClipboardCheck, Clock, Printer, TriangleAlert, User, X } from 'lucide-react'
 import { clsx } from 'clsx'
 import { PageHeader } from '@/components/PageHeader'
 import { RefText } from '@/components/RefLink'
 import { Badge, Button, Card, EmptyState, SectionTitle, Spinner, StatCard } from '@/components/ui'
 import { Modal } from '@/components/Modal'
 import { PaymentPanel, type PaymentSplit } from '@/components/PaymentPanel'
+import { OtpBox } from '@/components/OtpBox'
+import { ReasonDialog } from '@/components/ReasonDialog'
+import { DiscountButton } from '@/components/DiscountButton'
+import { VoucherField } from '@/components/VoucherField'
 import { Icon } from '@/components/Icon'
-import { useTillQueue, useTillOverview, useOpenShift, usePay } from '@/hooks'
+import { useTillQueue, useTillOverview, useOpenShift, usePay, useTransition } from '@/hooks'
 import { ApiError } from '@/api/client'
 import { toast } from '@/state/toastStore'
 import { ENGINE_META } from '@/config/engineMeta'
@@ -16,7 +20,17 @@ import { money, waitedFor, STALE_QUEUE_MS } from './tillFormat'
 import type { QueuedPayment } from '@/api/till.api'
 import type { EngineKind } from '@/api/types'
 
-function QueueCard({ row, onTake, stale }: { row: QueuedPayment; onTake: () => void; stale: boolean }) {
+function QueueCard({
+  row,
+  onTake,
+  onDrop,
+  stale,
+}: {
+  row: QueuedPayment
+  onTake: () => void
+  onDrop: () => void
+  stale: boolean
+}) {
   const { t } = useTranslation('till')
   const engine = ENGINE_META[row.engineKind as EngineKind]
   return (
@@ -57,7 +71,9 @@ function QueueCard({ row, onTake, stale }: { row: QueuedPayment; onTake: () => v
         </div>
       </div>
 
-      <div className="mt-3 flex justify-end">
+      <div className="mt-3 flex flex-wrap justify-end gap-2">
+        <Button variant="ghost" onClick={onDrop} data-testid={`queue-cancel-${row.bookingId}`}>
+          <X size={15} />{t('queue.cancelIt')}</Button>
         <Button onClick={onTake} data-testid={`queue-take-${row.bookingId}`}>
           <Banknote size={16} />{t('queue.takePayment')}</Button>
       </div>
@@ -71,8 +87,16 @@ export function TillQueue() {
   const { data: overview } = useTillOverview()
   const pay = usePay()
   const openShift = useOpenShift()
+  const drop = useTransition()
 
   const [taking, setTaking] = useState<QueuedPayment | null>(null)
+  const [confirmed, setConfirmed] = useState(false)
+  const [dropping, setDropping] = useState<QueuedPayment | null>(null)
+
+  const startTaking = (row: QueuedPayment | null) => {
+    setConfirmed(false)
+    setTaking(row)
+  }
 
   const tillOpen = !!overview?.shift && overview.shift.status === 'OPEN'
 
@@ -149,14 +173,50 @@ export function TillQueue() {
       ) : (
         <div className="grid grid-cols-1 xl:grid-cols-2 gap-3" data-testid="queue-list">
           {rows.map((row) => (
-            <QueueCard key={row.bookingId} row={row} stale={row.waitingMs > STALE_QUEUE_MS} onTake={() => setTaking(row)} />
+            <QueueCard
+              key={row.bookingId}
+              row={row}
+              stale={row.waitingMs > STALE_QUEUE_MS}
+              onTake={() => startTaking(row)}
+              onDrop={() => setDropping(row)}
+            />
           ))}
         </div>
       )}
 
+      <ReasonDialog
+        open={!!dropping}
+        onClose={() => setDropping(null)}
+        onConfirm={(reason) => {
+          const row = dropping
+          if (!row) return
+          drop.mutate(
+            { id: row.bookingId, code: 'TO_CANCELLED', payload: { reason } },
+            {
+              onSuccess: () => {
+                setDropping(null)
+                toast('warning', t('queue.cancelled'), t('queue.cancelledDetail', { ref: row.ref }))
+              },
+              onError: (e) => toast('danger', t('queue.notCancelled'), e instanceof ApiError ? (e.errors?.join(' ') ?? e.message) : ''),
+            },
+          )
+        }}
+        title={t('queue.cancelTitle')}
+        subtitle={dropping ? `${dropping.ref} · ${dropping.customerName || 'Walk-in'}` : undefined}
+        confirmLabel={t('queue.cancelIt')}
+        confirming={drop.isPending}
+        choices={[
+          { value: 'CUSTOMER_LEFT', label: t('queue.reason.left') },
+          { value: 'WRONG_ENTRY', label: t('queue.reason.wrongEntry') },
+          { value: 'NO_PAYMENT', label: t('queue.reason.cannotPay') },
+          { value: 'OTHER', label: t('queue.reason.other') },
+        ]}
+        testId="queue-cancel-dialog"
+      />
+
       <Modal
         open={!!taking}
-        onClose={() => setTaking(null)}
+        onClose={() => startTaking(null)}
         title={taking ? `Take ${money(taking.total)}` : 'Take payment'}
         subtitle={taking ? `${taking.ref} · ${taking.customerName || 'Walk-in'}` : undefined}
         size="lg"
@@ -179,13 +239,47 @@ export function TillQueue() {
                   <span className="tabular-nums">{money(taking.depositTotal)}</span>
                 </div>
               )}
+              {(taking.discountOff ?? 0) > 0 && (
+                <div className="flex items-baseline justify-between py-1 text-success font-medium" data-testid="queue-discount-off">
+                  <span className="text-sm">{t('queue.discountOff')}</span>
+                  <span className="tabular-nums">-{money(taking.discountOff)}</span>
+                </div>
+              )}
               <div className="border-t border-line dark:border-dk-border mt-1 pt-2 flex items-baseline justify-between">
                 <span className="font-semibold text-navy dark:text-dk-texthi">{t('queue.total')}</span>
                 <span className="text-lg font-bold tabular-nums text-navy dark:text-dk-texthi">{money(taking.total)}</span>
               </div>
             </div>
 
-            <PaymentPanel total={taking.total} onConfirm={confirm} confirming={pay.isPending} />
+            {taking.customerPhone ? (
+              <div className="mb-4">
+                <OtpBox
+                  phone={taking.customerPhone}
+                  intent="VERIFY_PHONE"
+                  verified={confirmed}
+                  onVerified={setConfirmed}
+                />
+              </div>
+            ) : null}
+
+            <VoucherField bookingId={taking.bookingId} onApplied={() => startTaking(null)} />
+            <div className="mb-3 flex flex-wrap justify-end gap-2">
+              <DiscountButton bookingId={taking.bookingId} total={taking.total} onDone={() => startTaking(null)} />
+            </div>
+
+            <PaymentPanel
+              total={taking.total}
+              discountOff={taking.discountOff ?? 0}
+              onConfirm={confirm}
+              confirming={pay.isPending}
+              disabled={!!taking.customerPhone && !confirmed}
+            />
+
+            {!!taking.customerPhone && !confirmed && (
+              <p className="text-xs text-amber-700 dark:text-amber-300 mt-3" data-testid="queue-needs-otp">
+                {t('queue.confirmFirst')}
+              </p>
+            )}
 
             <p className="text-xs text-muted mt-3 flex items-start gap-1.5">
               <Printer size={13} className="mt-0.5 shrink-0" />

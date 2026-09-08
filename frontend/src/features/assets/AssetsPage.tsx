@@ -42,6 +42,7 @@ export function AssetsPage() {
 
   const [addFor, setAddFor] = useState<AssetTypeRow | null>(null)
   const [stationId, setStationId] = useState('')
+  const [kioskId, setKioskId] = useState('')
   const [count, setCount] = useState(4)
 
   const [priceFor, setPriceFor] = useState<AssetTypeRow | null>(null)
@@ -74,14 +75,20 @@ export function AssetsPage() {
 
   const openAdd = (row: AssetTypeRow) => {
     setAddFor(row)
-    setStationId(data?.stations.find((s) => s.engineKinds.includes(row.engineKind))?._id ?? data?.stations[0]?._id ?? '')
+    // A desk that runs this activity is the only place these can live.
+    const desk = (data?.kiosks ?? []).find((k) => !k.engineKind || k.engineKind === row.engineKind)
+    setStationId(desk?.stationId ?? data?.stations.find((s) => s.engineKinds.includes(row.engineKind))?._id ?? data?.stations[0]?._id ?? '')
+    setKioskId(desk?._id ?? '')
     setCount(4)
   }
+
+  const desksFor = (row: AssetTypeRow | null, station: string) =>
+    (data?.kiosks ?? []).filter((k) => k.stationId === station && (!k.engineKind || !row || k.engineKind === row.engineKind))
 
   const submitAdd = () => {
     if (!addFor) return
     addUnits.mutate(
-      { id: addFor._id, body: { stationId, count } },
+      { id: addFor._id, body: { stationId, kioskId, count } },
       {
         onSuccess: (r) => {
           toast('success', t('toast.added', { count: r.created }), r.identifiers.slice(0, 6).join(', '))
@@ -372,6 +379,7 @@ export function AssetsPage() {
         open={newKindOpen}
         onClose={() => setNewKindOpen(false)}
         stations={data.stations}
+        kiosks={data.kiosks ?? []}
         defaultEngine={filter === 'ALL' ? undefined : filter}
         onCreated={(id) => navigate(`/assets/${id}`)}
       />
@@ -423,7 +431,7 @@ export function AssetsPage() {
         footer={
           <>
             <Button variant="ghost" onClick={() => setAddFor(null)}>{t('common:action.cancel')}</Button>
-            <Button onClick={submitAdd} loading={addUnits.isPending} disabled={!stationId || count < 1} data-testid="asset-add-submit">
+            <Button onClick={submitAdd} loading={addUnits.isPending} disabled={!stationId || !kioskId || count < 1} data-testid="asset-add-submit">
               {t('add.submit', { count })}
             </Button>
           </>
@@ -432,10 +440,28 @@ export function AssetsPage() {
         <Field label={t('common:field.station')} required>
           <Select
             value={stationId}
-            onChange={setStationId}
+            onChange={(v) => {
+              setStationId(v)
+              setKioskId(desksFor(addFor, v)[0]?._id ?? '')
+            }}
             options={data.stations.map((s) => ({ label: s.name, value: s._id }))}
             testId="asset-add-station"
           />
+        </Field>
+        <Field label={t('common:field.kiosk')} required hint={t('add.kioskHint')}>
+          {desksFor(addFor, stationId).length > 0 ? (
+            <Select
+              value={kioskId}
+              onChange={setKioskId}
+              options={[
+                { label: t('add.pickKiosk'), value: '' },
+                ...desksFor(addFor, stationId).map((k) => ({ label: k.name, value: k._id })),
+              ]}
+              testId="asset-add-kiosk"
+            />
+          ) : (
+            <p className="text-xs text-danger-strong" data-testid="asset-add-no-kiosk">{t('add.noKioskHere')}</p>
+          )}
         </Field>
         <Field label={t('add.howMany')} required hint={t('add.identifierNote')}>
           <NumberInput min={1} max={200} value={count} onChange={setCount} testId="asset-add-count" />

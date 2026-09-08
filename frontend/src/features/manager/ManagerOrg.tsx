@@ -12,6 +12,8 @@ import {
   useCreateStation,
   useManagerOrg,
   useRemoveKiosk,
+  useRemoveStation,
+  useRemoveSite,
   useUpdateKiosk,
   useUpdateSite,
   useUpdateStation,
@@ -28,6 +30,9 @@ type Dialog =
   | { kind: 'kiosk'; id?: string; stationId: string; runs: EngineKind[]; initial?: Record<string, unknown> }
   | null
 
+/** Sentinel in the venue-type list: picking it swaps the dropdown for a free-text box. */
+const ADD_VENUE = '__ADD__'
+
 export function ManagerOrg() {
   const { t } = useTranslation(['manager', 'common'])
   const { data, isLoading } = useManagerOrg()
@@ -38,13 +43,17 @@ export function ManagerOrg() {
   const createKiosk = useCreateKiosk()
   const updateKiosk = useUpdateKiosk()
   const removeKiosk = useRemoveKiosk()
+  const removeStation = useRemoveStation()
+  const removeSite = useRemoveSite()
 
   const [dialog, setDialog] = useState<Dialog>(null)
   const [form, setForm] = useState<Record<string, string>>({})
-  const [removing, setRemoving] = useState<{ id: string; name: string } | null>(null)
+  const [removing, setRemoving] = useState<{ kind: 'site' | 'station' | 'kiosk'; id: string; name: string } | null>(null)
   const [engines, setEngines] = useState<EngineKind[]>([])
+  const [customVenue, setCustomVenue] = useState(false)
 
   const open = (d: Dialog, initial: Record<string, string> = {}, eng: EngineKind[] = []) => {
+    setCustomVenue(false)
     setForm(initial)
     setEngines(eng)
     setDialog(d)
@@ -159,6 +168,14 @@ export function ManagerOrg() {
                   <Button variant="ghost" onClick={() => toggle('site', site._id, site.active)} title={site.active ? t('org.deactivate') : t('org.reactivate')}>
                     <Power size={15} />
                   </Button>
+                  <Button
+                    variant="ghost"
+                    onClick={() => setRemoving({ kind: 'site', id: site._id, name: site.name })}
+                    title={t('common:action.delete')}
+                    data-testid={`org-remove-site-${site._id}`}
+                  >
+                    <Trash2 size={15} />
+                  </Button>
                   <Button variant="secondary" onClick={() => open({ kind: 'station', siteId: site._id }, { openingTime: '08:00', closingTime: '22:00' })} data-testid={`org-add-station-${site._id}`}>
                     <Plus size={15} /> {t('org.station')}
                   </Button>
@@ -195,6 +212,14 @@ export function ManagerOrg() {
                           }, station.engineKinds)}>{t('common:action.edit')}</Button>
                           <Button variant="ghost" onClick={() => toggle('station', station._id, station.active)} title={station.active ? t('org.deactivate') : t('org.reactivate')}>
                             <Power size={14} />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            onClick={() => setRemoving({ kind: 'station', id: station._id, name: station.name })}
+                            title={t('common:action.delete')}
+                            data-testid={`org-remove-station-${station._id}`}
+                          >
+                            <Trash2 size={14} />
                           </Button>
                           <Button
                             variant="ghost"
@@ -249,7 +274,7 @@ export function ManagerOrg() {
                                     <Power size={13} />
                                   </button>
                                   <button
-                                    onClick={() => setRemoving({ id: k._id, name: k.name })}
+                                    onClick={() => setRemoving({ kind: 'kiosk', id: k._id, name: k.name })}
                                     className="text-muted hover:text-danger-strong"
                                     title={t('common:action.delete')}
                                     data-testid={`org-remove-kiosk-${k._id}`}
@@ -297,13 +322,32 @@ export function ManagerOrg() {
             <Field label={t('org.city')} required>
               <input className="lf-input" value={form.city ?? ''} onChange={(e) => setForm({ ...form, city: e.target.value })} data-testid="org-city" />
             </Field>
-            <Field label={t('org.venueType')}>
-              <Select
-                value={form.venueType ?? 'MALL'}
-                onChange={(v) => setForm({ ...form, venueType: v })}
-                options={data.venueTypes.map((v) => ({ label: v.replaceAll('_', ' '), value: v }))}
-                testId="org-venue-type"
-              />
+            <Field label={t('org.venueType')} hint={t('org.venueTypeHint')}>
+              {customVenue ? (
+                <input
+                  className="lf-input uppercase"
+                  autoFocus
+                  value={form.venueType ?? ''}
+                  onChange={(e) => setForm({ ...form, venueType: e.target.value.toUpperCase() })}
+                  placeholder={t('org.venueTypePlaceholder')}
+                  data-testid="org-venue-type-custom"
+                />
+              ) : (
+                <Select
+                  value={form.venueType ?? 'MALL'}
+                  onChange={(v) => {
+                    if (v === ADD_VENUE) {
+                      setCustomVenue(true)
+                      setForm({ ...form, venueType: '' })
+                    } else setForm({ ...form, venueType: v })
+                  }}
+                  options={[
+                    ...data.venueTypes.map((v) => ({ label: v.replaceAll('_', ' '), value: v })),
+                    { label: t('org.venueTypeAdd'), value: ADD_VENUE },
+                  ]}
+                  testId="org-venue-type"
+                />
+              )}
             </Field>
             <Field label={t('org.address')}><input className="lf-input" value={form.address ?? ''} onChange={(e) => setForm({ ...form, address: e.target.value })} /></Field>
           </>
@@ -364,30 +408,35 @@ export function ManagerOrg() {
       <Modal
         open={!!removing}
         onClose={() => setRemoving(null)}
-        title={t('org.removeKiosk', { name: removing?.name ?? '' })}
-        subtitle={t('org.removeKioskSubtitle')}
-        testId="org-remove-kiosk-modal"
+        title={t(`org.remove.${removing?.kind ?? 'kiosk'}Title`, { name: removing?.name ?? '' })}
+        subtitle={t('org.remove.subtitle')}
+        testId="org-remove-modal"
         footer={
           <>
             <Button variant="ghost" onClick={() => setRemoving(null)}>{t('common:action.cancel')}</Button>
             <Button
               variant="danger"
-              loading={removeKiosk.isPending}
-              onClick={() =>
-                removing &&
-                removeKiosk.mutate(removing.id, {
-                  onSuccess: () => { toast('warning', t('org.kioskRemoved', { name: removing.name })); setRemoving(null) },
+              loading={removeKiosk.isPending || removeStation.isPending || removeSite.isPending}
+              onClick={() => {
+                if (!removing) return
+                const mutation =
+                  removing.kind === 'site' ? removeSite : removing.kind === 'station' ? removeStation : removeKiosk
+                mutation.mutate(removing.id, {
+                  onSuccess: () => {
+                    toast('warning', t(`org.remove.${removing.kind}Done`, { name: removing.name }))
+                    setRemoving(null)
+                  },
                   onError: fail,
                 })
-              }
-              data-testid="org-remove-kiosk-submit"
+              }}
+              data-testid="org-remove-submit"
             >
               {t('common:action.delete')}
             </Button>
           </>
         }
       >
-        <p className="text-sm text-muted">{t('org.removeKioskBody')}</p>
+        <p className="text-sm text-muted">{t(`org.remove.${removing?.kind ?? 'kiosk'}Body`)}</p>
       </Modal>
     </div>
   )

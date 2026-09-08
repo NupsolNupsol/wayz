@@ -1,11 +1,10 @@
 import type { DeliveryContext, ValidationResult } from '../shared/types.js'
 import { DLV_PICKED_UP, DLV_RELEASE_APPROVED } from '../shared/status.js'
 
-const CODE_TTL_NOTE = 'The compartment code has expired — ask the kiosk agent to approve again.'
 
 export const useDeliveryValidator = (transitionCode: string, ctx: DeliveryContext): ValidationResult => {
   const errors: string[] = []
-  const { delivery, actor, payload, now } = ctx
+  const { delivery, actor, payload } = ctx
 
   const mustBeAssignee = () => {
     if (!delivery.assignedTo) {
@@ -42,20 +41,14 @@ export const useDeliveryValidator = (transitionCode: string, ctx: DeliveryContex
         errors.push('That is not the courier this delivery is assigned to — do not release the bags.')
       }
 
-      const code = String(payload.compartmentCode ?? '').trim()
-      if (!code) errors.push('Type the compartment code so the courier can open it.')
-      else if (!/^[A-Za-z0-9]{4,12}$/.test(code)) errors.push('A compartment code is 4–12 letters or digits.')
+      if (!payload.handedOver) {
+        errors.push('Tick the box to say you have handed the bags to this courier.')
+      }
       break
     }
 
     case 'TO_PICKED_UP': {
       mustBeAssignee()
-
-      if (!delivery.compartmentCode) {
-        errors.push('No compartment code has been issued yet.')
-      } else if (delivery.compartmentCodeExpiresAt && new Date(delivery.compartmentCodeExpiresAt).getTime() < now.getTime()) {
-        errors.push(CODE_TTL_NOTE)
-      }
 
       const registered = ctx.bags
       if (!registered.length) {

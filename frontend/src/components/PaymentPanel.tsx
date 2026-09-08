@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Banknote, CreditCard } from 'lucide-react'
 import { clsx } from 'clsx'
@@ -6,9 +6,10 @@ import { Button } from './ui'
 import { useShift } from '@/hooks'
 import { can } from '@/permissions/permissions'
 import { useAuthStore } from '@/store/auth'
-import { money } from '@/utils'
+import { money, round2 } from '@/utils'
 import { CARD_SCHEMES, schemeLabel } from '@/config/cardSchemes'
 import type { CardScheme, PaymentMethod } from '@/models'
+import { NumberInput } from './NumberInput'
 
 export interface PaymentSplit {
   method: PaymentMethod
@@ -18,11 +19,14 @@ export interface PaymentSplit {
 
 export function PaymentPanel({
   total,
+  discountOff = 0,
   onConfirm,
   confirming,
   disabled,
 }: {
   total: number
+  /** What a discount or a code took off, so the desk can say it out loud to the customer. */
+  discountOff?: number
   onConfirm: (splits: PaymentSplit[]) => void
   confirming?: boolean
   disabled?: boolean
@@ -38,8 +42,42 @@ export function PaymentPanel({
 
   const missingScheme = method === 'CARD' && !scheme
 
-  const confirm = () =>
-    onConfirm([{ method, cardScheme: method === 'CARD' ? scheme : null, amount: total }])
+  const [split, setSplit] = useState(false)
+  const [firstAmount, setFirstAmount] = useState(total)
+  const [secondMethod, setSecondMethod] = useState<PaymentMethod>('CASH')
+  const [secondScheme, setSecondScheme] = useState<CardScheme>('MADA')
+
+  useEffect(() => setFirstAmount(total), [total])
+
+  const firstPart = Math.min(Math.max(0, round2(firstAmount)), round2(total))
+  const secondPart = round2(total - firstPart)
+  const splitCoversEverything = split && secondPart <= 0
+  const splitTakesNothing = split && firstPart <= 0
+  const splitReady = !split || (firstPart > 0 && secondPart > 0 && (secondMethod !== 'CARD' || !!secondScheme))
+
+  /** A blocked Confirm always says why — a greyed button with no reason is a stuck agent. */
+  const blockedBecause = tillShut
+    ? t('payment.tillShut')
+    : missingScheme
+      ? t('payment.pickScheme')
+      : splitCoversEverything
+        ? t('payment.splitTooBig')
+        : splitTakesNothing
+          ? t('payment.splitTooSmall')
+          : split && secondMethod === 'CARD' && !secondScheme
+            ? t('payment.pickScheme')
+            : ''
+
+  const confirm = () => {
+    if (!split) {
+      onConfirm([{ method, cardScheme: method === 'CARD' ? scheme : null, amount: total }])
+      return
+    }
+    onConfirm([
+      { method, cardScheme: method === 'CARD' ? scheme : null, amount: firstPart },
+      { method: secondMethod, cardScheme: secondMethod === 'CARD' ? secondScheme : null, amount: secondPart },
+    ])
+  }
 
   return (
     <div data-testid="payment-panel">
@@ -100,14 +138,96 @@ export function PaymentPanel({
         </div>
       )}
 
+      <div className="mt-3">
+        <label className="flex items-center gap-2 text-xs text-muted cursor-pointer">
+          <input type="checkbox" checked={split} onChange={(e) => setSplit(e.target.checked)} data-testid="pay-split-toggle" />
+          {t('payment.splitIt')}
+        </label>
+      </div>
+
+      {split && (
+        <div className="mt-3 rounded-xl2 border border-line dark:border-dk-border p-3" data-testid="pay-split">
+          <div className="flex flex-wrap items-end gap-3">
+            <div className="min-w-[140px]">
+              <p className="text-[11px] uppercase tracking-wide text-muted font-semibold mb-1">{t('payment.firstPart')}</p>
+              <NumberInput
+                min={0}
+                max={total}
+                step={0.01}
+                value={firstAmount}
+                onChange={setFirstAmount}
+                testId="pay-split-amount"
+              />
+            </div>
+            <div className="min-w-[160px]">
+              <p className="text-[11px] uppercase tracking-wide text-muted font-semibold mb-1">
+                {t('payment.restOn', { amount: money(secondPart) })}
+              </p>
+              <div className="flex gap-1.5">
+                {(['CASH', 'CARD'] as PaymentMethod[]).map((m) => (
+                  <button
+                    key={m}
+                    type="button"
+                    onClick={() => setSecondMethod(m)}
+                    data-testid={`pay-split-method-${m.toLowerCase()}`}
+                    className={clsx(
+                      'lf-btn !h-9 !px-3 text-xs border',
+                      secondMethod === m ? 'bg-brand text-brand-fg border-brand' : 'bg-surface border-line text-muted',
+                    )}
+                  >
+                    {m === 'CASH' ? t('payment.cash') : t('payment.card')}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+          {secondMethod === 'CARD' && (
+            <div className="flex flex-wrap gap-1.5 mt-3">
+              {CARD_SCHEMES.map((sc) => (
+                <button
+                  key={sc}
+                  type="button"
+                  onClick={() => setSecondScheme(sc)}
+                  data-testid={`pay-split-scheme-${sc}`}
+                  className={clsx(
+                    'rounded-lg border px-2.5 py-1 text-xs font-medium',
+                    secondScheme === sc ? 'bg-brand text-brand-fg border-brand' : 'border-line text-muted',
+                  )}
+                >
+                  {schemeLabel(sc)}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {blockedBecause && (
+        <p className="mt-3 text-xs text-amber-700 dark:text-amber-300" data-testid="pay-blocked-reason">
+          {blockedBecause}
+        </p>
+      )}
+
       <div className="mt-4 pt-3 border-t border-line flex items-center justify-between gap-3 text-sm">
         <p className="text-muted">
-          {t('payment.total')} <span className="font-semibold text-navy dark:text-dk-text" data-testid="pay-total">{money(total)}</span>
+          {t('payment.total')}{' '}
+          {discountOff > 0 && (
+            <span className="text-muted line-through tabular-nums me-1.5" data-testid="pay-total-before">
+              {money(total + discountOff)}
+            </span>
+          )}
+          <span className="font-semibold text-navy dark:text-dk-text" data-testid="pay-total">{money(total)}</span>
+          {discountOff > 0 && (
+            <span className="ms-2 text-xs font-medium text-success" data-testid="pay-discount-off">
+              {t('payment.youSaved', { amount: money(discountOff) })}
+            </span>
+          )}
         </p>
         <Button
           onClick={confirm}
           loading={confirming}
-          disabled={disabled || missingScheme || tillShut || total <= 0}
+          disabled={disabled || missingScheme || tillShut || total <= 0 || !splitReady}
+          title={blockedBecause || undefined}
           data-testid="pay-confirm"
         >
           {t('payment.confirm')}

@@ -35,6 +35,16 @@ function useInvalidateDeliveries() {
   }
 }
 
+/** The exits a customer can collect bags from at this site. */
+export function useExitGates(enabled = true) {
+  return useQuery({
+    queryKey: ['delivery', 'exit-gates'],
+    queryFn: () => deliveryApi.exitGates(),
+    enabled,
+    staleTime: 5 * 60_000,
+  })
+}
+
 export function useCustomerBagsElsewhere(bookingId: string | undefined, enabled = true) {
   return useQuery({
     queryKey: qk.delivery.customerBags(bookingId ?? ''),

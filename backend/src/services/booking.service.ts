@@ -21,7 +21,7 @@ import { getWorkflow, type TransitionPayload } from '../domain/workflow.js'
 import { applyTransition, getAvailableTransitions } from './workflow.service.js'
 import { formatId, nextId, nextSequence, pad } from './counter.service.js'
 import { getProduct, getAssetType } from './catalogue.service.js'
-import { getCustomer } from './customer.service.js'
+import { getCustomer, phoneProofIsFresh, PHONE_PROOF_TTL_MIN } from './customer.service.js'
 import { Tenant } from '../models/index.js'
 import type { CreateBookingInput, Scope } from '../interfaces/index.js'
 import type { PaymentSplit } from '../interfaces/index.js'
@@ -32,6 +32,8 @@ import { seatOnBoat, seatsLeftOn } from './trip.service.js'
 import { raise } from './notification.service.js'
 import { tillForTransaction } from './shift.service.js'
 import { FLOOR_LEADS } from '../domain/roles.js'
+import { Voucher } from '../models/voucher.model.js'
+import { User } from '../models/user.model.js'
 
 const UNIT_MINUTES: Record<DurationUnit, number> = { HOUR: 60, DAY: 1440, HALF_HOUR: 30, FIFTEEN_MIN: 15 }
 
@@ -54,9 +56,14 @@ async function writeAudits(tenantId: string, actorId: string, entityId: string, 
 async function loadBooking(scope: Scope, bookingId: string): Promise<BookingHydrated> {
   const booking = await Booking.findOne({ _id: bookingId, tenantId: scope.tenantId, stationId: scope.stationId })
   if (!booking) throw ApiError.notFound('Booking not found.')
-  if (!canWorkEngine(scope, booking.engineKind)) throw ApiError.notFound('Booking not found.')
+
   const kiosk = kioskFilter(scope)
-  if (kiosk !== undefined && booking.kioskId !== kiosk) throw ApiError.notFound('Booking not found.')
+  const atMyDesk = kiosk !== undefined && booking.kioskId === kiosk
+
+  // Bags parked at an exit gate are that gate's job to hand back, whatever the gate normally sells:
+  // the customer is standing there and the bags are behind that counter.
+  if (!atMyDesk && !canWorkEngine(scope, booking.engineKind)) throw ApiError.notFound('Booking not found.')
+  if (kiosk !== undefined && !atMyDesk) throw ApiError.notFound('Booking not found.')
   return booking
 }
 
@@ -264,6 +271,110 @@ export async function createBooking(scope: Scope, input: CreateBookingInput) {
   return { booking, order }
 }
 
+export const DISCOUNT_LINE_PRODUCT_ID = 'DISCOUNT'
+
+/**
+ * Takes money off a sale that has not been paid yet. The reason comes from the tenant's own list,
+ * so a new one is a settings change rather than a code change.
+ */
+export async function discountBooking(
+  scope: Scope,
+  bookingId: string,
+  input: { reasonCode: string; percent?: number; amount?: number; note?: string; voucherCode?: string },
+  /** A code redeemed at the desk carries its own authority: the batch decides the ceiling, not the desk's list. */
+  systemReason?: { code: string; label: string; maxPercent: number },
+) {
+  const booking = await loadBooking(scope, bookingId)
+  const order = await Order.findById(booking.orderId)
+  if (!order) throw ApiError.notFound('Order not found.')
+  if (order.status === 'PAID') throw ApiError.unprocessable('That sale is already paid — refund it instead.')
+
+  const rules = await tenantRules(scope.tenantId)
+  const reason =
+    systemReason ?? rules.discountReasons.find((r) => r.code === input.reasonCode.trim().toUpperCase())
+  if (!reason) throw ApiError.badRequest('Pick a reason from the list.')
+
+  const chargeable = order.lines
+    .filter((l) => !l.isDeposit && l.productId !== DISCOUNT_LINE_PRODUCT_ID)
+    .reduce((sum, l) => sum + l.unitPrice * (l.quantity ?? 1), 0)
+  if (chargeable <= 0) throw ApiError.unprocessable('There is nothing to discount on this sale.')
+
+  const asked =
+    input.percent !== undefined ? (chargeable * Math.max(0, Math.min(100, input.percent))) / 100 : round2(input.amount ?? 0)
+  if (asked <= 0) throw ApiError.badRequest('Say how much comes off.')
+
+  const ceiling = round2((chargeable * reason.maxPercent) / 100)
+  if (asked > ceiling + 0.001) {
+    throw ApiError.unprocessable(
+      `${reason.label} allows at most ${reason.maxPercent}% (${ceiling.toFixed(2)}) off this sale.`,
+    )
+  }
+
+  const off = round2(Math.min(asked, chargeable))
+  const existing = order.lines.find((l) => l.productId === DISCOUNT_LINE_PRODUCT_ID)
+
+  // A second discount would quietly replace the first. That is a nuisance for a hand-typed one and
+  // a real loss for a code, which is spent and cannot be handed back — so one sale carries one
+  // discount whenever a code is involved, on either side.
+  if (existing) {
+    const codeAlreadySpent = await Voucher.exists({ tenantId: scope.tenantId, bookingId: booking._id, status: 'REDEEMED' })
+    if (systemReason || codeAlreadySpent) {
+      throw ApiError.unprocessable('This sale already has a discount on it.', [
+        `${existing.name} is already taking ${Math.abs(existing.unitPrice).toFixed(2)} off.`,
+        codeAlreadySpent
+          ? 'That came from a discount code, which has been spent — cancel the sale and start again to change it.'
+          : 'Take that one off before applying another.',
+      ])
+    }
+  }
+  const name = off >= chargeable ? `Free — ${reason.label}` : `Discount — ${reason.label}`
+
+  if (existing) {
+    existing.name = name
+    existing.unitPrice = -off
+    existing.quantity = 1
+  } else {
+    order.lines.push({ productId: DISCOUNT_LINE_PRODUCT_ID, name, quantity: 1, unitPrice: -off, isDeposit: false, taxable: true })
+  }
+
+  const tenant = await Tenant.findById(scope.tenantId).lean()
+  Object.assign(order, computeTotals(order.lines, tenant?.vatRate ?? DEFAULT_VAT_RATE))
+  await order.save()
+
+  booking.baseAmount = order.subtotal
+  booking.vatAmount = order.vat
+  booking.totalAmount = order.total
+
+  // Kept on the booking so it can be counted and reported, not dug out of a log line later.
+  const givenBy = await User.findById(scope.agentId, { fullName: 1 }).lean()
+  booking.discount = {
+    amount: off,
+    percent: Math.round((off / chargeable) * 1000) / 10,
+    reasonCode: reason.code,
+    reasonLabel: reason.label,
+    note: input.note?.trim() ?? '',
+    voucherCode: input.voucherCode ?? null,
+    free: off >= chargeable,
+    givenBy: scope.agentId,
+    givenByName: givenBy?.fullName ?? '',
+    at: new Date(),
+  }
+  booking.markModified('discount')
+  await booking.save()
+
+  await recordAudit({
+    tenantId: scope.tenantId,
+    actorId: scope.agentId,
+    action: off >= chargeable ? 'SALE_MADE_FREE' : 'SALE_DISCOUNTED',
+    entity: 'Booking',
+    entityId: booking._id,
+    detail: `${booking.ref}: ${off.toFixed(2)} off (${reason.label})`,
+    reason: input.note?.trim() || reason.label,
+  })
+
+  return { booking, order }
+}
+
 export async function payBooking(scope: Scope, bookingId: string, splits: PaymentSplit[]) {
   const booking = await loadBooking(scope, bookingId)
   const order = await Order.findById(booking.orderId)
@@ -274,6 +385,17 @@ export async function payBooking(scope: Scope, bookingId: string, splits: Paymen
   const paid = round2(splits.reduce((s, x) => s + (x.amount || 0), 0))
   if (Math.abs(paid - order.total) > 0.01) {
     throw ApiError.badRequest(`Payment ${paid} does not cover the total ${order.total}.`)
+  }
+
+  // The drawer comes first: it is the desk's own precondition, and being sent to confirm a customer
+  // only to be told afterwards that the till is shut wastes the customer's time as well as the agent's.
+  const cashOffered = splits.filter((s) => s.method === 'CASH').reduce((sum, x) => sum + x.amount, 0)
+  const till = await tillForTransaction(scope, { cash: cashOffered > 0 })
+
+  if (booking.customerPhone && !(await phoneProofIsFresh(scope.tenantId, booking.customerPhone))) {
+    throw ApiError.unprocessable('Confirm the customer before taking their money.', [
+      `Send the code to ${booking.customerPhone} and have them read it back — the confirmation lasts ${PHONE_PROOF_TTL_MIN} minutes.`,
+    ])
   }
 
   for (const split of splits) {
@@ -290,8 +412,7 @@ export async function payBooking(scope: Scope, bookingId: string, splits: Paymen
     }
   }
 
-  const cash = splits.filter((s) => s.method === 'CASH').reduce((s, x) => s + x.amount, 0)
-  const till = await tillForTransaction(scope, { cash: cash > 0 })
+  const cash = cashOffered
 
   const vatRate = (await Tenant.findById(scope.tenantId).lean())?.vatRate ?? DEFAULT_VAT_RATE
 
@@ -755,9 +876,17 @@ export function listBookings(scope: Scope, filter?: { status?: string; engineKin
   const q: Record<string, unknown> = { tenantId: scope.tenantId, stationId: scope.stationId }
   if (filter?.status) q.status = filter.status
   const engines = engineFilter(scope, filter?.engineKind)
-  if (engines !== undefined) q.engineKind = engines
   const kiosk = kioskFilter(scope)
-  if (kiosk !== undefined) q.kioskId = kiosk
+
+  if (kiosk !== undefined) {
+    // A desk sees its own work. That includes anything parked at it — bags waiting at an exit gate
+    // belong to the agent standing there, even if the gate normally sells something else.
+    q.kioskId = kiosk
+    if (engines !== undefined && filter?.engineKind) q.engineKind = engines
+  } else if (engines !== undefined) {
+    q.engineKind = engines
+  }
+
   return Booking.find(q).sort({ createdAt: -1 }).limit(200)
 }
 

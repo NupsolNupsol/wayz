@@ -33,6 +33,7 @@ export async function listPricing(scope: ManagerScope) {
     products: products.map((p) => ({
       _id: p._id,
       name: p.name,
+      nameAr: p.nameAr ?? '',
       engineKind: p.engineKind,
       category: p.category,
       basePrice: p.basePrice,
@@ -100,6 +101,7 @@ export async function createProduct(scope: ManagerScope, input: ProductInput) {
     tenantId: scope.tenantId,
     engineKind: input.engineKind,
     name: input.name.trim(),
+    nameAr: input.nameAr?.trim() ?? '',
     category: input.category ?? 'General',
     basePrice: round2(input.basePrice),
     hourlyPrice: input.hourlyPrice == null ? null : round2(input.hourlyPrice),
@@ -124,6 +126,7 @@ export async function updateProduct(scope: ManagerScope, id: string, patch: Part
   if (!product) throw ApiError.notFound('Product not found.')
 
   if (patch.name !== undefined) product.name = patch.name.trim()
+  if (patch.nameAr !== undefined) product.nameAr = patch.nameAr.trim()
   if (patch.category !== undefined) product.category = patch.category
   if (patch.basePrice !== undefined) product.basePrice = round2(patch.basePrice)
   if (patch.overtimeHourlyRate !== undefined) {

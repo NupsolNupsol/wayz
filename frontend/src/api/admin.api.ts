@@ -121,7 +121,47 @@ export interface MapPlacement {
   y: number | null
 }
 
+export interface VoucherCampaign {
+  id: string
+  name: string
+  percent: number
+  quantity: number
+  engineKinds: EngineKind[]
+  expiresAt: string | null
+  note: string
+  active: boolean
+  createdAt: string
+  issued: number
+  redeemed: number
+  left: number
+}
+
+export interface VoucherCode {
+  id: string
+  code: string
+  status: 'ISSUED' | 'REDEEMED' | 'VOID'
+  redeemedAt: string | null
+  redeemedBy: string | null
+  bookingId: string | null
+  amountOff: number | null
+}
+
+export interface CampaignInput {
+  name: string
+  percent: number
+  quantity: number
+  engineKinds?: EngineKind[]
+  expiresAt?: string | null
+  prefix?: string
+  note?: string
+}
+
 export const adminApi = {
+  vouchers: () => unwrap<VoucherCampaign[]>(http.get('/admin/vouchers')),
+  createVouchers: (input: CampaignInput) => unwrap<VoucherCampaign>(http.post('/admin/vouchers', input)),
+  voucherCodes: (id: string) =>
+    unwrap<{ campaign: VoucherCampaign; codes: VoucherCode[] }>(http.get(`/admin/vouchers/${id}/codes`)),
+  stopVouchers: (id: string) => unwrap<{ stopped: number }>(http.post(`/admin/vouchers/${id}/stop`, {})),
   stationMap: () => unwrap<StationMap>(http.get('/admin/station-map')),
   saveStationMap: (placements: MapPlacement[]) => unwrap<StationMap>(http.patch('/admin/station-map', { placements })),
   overview: () => unwrap<TenantOverview>(http.get('/admin/overview')),

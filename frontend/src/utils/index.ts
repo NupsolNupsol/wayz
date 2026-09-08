@@ -104,3 +104,7 @@ export function sinceLabel(ts?: number | null): string {
 }
 
 export * from './validation'
+
+export function round2(n: number): number {
+  return Math.round((Number(n) || 0) * 100) / 100
+}

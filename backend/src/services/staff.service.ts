@@ -152,7 +152,7 @@ function assertAssignableRole(actorRole: Role, role: Role) {
 
 export async function listStaff(scope: ManagerScope) {
   const [users, stations, shiftAgg, bookingAgg] = await Promise.all([
-    User.find({ tenantId: scope.tenantId }).sort({ fullName: 1 }).lean(),
+    User.find({ tenantId: scope.tenantId, removedAt: null }).sort({ fullName: 1 }).lean(),
     Station.find({ tenantId: scope.tenantId }).lean(),
     Shift.aggregate([
       { $match: { tenantId: scope.tenantId, status: { $ne: 'CLOSED' } } },
@@ -343,4 +343,32 @@ function sanitiseUser(u: object) {
   void passwordHash
   void __v
   return rest
+}
+
+export async function removeStaff(scope: ManagerScope, id: string) {
+  const user = await User.findOne({ _id: id, tenantId: scope.tenantId })
+  if (!user) throw ApiError.notFound('Staff member not found.')
+  if (id === scope.userId) throw ApiError.unprocessable('You cannot remove your own account.')
+  if (!(ASSIGNABLE_BY[scope.role] ?? []).includes(user.role)) {
+    throw ApiError.forbidden(`A ${scope.role.replaceAll('_', ' ').toLowerCase()} may not remove a ${user.role} account.`)
+  }
+
+  const open = await Shift.countDocuments({ tenantId: scope.tenantId, agentId: id, status: { $ne: 'CLOSED' } })
+  if (open > 0) throw ApiError.unprocessable('This person has an open till — reconcile and close it first.')
+
+  user.active = false
+  user.removedAt = new Date()
+  user.email = `${user.email}.removed.${Date.now()}`
+  await user.save()
+
+  await recordAudit({
+    tenantId: scope.tenantId,
+    actorId: scope.userId,
+    action: 'STAFF_REMOVED',
+    entity: 'User',
+    entityId: user._id,
+    detail: `${user.fullName} (${user.role})`,
+  })
+
+  return { removed: id, name: user.fullName }
 }

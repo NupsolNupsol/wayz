@@ -11,6 +11,7 @@ import {
 import {
   availableTransitions,
   createBooking,
+  discountBooking,
   getBookingOrder,
   listBookings,
   loadBooking,
@@ -53,7 +54,7 @@ const paySchema = z.object({
       z.object({
         method: z.enum(PAYMENT_METHODS),
         cardScheme: z.enum(CARD_SCHEMES).nullable().optional(),
-        amount: z.number().positive(),
+        amount: z.number().min(0),
         kind: z.string().optional(),
       }),
     )
@@ -95,6 +96,15 @@ const confirmVerificationSchema = z.discriminatedUnion('method', [
     document: documentSchema.optional(),
   }),
 ])
+
+const discountSchema = z
+  .object({
+    reasonCode: z.string().min(1),
+    percent: z.coerce.number().min(0).max(100).optional(),
+    amount: z.coerce.number().min(0).optional(),
+    note: z.string().max(300).optional(),
+  })
+  .refine((v) => v.percent !== undefined || v.amount !== undefined, 'Say how much comes off.')
 
 const refundSchema = z.object({
   amount: z.number().positive().optional(),
@@ -140,6 +150,13 @@ export const bookingController = {
     const s = scopeFromReq(req)
     const booking = await loadBooking(s, req.params.id)
     res.json({ success: true, data: availableTransitions(booking, [s.role]) })
+  }),
+
+  discount: asyncHandler(async (req, res) => {
+    const s = scopeFromReq(req)
+    const body = discountSchema.parse(req.body)
+    const { booking, order } = await discountBooking(s, req.params.id, body)
+    res.json({ success: true, data: { booking: bookingDTO(booking), order } })
   }),
 
   pay: asyncHandler(async (req, res) => {

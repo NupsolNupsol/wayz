@@ -1,12 +1,12 @@
 import { useState } from 'react'
 import { useStatusLabel } from '@/i18n/useStatusLabel'
 import { useTranslation } from 'react-i18next'
-import { Download, TrendingUp, Boxes, Package } from 'lucide-react'
+import { Download, TrendingUp, Boxes, Package, BadgePercent } from 'lucide-react'
 import { PageHeader } from '@/components/PageHeader'
 import { Card, SectionTitle, Button, Field, Spinner, StatCard, Badge } from '@/components/ui'
 import { BarChart } from '@/components/Charts'
 import { DataTable } from '@/components/DataTable'
-import { useReportOccupancy, useReportRentals, useReportRevenue } from '@/hooks'
+import { useReportDiscounts, useReportOccupancy, useReportRentals, useReportRevenue } from '@/hooks'
 import { managerApi } from '@/api/manager.api'
 import { useAuthStore } from '@/store/auth'
 import { engineLabel } from '@/config/engineMeta'
@@ -27,6 +27,7 @@ export function ManagerReports() {
   const revenue = useReportRevenue(range)
   const occupancy = useReportOccupancy()
   const rentals = useReportRentals(range)
+  const discounts = useReportDiscounts(range)
   const token = useAuthStore((s) => s.token)
 
   const exportCsv = async (kind: string) => {
@@ -112,6 +113,69 @@ export function ManagerReports() {
                     ))}
                   </div>
                 </div>
+              </>
+            )}
+          </Card>
+
+          <Card data-testid="report-discounts">
+            <div className="flex flex-wrap items-center justify-between gap-2 mb-3">
+              <SectionTitle className="flex items-center gap-2"><BadgePercent size={18} />{t('reports.discounts')}</SectionTitle>
+              <Button variant="secondary" onClick={() => exportCsv('discounts')} data-testid="export-discounts"><Download size={15} /> CSV</Button>
+            </div>
+            {discounts.data && (
+              <>
+                <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
+                  <StatCard label={t('reports.discountGiven')} value={money(discounts.data.given)} tone="warning" testId="report-discount-total" />
+                  <StatCard label={t('reports.discountCount')} value={discounts.data.count} testId="report-discount-count" />
+                  <StatCard label={t('reports.freeRides')} value={discounts.data.freeRides} tone="danger" testId="report-free-rides" />
+                  <StatCard
+                    label={t('reports.discountAvg')}
+                    value={money(discounts.data.count ? discounts.data.given / discounts.data.count : 0)}
+                  />
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 mb-5">
+                  <div>
+                    <p className="text-xs font-bold uppercase tracking-wide text-muted mb-2">{t('reports.byReason')}</p>
+                    {discounts.data.byReason.length === 0 && <p className="text-sm text-muted">{t('reports.noDiscounts')}</p>}
+                    {discounts.data.byReason.map((r) => (
+                      <div key={r.key} className="flex justify-between text-sm py-1 border-b border-line last:border-0" data-testid={`discount-reason-${r.key}`}>
+                        <span>{r.key} <span className="text-muted">· {r.count}</span></span>
+                        <strong className="tabular-nums">{money(r.total)}</strong>
+                      </div>
+                    ))}
+                  </div>
+                  <div>
+                    <p className="text-xs font-bold uppercase tracking-wide text-muted mb-2">{t('reports.byAgent')}</p>
+                    {discounts.data.byAgent.map((r) => (
+                      <div key={r.key} className="flex justify-between text-sm py-1 border-b border-line last:border-0">
+                        <span>{r.key} <span className="text-muted">· {r.count}</span></span>
+                        <strong className="tabular-nums">{money(r.total)}</strong>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                <DataTable
+                  testId="discount-rows"
+                  rows={discounts.data.rows}
+                  keyOf={(r) => `${r.bookingId}-${r.at}`}
+                  empty={{ title: t('reports.noDiscounts') }}
+                  columns={[
+                    { key: 'ref', header: t('common:column.reference'), render: (r) => <span className="font-semibold">{r.ref}</span>, sortValue: (r) => r.ref },
+                    { key: 'activity', header: t('common:column.activity'), render: (r) => engineLabel(r.engineKind) },
+                    { key: 'customer', header: t('common:column.customer'), render: (r) => r.customerName },
+                    { key: 'reason', header: t('reports.reason'), render: (r) => r.reason, sortValue: (r) => r.reason },
+                    {
+                      key: 'kind',
+                      header: t('reports.kind'),
+                      render: (r) =>
+                        r.free ? <Badge tone="danger">{t('reports.freeRide')}</Badge> : <Badge tone="warning">{r.percent}%</Badge>,
+                    },
+                    { key: 'given', header: t('reports.given'), align: 'right', render: (r) => <span className="tabular-nums">{money(r.amount)}</span>, sortValue: (r) => r.amount },
+                    { key: 'by', header: t('reports.givenBy'), render: (r) => r.givenBy, sortValue: (r) => r.givenBy },
+                  ]}
+                />
               </>
             )}
           </Card>

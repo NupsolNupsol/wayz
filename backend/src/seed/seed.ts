@@ -29,8 +29,9 @@ import {
   Zone,
   hashPassword,
 } from "../models/index.js";
-import { Version } from "../models/index.js";
+import { Incident, VerificationEvidence, Version, Voucher, VoucherCampaign } from "../models/index.js";
 import { seedVersions } from "./versions.seed.js";
+import { seedVouchers } from "./vouchers.seed.js";
 import type { UserDoc } from "../models/index.js";
 import type { EngineKind } from "../domain/types.js";
 import { DEFAULT_COMMISSION_RATES, type CardScheme } from "../domain/commission.js";
@@ -188,6 +189,7 @@ function products(t: string) {
     p({
       _id: `pr_${t}_sd_${key}`,
       name: `Bag Size ${size}`,
+      nameAr: `حقيبة مقاس ${size}`,
       engineKind: "SHOP_AND_DROP",
       category: "Shop & Drop",
       basePrice: price,
@@ -199,10 +201,11 @@ function products(t: string) {
       emoji: "🛍️",
     });
 
-  const boatTrip = (key: string, name: string, price: number, emoji: string) =>
+  const boatTrip = (key: string, name: string, price: number, emoji: string, nameAr?: string) =>
     p({
       _id: `pr_${t}_lag_${key}`,
       name,
+      nameAr,
       engineKind: "LAGOON",
       category: "Lagoon",
       basePrice: price,
@@ -222,6 +225,7 @@ function products(t: string) {
     p({
       _id: `pr_${t}_sd_delivery`,
       name: "Delivery to Car",
+      nameAr: "توصيل إلى السيارة",
       engineKind: "SHOP_AND_DROP",
       category: "Shop & Drop",
       basePrice: 40,
@@ -233,6 +237,7 @@ function products(t: string) {
     p({
       _id: `pr_${t}_sd_trolley`,
       name: "Shop Trolley",
+      nameAr: "عربة تسوق",
       engineKind: "SHOP_AND_DROP",
       category: "Shop & Drop",
       basePrice: 20,
@@ -248,6 +253,7 @@ function products(t: string) {
     p({
       _id: `pr_${t}_mob_single_hour`,
       name: "Single Electric Scooter",
+      nameAr: "سكوتر كهربائي فردي",
       engineKind: "MOBILITY",
       category: "Mobility",
       basePrice: 50,
@@ -274,6 +280,7 @@ function products(t: string) {
     p({
       _id: `pr_${t}_mob_single_day`,
       name: "Single Electric Scooter — Full Day",
+      nameAr: "سكوتر كهربائي فردي — يوم كامل",
       engineKind: "MOBILITY",
       category: "Mobility",
       basePrice: 385,
@@ -289,6 +296,7 @@ function products(t: string) {
     p({
       _id: `pr_${t}_mob_double_hour`,
       name: "Double Electric Scooter — 1 Hour",
+      nameAr: "سكوتر كهربائي مزدوج — ساعة",
       engineKind: "MOBILITY",
       category: "Mobility",
       basePrice: 70,
@@ -305,6 +313,7 @@ function products(t: string) {
     p({
       _id: `pr_${t}_mob_double_day`,
       name: "Double Electric Scooter — Full Day",
+      nameAr: "سكوتر كهربائي مزدوج — يوم كامل",
       engineKind: "MOBILITY",
       category: "Mobility",
       basePrice: 500,
@@ -320,6 +329,7 @@ function products(t: string) {
     p({
       _id: `pr_${t}_mob_tuk`,
       name: "Electric Tuk-Tuk",
+      nameAr: "توك توك كهربائي",
       engineKind: "MOBILITY",
       category: "Mobility",
       basePrice: 150,
@@ -333,6 +343,7 @@ function products(t: string) {
     p({
       _id: `pr_${t}_mob_stroller_std`,
       name: "Children's Stroller (Standard)",
+      nameAr: "عربة أطفال (عادية)",
       engineKind: "MOBILITY",
       category: "Mobility",
       basePrice: 35,
@@ -350,6 +361,7 @@ function products(t: string) {
     p({
       _id: `pr_${t}_mob_stroller_vip`,
       name: "Children's Stroller (VIP)",
+      nameAr: "عربة أطفال (VIP)",
       engineKind: "MOBILITY",
       category: "Mobility",
       basePrice: 50,
@@ -367,6 +379,7 @@ function products(t: string) {
     p({
       _id: `pr_${t}_mob_wheel_hour`,
       name: "Wheelchair — 1 Hour",
+      nameAr: "كرسي متحرك — ساعة",
       engineKind: "MOBILITY",
       category: "Mobility",
       basePrice: 35,
@@ -384,6 +397,7 @@ function products(t: string) {
     p({
       _id: `pr_${t}_mob_wheel_day`,
       name: "Wheelchair — Full Day",
+      nameAr: "كرسي متحرك — يوم كامل",
       engineKind: "MOBILITY",
       category: "Mobility",
       basePrice: 250,
@@ -399,6 +413,7 @@ function products(t: string) {
     p({
       _id: `pr_${t}_mob_cart`,
       name: "Shopping Cart",
+      nameAr: "عربة تسوق كبيرة",
       engineKind: "MOBILITY",
       category: "Mobility",
       basePrice: 75,
@@ -410,11 +425,11 @@ function products(t: string) {
       proposedPolicy: { conditionInspection: "SKIP" },
     }),
 
-    boatTrip("abra", "Abra Trip", 90, "🛶"),
-    boatTrip("gondola", "Gondola Trip", 120, "🚣"),
-    boatTrip("feluka_small", "Feluka (Small) Trip", 150, "⛵"),
-    boatTrip("feluka_large", "Feluka (Large) Trip", 250, "⛵"),
-    boatTrip("donut", "Donut Boat Trip", 80, "🍩"),
+    boatTrip("abra", "Abra Trip", 90, "🛶", "رحلة عبرة"),
+    boatTrip("gondola", "Gondola Trip", 120, "🚣", "رحلة جندول"),
+    boatTrip("feluka_small", "Feluka (Small) Trip", 150, "⛵", "رحلة فلوكة (صغيرة)"),
+    boatTrip("feluka_large", "Feluka (Large) Trip", 250, "⛵", "رحلة فلوكة (كبيرة)"),
+    boatTrip("donut", "Donut Boat Trip", 80, "🍩", "قارب الدونات"),
     boatTrip("submarine", "Submarine Trip", 300, "🚤"),
     boatTrip("dragon", "Dragon Boat Trip", 200, "🐉"),
     boatTrip("amphicar", "Amphicar Trip", 180, "🚗"),
@@ -444,6 +459,7 @@ function products(t: string) {
     p({
       _id: `pr_${t}_anaam_pony`,
       name: "Pony Ride Experience",
+      nameAr: "تجربة ركوب المهر",
       engineKind: "ANAAM",
       basePrice: 80,
       category: "Ana'am",
@@ -573,6 +589,9 @@ const boulevardKiosk = (
   code: `BLV-${prefix}-${key.toUpperCase()}`,
   location,
   engineKind,
+  // Gate 1 and Gate 2 are the exits people leave by, so Shop & Drop bags are sent there to be
+  // collected. Any desk can be marked as one from the estate page.
+  isExitGate: key === 'gate1' || key === 'gate2',
   active: true,
   mapX: BOULEVARD_MAP[key]?.[0] ?? null,
   mapY: BOULEVARD_MAP[key]?.[1] ?? null,
@@ -1028,7 +1047,11 @@ export async function seedFresh() {
     RefundRequest.deleteMany({}),
     InvoiceDoc.deleteMany({}),
     Trip.deleteMany({}),
+    Incident.deleteMany({}),
+    VerificationEvidence.deleteMany({}),
     Version.deleteMany({}),
+    Voucher.deleteMany({}),
+    VoucherCampaign.deleteMany({}),
   ]);
 
   await Tenant.insertMany(tenantRows([
@@ -1646,8 +1669,6 @@ export async function seedFresh() {
     releaseRequestedAt: new Date(Date.now() - 4.1 * HOUR),
     releaseApprovedBy: "usr_agent_wayz",
     releaseApprovedAt: new Date(Date.now() - 4 * HOUR),
-    compartmentCode: null,
-    compartmentCodeExpiresAt: null,
     assetUnitId: demoSmall._id,
     assetUnitIdentifier: demoSmall.identifier,
     pickedUpAt: new Date(Date.now() - 4 * HOUR),
@@ -1794,8 +1815,11 @@ export async function seedFresh() {
     { _id: "delivery", seq: 2 },
     { _id: "cashMovement", seq: 3 },
     { _id: "manualSale", seq: 2 },
+    { _id: "incident", seq: 1 },
+    { _id: "version", seq: 5 },
   ]);
   await seedVersions();
+  await seedVouchers();
 
 
   logger.info("Seed complete", { tenants: SEEDED_TENANTS.length, deliveries: 2, queued: 2 });
@@ -2328,7 +2352,7 @@ async function seedCostHistory() {
     ["usr_agent_till_wayz", "Reem Al-Sudairi — kiosk agent", 5000],
     ["usr_agent_gate1_wayz", "Majed Al-Subaie — kiosk agent", 5500],
     ["usr_agent_egypt_wayz", "Lina Al-Faraj — kiosk agent", 5500],
-    ["usr_welcome_wayz", "Huda Al-Qahtani — welcoming staff", 6000],
+    ["usr_welcome_wayz", "Huda Al-Qahtani — lagoon agent", 6000],
     ["usr_captain_wayz", "Saad Al-Balawi — chief captain", 7500],
     ["usr_sup_wayz", "Tariq Al-Anazi — supervisor", 9000],
     ["usr_sup_lagoon_wayz", "Nouf Al-Shammari — supervisor", 9000],

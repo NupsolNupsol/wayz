@@ -3,6 +3,7 @@ import { bookingApi, type ConfirmVerificationInput, type CreateBookingInput, typ
 import { qk } from './queryKeys'
 import { OPERATIONS_POLL_MS } from './pollIntervals'
 import type { EngineKind, OtpChannel, PaymentMethod, VerificationPurpose } from '../api/types'
+import { receiptAfterPayment } from '@/state/receiptStore'
 
 export const useBookings = (
   filter?: { status?: string; engineKind?: EngineKind },
@@ -48,7 +49,10 @@ export function usePay() {
   const invalidate = useInvalidateBooking()
   return useMutation({
     mutationFn: (v: { id: string; splits: { method: PaymentMethod; amount: number; kind?: string }[] }) => bookingApi.pay(v.id, v.splits),
-    onSuccess: (_d, v) => invalidate(v.id),
+    onSuccess: (data, v) => {
+      invalidate(v.id)
+      receiptAfterPayment({ bookingId: v.id, trackingToken: data?.booking?.trackingToken })
+    },
   })
 }
 export function useReserve() {
@@ -107,6 +111,31 @@ export function useSettleBooking() {
       qc.invalidateQueries({ queryKey: ['bookings'] })
       qc.invalidateQueries({ queryKey: ['till'] })
       qc.invalidateQueries({ queryKey: qk.shift })
+    },
+  })
+}
+
+export function useDiscountBooking() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (v: { id: string; reasonCode: string; percent?: number; amount?: number; note?: string }) =>
+      bookingApi.discount(v.id, { reasonCode: v.reasonCode, percent: v.percent, amount: v.amount, note: v.note }),
+    onSuccess: (_d, v) => {
+      qc.invalidateQueries({ queryKey: qk.booking(v.id) })
+      qc.invalidateQueries({ queryKey: ['bookings'] })
+      qc.invalidateQueries({ queryKey: ['till'] })
+    },
+  })
+}
+
+export function useRedeemVoucher() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (v: { id: string; code: string }) => bookingApi.redeemVoucher(v.id, v.code),
+    onSuccess: (_d, v) => {
+      qc.invalidateQueries({ queryKey: qk.booking(v.id) })
+      qc.invalidateQueries({ queryKey: ['bookings'] })
+      qc.invalidateQueries({ queryKey: ['till'] })
     },
   })
 }

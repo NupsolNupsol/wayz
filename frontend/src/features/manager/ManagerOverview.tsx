@@ -1,6 +1,6 @@
 import { useNavigate } from 'react-router-dom'
 import { Trans, useTranslation } from 'react-i18next'
-import { Banknote, Receipt, Activity, TriangleAlert, Boxes, Users, Scale, Clock } from 'lucide-react'
+import { Banknote, Receipt, Activity, TriangleAlert, Boxes, Users, Scale, Clock, BadgePercent } from 'lucide-react'
 import { PageHeader } from '@/components/PageHeader'
 import { Card, SectionTitle, StatCard, Spinner, Badge, EmptyState } from '@/components/ui'
 import { BarChart, DonutChart } from '@/components/Charts'
@@ -42,6 +42,18 @@ export function ManagerOverview() {
         <StatCard label={t('overview.last7')} value={money(data.revenue.last7Days)} icon={<Banknote size={22} />} tone="info" sublabel={t('overview.rolling')} />
         <StatCard label={t('overview.last30')} value={money(data.revenue.last30Days)} icon={<Banknote size={22} />} tone="info" sublabel={t('overview.rolling')} />
         <StatCard label={t('overview.transactionsToday')} value={data.transactionsToday} icon={<Receipt size={22} />} testId="mgr-tx-today" />
+        <StatCard
+          label={t('overview.discountsToday')}
+          value={money(data.discounts?.today ?? 0)}
+          icon={<BadgePercent size={22} />}
+          tone="warning"
+          sublabel={t('overview.discountsSub', {
+            count: data.discounts?.todayCount ?? 0,
+            free: data.discounts?.todayFreeRides ?? 0,
+          })}
+          testId="mgr-discounts-today"
+          onClick={() => navigate('/manager/reports')}
+        />
       </div>
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-5">

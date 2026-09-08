@@ -73,7 +73,8 @@
     "period": "Period",
     "required": "required",
     "optional": "optional",
-    "deposit": "Deposit"
+    "deposit": "Deposit",
+    "reasonRequired": "Say what happened."
   },
   "table": {
     "showing": "Showing",

@@ -3,9 +3,11 @@ import { recordAudit } from './audit.service.js'
 import { Kiosk, Station, Tenant, User, hashPassword, hashInviteToken } from '../models/index.js'
 import type { UserDoc } from '../models/index.js'
 import type { Role } from '../domain/types.js'
+import { resolveDiscountReasons } from '../domain/rules.js'
 import { ApiError } from '../utils/ApiError.js'
 import { signToken } from '../utils/jwt.js'
 import { ROLE_LABELS } from '../constants/labels.constants.js'
+import { PHONE_PROOF_TTL_MIN } from './customer.service.js'
 
 export const MIN_PASSWORD_LENGTH = 8
 
@@ -98,6 +100,9 @@ export async function buildMe(userId: string) {
           vatRate: tenant.vatRate,
           enabledEngines: tenant.enabledEngines,
           branding: tenant.branding,
+          discountReasons: resolveDiscountReasons(tenant.discountReasons),
+          autoPrintReceipt: tenant.settings?.autoPrintReceipt !== false,
+          phoneProofTtlMin: PHONE_PROOF_TTL_MIN,
         }
       : null,
     station: station ? { id: station._id, name: station.name, engineKinds: station.engineKinds, siteId: station.siteId, zoneId: station.zoneId } : null,

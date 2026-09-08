@@ -185,7 +185,11 @@ export type WorkflowValidator = (transitionCode: string, ctx: WorkflowContext) =
 export type WorkflowOperator = (transitionCode: string, ctx: WorkflowContext) => Promise<OperationResult> | OperationResult
 
 export interface DeliveryDestination {
+  /** GATE means an exit the customer collects from; ADDRESS is door-to-door. */
+  kind?: 'ADDRESS' | 'GATE'
   address: string
+  kioskId?: string | null
+  kioskName?: string
   notes?: string
   contactPhone?: string
 }
@@ -221,8 +225,6 @@ export interface DeliverySnapshot {
   releaseRequestedAt: string | null
   releaseApprovedBy: string | null
   releaseApprovedAt: string | null
-  compartmentCode: string | null
-  compartmentCodeExpiresAt: string | null
   pickedUpAt: string | null
   scannedBarcodes: string[]
   deliveredAt: string | null

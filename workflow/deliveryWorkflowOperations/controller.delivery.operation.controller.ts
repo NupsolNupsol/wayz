@@ -13,7 +13,6 @@ import {
   UNIT_AVAILABLE,
 } from '../shared/status.js'
 
-const CODE_TTL_MINUTES = 15
 
 function begin(ctx: DeliveryContext): DeliveryOperationResult {
   return {
@@ -45,8 +44,6 @@ export const useDeliveryOperation = (transitionCode: string, ctx: DeliveryContex
     case 'TO_RELEASE_REQUESTED': {
       const again = !!result.delivery.releaseApprovedAt
       result.delivery.releaseRequestedAt = now.toISOString()
-      result.delivery.compartmentCode = null
-      result.delivery.compartmentCodeExpiresAt = null
       advance(
         result,
         ctx,
@@ -59,9 +56,7 @@ export const useDeliveryOperation = (transitionCode: string, ctx: DeliveryContex
     case 'TO_RELEASE_APPROVED': {
       result.delivery.releaseApprovedBy = actor.id
       result.delivery.releaseApprovedAt = now.toISOString()
-      result.delivery.compartmentCode = String(payload.compartmentCode ?? '').trim()
-      result.delivery.compartmentCodeExpiresAt = new Date(now.getTime() + CODE_TTL_MINUTES * 60_000).toISOString()
-      advance(result, ctx, DLV_RELEASE_APPROVED, 'Kiosk agent confirmed the courier and released the compartment')
+      advance(result, ctx, DLV_RELEASE_APPROVED, 'The desk checked the courier and handed the bags over')
       result.audits.push({
         action: 'DELIVERY_RELEASE_APPROVED',
         detail: `${result.delivery.ref} → courier ${result.delivery.assignedTo}`,
@@ -73,8 +68,6 @@ export const useDeliveryOperation = (transitionCode: string, ctx: DeliveryContex
       const scanned = (payload.scannedBarcodes as string[] | undefined) ?? []
       result.delivery.scannedBarcodes = scanned.map((s) => String(s).trim())
       result.delivery.pickedUpAt = now.toISOString()
-      result.delivery.compartmentCode = null
-      result.delivery.compartmentCodeExpiresAt = null
       advance(result, ctx, DLV_PICKED_UP, `${scanned.length} bag(s) collected`)
 
       const unitId = typeof payload.assetUnitId === 'string' ? payload.assetUnitId : ''
@@ -103,8 +96,6 @@ export const useDeliveryOperation = (transitionCode: string, ctx: DeliveryContex
     case 'TO_CANCELLED': {
       const reason = String(payload.reason ?? '').trim()
       result.delivery.failureReason = reason
-      result.delivery.compartmentCode = null
-      result.delivery.compartmentCodeExpiresAt = null
       advance(result, ctx, DLV_CANCELLED, reason)
       result.audits.push({ action: 'DELIVERY_CANCELLED', detail: result.delivery.ref, reason })
       break

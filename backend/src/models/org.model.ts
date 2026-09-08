@@ -87,6 +87,8 @@ export interface KioskDoc {
   code?: string
   location?: string
   engineKind: EngineKind
+  /** An exit the customer leaves by. Shop & Drop bags are sent to one of these to be collected. */
+  isExitGate: boolean
   active: boolean
   mapX?: number | null
   mapY?: number | null
@@ -104,6 +106,7 @@ const kioskSchema = new Schema<KioskDoc>(
     code: { type: String, default: '' },
     location: { type: String, default: '' },
     engineKind: { type: String, required: true, index: true },
+    isExitGate: { type: Boolean, default: false },
     active: { type: Boolean, default: true },
     mapX: { type: Number, default: null },
     mapY: { type: Number, default: null },

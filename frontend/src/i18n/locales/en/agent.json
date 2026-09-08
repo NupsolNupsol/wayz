@@ -96,7 +96,9 @@
     "boatFull": "Full",
     "seatsFree": "{{free}} of {{seats}} seats free",
     "seatsLeft": "{{free}} seat(s) left on {{boat}}",
-    "pickABoatFirst": "Pick a boat first."
+    "pickABoatFirst": "Pick a boat first.",
+    "resumed": "Picked up where you left off — this sale was still open.",
+    "startFresh": "Start a new one"
   },
   "shopdrop": {
     "title": "Shop & Drop",
@@ -169,7 +171,9 @@
     "bagsIntro": "Enter each bag's type, size and weight so the system can suggest the best-fit compartment. Each bag gets one unique barcode; multiple bags may share one compartment.",
     "bagPlaceholder": "Bag {{index}}",
     "bagDimension": "Bag {{index}} {{dimension}}",
-    "bagLine": "Bag {{index}} · {{description}}"
+    "bagLine": "Bag {{index}} · {{description}}",
+    "resumed": "Picked up where you left off — this sale was still open.",
+    "startFresh": "Start a new one"
   },
   "operations": {
     "title": "Active operations",

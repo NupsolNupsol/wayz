@@ -43,6 +43,8 @@ export interface KioskInput {
   code?: string
   location?: string
   engineKind: EngineKind
+  /** Marks this desk as an exit gate customers collect their bags from. */
+  isExitGate?: boolean
 }
 
 export interface CompanyPatch {

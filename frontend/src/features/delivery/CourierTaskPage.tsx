@@ -1,17 +1,14 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useMemo, useState } from 'react'
 import { formatDateTime } from '@/utils'
 import { useTranslation } from 'react-i18next'
 import { useParams } from 'react-router-dom'
 import {
-  Banknote,
   Check,
   Hand,
-  KeyRound,
   MapPin,
   Package,
   PackageCheck,
   Phone,
-  RefreshCw,
   ScanLine,
   TriangleAlert,
   Truck,
@@ -23,73 +20,13 @@ import { Badge, Button, Card, Field, SectionTitle, Spinner } from '@/components/
 import { Modal } from '@/components/Modal'
 import { Stepper } from '@/components/Stepper'
 import { Icon } from '@/components/Icon'
-import { useCollectOnDelivery, useCollectStop, useCourierTransition, useDelivery } from '@/hooks'
-import { PaymentPanel } from '@/components/PaymentPanel'
-import { sendInvoiceOnPayment } from '@/features/invoice/sendInvoiceOnPayment'
-import { money } from '@/utils'
+import { useCollectStop, useCourierTransition, useDelivery } from '@/hooks'
 import { ApiError } from '@/api/client'
 import { toast } from '@/state/toastStore'
-import { DELIVERY_STEPS, meta, mmss, relativeTime, secondsLeft } from './deliveryMeta'
+import { DELIVERY_STEPS, meta, relativeTime } from './deliveryMeta'
 import type { DeliveryBag, DeliveryDetail } from '@/api/delivery.api'
 
-function useNow(intervalMs = 1000) {
-  const [now, setNow] = useState(() => Date.now())
-  useEffect(() => {
-    const t = setInterval(() => setNow(Date.now()), intervalMs)
-    return () => clearInterval(t)
-  }, [intervalMs])
-  return now
-}
 
-function CompartmentCode({
-  code,
-  expiresAt,
-  unit,
-  expired,
-  onAskAgain,
-  asking,
-}: {
-  code: string
-  expiresAt: string | null
-  unit: string | null
-  expired: boolean
-  onAskAgain: () => void
-  asking: boolean
-}) {
-  const { t } = useTranslation('delivery')
-  const now = useNow()
-  const left = secondsLeft(expiresAt, now)
-
-  return (
-    <Card
-      className={clsx(
-        'p-5 text-center',
-        expired ? 'border-danger-strong/40 bg-red-50 dark:bg-red-900/20' : 'border-brand/50 bg-brand/5',
-      )}
-      data-testid="courier-compartment-code"
-    >
-      <p className="text-xs uppercase tracking-wider text-muted font-bold flex items-center justify-center gap-1.5">
-        <KeyRound size={13} /> Compartment {unit ?? ''} code
-      </p>
-      <p
-        className={clsx('font-mono font-bold tracking-[0.3em] my-2', expired ? 'text-danger-strong text-3xl' : 'text-navy dark:text-dk-texthi text-4xl')}
-        data-testid="courier-code-value"
-      >
-        {expired ? '——————' : code}
-      </p>
-      {expired ? (
-        <>
-          <p className="text-xs text-danger-strong mb-3">{t('task.expired')}</p>
-          <Button onClick={onAskAgain} loading={asking} data-testid="courier-ask-again">
-            <RefreshCw size={16} />{t('task.askAgain')}</Button>
-        </>
-      ) : (
-        <p className="text-xs text-muted">{t('task.expiresIn')}<span className="font-semibold tabular-nums">{mmss(left)}</span>
-        </p>
-      )}
-    </Card>
-  )
-}
 
 function BlindScanPanel({
   bags,
@@ -231,13 +168,10 @@ export function CourierTaskPage() {
   const { id } = useParams<{ id: string }>()
   const { data, isLoading } = useDelivery(id)
   const run = useCourierTransition()
-  const collectMut = useCollectOnDelivery()
   const collectStop = useCollectStop()
 
-  const [collectOpen, setCollectOpen] = useState(false)
   const [failOpen, setFailOpen] = useState(false)
   const [reason, setReason] = useState('')
-  const now = useNow()
 
   const fire = (code: string, payload?: Parameters<typeof run.mutate>[0]['payload'], success?: string) => {
     if (!id) return
@@ -266,7 +200,6 @@ export function CourierTaskPage() {
   const m = meta(d.status)
   const mine = detail.mine !== false
   const claimed = !!d.assignedTo
-  const isMine = mine && claimed
   const can = (code: string) => detail.transitions.some((t) => t.code === code)
   const stops = detail.stops ?? []
   const multiStop = stops.length > 1
@@ -298,7 +231,6 @@ export function CourierTaskPage() {
       },
     )
   }
-  const codeExpired = d.status === 'RELEASE_APPROVED' && secondsLeft(d.compartmentCodeExpiresAt, now) === 0
 
   return (
     <div data-testid="courier-task">
@@ -330,49 +262,6 @@ export function CourierTaskPage() {
       <Card className="p-4 mb-5">
         <Stepper steps={[...DELIVERY_STEPS]} current={Math.max(0, step)} />
       </Card>
-
-      {isMine && detail.amountDue > 0 && (
-        <Card className="p-4 mb-5 border-amber-400 bg-amber-50 dark:bg-amber-900/20" data-testid="courier-amount-due">
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <div>
-              <p className="text-sm font-semibold text-navy dark:text-dk-texthi">{t('task.collectTitle')}</p>
-              <p className="text-2xl font-bold text-navy dark:text-dk-texthi tabular-nums" data-testid="courier-due-value">
-                {money(detail.amountDue)}
-              </p>
-              <p className="text-xs text-muted mt-1">{t('task.collectBlurb')}</p>
-            </div>
-            <Button onClick={() => setCollectOpen(true)} data-testid="courier-collect">
-              <Banknote size={16} /> {t('task.collect')}
-            </Button>
-          </div>
-        </Card>
-      )}
-
-      <Modal
-        open={collectOpen}
-        onClose={() => setCollectOpen(false)}
-        title={t('task.collectTitle')}
-        subtitle={t('task.collectSubtitle', { amount: money(detail.amountDue) })}
-        testId="courier-collect-modal"
-      >
-        <PaymentPanel
-          total={detail.amountDue}
-          confirming={collectMut.isPending}
-          onConfirm={(splits) =>
-            collectMut.mutate(
-              { id: d._id, splits: splits.map((sp) => ({ method: sp.method, cardScheme: sp.cardScheme ?? null, amount: sp.amount })) },
-              {
-                onSuccess: (r) => {
-                  setCollectOpen(false)
-                  toast('success', t('task.collected'), t('task.collectedDetail', { amount: money(r.collected) }))
-                  void sendInvoiceOnPayment(d.bookingId)
-                },
-                onError: (e) => toast('danger', t('task.collectFailed'), e instanceof ApiError ? (e.errors?.join(' ') ?? e.message) : ''),
-              },
-            )
-          }
-        />
-      </Modal>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-5 items-start">
       <div className="lg:col-span-2 flex flex-col gap-5">
@@ -506,25 +395,18 @@ export function CourierTaskPage() {
 
         {mine && d.status === 'RELEASE_APPROVED' && (
           <>
-            <CompartmentCode
-              code={d.compartmentCode ?? ''}
-              expiresAt={d.compartmentCodeExpiresAt}
-              unit={d.assetUnitIdentifier}
-              expired={codeExpired}
-              asking={run.isPending}
-              onAskAgain={() => fire('TO_RELEASE_REQUESTED', undefined, 'The agent has been asked again')}
+            <div className="lf-card p-4 mb-4 border-success/50 bg-emerald-50 dark:bg-emerald-900/20" data-testid="courier-handed-over">
+              <p className="font-semibold text-success flex items-center gap-2">
+                <PackageCheck size={16} /> {t('task.handedOver', { unit: d.assetUnitIdentifier ?? '' })}
+              </p>
+              <p className="text-xs text-muted mt-1">{t('task.scanThemNow')}</p>
+            </div>
+            <BlindScanPanel
+              bags={detail.bags}
+              demoScanner={detail.demoScanner}
+              pending={run.isPending || collectStop.isPending}
+              onConfirm={confirmPickup}
             />
-            {!codeExpired && (
-              <>
-                <div className="h-4" />
-                <BlindScanPanel
-                  bags={detail.bags}
-                  demoScanner={detail.demoScanner}
-                  pending={run.isPending || collectStop.isPending}
-                  onConfirm={confirmPickup}
-                />
-              </>
-            )}
           </>
         )}
 
@@ -535,18 +417,12 @@ export function CourierTaskPage() {
               {multiStop ? ` from ${stops.length} kiosks` : ''}. Hand them to the customer at the address above, then close
               the task.
             </p>
-            {detail.amountDue > 0 && (
-              <p className="text-sm font-semibold text-amber-700 dark:text-amber-300 mb-3" data-testid="courier-pay-first">
-                {t('task.payBeforeHandover', { amount: money(detail.amountDue) })}
-              </p>
-            )}
             <div className="flex flex-col sm:flex-row gap-2">
               <Button
                 className="flex-1"
                 variant="success"
                 onClick={() => fire('TO_DELIVERED', undefined, 'Delivered — nice work')}
                 loading={run.isPending}
-                disabled={detail.amountDue > 0}
                 data-testid="courier-deliver"
               >
                 <PackageCheck size={16} />{t('task.markDelivered')}</Button>

@@ -53,6 +53,17 @@ export function Header({ onOpenMobile, me, dataSw }: { onOpenMobile: () => void;
   const navigate = useNavigate()
   const online = useAuthStore((s) => s.online)
   const setOnline = useAuthStore((s) => s.setOnline)
+
+  useEffect(() => {
+    const tell = () => setOnline(navigator.onLine)
+    tell()
+    window.addEventListener('online', tell)
+    window.addEventListener('offline', tell)
+    return () => {
+      window.removeEventListener('online', tell)
+      window.removeEventListener('offline', tell)
+    }
+  }, [setOnline])
   const theme = useAuthStore((s) => s.theme)
   const toggleTheme = useAuthStore((s) => s.toggleTheme)
 
@@ -91,14 +102,27 @@ export function Header({ onOpenMobile, me, dataSw }: { onOpenMobile: () => void;
         <Menu size={22} />
       </button>
 
-      <div className="hidden xl:block shrink-0">
-        <div className="text-[18px] font-bold text-navy dark:text-dk-texthi leading-none">
+      <div className="hidden lg:block shrink-0 min-w-0">
+        <div className="text-[18px] font-bold text-navy dark:text-dk-texthi leading-none truncate">
           {t('header.welcome', { name: me.fullName.split(' ')[0] })}
         </div>
-        <div className="text-xs text-muted mt-1 flex items-center gap-1">
-          <MapPin size={12} /> {me.tenant?.name} · {me.station?.name}
+        <div className="text-xs text-muted mt-1 flex items-center gap-1 truncate" data-testid="header-where">
+          <MapPin size={12} className="shrink-0" />
+          <span className="truncate">
+            {me.station?.name ?? me.tenant?.name}
+            {me.kiosk?.name ? ` · ${me.kiosk.name}` : ''}
+          </span>
         </div>
       </div>
+
+      {me.kiosk?.name && (
+        <span
+          className="lg:hidden shrink-0 rounded-full bg-brand/10 text-brand text-xs font-semibold px-2.5 py-1 truncate max-w-[40vw]"
+          data-testid="header-where-compact"
+        >
+          {me.kiosk.name}
+        </span>
+      )}
 
       <div className="flex-1 flex justify-center min-w-0 px-2 md:px-6">
         {searchable && (
@@ -145,9 +169,14 @@ export function Header({ onOpenMobile, me, dataSw }: { onOpenMobile: () => void;
       </div>
 
       <div className="flex items-center gap-1 shrink-0" ref={ref}>
-        <button onClick={() => setOnline(!online)} title={online ? t('header.online') : t('header.offline')} data-testid="connectivity-toggle" className={clsx('p-2 rounded-lg', online ? 'text-success hover:bg-black/5' : 'text-danger-strong bg-red-50')}>
+        <span
+          title={online ? t('header.online') : t('header.offline')}
+          aria-label={online ? t('header.online') : t('header.offline')}
+          data-testid="connectivity-toggle"
+          className={clsx('p-2 rounded-lg', online ? 'text-success' : 'text-danger-strong bg-red-50')}
+        >
           {online ? <Wifi size={18} /> : <WifiOff size={18} />}
-        </button>
+        </span>
         <a
           href="/versions"
           target="_blank"

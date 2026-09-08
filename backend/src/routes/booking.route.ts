@@ -2,6 +2,7 @@ import { Router } from 'express'
 import { authenticate, requireRole } from '../middlewares/auth.js'
 import { FLOOR_LEADS, SELLING_STAFF } from '../domain/roles.js'
 import { bookingController } from '../controllers/booking.controller.js'
+import { voucherController } from '../controllers/voucher.controller.js'
 
 const router = Router()
 
@@ -20,6 +21,9 @@ router.post('/:id/refund', bookingController.refund)
 router.post('/', desk, bookingController.create)
 router.get('/:id/transitions', desk, bookingController.transitions)
 router.post('/:id/pay', desk, bookingController.pay)
+router.post('/:id/discount', desk, bookingController.discount)
+router.post('/voucher/check', desk, voucherController.check)
+router.post('/:id/voucher', desk, voucherController.redeem)
 router.post('/:id/settle', desk, bookingController.settle)
 router.post('/:id/reserve', desk, bookingController.reserve)
 router.post('/:id/reassign', desk, bookingController.reassign)

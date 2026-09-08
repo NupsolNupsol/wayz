@@ -367,7 +367,7 @@ export function AssetTypeDetailPage() {
         footer={
           <>
             <Button variant="ghost" onClick={() => setAddOpen(false)}>{t('common:action.cancel')}</Button>
-            <Button onClick={submitAdd} loading={addUnits.isPending} disabled={!stationId || count < 1} data-testid="asset-detail-add-submit">
+            <Button onClick={submitAdd} loading={addUnits.isPending} disabled={!stationId || !kioskId || count < 1} data-testid="asset-detail-add-submit">
               {t('add.submit', { count })}
             </Button>
           </>
@@ -381,16 +381,18 @@ export function AssetTypeDetailPage() {
             testId="asset-detail-add-station"
           />
         </Field>
-        {kiosksHere.length > 0 && (
-          <Field label={t('common:field.kiosk')} hint={t('add.kioskHint')}>
+        <Field label={t('common:field.kiosk')} required hint={t('add.kioskHint')}>
+          {kiosksHere.length > 0 ? (
             <Select
               value={kioskId}
               onChange={setKioskId}
-              options={[{ label: t('add.noKiosk'), value: '' }, ...kiosksHere.map((k) => ({ label: k.name, value: k._id }))]}
+              options={[{ label: t('add.pickKiosk'), value: '' }, ...kiosksHere.map((k) => ({ label: k.name, value: k._id }))]}
               testId="asset-detail-add-kiosk"
             />
-          </Field>
-        )}
+          ) : (
+            <p className="text-xs text-danger-strong" data-testid="asset-detail-no-kiosk">{t('add.noKioskHere')}</p>
+          )}
+        </Field>
         <Field label={t('add.howMany')} required hint={t('add.identifierNote')}>
           <NumberInput min={1} max={200} value={count} onChange={setCount} testId="asset-detail-add-count" />
         </Field>

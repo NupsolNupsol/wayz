@@ -5,7 +5,7 @@ import { BellRing, KeyRound, MapPin, ShieldAlert, Truck, UserCheck } from 'lucid
 import { clsx } from 'clsx'
 import { PageHeader } from '@/components/PageHeader'
 import { RefText } from '@/components/RefLink'
-import { Badge, Button, Card, EmptyState, Field, SectionTitle, Spinner, StatCard } from '@/components/ui'
+import { Badge, Button, Card, EmptyState, SectionTitle, Spinner, StatCard } from '@/components/ui'
 import { Modal } from '@/components/Modal'
 import { DataTable } from '@/components/DataTable'
 import { Icon } from '@/components/Icon'
@@ -15,7 +15,11 @@ import { toast } from '@/state/toastStore'
 import { meta, relativeTime } from './deliveryMeta'
 import type { Delivery } from '@/api/delivery.api'
 
-const WAITING = 'RELEASE_REQUESTED'
+/**
+ * A courier standing at the counter is ready to be handed the bags, whether or not they pressed
+ * anything first — the desk's confirmation is the only step that matters.
+ */
+const READY_TO_HAND_OVER = ['RELEASE_REQUESTED', 'ASSIGNED']
 
 function ApproveModal({ id, onClose }: { id: string | null; onClose: () => void }) {
   const { t } = useTranslation('delivery')
@@ -23,14 +27,13 @@ function ApproveModal({ id, onClose }: { id: string | null; onClose: () => void 
   const run = useStationDeliveryTransition()
 
   const [confirmed, setConfirmed] = useState(false)
-  const [code, setCode] = useState('')
 
-  const close = () => { setConfirmed(false); setCode(''); onClose() }
+  const close = () => { setConfirmed(false); onClose() }
 
   const approve = () => {
     if (!id || !data?.courier) return
     run.mutate(
-      { id, code: 'TO_RELEASE_APPROVED', payload: { confirmCourierId: data.courier._id, compartmentCode: code.trim() } },
+      { id, code: 'TO_RELEASE_APPROVED', payload: { confirmCourierId: data.courier._id, handedOver: true } },
       {
         onSuccess: () => {
           toast('success', t('kiosk.released'), `${data.courier?.fullName} can now collect the bags.`)
@@ -41,7 +44,6 @@ function ApproveModal({ id, onClose }: { id: string | null; onClose: () => void 
     )
   }
 
-  const codeValid = /^[A-Za-z0-9]{4,12}$/.test(code.trim())
 
   return (
     <Modal
@@ -57,7 +59,7 @@ function ApproveModal({ id, onClose }: { id: string | null; onClose: () => void 
           <Button
             onClick={approve}
             loading={run.isPending}
-            disabled={!confirmed || !codeValid || !data?.courier}
+            disabled={!confirmed || !data?.courier}
             data-testid="delivery-approve-submit"
           >
             <KeyRound size={16} />{t('kiosk.approveRelease')}</Button>
@@ -103,21 +105,7 @@ function ApproveModal({ id, onClose }: { id: string | null; onClose: () => void 
             </span>
           </label>
 
-          <Field
-            label={`Compartment ${data.delivery.assetUnitIdentifier ?? ''} unlock code`}
-            required
-            hint={t('kiosk.codeHint')}
-          >
-            <input
-              className="lf-input font-mono tracking-[0.25em] text-lg"
-              value={code}
-              onChange={(e) => setCode(e.target.value.toUpperCase())}
-              disabled={!confirmed}
-              maxLength={12}
-              placeholder={t('kiosk.codeFormat')}
-              data-testid="delivery-approve-code"
-            />
-          </Field>
+          <p className="text-sm text-muted mb-3">{t('kiosk.handOverHint', { unit: data.delivery.assetUnitIdentifier ?? '' })}</p>
 
           <div className="text-sm text-muted">
             <p className="font-semibold text-navy dark:text-dk-texthi">{data.delivery.customerName}</p>
@@ -153,7 +141,7 @@ export function KioskDeliveriesPage() {
     )
   }
 
-  const waiting = data.filter((d) => d.status === WAITING)
+  const waiting = data.filter((d) => READY_TO_HAND_OVER.includes(d.status))
   const open = data.filter((d) => !['DELIVERED', 'CANCELLED', 'FAILED'].includes(d.status))
   const inTransit = data.filter((d) => d.status === 'PICKED_UP')
 
@@ -185,7 +173,11 @@ export function KioskDeliveriesPage() {
                     <p className="font-semibold text-navy dark:text-dk-texthi">
                       {d.customerName} · {d.assetUnitIdentifier ? `compartment ${d.assetUnitIdentifier}` : 'compartment'}
                     </p>
-                    <p className="text-xs text-muted mt-0.5">A courier is asking for these bags — requested {relativeTime(d.releaseRequestedAt)}</p>
+                    <p className="text-xs text-muted mt-0.5">
+                      {d.status === 'RELEASE_REQUESTED'
+                        ? t('kiosk.courierAsking', { when: relativeTime(d.releaseRequestedAt) })
+                        : t('kiosk.courierAssigned')}
+                    </p>
                     {(d.stops?.length ?? 0) > 1 && (
                       <p className="text-xs text-muted mt-1" data-testid={`kiosk-stop-note-${d._id}`}>
                         {t('kiosk.stopOf', {
@@ -325,7 +317,7 @@ export function KioskDeliveriesPage() {
               header: '',
               align: 'right',
               render: (r: Delivery) =>
-                r.status === WAITING ? (
+                READY_TO_HAND_OVER.includes(r.status) ? (
                   <Button
                     variant="secondary"
                     onClick={(e) => { e.stopPropagation(); setApproving(r._id) }}

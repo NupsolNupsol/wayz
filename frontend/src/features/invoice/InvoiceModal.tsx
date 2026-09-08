@@ -25,7 +25,6 @@ export function InvoiceModal({
   const { t } = useTranslation(['bookings', 'common'])
   const { data: invoice, isLoading } = useInvoice(bookingId, open)
   const [sending, setSending] = useState(false)
-
   const sendToWhatsApp = async () => {
     if (!invoice) return
     setSending(true)

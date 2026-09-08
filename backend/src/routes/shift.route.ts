@@ -6,7 +6,7 @@ import { shiftController } from '../controllers/shift.controller.js'
 const router = Router()
 router.use(authenticate)
 
-const carriesCash = requireRole(...SELLING_STAFF, 'DELIVERY_AGENT')
+const carriesCash = requireRole(...SELLING_STAFF)
 
 router.get('/current', carriesCash, shiftController.current)
 router.post('/open', carriesCash, shiftController.open)

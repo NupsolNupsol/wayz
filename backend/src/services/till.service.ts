@@ -187,6 +187,12 @@ export async function paymentQueue(scope: Scope) {
         subtotal: order?.subtotal ?? 0,
         vat: order?.vat ?? 0,
         depositTotal: order?.depositTotal ?? 0,
+        // What a discount or a code has already taken off, so the till can show it against the total.
+        discountOff: Math.abs(
+          (order?.lines ?? [])
+            .filter((l) => l.unitPrice < 0)
+            .reduce((sum, l) => sum + l.unitPrice * (l.quantity ?? 1), 0),
+        ),
         total: order?.total ?? 0,
         orderStatus: order?.status ?? 'DRAFT',
       }

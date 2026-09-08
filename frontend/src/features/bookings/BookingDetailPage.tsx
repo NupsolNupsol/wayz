@@ -18,6 +18,7 @@ import { useAssetUnit, useBooking, useBookingOrder, useTransitions, useTransitio
 import { NumberInput } from '@/components/NumberInput'
 import { InvoiceModal } from '@/features/invoice/InvoiceModal'
 import { AmountDuePanel } from './AmountDuePanel'
+import { ReasonDialog } from '@/components/ReasonDialog'
 import { isUnfinishedSale, resumeRoute } from './resumeDraft'
 import { DevClockPanel } from './DevClockPanel'
 import { ApiError } from '@/api/client'
@@ -27,6 +28,7 @@ import { useStatusLabel } from '@/i18n/useStatusLabel'
 import { toast } from '@/state/toastStore'
 import type { AvailableTransition, IncidentType } from '@/api/types'
 import type { TransitionPayload } from '@/api/booking.api'
+import { clsx } from 'clsx'
 
 export function BookingDetailPage() {
   const { t } = useTranslation(['bookings', 'common'])
@@ -65,6 +67,7 @@ export function BookingDetailPage() {
   const [dueNow, setDueNow] = useState(0)
   const [collectSignal, setCollectSignal] = useState(0)
   const [refundOpen, setRefundOpen] = useState(false)
+  const [cancelOpen, setCancelOpen] = useState(false)
   const [refundAmount, setRefundAmount] = useState(0)
   const [refundReason, setRefundReason] = useState('')
   const { data: refundPosition } = useRefundPosition(id)
@@ -76,6 +79,10 @@ export function BookingDetailPage() {
 
   const unfinished = !!booking && !!order && isUnfinishedSale(booking, order)
   const outstanding = Math.max(0, Math.round(((order?.total ?? 0) - (refundPosition?.paid ?? 0)) * 100) / 100)
+  /** What the customer is not being asked for, so the desk can say it out loud. */
+  const discountOff = Math.abs(
+    (order?.lines ?? []).filter((l) => l.unitPrice < 0).reduce((sum, l) => sum + l.unitPrice * (l.quantity ?? 1), 0),
+  )
   const resumable = unfinished && can(role, 'pos.use')
   useEffect(() => {
     if (resumable && booking) navigate(resumeRoute(booking), { replace: true })
@@ -99,10 +106,10 @@ export function BookingDetailPage() {
 
   const verifications = booking.verifications ?? []
   const overtimeState = booking.session?.overtime
-  const lastChargeStartedAt =
-    overtimeState && overtimeState.chargeableHours > 0 && overtimeState.graceEndsAt
-      ? new Date(overtimeState.graceEndsAt).getTime() + (overtimeState.chargeableHours - 1) * 3_600_000
-      : null
+  // Read from the API, which counts the block from the expected end and knows the block length.
+  const lastChargeStartedAt = overtimeState?.currentChargeStartedAt
+    ? new Date(overtimeState.currentChargeStartedAt).getTime()
+    : null
   const hasFreshVerification = verifications.some(
     (v) =>
       v.purpose === 'RETRIEVAL' &&
@@ -153,6 +160,10 @@ export function BookingDetailPage() {
     }
     if (transition.code === 'TO_RETRIEVAL' && !hasFreshVerification) {
       setVerifyOpen(true)
+      return
+    }
+    if (transition.code === 'TO_CANCELLED') {
+      setCancelOpen(true)
       return
     }
     fire(transition.code, transition.label)
@@ -408,7 +419,7 @@ export function BookingDetailPage() {
               <Meta label={t('meta.expectedEnd')} value={formatDateTime(s.expectedEndAt ? new Date(s.expectedEndAt).getTime() : null)} />
             </div>
             {s.startedAt ? (
-              <div className="mt-3 flex items-center gap-2 text-sm"><span className="text-muted">{t('page.remaining')}</span> <Timer expectedEndAt={s.expectedEndAt} /></div>
+              <div className="mt-3 flex items-center gap-2 text-sm"><span className="text-muted">{t('page.remaining')}</span> <Timer expectedEndAt={s.expectedEndAt} endedAt={s.endedAt ?? s.chargeableEndedAt} /></div>
             ) : (
               <p className="text-xs text-amber-600 mt-3">{t('page.timerNotStarted')}</p>
             )}
@@ -470,15 +481,22 @@ export function BookingDetailPage() {
             <Card data-testid="booking-charges">
               <SectionTitle className="mb-3 flex items-center gap-2"><Receipt size={18} /> {t('page.charges')}</SectionTitle>
               <div className="flex flex-col gap-1.5 text-sm">
-                {order.lines.map((line, i) => (
-                  <div key={`${line.productId}-${i}`} className="flex items-baseline justify-between gap-3" data-testid={`booking-charge-${i}`}>
-                    <span className="text-muted">
-                      {line.name}
-                      {line.quantity > 1 && <span className="text-xs"> × {line.quantity}</span>}
-                    </span>
-                    <span className="tabular-nums">{money(line.unitPrice * line.quantity)}</span>
-                  </div>
-                ))}
+                {order.lines.map((line, i) => {
+                  const off = line.unitPrice < 0
+                  return (
+                    <div
+                      key={`${line.productId}-${i}`}
+                      className={clsx('flex items-baseline justify-between gap-3', off && 'text-success font-medium')}
+                      data-testid={`booking-charge-${i}`}
+                    >
+                      <span className={off ? undefined : 'text-muted'}>
+                        {line.name}
+                        {line.quantity > 1 && <span className="text-xs"> × {line.quantity}</span>}
+                      </span>
+                      <span className="tabular-nums">{money(line.unitPrice * line.quantity)}</span>
+                    </div>
+                  )
+                })}
                 <div className="flex items-baseline justify-between gap-3 text-muted pt-1.5 border-t border-line">
                   <span>{t('page.subtotal')}</span>
                   <span className="tabular-nums">{money(order.subtotal)}</span>
@@ -489,8 +507,20 @@ export function BookingDetailPage() {
                 </div>
                 <div className="flex items-baseline justify-between gap-3 font-bold text-navy dark:text-dk-texthi text-base">
                   <span>{t('page.charged')}</span>
-                  <span className="tabular-nums" data-testid="booking-charged-total">{money(order.total)}</span>
+                  <span className="flex items-baseline gap-2">
+                    {discountOff > 0 && (
+                      <span className="text-sm font-normal text-muted line-through tabular-nums" data-testid="booking-before-discount">
+                        {money(order.total + discountOff)}
+                      </span>
+                    )}
+                    <span className="tabular-nums" data-testid="booking-charged-total">{money(order.total)}</span>
+                  </span>
                 </div>
+                {discountOff > 0 && (
+                  <p className="text-xs text-success" data-testid="booking-discount-note">
+                    {t('page.discountTaken', { amount: money(discountOff) })}
+                  </p>
+                )}
                 <div className="flex items-baseline justify-between gap-3 text-xs text-muted">
                   <span>{t('page.paidSoFar')}</span>
                   <span className="tabular-nums" data-testid="booking-paid-total">{money(refundPosition?.paid ?? 0)}</span>
@@ -630,6 +660,33 @@ export function BookingDetailPage() {
         customerName={booking.customerName}
         customerPhone={booking.customerPhone}
         customerEmail={booking.customerEmail}
+      />
+
+      <ReasonDialog
+        open={cancelOpen}
+        onClose={() => setCancelOpen(false)}
+        onConfirm={(reason) => {
+          setCancelOpen(false)
+          transitionMut.mutate(
+            { id, code: 'TO_CANCELLED', payload: { reason } },
+            {
+              onSuccess: () => toast('warning', t('cancel.done'), t('cancel.doneDetail', { ref: booking.ref })),
+              onError: (e) => toast('danger', t('cancel.failed'), e instanceof ApiError ? (e.errors?.join(' ') ?? e.message) : ''),
+            },
+          )
+        }}
+        title={t('cancel.title')}
+        subtitle={t('cancel.subtitle', { ref: booking.ref })}
+        confirmLabel={t('cancel.confirm')}
+        confirming={transitionMut.isPending}
+        choices={[
+          { value: 'CUSTOMER_CHANGED_MIND', label: t('cancel.reason.changedMind') },
+          { value: 'ASSET_FAULTY', label: t('cancel.reason.faulty') },
+          { value: 'WRONG_ENTRY', label: t('cancel.reason.wrongEntry') },
+          { value: 'NO_SHOW', label: t('cancel.reason.noShow') },
+          { value: 'OTHER', label: t('cancel.reason.other') },
+        ]}
+        testId="cancel-dialog"
       />
 
       <IdentityVerificationModal

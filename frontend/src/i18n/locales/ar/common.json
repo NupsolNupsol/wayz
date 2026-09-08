@@ -73,7 +73,8 @@
     "period": "الفترة",
     "required": "مطلوب",
     "optional": "اختياري",
-    "deposit": "تأمين"
+    "deposit": "تأمين",
+    "reasonRequired": "وضّح ما حدث."
   },
   "table": {
     "showing": "عرض",

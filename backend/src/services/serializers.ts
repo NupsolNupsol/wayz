@@ -38,18 +38,40 @@ export async function withAmountsDue<T extends { orderId: string; session?: { ov
   })
 }
 
+/**
+ * A session that is over must not keep counting. The clock stops where the workflow stopped it,
+ * and for anything closed before we recorded that — or closed by a cancellation — it stops when
+ * the booking last changed, so no finished rental ever shows a live overtime.
+ */
+const FINISHED = ['COMPLETED', 'CANCELLED', 'EXPIRED', 'NO_SHOW']
+
+export function sessionEndedAt(b: BookingDoc): Date | null {
+  if (b.session?.chargeableEndedAt) return b.session.chargeableEndedAt
+  if (!b.session?.startedAt) return null
+  return FINISHED.includes(b.status) ? ((b as { updatedAt?: Date }).updatedAt ?? null) : null
+}
+
 export function bookingDTO(b: BookingDoc) {
   const obj = typeof (b as unknown as { toObject?: () => unknown }).toObject === 'function'
     ? (b as unknown as { toObject: () => Record<string, unknown> }).toObject()
     : (b as unknown as Record<string, unknown>)
 
-  const overtime = computeOvertime(b.session)
+  const endedAt = sessionEndedAt(b)
+  // Spreading a mongoose subdocument drops its schema paths, so hand the fields over by name.
+  const overtime = computeOvertime({
+    startedAt: b.session?.startedAt,
+    expectedEndAt: b.session?.expectedEndAt,
+    chargeableEndedAt: endedAt,
+    gracePeriodMin: b.session?.gracePeriodMin,
+    overtimeHourlyRate: b.session?.overtimeHourlyRate,
+  })
 
   return {
     ...obj,
     id: b._id,
     session: {
       ...(obj as { session: object }).session,
+      endedAt,
       remainingMs: overtime.remainingMs,
       isOvertime: overtime.isOvertime,
       overtime,

@@ -30,6 +30,9 @@ export const useReportOccupancy = () => useQuery({ queryKey: qk.manager.reportOc
 export const useReportRentals = (r: { from?: string; to?: string }) =>
   useQuery({ queryKey: qk.manager.reportRentals(r), queryFn: () => managerApi.reportRentals(r) })
 
+export const useReportDiscounts = (r: { from?: string; to?: string }) =>
+  useQuery({ queryKey: qk.manager.reportDiscounts(r), queryFn: () => managerApi.reportDiscounts(r) })
+
 function useOrgMutation<V>(fn: (v: V) => Promise<unknown>) {
   const qc = useQueryClient()
   return useMutation({
@@ -48,6 +51,8 @@ export const useUpdateStation = () => useOrgMutation((v: { id: string; patch: Re
 export const useCreateKiosk = () => useOrgMutation((v: Record<string, unknown>) => managerApi.createKiosk(v))
 export const useUpdateKiosk = () => useOrgMutation((v: { id: string; patch: Record<string, unknown> }) => managerApi.updateKiosk(v.id, v.patch))
 export const useRemoveKiosk = () => useOrgMutation((id: string) => managerApi.removeKiosk(id))
+export const useRemoveStation = () => useOrgMutation((id: string) => managerApi.removeStation(id))
+export const useRemoveSite = () => useOrgMutation((id: string) => managerApi.removeSite(id))
 
 function useStaffMutation<V, R>(fn: (v: V) => Promise<R>) {
   const qc = useQueryClient()
@@ -63,6 +68,7 @@ export const useCreateStaff = () => useStaffMutation((v: Record<string, unknown>
 export const useUpdateStaff = () => useStaffMutation((v: { id: string; patch: Record<string, unknown> }) => managerApi.updateStaff(v.id, v.patch))
 export const useResetStaffPassword = () => useStaffMutation((v: { id: string; password: string }) => managerApi.resetPassword(v.id, v.password))
 export const useReinviteStaff = () => useStaffMutation((id: string) => managerApi.reinvite(id))
+export const useRemoveStaff = () => useStaffMutation((id: string) => managerApi.removeStaff(id))
 
 function usePricingMutation<V>(fn: (v: V) => Promise<unknown>) {
   const qc = useQueryClient()

@@ -8,6 +8,8 @@ export interface CustomerDoc {
   phone: string
   email?: string
   vatId?: string
+  phoneVerifiedAt?: Date | null
+  active?: boolean
   createdAt: Date
   updatedAt: Date
 }
@@ -20,6 +22,8 @@ const customerSchema = new Schema<CustomerDoc>(
     phone: { type: String, required: true, trim: true },
     email: { type: String },
     vatId: { type: String },
+    phoneVerifiedAt: { type: Date, default: null },
+    active: { type: Boolean, default: true },
   },
   { _id: false, timestamps: true },
 )

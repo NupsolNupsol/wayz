@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { clsx } from 'clsx'
 import { Trans, useTranslation } from 'react-i18next'
 import { Plus, Tag, Info } from 'lucide-react'
 import { PageHeader } from '@/components/PageHeader'
@@ -6,6 +7,8 @@ import { Card, Button, Field, FieldGroupTitle, Spinner, Badge } from '@/componen
 import { DataTable } from '@/components/DataTable'
 import { Modal } from '@/components/Modal'
 import { Select } from '@/components/Select'
+
+const PRODUCT_EMOJI = ['📦', '🛍️', '🎒', '🛴', '🚲', '🛵', '🦽', '👶', '🛺', '🛒', '⛵', '🚤', '🛶', '🍩', '🐉', '🚗', '🏊', '🐴', '🍽️', '☕', '🎟️', '🧳']
 import { useCreateProduct, useManagerPricing, useUpdateProduct } from '@/hooks'
 import { ApiError } from '@/api/client'
 import { toast } from '@/state/toastStore'
@@ -28,13 +31,15 @@ export function ManagerPricing() {
   const money = (n: number) => `${n.toFixed(2)} ${data?.currency ?? 'SAR'}`
 
   const openCreate = () => {
-    setForm({ name: '', engineKind: 'SHOP_AND_DROP', category: 'General', basePrice: '0', hourlyPrice: '', tourPrice: '', tourMinutes: '', overtimeHourlyRate: '', depositRequired: '0', billingModel: 'PER_BAG', assetTypeId: '' })
+    setForm({ name: '', nameAr: '', emoji: '📦', engineKind: 'SHOP_AND_DROP', category: 'General', basePrice: '0', hourlyPrice: '', tourPrice: '', tourMinutes: '', overtimeHourlyRate: '', depositRequired: '0', billingModel: 'PER_BAG', assetTypeId: '' })
     setCreating(true)
   }
 
   const openEdit = (p: PricingProduct) => {
     setForm({
       name: p.name,
+      nameAr: p.nameAr ?? '',
+      emoji: p.emoji ?? '📦',
       engineKind: p.engineKind,
       category: p.category,
       basePrice: String(p.basePrice),
@@ -51,6 +56,8 @@ export function ManagerPricing() {
 
   const payload = () => ({
     name: form.name,
+    nameAr: form.nameAr || undefined,
+    emoji: form.emoji || undefined,
     engineKind: form.engineKind as EngineKind,
     category: form.category,
     basePrice: Number(form.basePrice || 0),
@@ -186,8 +193,38 @@ export function ManagerPricing() {
           </>
         }
       >
-        <Field label={t('common:field.name')} required>
-          <input className="lf-input" value={form.name ?? ''} onChange={(e) => setForm({ ...form, name: e.target.value })} data-testid="pricing-name" />
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4">
+          <Field label={t('common:field.name')} required>
+            <input className="lf-input" value={form.name ?? ''} onChange={(e) => setForm({ ...form, name: e.target.value })} data-testid="pricing-name" />
+          </Field>
+          <Field label={t('pricing.nameAr')} hint={t('pricing.nameArHint')}>
+            <input
+              className="lf-input"
+              dir="rtl"
+              value={form.nameAr ?? ''}
+              onChange={(e) => setForm({ ...form, nameAr: e.target.value })}
+              data-testid="pricing-name-ar"
+            />
+          </Field>
+        </div>
+
+        <Field label={t('pricing.icon')} hint={t('pricing.iconHint')}>
+          <div className="flex flex-wrap gap-1.5" data-testid="pricing-icons">
+            {PRODUCT_EMOJI.map((icon) => (
+              <button
+                key={icon}
+                type="button"
+                onClick={() => setForm({ ...form, emoji: icon })}
+                data-testid={`pricing-icon-${icon}`}
+                className={clsx(
+                  'w-10 h-10 rounded-xl2 border text-lg leading-none',
+                  (form.emoji ?? '📦') === icon ? 'border-brand bg-brand/10' : 'border-line hover:border-brand',
+                )}
+              >
+                {icon}
+              </button>
+            ))}
+          </div>
         </Field>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4">
@@ -199,7 +236,7 @@ export function ManagerPricing() {
               testId="pricing-engine"
             />
           </Field>
-          <Field label={t('pricing.assetType')} hint={t('pricing.assetTypeHint')}>
+          <Field label={t('pricing.assetType')} hint={typesForEngine.length ? t('pricing.assetTypeHint') : t('pricing.noTypesYet')}>
             <Select
               value={form.assetTypeId ?? ''}
               onChange={(v) => setForm({ ...form, assetTypeId: v })}

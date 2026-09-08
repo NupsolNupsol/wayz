@@ -60,7 +60,7 @@ export const useShopDropOperation = (transitionCode: string, ctx: WorkflowContex
     }
 
     case 'TO_CANCELLED': {
-      cancelRelease(result)
+      cancelRelease(result, ctx)
       setStatus(result, CANCELLED)
       break
     }

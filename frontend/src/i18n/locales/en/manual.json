@@ -412,7 +412,7 @@
       ],
       "tips": [
         "Ask while the customer is still at the desk — arranging it later means calling them back for a code.",
-        "The compartment code is read off the kiosk by you. It is never derived from the compartment number, so knowing the locker is not enough to open it."
+        "The kiosk agent opens the compartment themselves once they have checked your ID against the name on their screen. Nothing is handed over on a code you could have guessed or overheard."
       ]
     },
     "courier-board": {
@@ -429,7 +429,7 @@
         },
         {
           "title": "3 · Show who you are",
-          "detail": "The agent checks your ID against the name on their screen. When they approve, a compartment code appears on your task — it lasts 15 minutes."
+          "detail": "The agent checks your ID against the name on their screen. When they approve, they open the compartment and hand the bags to you — there is no code to type."
         },
         {
           "title": "4 · Scan every bag",

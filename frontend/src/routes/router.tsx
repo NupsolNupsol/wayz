@@ -66,6 +66,7 @@ import { AdminOverview } from "@/features/admin/AdminOverview";
 import { AdminCompany } from "@/features/admin/AdminCompany";
 import { AdminAudit, AdminIsolation } from "@/features/admin/AdminPeople";
 import { AdminRules } from "@/features/admin/AdminRules";
+import { AdminVouchers } from "@/features/admin/AdminVouchers";
 import { AdminStationMap } from "@/features/admin/AdminStationMap";
 import { ManagerShiftDetail } from "@/features/manager/ManagerShiftDetail";
 import { LagoonTripsPage } from "@/features/lagoon/LagoonTripsPage";
@@ -198,6 +199,7 @@ export const router = createBrowserRouter([
     children: [
       { index: true, element: <AdminOverview /> },
       { path: "company", element: <AdminCompany /> },
+      { path: "vouchers", element: <AdminVouchers /> },
       { path: "audit", element: <AdminAudit /> },
       { path: "isolation", element: <AdminIsolation /> },
       { path: "stations", element: <AdminStationMap /> },

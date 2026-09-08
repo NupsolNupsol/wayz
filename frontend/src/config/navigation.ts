@@ -109,13 +109,7 @@ export const HR_NAV: NavGroup[] = [
       { id: 'hr-overview', label: 'Costs', to: '/hr', icon: 'Receipt', testId: 'nav-hr-overview' },
       { id: 'hr-seasons', label: 'Seasons & payroll', to: '/hr/seasons', icon: 'CalendarRange', testId: 'nav-hr-seasons' },
       { id: 'hr-shifts', label: 'Shifts & hours', to: '/hr/shifts', icon: 'Clock', testId: 'nav-hr-shifts' },
-      { id: 'hr-pricing', label: 'Pricing', to: '/hr/pricing', icon: 'Tag', permission: 'pricing.edit', testId: 'nav-hr-pricing' },
     ],
-  },
-  {
-    id: 'hr-estate',
-    label: 'Estate',
-    items: [{ id: 'hr-assets', label: 'Assets', to: '/assets', icon: 'Grid3x3', testId: 'nav-hr-assets' }],
   },
   {
     id: 'hr-session',
@@ -139,6 +133,7 @@ export const TENANT_ADMIN_NAV: NavGroup[] = [
       { id: 'admin-overview', label: 'Overview', to: '/admin', icon: 'LayoutDashboard', testId: 'nav-admin-overview' },
       { id: 'admin-company', label: 'Company & branding', to: '/admin/company', icon: 'Building2', testId: 'nav-admin-company' },
       { id: 'admin-rules', label: 'Operating rules', to: '/admin/rules', icon: 'Gavel', testId: 'nav-admin-rules' },
+      { id: 'admin-vouchers', label: 'Discount codes', to: '/admin/vouchers', icon: 'Ticket', testId: 'nav-admin-vouchers' },
       { id: 'admin-isolation', label: 'Data & isolation', to: '/admin/isolation', icon: 'Blocks', testId: 'nav-admin-isolation' },
     ],
   },
@@ -200,7 +195,6 @@ export const COURIER_NAV: NavGroup[] = [
     items: [
       { id: 'courier-board', label: 'Delivery board', to: '/courier', icon: 'Truck', testId: 'nav-courier-board' },
       { id: 'courier-history', label: 'Completed', to: '/courier/history', icon: 'PackageCheck', testId: 'nav-courier-history' },
-      { id: 'courier-shift', label: 'My drawer', to: '/courier/shift', icon: 'Clock', testId: 'nav-courier-shift' },
     ],
   },
   {

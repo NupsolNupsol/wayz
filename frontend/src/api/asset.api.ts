@@ -38,8 +38,16 @@ export interface AssetTypeRow {
   byStatus: Record<string, number>
 }
 
+export interface AssetKiosk {
+  _id: string
+  name: string
+  stationId: string
+  engineKind?: EngineKind
+}
+
 export interface AssetEstate {
   stations: AssetStation[]
+  kiosks: AssetKiosk[]
   assetTypes: AssetTypeRow[]
 }
 
@@ -83,7 +91,7 @@ export interface AssetTypeDetail {
     utilisationPct: number
   }
   stations: AssetStation[]
-  kiosks: { _id: string; name: string; stationId: string }[]
+  kiosks: AssetKiosk[]
   units: AssetUnitRow[]
 }
 

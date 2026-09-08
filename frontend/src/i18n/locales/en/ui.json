@@ -20,7 +20,14 @@
     "noteNot": "not",
     "noteRest": "start any operational timer.",
     "noTimerNote": "Payment records the sale and confirms the booking — it does not start any operational timer.",
-    "tillShut": "Your till is shut. Open it from the header before taking money — nothing can be sold at a closed drawer."
+    "tillShut": "Your till is shut. Open it from the header before taking money — nothing can be sold at a closed drawer.",
+    "splitIt": "Split this payment between two methods",
+    "firstPart": "On this method",
+    "restOn": "The rest ({{amount}}) on",
+    "splitTooBig": "The first method is taking the whole sale — lower it so the second method has something to take, or untick the split.",
+    "splitTooSmall": "The first method is taking nothing — give it an amount, or untick the split.",
+    "pickScheme": "Choose which card was used.",
+    "youSaved": "{{amount}} off"
   },
   "customer": {
     "search": "Search customer name or phone…",
@@ -60,7 +67,9 @@
     "resend": "Resend",
     "sent": "OTP sent (mock)",
     "sendToPhone": "Send the code to the phone",
-    "sendToEmail": "Send the code to the email"
+    "sendToEmail": "Send the code to the email",
+    "lapsed": "That confirmation has lapsed",
+    "lapsedDetail": "Send the customer a new code before taking their money."
   },
   "modal": {
     "close": "Close"
@@ -143,5 +152,40 @@
   },
   "profile": {
     "themeNote": "Configured in code (<1>{{file}}</1>) and applied platform-wide. Clone and change these to re-skin the product for a new client."
+  },
+  "discount": {
+    "open": "Discount",
+    "title": "Take something off",
+    "subtitle": "This sale is {{amount}}.",
+    "why": "Why?",
+    "freeRide": "Make it free",
+    "howMuch": "How much off (%)",
+    "ceiling": "Up to {{percent}}% for this reason.",
+    "tooMuch": "That reason allows at most {{percent}}%.",
+    "take": "Take {{percent}}% off",
+    "makeFree": "Make it free",
+    "applied": "Discount applied",
+    "madeFree": "This one is on the house",
+    "refused": "That discount was refused",
+    "inlineLabel": "Free ride or discount for this customer",
+    "whyRequired": "Reason (required)",
+    "pickReason": "Choose a reason…",
+    "reasonRequired": "Pick a reason — every discount is reported.",
+    "freeApplied": "Free ride — {{reason}}",
+    "someApplied": "{{amount}} off — {{reason}}"
+  },
+  "voucher": {
+    "label": "Discount code (optional)",
+    "apply": "Apply",
+    "optional": "If the customer has a code, type it here before taking payment.",
+    "appliedLine": "{{percent}}% off — {{name}}",
+    "refused": "That code was not accepted",
+    "open": "Discount code",
+    "title": "Redeem a discount code",
+    "subtitle": "Type the code from the customer's ticket.",
+    "code": "Code",
+    "hint": "Six characters after the dash — letters and numbers only.",
+    "redeem": "Redeem",
+    "applied": "{{percent}}% off"
   }
 }

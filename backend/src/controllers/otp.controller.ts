@@ -3,6 +3,7 @@ import { asyncHandler } from "../utils/asyncHandler.js";
 import { ApiError } from "../utils/ApiError.js";
 import { env } from "../config/env.js";
 import { peekOtp, sendOtp, verifyOtp } from "../services/otp.service.js";
+import { rememberPhoneVerified } from "../services/customer.service.js";
 
 const intent = z.enum(["VERIFY_PHONE", "HANDOVER_BAG"]);
 const channel = z.enum(["WHATSAPP", "EMAIL"]).default("WHATSAPP");
@@ -20,10 +21,11 @@ export const otpController = {
     const body = z
       .object({ phone: z.string().min(3), intent, code: z.string().min(1) })
       .parse(req.body);
-    res.json({
-      success: true,
-      data: { verified: verifyOtp(body.phone, body.intent, body.code) },
-    });
+    const verified = verifyOtp(body.phone, body.intent, body.code);
+    if (verified && req.auth?.tenantId) {
+      await rememberPhoneVerified(req.auth.tenantId, body.phone);
+    }
+    res.json({ success: true, data: { verified } });
   }),
 
   peek: asyncHandler(async (req, res) => {

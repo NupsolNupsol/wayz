@@ -7,6 +7,7 @@ import { useTranslation } from 'react-i18next'
 import { useAuthStore } from '@/store/auth'
 import { applyThemeMode } from '@/store/theme'
 import { Toaster } from '@/components/Toaster'
+import { ReceiptAutoPrint } from '@/features/invoice/ReceiptAutoPrint'
 
 const COLLAPSE_KEY = 'wayz.sidebar.collapsed'
 
@@ -54,6 +55,7 @@ export function AppShell() {
         </div>
       </main>
       <Toaster />
+      <ReceiptAutoPrint />
     </div>
   )
 }

@@ -36,6 +36,12 @@ export interface OvertimeState {
   chargeableHours: number
   hourlyRate: number
   penaltyAmount: number
+  /**
+   * When the block being charged right now began. A customer who was checked before this moment
+   * has since run up a fresh charge, so their identity has to be checked again — the screens read
+   * this rather than deriving it, so the sum is made in one place only.
+   */
+  currentChargeStartedAt: string | null
 }
 
 function toDate(value?: Date | string | null): Date | null {
@@ -70,6 +76,7 @@ export function computeOvertime(session: OvertimeSessionInput, now: Date = new D
       chargeableHours: 0,
       hourlyRate,
       penaltyAmount: 0,
+      currentChargeStartedAt: null,
     }
   }
 
@@ -83,6 +90,10 @@ export function computeOvertime(session: OvertimeSessionInput, now: Date = new D
 
   const chargeableHours = pastGrace ? Math.max(1, Math.ceil(overdueMs / blockMs)) : 0
   const penaltyAmount = round2(chargeableHours * hourlyRate)
+
+  // The hours are counted from the expected end, so the block running now started there too.
+  const currentChargeStartedAt =
+    chargeableHours > 0 ? new Date(expectedEndAt.getTime() + (chargeableHours - 1) * blockMs) : null
 
   const phase: SessionPhase = chargeableEndedAt
     ? 'ENDED'
@@ -104,6 +115,7 @@ export function computeOvertime(session: OvertimeSessionInput, now: Date = new D
     withinGrace,
     isOvertime: pastGrace,
     chargeableHours,
+    currentChargeStartedAt: currentChargeStartedAt?.toISOString() ?? null,
     hourlyRate,
     penaltyAmount,
   }

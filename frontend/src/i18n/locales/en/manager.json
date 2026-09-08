@@ -28,7 +28,9 @@
     "bookingsCount": "{{count}} bookings",
     "accruing": "{{amount}} accruing",
     "noneAccruing": "none accruing",
-    "utilisationLine": "<1>{{pct}}%</1> of {{units}}"
+    "utilisationLine": "<1>{{pct}}%</1> of {{units}}",
+    "discountsToday": "Given away today",
+    "discountsSub": "{{count}} discount(s) · {{free}} free"
   },
   "records": {
     "rentals": "Rentals",
@@ -113,7 +115,14 @@
     "noKioskForActivity": "No desk at that station runs this activity yet.",
     "headcount": "People",
     "onShiftNow": "On shift now",
-    "reconciling": "Reconciling"
+    "reconciling": "Reconciling",
+    "remove": {
+      "title": "Delete {{name}}?",
+      "subtitle": "Nothing is erased — they stop appearing and their history stays.",
+      "body": "They can no longer sign in and drop off the team list. Their bookings, shifts and audit trail stay on the record. Their till must be closed first.",
+      "done": "{{name}} removed",
+      "refused": "That person was not removed"
+    }
   },
   "org": {
     "title": "Organisation",
@@ -151,7 +160,22 @@
     "removeKiosk": "Remove {{name}}?",
     "removeKioskSubtitle": "The desk record goes; nothing that was on it does.",
     "removeKioskBody": "A desk can only be removed once it holds no stock, no staff and no live session. If any of those are still true the platform will refuse and tell you which.",
-    "kioskRemoved": "{{name}} removed"
+    "kioskRemoved": "{{name}} removed",
+    "remove": {
+      "siteTitle": "Delete {{name}}?",
+      "stationTitle": "Delete {{name}}?",
+      "kioskTitle": "Delete {{name}}?",
+      "subtitle": "Nothing is erased — it stops appearing and its history stays.",
+      "siteBody": "The site is removed from the estate. It must have no stations left first.",
+      "stationBody": "The station is removed from the estate. It must have no desks, assets, staff or live sessions first.",
+      "kioskBody": "The desk is removed from the station. Its bookings and shifts stay on the record.",
+      "siteDone": "{{name}} removed",
+      "stationDone": "{{name}} removed",
+      "kioskDone": "{{name}} removed"
+    },
+    "venueTypeHint": "Pick one, or add a venue type of your own.",
+    "venueTypeAdd": "+ Add a venue type…",
+    "venueTypePlaceholder": "e.g. WATERPARK"
   },
   "pricing": {
     "title": "Pricing",
@@ -183,7 +207,12 @@
     "perTour": "Per tour",
     "perTourHint": "Leave it empty and this product is not sold by the tour.",
     "tourMinutes": "Minutes per tour",
-    "tourMinutesHint": "How long one tour runs. Defaults to 60."
+    "tourMinutesHint": "How long one tour runs. Defaults to 60.",
+    "nameAr": "Arabic name",
+    "nameArHint": "Shown on the Arabic menu and the invoice.",
+    "icon": "Icon",
+    "iconHint": "What the agent taps on the menu.",
+    "noTypesYet": "No asset kinds for this activity yet — add them under Assets first."
   },
   "estate": {
     "title": "Estate",
@@ -224,7 +253,20 @@
     "txnCount_other": "{{count}} txn",
     "rentals": "Rentals",
     "noOccupancy": "No assets to report on",
-    "noOccupancyHint": "Nothing has been provisioned for this activity yet."
+    "noOccupancyHint": "Nothing has been provisioned for this activity yet.",
+    "discounts": "Free rides & discounts",
+    "discountGiven": "Given away",
+    "discountCount": "Discounts",
+    "freeRides": "Free rides",
+    "discountAvg": "Average",
+    "byReason": "By reason",
+    "byAgent": "By agent",
+    "noDiscounts": "Nothing given away in this period",
+    "reason": "Reason",
+    "kind": "Kind",
+    "given": "Given",
+    "givenBy": "By",
+    "freeRide": "Free"
   },
   "settings": {
     "title": "Settings",

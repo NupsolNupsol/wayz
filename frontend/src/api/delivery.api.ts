@@ -71,8 +71,6 @@ export interface Delivery {
   releaseRequestedAt: string | null
   releaseApprovedBy: string | null
   releaseApprovedAt: string | null
-  compartmentCode: string | null
-  compartmentCodeExpiresAt: string | null
   assetUnitId: string | null
   assetUnitIdentifier: string | null
   pickedUpAt: string | null
@@ -118,7 +116,9 @@ export interface CourierBoard {
 export interface CreateDeliveryInput {
   bookingId: string
   alsoBookingIds?: string[]
-  address: string
+  /** One of the two: the exit gate the customer collects from, or a written address. */
+  toKioskId?: string
+  address?: string
   notes?: string
   contactPhone?: string
   origin: DeliveryOrigin
@@ -127,13 +127,21 @@ export interface CreateDeliveryInput {
 
 export interface DeliveryTransitionPayload {
   confirmCourierId?: string
-  compartmentCode?: string
+  handedOver?: boolean
   scannedBarcodes?: string[]
   reason?: string
   note?: string
 }
 
+export interface ExitGate {
+  _id: string
+  name: string
+  stationId: string
+  location: string
+}
+
 export const deliveryApi = {
+  exitGates: () => unwrap<ExitGate[]>(http.get('/deliveries/exit-gates')),
   create: (input: CreateDeliveryInput) => unwrap<Delivery>(http.post('/deliveries', input)),
   customerBags: (bookingId: string) =>
     unwrap<CustomerBagsElsewhere[]>(http.get(`/deliveries/customer-bags/${bookingId}`)),

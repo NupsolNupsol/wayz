@@ -47,6 +47,8 @@ export interface QueuedPayment {
   subtotal: number
   vat: number
   depositTotal: number
+  /** What a discount or a code has already taken off this sale. */
+  discountOff: number
   total: number
   orderStatus: string
 }

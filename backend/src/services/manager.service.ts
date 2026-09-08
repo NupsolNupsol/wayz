@@ -54,6 +54,8 @@ export async function managerOverview(scope: ManagerScope) {
     byStation,
     unitAgg,
     staffCount,
+    discountsTodayAgg,
+    discounts30dAgg,
   ] = await Promise.all([
     sumRevenue(base, today),
     sumRevenue(base, daysAgo(6)),
@@ -96,6 +98,16 @@ export async function managerOverview(scope: ManagerScope) {
 
     AssetUnit.aggregate([{ $match: base }, { $group: { _id: '$status', count: { $sum: 1 } } }]),
     User.countDocuments({ tenantId: scope.tenantId }),
+
+    // Money the desk chose not to take. The client asked to see this summed, not buried.
+    Booking.aggregate([
+      { $match: { ...base, discount: { $ne: null }, 'discount.at': { $gte: today } } },
+      { $group: { _id: null, total: { $sum: '$discount.amount' }, count: { $sum: 1 }, free: { $sum: { $cond: ['$discount.free', 1, 0] } } } },
+    ]),
+    Booking.aggregate([
+      { $match: { ...base, discount: { $ne: null }, 'discount.at': { $gte: daysAgo(29) } } },
+      { $group: { _id: null, total: { $sum: '$discount.amount' }, count: { $sum: 1 }, free: { $sum: { $cond: ['$discount.free', 1, 0] } } } },
+    ]),
   ])
 
   const stations = await Station.find({ tenantId: scope.tenantId }).lean()
@@ -117,8 +129,19 @@ export async function managerOverview(scope: ManagerScope) {
     trend.push({ date: key, total: round2(hit?.total ?? 0), count: hit?.count ?? 0 })
   }
 
+  const discountsToday = discountsTodayAgg[0] ?? { total: 0, count: 0, free: 0 }
+  const discounts30d = discounts30dAgg[0] ?? { total: 0, count: 0, free: 0 }
+
   return {
     revenue: { today: revenueToday, last7Days: revenue7d, last30Days: revenue30d },
+    discounts: {
+      today: round2(discountsToday.total ?? 0),
+      todayCount: discountsToday.count ?? 0,
+      todayFreeRides: discountsToday.free ?? 0,
+      last30Days: round2(discounts30d.total ?? 0),
+      last30DaysCount: discounts30d.count ?? 0,
+      last30DaysFreeRides: discounts30d.free ?? 0,
+    },
     transactionsToday: txToday,
     activeSessions,
     overdueSessions,

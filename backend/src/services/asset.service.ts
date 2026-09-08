@@ -117,11 +117,16 @@ export async function listAssetTypes(scope: AssetScope, engineKind?: EngineKind)
     if (!product.assetTypeId || productByType.has(product.assetTypeId)) continue
     productByType.set(product.assetTypeId, product)
   }
-  const stations = await Station.find({ tenantId: scope.tenantId }).lean()
+  const [stations, listKiosks] = await Promise.all([
+    Station.find({ tenantId: scope.tenantId }).lean(),
+    Kiosk.find({ tenantId: scope.tenantId }).lean(),
+  ])
   const stationName = new Map(stations.map((s) => [s._id, s.name]))
 
   return {
     stations: stations.map((s) => ({ _id: s._id, name: s.name, engineKinds: s.engineKinds })),
+    // Assets are added at a desk, so the pickers on this page need the desks too.
+    kiosks: listKiosks.map((k) => ({ _id: k._id, name: k.name, stationId: k.stationId, engineKind: k.engineKind })),
     assetTypes: types.map((type) => {
       const statuses = byType.get(type._id) ?? {}
       const product = productByType.get(type._id)
@@ -191,7 +196,7 @@ export async function assetTypeDetail(scope: AssetScope, assetTypeId: string) {
       ...bucket(statuses),
     },
     stations: stations.map((s) => ({ _id: s._id, name: s.name, engineKinds: s.engineKinds })),
-    kiosks: kiosks.map((k) => ({ _id: k._id, name: k.name, stationId: k.stationId })),
+    kiosks: kiosks.map((k) => ({ _id: k._id, name: k.name, stationId: k.stationId, engineKind: k.engineKind })),
     units: units.map((u) => ({
       _id: u._id,
       identifier: u.identifier,
@@ -455,12 +460,32 @@ export async function addUnits(
   assertOwns(scope, type.engineKind)
   if (input.count < 1 || input.count > 200) throw ApiError.badRequest('Add between 1 and 200 assets at a time.')
 
-  if (input.kioskId) {
-    const kiosk = await Kiosk.findOne({ _id: input.kioskId, tenantId: scope.tenantId, stationId: input.stationId }).lean()
-    if (!kiosk) throw ApiError.badRequest('That kiosk does not belong to the chosen station.')
-    if (kiosk.engineKind !== type.engineKind) {
-      throw ApiError.badRequest(`${kiosk.name} runs ${kiosk.engineKind.replaceAll('_', ' ').toLowerCase()}, so it cannot hold ${type.name}.`)
+  const desks = await Kiosk.find({
+    tenantId: scope.tenantId,
+    stationId: input.stationId,
+    engineKind: type.engineKind,
+    active: { $ne: false },
+  }).lean()
+
+  if (!input.kioskId) {
+    if (desks.length === 0) {
+      throw ApiError.unprocessable(
+        `${station.name} has no ${type.engineKind.replaceAll('_', ' ').toLowerCase()} desk yet — create one before adding ${type.name}.`,
+      )
     }
+    throw ApiError.badRequest('Choose the desk these assets live at.', [
+      `Desks at ${station.name}: ${desks.map((k) => k.name).join(', ')}.`,
+    ])
+  }
+
+  const kiosk = desks.find((k) => k._id === input.kioskId)
+  if (!kiosk) {
+    const anywhere = await Kiosk.findOne({ _id: input.kioskId, tenantId: scope.tenantId }).lean()
+    if (!anywhere) throw ApiError.badRequest('That desk does not exist in this tenant.')
+    if (anywhere.stationId !== input.stationId) throw ApiError.badRequest('That desk does not belong to the chosen station.')
+    throw ApiError.badRequest(
+      `${anywhere.name} runs ${anywhere.engineKind.replaceAll('_', ' ').toLowerCase()}, so it cannot hold ${type.name}.`,
+    )
   }
 
   const prefix =

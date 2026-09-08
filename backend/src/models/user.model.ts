@@ -29,6 +29,7 @@ export interface UserDoc {
   reportsTo: string | null
   phone: string
   active: boolean
+  removedAt?: Date | null
   lastLoginAt?: Date | null
   comparePassword(candidate: string): Promise<boolean>
 }
@@ -61,6 +62,7 @@ const userSchema = new Schema<UserDoc>(
     reportsTo: { type: String, default: null, index: true },
     phone: { type: String, default: '' },
     active: { type: Boolean, default: true },
+    removedAt: { type: Date, default: null },
     lastLoginAt: { type: Date, default: null },
   },
   { _id: false, timestamps: true },

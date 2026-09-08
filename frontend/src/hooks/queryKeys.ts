@@ -40,6 +40,7 @@ export const qk = {
     reportRevenue: (r: object) => ['manager', 'report', 'revenue', r] as const,
     reportOccupancy: ['manager', 'report', 'occupancy'] as const,
     reportRentals: (r: object) => ['manager', 'report', 'rentals', r] as const,
+    reportDiscounts: (r: object) => ['manager', 'report', 'discounts', r] as const,
     activity: ['manager', 'activity'] as const,
   },
   accounting: {

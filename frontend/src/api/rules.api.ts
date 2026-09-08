@@ -24,14 +24,24 @@ export interface PenaltyRule {
   engineKind: EngineKind | null
 }
 
+/** Why a desk may take money off a sale, and how far it may go. */
+export interface DiscountReason {
+  code: string
+  label: string
+  maxPercent: number
+  needsApproval?: boolean
+}
+
 export interface TenantRules {
   rental: RentalRules
   penalties: PenaltyRule[]
+  discountReasons: DiscountReason[]
   engineKinds: EngineKind[]
-  defaults: { rental: RentalRules; penalties: PenaltyRule[] }
+  defaults: { rental: RentalRules; penalties: PenaltyRule[]; discountReasons: DiscountReason[] }
 }
 
 export interface RulesPatch {
+  discountReasons?: DiscountReason[]
   rental?: Partial<Omit<RentalRules, 'timers'>> & { timers?: Partial<Record<EngineKind, TimerRule>> }
   penalties?: PenaltyRule[]
 }

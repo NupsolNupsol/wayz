@@ -3,6 +3,15 @@ import type { BillingModel, EngineKind, Incident, Role, Shift } from './types'
 
 export interface ManagerOverview {
   revenue: { today: number; last7Days: number; last30Days: number }
+  /** Money the desk chose not to take — free rides and discounts, summed for the dashboard. */
+  discounts?: {
+    today: number
+    todayCount: number
+    todayFreeRides: number
+    last30Days: number
+    last30DaysCount: number
+    last30DaysFreeRides: number
+  }
   transactionsToday: number
   activeSessions: number
   overdueSessions: number
@@ -148,6 +157,7 @@ export interface ManagerStaff {
 export interface PricingProduct {
   _id: string
   name: string
+  nameAr?: string
   engineKind: EngineKind
   category: string
   basePrice: number
@@ -207,6 +217,33 @@ export interface ManagerPayment {
   customerName: string | null
   engineKind: EngineKind | null
   stationName: string
+}
+
+export interface DiscountsReport {
+  from: string
+  to: string
+  given: number
+  count: number
+  freeRides: number
+  byReason: { key: string; total: number; count: number }[]
+  byAgent: { key: string; total: number; count: number }[]
+  byEngine: { engineKind: EngineKind; total: number; count: number }[]
+  daily: { date: string; total: number; count: number }[]
+  rows: {
+    bookingId: string
+    ref: string
+    engineKind: EngineKind
+    customerName: string
+    amount: number
+    percent: number
+    free: boolean
+    reason: string
+    note: string
+    voucherCode: string | null
+    givenBy: string
+    at: string
+    charged: number
+  }[]
 }
 
 export interface RevenueReport {
@@ -281,6 +318,8 @@ export const managerApi = {
   createKiosk: (d: Record<string, unknown>) => unwrap<OrgKiosk>(http.post('/manager/org/kiosks', d)),
   updateKiosk: (id: string, d: Record<string, unknown>) => unwrap<OrgKiosk>(http.patch(`/manager/org/kiosks/${id}`, d)),
   removeKiosk: (id: string) => unwrap<{ removed: string; name: string }>(http.delete(`/manager/org/kiosks/${id}`)),
+  removeStation: (id: string) => unwrap<{ removed: string; name: string }>(http.delete(`/manager/org/stations/${id}`)),
+  removeSite: (id: string) => unwrap<{ removed: string; name: string }>(http.delete(`/manager/org/sites/${id}`)),
 
   provision: (d: { assetTypeId: string; stationId: string; kioskId?: string; count: number }) =>
     unwrap<{ created: number }>(http.post('/manager/estate/provision', d)),
@@ -296,6 +335,7 @@ export const managerApi = {
   reinvite: (id: string) => unwrap<ManagerStaff>(http.post(`/manager/staff/${id}/invite`)),
   updateStaff: (id: string, d: Record<string, unknown>) => unwrap<ManagerStaff>(http.patch(`/manager/staff/${id}`, d)),
   resetPassword: (id: string, password: string) => unwrap<{ ok: boolean }>(http.post(`/manager/staff/${id}/password`, { password })),
+  removeStaff: (id: string) => unwrap<{ removed: string; name: string }>(http.delete(`/manager/staff/${id}`)),
 
   pricing: () => unwrap<PricingCatalogue>(http.get('/pricing')),
   createProduct: (d: Record<string, unknown>) => unwrap<PricingProduct>(http.post('/pricing/products', d)),
@@ -307,6 +347,8 @@ export const managerApi = {
   reportRevenue: (r?: { from?: string; to?: string }) => unwrap<RevenueReport>(http.get(`/manager/reports/revenue${qs(r)}`)),
   reportOccupancy: () => unwrap<OccupancyReport>(http.get('/manager/reports/occupancy')),
   reportRentals: (r?: { from?: string; to?: string }) => unwrap<RentalsReport>(http.get(`/manager/reports/rentals${qs(r)}`)),
+  reportDiscounts: (r?: { from?: string; to?: string }) =>
+    unwrap<DiscountsReport>(http.get(`/manager/reports/discounts${qs(r)}`)),
 
   activity: () => unwrap<ActivityEntry[]>(http.get('/manager/activity')),
 

@@ -51,7 +51,9 @@
     "howMany": "How many",
     "identifierNote": "Each one gets its own identifier and QR code.",
     "kioskHint": "Only compartments belong to a kiosk.",
-    "noKiosk": "No kiosk"
+    "noKiosk": "No kiosk",
+    "pickKiosk": "Choose a desk…",
+    "noKioskHere": "This station has no desk yet — add one on Sites & stations before putting assets here."
   },
   "edit": {
     "title": "{{identifier}}",
@@ -166,7 +168,8 @@
     "firstAssets": "First assets",
     "howMany": "How many to create now",
     "howManyHint": "Each gets its own identifier and QR code. Leave at zero to add them later.",
-    "submit": "Create kind"
+    "submit": "Create kind",
+    "kioskHint": "Which desk these first assets sit at."
   },
   "removeKind": {
     "title": "Delete {{name}}",

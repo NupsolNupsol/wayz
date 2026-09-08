@@ -115,3 +115,31 @@ export function resolvePenaltySchedule(stored?: PenaltyRule[] | null): PenaltyRu
 export function penaltyAmount(schedule: PenaltyRule[], code: string): number | null | undefined {
   return schedule.find((rule) => rule.code === code)?.amount
 }
+
+export interface DiscountReason {
+  code: string
+  label: string
+  maxPercent: number
+  needsApproval?: boolean
+}
+
+export const DEFAULT_DISCOUNT_REASONS: DiscountReason[] = [
+  { code: 'EMPLOYEE', label: 'Employee', maxPercent: 100 },
+  { code: 'MANAGER', label: 'Manager decision', maxPercent: 100 },
+  { code: 'VIP_SELA', label: 'VIP / SELA member', maxPercent: 100 },
+  { code: 'SERVICE_RECOVERY', label: 'Something went wrong', maxPercent: 50 },
+  { code: 'PROMOTION', label: 'Promotion', maxPercent: 30 },
+]
+
+export function resolveDiscountReasons(stored?: Partial<DiscountReason>[] | null): DiscountReason[] {
+  if (!Array.isArray(stored) || stored.length === 0) return DEFAULT_DISCOUNT_REASONS
+  const clean = stored
+    .filter((r) => typeof r?.code === 'string' && r.code.trim() && typeof r?.label === 'string' && r.label.trim())
+    .map((r) => ({
+      code: r.code!.trim().toUpperCase().slice(0, 40),
+      label: r.label!.trim().slice(0, 80),
+      maxPercent: Math.min(100, Math.max(0, Number(r.maxPercent ?? 100))),
+      needsApproval: !!r.needsApproval,
+    }))
+  return clean.length ? clean : DEFAULT_DISCOUNT_REASONS
+}

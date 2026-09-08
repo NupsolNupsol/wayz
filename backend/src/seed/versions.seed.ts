@@ -1,4 +1,5 @@
 import { Version } from '../models/index.js'
+import { RELEASE_FIVE, RELEASE_FIVE_META } from './release5.seed.js'
 import type { VersionChange, VersionLink } from '../models/index.js'
 
 type Draft = Omit<VersionChange, 'checks' | 'issues'>
@@ -362,6 +363,10 @@ const RELEASES = [
       'Release notes anyone can read, check off and report on',
     ],
     changes: [...RELEASE_FOUR, ...RELEASE_FOUR_MORE],
+  },
+  {
+    ...RELEASE_FIVE_META,
+    changes: RELEASE_FIVE,
   },
 ]
 

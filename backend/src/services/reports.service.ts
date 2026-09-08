@@ -310,6 +310,21 @@ export async function reportRows(scope: ManagerScope, kind: string, range: Repor
       const r = await revenueReport(scope, range)
       return r.byMethod.map((m) => ({ method: m.method, transactions: m.count, total: m.total }))
     }
+    case 'discounts': {
+      const r = await discountsReport(scope, range)
+      return r.rows.map((row) => ({
+        date: row.at ? new Date(row.at).toISOString().slice(0, 10) : '',
+        booking: row.ref,
+        activity: row.engineKind,
+        customer: row.customerName,
+        reason: row.reason,
+        code: row.voucherCode ?? '',
+        free: row.free ? 'yes' : 'no',
+        given: row.amount,
+        charged: row.charged,
+        by: row.givenBy,
+      }))
+    }
     case 'agents': {
       const r = await agentRevenueReport(scope, range)
       return r.rows.map((row) => ({
@@ -344,4 +359,90 @@ export async function activityLog(scope: ManagerScope, limit = 500) {
     detail: e.detail ?? null,
     at: e.at,
   }))
+}
+
+/**
+ * Money the desk chose not to take: free rides and discounts, by reason, by agent and by activity.
+ * The client asked for these to be tracked and summed — they happen often enough to matter.
+ */
+export async function discountsReport(scope: ManagerScope, range: ReportRange) {
+  const { from, to } = resolveRange(range)
+  const match = {
+    tenantId: scope.tenantId,
+    discount: { $ne: null },
+    'discount.at': { $gte: from, $lte: to },
+  }
+
+  const [rows, staff, engines] = await Promise.all([
+    Booking.find(match, {
+      ref: 1,
+      engineKind: 1,
+      stationId: 1,
+      kioskId: 1,
+      customerName: 1,
+      totalAmount: 1,
+      discount: 1,
+      createdAt: 1,
+    })
+      .sort({ 'discount.at': -1 })
+      .limit(1000)
+      .lean(),
+    User.find({ tenantId: scope.tenantId }, { fullName: 1 }).lean(),
+    tenantEngines(scope.tenantId),
+  ])
+
+  const nameOf = new Map(staff.map((u) => [u._id, u.fullName]))
+
+  const given = round2(rows.reduce((sum, b) => sum + (b.discount?.amount ?? 0), 0))
+  const freeRides = rows.filter((b) => b.discount?.free).length
+
+  const bucket = (key: (b: (typeof rows)[number]) => string) => {
+    const totals = new Map<string, { total: number; count: number }>()
+    for (const b of rows) {
+      const k = key(b)
+      const cur = totals.get(k) ?? { total: 0, count: 0 }
+      cur.total += b.discount?.amount ?? 0
+      cur.count += 1
+      totals.set(k, cur)
+    }
+    return [...totals.entries()]
+      .map(([k, v]) => ({ key: k, total: round2(v.total), count: v.count }))
+      .sort((a, b) => b.total - a.total)
+  }
+
+  return {
+    from: from.toISOString().slice(0, 10),
+    to: to.toISOString().slice(0, 10),
+    given,
+    count: rows.length,
+    freeRides,
+    byReason: bucket((b) => b.discount?.reasonLabel || b.discount?.reasonCode || 'Unknown'),
+    byAgent: bucket((b) => b.discount?.givenByName || nameOf.get(b.discount?.givenBy ?? '') || 'Unknown'),
+    byEngine: engines.map((engine) => {
+      const mine = rows.filter((b) => b.engineKind === engine)
+      return {
+        engineKind: engine,
+        total: round2(mine.reduce((sum, b) => sum + (b.discount?.amount ?? 0), 0)),
+        count: mine.length,
+      }
+    }),
+    daily: bucket((b) => new Date(b.discount!.at).toISOString().slice(0, 10))
+      .map((d) => ({ date: d.key, total: d.total, count: d.count }))
+      .sort((a, b) => a.date.localeCompare(b.date)),
+    rows: rows.map((b) => ({
+      bookingId: b._id,
+      ref: b.ref,
+      engineKind: b.engineKind,
+      customerName: b.customerName,
+      amount: round2(b.discount?.amount ?? 0),
+      percent: b.discount?.percent ?? 0,
+      free: !!b.discount?.free,
+      reason: b.discount?.reasonLabel || b.discount?.reasonCode || '',
+      note: b.discount?.note ?? '',
+      voucherCode: b.discount?.voucherCode ?? null,
+      givenBy: b.discount?.givenByName || nameOf.get(b.discount?.givenBy ?? '') || '',
+      at: b.discount?.at,
+      charged: round2(b.totalAmount ?? 0),
+    })),
+  }
 }

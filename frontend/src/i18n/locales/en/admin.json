@@ -134,6 +134,14 @@
       "flat": "Flat amount",
       "byAsset": "Asset's value",
       "byAssetNote": "Charged at whatever that particular asset is worth — a lost tuk-tuk is not a lost scooter."
+    },
+    "reasons": {
+      "title": "Why a discount may be given",
+      "blurb": "The desk must pick one of these for every free ride and every discount. The ceiling is the most that reason allows.",
+      "add": "Add a reason",
+      "shownAs": "Shown to the desk as",
+      "ceiling": "Most allowed (%)",
+      "reported": "Every discount is reported against its reason — see Reports → Free rides & discounts."
     }
   },
   "map": {
@@ -159,5 +167,46 @@
     "legendLagoon": "Lagoon jetty",
     "legendDesk": "Desk",
     "tapToDrop": "Tap the map to drop {{name}}"
+  },
+  "vouchers": {
+    "title": "Discount codes",
+    "subtitle": "Print a batch of codes, hand them out, and the desk redeems them at any kiosk.",
+    "new": "New batch",
+    "newTitle": "Create a batch of codes",
+    "newSubtitle": "Every code in the batch carries the same discount.",
+    "mint": "Create {{count}} codes",
+    "created": "{{count}} codes created",
+    "failed": "The batch was not created",
+    "stopped": "{{count}} unused codes stopped",
+    "stop": "Stop unused codes",
+    "stoppedTag": "Stopped",
+    "live": "Live",
+    "used": "used",
+    "codes": "Codes",
+    "export": "Export CSV",
+    "anyActivity": "Any activity",
+    "emptyTitle": "No discount codes yet",
+    "emptyBody": "Create a batch and the desk can redeem them straight away.",
+    "sheetSubtitle": "{{percent}}% off · {{count}} codes",
+    "col": {
+      "name": "Batch",
+      "percent": "Discount",
+      "where": "Valid on",
+      "used": "Redeemed",
+      "expires": "Expires",
+      "created": "Created"
+    },
+    "field": {
+      "name": "Batch name",
+      "nameHint": "What the customer will be told it is — \"Summer 2026\", \"SELA members\".",
+      "quantity": "How many codes",
+      "percent": "Discount %",
+      "prefix": "Code prefix",
+      "prefixHint": "Letters and numbers, up to 6.",
+      "expires": "Expires on",
+      "expiresHint": "Leave empty for no expiry.",
+      "activities": "Valid on",
+      "activitiesHint": "Pick none to let the code work on every activity."
+    }
   }
 }

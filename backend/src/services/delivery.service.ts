@@ -1,4 +1,4 @@
-import { AssetUnit, Booking, DeliveryRequest, Kiosk, Order, Station, Tenant, User } from '../models/index.js'
+import { AssetUnit, Booking, DeliveryRequest, Kiosk, Station, User } from '../models/index.js'
 import { recordAudit } from './audit.service.js'
 import { raise } from './notification.service.js'
 import type { BookingHydrated } from '../models/booking.model.js'
@@ -6,18 +6,14 @@ import type { DeliveryRequestDoc, DeliveryStopDoc } from '../models/delivery.mod
 import type { Role } from '../domain/types.js'
 import { ApiError } from '../utils/ApiError.js'
 import { nextId } from './counter.service.js'
-import { computeTotals, round2 } from '../utils/helpers.js'
-import { outstandingFor, settleOutstanding } from './booking.service.js'
-import type { PaymentSplit } from '../interfaces/index.js'
-import { DEFAULT_VAT_RATE } from '../domain/tax.js'
+import { round2 } from '../utils/helpers.js'
+import { outstandingFor } from './booking.service.js'
 import { env } from '../config/env.js'
 
 import {
   DEFAULT_DELIVERY_ASSET_KIND,
   DLV_ASSIGNED,
-  DLV_CANCELLED,
   DLV_DELIVERED,
-  DLV_FAILED,
   DLV_ORIGIN_AT_STORAGE,
   DLV_ORIGIN_CUSTOMER_CONTACT,
   DLV_PICKED_UP,
@@ -64,7 +60,14 @@ function toSnapshot(d: DeliveryRequestDoc): DeliverySnapshot {
     customerId: d.customerId,
     customerName: d.customerName,
     customerPhone: d.customerPhone,
-    destination: { address: d.destination.address, notes: d.destination.notes, contactPhone: d.destination.contactPhone },
+    destination: {
+      kind: d.destination.kind ?? 'ADDRESS',
+      address: d.destination.address,
+      kioskId: d.destination.kioskId ?? null,
+      kioskName: d.destination.kioskName ?? '',
+      notes: d.destination.notes,
+      contactPhone: d.destination.contactPhone,
+    },
     status: d.status,
     origin: d.origin,
     verifiedBy: d.verifiedBy,
@@ -76,8 +79,6 @@ function toSnapshot(d: DeliveryRequestDoc): DeliverySnapshot {
     releaseRequestedAt: iso(d.releaseRequestedAt),
     releaseApprovedBy: d.releaseApprovedBy,
     releaseApprovedAt: iso(d.releaseApprovedAt),
-    compartmentCode: d.compartmentCode,
-    compartmentCodeExpiresAt: iso(d.compartmentCodeExpiresAt),
     pickedUpAt: iso(d.pickedUpAt),
     scannedBarcodes: d.scannedBarcodes ?? [],
     deliveredAt: iso(d.deliveredAt),
@@ -99,8 +100,6 @@ function applySnapshot(doc: DeliveryRequestDoc, next: DeliverySnapshot): void {
   doc.releaseRequestedAt = date(next.releaseRequestedAt)
   doc.releaseApprovedBy = next.releaseApprovedBy
   doc.releaseApprovedAt = date(next.releaseApprovedAt)
-  doc.compartmentCode = next.compartmentCode
-  doc.compartmentCodeExpiresAt = date(next.compartmentCodeExpiresAt)
   doc.pickedUpAt = date(next.pickedUpAt)
   doc.scannedBarcodes = next.scannedBarcodes
   doc.deliveredAt = date(next.deliveredAt)
@@ -217,7 +216,16 @@ export async function createDeliveryRequest(scope: Scope, input: CreateDeliveryI
   }
   if (!booking.bags.length) throw ApiError.unprocessable('This booking has no bags.')
 
-  const address = input.address.trim()
+  // Shop & Drop sends bags to an exit gate, where the customer collects them from that gate's
+  // agent. Anything else is the older door-to-door case and needs a written address.
+  let gate: { _id: string; name: string } | null = null
+  if (input.toKioskId) {
+    const found = await Kiosk.findOne({ _id: input.toKioskId, tenantId: scope.tenantId }, { name: 1 }).lean()
+    if (!found) throw ApiError.badRequest('That exit gate does not exist in this tenant.')
+    gate = { _id: found._id, name: found.name }
+  }
+  const address = gate ? gate.name : (input.address ?? '').trim()
+  if (!address) throw ApiError.badRequest('Say where the bags are going — an exit gate, or an address.')
   if (!address) throw ApiError.badRequest('A delivery address is required.')
 
   const existing = await DeliveryRequest.findOne({
@@ -226,6 +234,22 @@ export async function createDeliveryRequest(scope: Scope, input: CreateDeliveryI
     status: { $in: OPEN_STATES },
   }).lean()
   if (existing) throw ApiError.conflict(`A delivery (${existing._id}) is already open for this booking.`)
+
+  // Every kiosk on the run, not only the one that took the call: the courier carries no card reader.
+  const alsoOwing = await Promise.all(
+    [...new Set([booking._id, ...(input.alsoBookingIds ?? [])])].map(async (id) => ({
+      id,
+      owed: await outstandingFor(scope.tenantId, id),
+    })),
+  )
+  const owed = round2(alsoOwing.reduce((sum, row) => sum + row.owed, 0))
+  if (owed > 0) {
+    const which = alsoOwing.filter((row) => row.owed > 0).map((row) => row.id)
+    throw ApiError.unprocessable(`${owed.toFixed(2)} is still owed on ${which.length > 1 ? 'these bookings' : 'this booking'}.`, [
+      'Take the money at the desk before sending the bags out — couriers do not handle payments.',
+      `Still owing: ${which.join(', ')}.`,
+    ])
+  }
 
   let verifiedBy: string | null = null
   let verifiedAt: Date | null = null
@@ -284,7 +308,14 @@ export async function createDeliveryRequest(scope: Scope, input: CreateDeliveryI
     customerId: booking.customerId,
     customerName: booking.customerName,
     customerPhone: booking.customerPhone,
-    destination: { address, notes: input.notes?.trim() ?? '', contactPhone: input.contactPhone?.trim() || booking.customerPhone },
+    destination: {
+      kind: gate ? 'GATE' : 'ADDRESS',
+      address,
+      kioskId: gate?._id ?? null,
+      kioskName: gate?.name ?? '',
+      notes: input.notes?.trim() ?? '',
+      contactPhone: input.contactPhone?.trim() || booking.customerPhone,
+    },
     status: DLV_REQUESTED,
     origin: input.origin,
     verifiedBy,
@@ -311,7 +342,6 @@ export async function createDeliveryRequest(scope: Scope, input: CreateDeliveryI
 
   if (booking.isModified()) await booking.save()
 
-  if (doc.fee > 0) await chargeDeliveryFee(scope.tenantId, booking, doc.fee)
 
   await recordAudit({
     tenantId: scope.tenantId,
@@ -351,32 +381,7 @@ function freshDeliveryProof(booking: BookingHydrated) {
 
 const sortNewest = { requestedAt: -1 as const }
 
-const DELIVERY_FEE_LINE = 'DELIVERY_FEE'
 
-async function chargeDeliveryFee(tenantId: string, booking: BookingHydrated, fee: number) {
-  const order = await Order.findById(booking.orderId)
-  if (!order) return
-
-  const existing = order.lines.find((l) => l.productId === DELIVERY_FEE_LINE)
-  if (existing) {
-    existing.unitPrice = round2(fee)
-    existing.quantity = 1
-  } else {
-    order.lines.push({
-      productId: DELIVERY_FEE_LINE,
-      name: 'Delivery to the customer',
-      quantity: 1,
-      unitPrice: round2(fee),
-      isDeposit: false,
-      taxable: true,
-    })
-  }
-
-  const tenant = await Tenant.findById(tenantId).lean()
-  Object.assign(order, computeTotals(order.lines, tenant?.vatRate ?? DEFAULT_VAT_RATE))
-  order.status = 'AWAITING_PAYMENT'
-  await order.save()
-}
 
 export async function courierBoard(scope: CourierScope) {
   const [available, mine, history] = await Promise.all([
@@ -402,6 +407,18 @@ export async function courierBoard(scope: CourierScope) {
   )
 
   return { available, mine: withDue, history }
+}
+
+/** The exits at this site that a customer can collect bags from. */
+export async function exitGates(scope: Scope) {
+  const station = await Station.findOne({ _id: scope.stationId, tenantId: scope.tenantId }, { siteId: 1 }).lean()
+  const gates = await Kiosk.find(
+    { tenantId: scope.tenantId, siteId: station?.siteId, isExitGate: true, active: { $ne: false } },
+    { name: 1, stationId: 1, location: 1 },
+  )
+    .sort({ name: 1 })
+    .lean()
+  return gates.map((g) => ({ _id: g._id, name: g.name, stationId: g.stationId, location: g.location ?? '' }))
 }
 
 export async function stationDeliveries(scope: Scope, opts: { status?: string; bookingId?: string } = {}) {
@@ -521,10 +538,11 @@ export async function applyDeliveryTransition(params: ApplyDeliveryParams) {
   }
 
   if (code === 'TO_DELIVERED') {
+    await stopStorageClockAtPickup(actor.tenantId, doc)
     const owed = await deliveryAmountDue(actor.tenantId, doc)
     if (owed > 0) {
-      throw ApiError.unprocessable('Take the payment before handing the bags over.', [
-        `The customer still owes ${owed.toFixed(2)} — collect it on the doorstep first.`,
+      throw ApiError.unprocessable('This delivery is not paid up.', [
+        `${owed.toFixed(2)} is still owed — ring the desk that raised it, they take the money, not you.`,
       ])
     }
   }
@@ -620,12 +638,31 @@ async function applyBookingEffects(
     booking.session.status = 'RETRIEVAL_IN_PROGRESS'
     booking.assetUnitId = null
     booking.session.assetUnitId = null
+    // The compartment is theirs no longer, so storage stops being charged here — not at the door.
+    // Letting it run while the courier drives would bill for storage nobody is using, and would
+    // leave the courier unable to finish a run they are not allowed to take money on.
+    booking.session.chargeableEndedAt = booking.session.chargeableEndedAt ?? now
     booking.custody.push({ from: 'LOCKER', to: 'PORTER', at: now, note: `Collected by courier for ${delivery._id}` })
   } else if (code === 'TO_DELIVERED') {
-    booking.status = 'COMPLETED'
-    booking.session.status = 'COMPLETED'
     booking.session.chargeableEndedAt = booking.session.chargeableEndedAt ?? now
-    booking.custody.push({ from: 'PORTER', to: 'CUSTOMER', at: now, note: `Delivered to ${delivery.destination.address}` })
+
+    if (delivery.destination?.kind === 'GATE') {
+      // The bags reached the exit gate, not the customer. The gate's agent now holds them and does
+      // the handover themselves: check the customer, take any overtime, then close the booking.
+      booking.status = 'RETRIEVAL_IN_PROGRESS'
+      booking.session.status = 'RETRIEVAL_IN_PROGRESS'
+      booking.kioskId = delivery.destination.kioskId ?? booking.kioskId
+      booking.custody.push({
+        from: 'PORTER',
+        to: 'AGENT',
+        at: now,
+        note: `Waiting for the customer at ${delivery.destination.kioskName || delivery.destination.address}`,
+      })
+    } else {
+      booking.status = 'COMPLETED'
+      booking.session.status = 'COMPLETED'
+      booking.custody.push({ from: 'PORTER', to: 'CUSTOMER', at: now, note: `Delivered to ${delivery.destination.address}` })
+    }
   }
 
   booking.transitionLog.push({ code, from, to: booking.status, by: actor.userId, at: now, reason: `Delivery ${delivery._id}` })
@@ -644,63 +681,28 @@ export async function tenantDeliveries(tenantId: string, siteId?: string) {
 
 export { DLV_DELIVERED, OPEN_STATES }
 
-export async function collectOnDelivery(scope: CourierScope, deliveryId: string, splits: PaymentSplit[]) {
-  const delivery = await DeliveryRequest.findOne({ _id: deliveryId, tenantId: scope.tenantId })
-  if (!delivery) throw ApiError.notFound('Delivery not found.')
-  if (!delivery.assignedTo) {
-    throw ApiError.unprocessable('Pick this task up before taking any money for it.')
-  }
-  if (delivery.assignedTo !== scope.userId) {
-    throw ApiError.forbidden('That delivery is being carried by somebody else.')
-  }
-  if (delivery.status === DLV_CANCELLED || delivery.status === DLV_FAILED) {
-    throw ApiError.unprocessable(`This delivery is ${delivery.status.toLowerCase()} — there is nothing to hand over.`)
-  }
 
+/**
+ * A run that left the kiosk before storage stopped being charged at pickup would keep running up
+ * overtime in transit. Stop each booking's clock at the moment its bags were actually collected.
+ */
+async function stopStorageClockAtPickup(
+  tenantId: string,
+  delivery: { bookingId: string; stops?: DeliveryStopDoc[]; timeline?: { code?: string; at?: Date }[] },
+) {
   const ids = [...new Set([delivery.bookingId, ...(delivery.stops ?? []).map((s) => s.bookingId)])]
-  const courierScope = {
-    tenantId: scope.tenantId,
-    stationId: scope.stationId,
-    kioskId: null,
-    agentId: scope.userId,
-    role: scope.role,
-    engineKinds: [],
-  }
-
-  const owedTotal = await deliveryAmountDue(scope.tenantId, delivery)
-  const offered = round2(splits.reduce((sum, s) => sum + (s.amount || 0), 0))
-  if (Math.abs(offered - owedTotal) > 0.01) {
-    throw ApiError.badRequest(`Payment ${offered} does not cover the ${owedTotal} outstanding across this run.`)
-  }
-
-  const method = splits[0]
-  let collected = 0
-
   for (const id of ids) {
-    const owed = await outstandingFor(scope.tenantId, id)
-    if (owed <= 0) continue
-
-    const booking = await Booking.findOne({ _id: id, tenantId: scope.tenantId })
-    if (!booking) continue
-
-    const paid = await settleOutstanding(courierScope, booking, [
-      { method: method.method, cardScheme: method.cardScheme ?? null, amount: owed },
-    ])
-    collected = round2(collected + paid.collected)
+    const booking = await Booking.findOne({ _id: id, tenantId })
+    if (!booking || booking.session?.chargeableEndedAt) continue
+    const stop = (delivery.stops ?? []).find((s) => s.bookingId === id)
+    const collectedAt =
+      stop?.collectedAt ??
+      (delivery.timeline ?? []).find((t) => t.code === 'TO_PICKED_UP')?.at ??
+      new Date()
+    booking.session.chargeableEndedAt = new Date(collectedAt)
+    booking.markModified('session')
+    await booking.save()
   }
-
-  const result = { collected, due: await deliveryAmountDue(scope.tenantId, delivery) }
-
-  await recordAudit({
-    tenantId: scope.tenantId,
-    actorId: scope.userId,
-    action: 'DELIVERY_PAYMENT_COLLECTED',
-    entity: 'Delivery',
-    entityId: delivery._id,
-    detail: `${result.collected} collected on ${delivery.bookingRef}`,
-  })
-
-  return { delivery: delivery.toObject(), collected: result.collected, due: result.due }
 }
 
 export async function deliveryAmountDue(
@@ -750,8 +752,6 @@ export async function collectStop(actor: DeliveryActor, id: string, input: { sca
     fresh.releaseRequestedAt = null
     fresh.releaseApprovedBy = null
     fresh.releaseApprovedAt = null
-    fresh.compartmentCode = null
-    fresh.compartmentCodeExpiresAt = null
     fresh.pickedUpAt = null
     fresh.scannedBarcodes = []
     fresh.timeline.push({

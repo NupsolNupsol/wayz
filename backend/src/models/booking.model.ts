@@ -119,11 +119,30 @@ export interface BookingDoc {
   packingPlan: PackingPlanEmbed | null
   custody: CustodyEvent[]
   verifications: IdentityVerification[]
+  discount?: BookingDiscount | null
   refunds: BookingRefund[]
   transitionLog: TransitionLogEntry[]
   metadata: Record<string, unknown>
   createdAt: Date
   updatedAt: Date
+}
+
+/**
+ * Money the desk chose not to take. Kept on the booking rather than inferred from an order line so
+ * it can be counted, filtered and reported on — the client asked to see these summed.
+ */
+export interface BookingDiscount {
+  amount: number
+  percent: number
+  reasonCode: string
+  reasonLabel: string
+  note?: string
+  /** Set when the discount came from a printed code rather than the desk's own judgement. */
+  voucherCode?: string | null
+  free: boolean
+  givenBy: string
+  givenByName: string
+  at: Date
 }
 
 export interface BookingRefund {
@@ -134,6 +153,22 @@ export interface BookingRefund {
   paymentIds: string[]
   at: Date
 }
+
+const discountSchema = new Schema<BookingDiscount>(
+  {
+    amount: { type: Number, required: true },
+    percent: { type: Number, default: 0 },
+    reasonCode: { type: String, required: true },
+    reasonLabel: { type: String, default: '' },
+    note: { type: String, default: '' },
+    voucherCode: { type: String, default: null },
+    free: { type: Boolean, default: false },
+    givenBy: { type: String, required: true },
+    givenByName: { type: String, default: '' },
+    at: { type: Date, default: Date.now },
+  },
+  { _id: false },
+)
 
 const refundSchema = new Schema<BookingRefund>(
   {
@@ -272,6 +307,7 @@ const bookingSchema = new Schema<BookingDoc>(
     packingPlan: { type: Schema.Types.Mixed, default: null },
     custody: { type: [custodySchema], default: [] },
     verifications: { type: [verificationSchema], default: [] },
+    discount: { type: discountSchema, default: null },
     refunds: { type: [refundSchema], default: [] },
     transitionLog: { type: [transitionLogSchema], default: [] },
     metadata: { type: Schema.Types.Mixed, default: {} },

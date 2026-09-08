@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "private": true,
   "type": "module",
-  "description": "LockerFlow Agent POS — standalone Express + MongoDB backend with a config-driven multi-engine booking workflow.",
+  "description": "LockerFlow Agent POS \u2014 standalone Express + MongoDB backend with a config-driven multi-engine booking workflow.",
   "engines": {
     "node": ">=20"
   },
@@ -15,7 +15,7 @@
     "lint": "eslint . --max-warnings 0",
     "seed": "tsx src/seed/run.ts",
     "seed:versions": "tsx src/seed/versions.run.ts",
-    "test": "npm run test:roles && npm run test:rules && npm run test:notes && npm run test:shift && npm run test:lagoon && npm run test:hr",
+    "test": "npm run seed && npm run test:roles && npm run seed && npm run test:rules && npm run seed && npm run test:notes && npm run seed && npm run test:shift && npm run seed && npm run test:lagoon && npm run seed && npm run test:hr && npm run seed && npm run test:multikiosk && npm run seed && npm run test:map && npm run seed && npm run test:transit && npm run seed && npm run test:points",
     "test:rules": "node tests/rules.api.mjs",
     "test:notes": "node tests/clientNotes.api.mjs",
     "test:roles": "node tests/roles.api.mjs",
@@ -23,7 +23,9 @@
     "test:lagoon": "node tests/lagoon.api.mjs",
     "test:hr": "node tests/hr.api.mjs",
     "test:multikiosk": "node tests/multiKiosk.api.mjs",
-    "test:map": "node tests/map.api.mjs"
+    "test:map": "node tests/map.api.mjs",
+    "test:points": "node tests/clientPoints.api.mjs",
+    "test:transit": "node tests/transit.api.mjs"
   },
   "dependencies": {
     "@wayz/workflow": "file:../workflow",

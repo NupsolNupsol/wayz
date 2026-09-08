@@ -96,7 +96,9 @@
     "boatFull": "ممتلئ",
     "seatsFree": "{{free}} من {{seats}} مقعد متاح",
     "seatsLeft": "{{free}} مقعد متبقٍ على {{boat}}",
-    "pickABoatFirst": "اختر قارباً أولاً."
+    "pickABoatFirst": "اختر قارباً أولاً.",
+    "resumed": "تم استئناف العملية من حيث توقفت.",
+    "startFresh": "ابدأ عملية جديدة"
   },
   "shopdrop": {
     "title": "حفظ الأمتعة",
@@ -169,7 +171,9 @@
     "bagsIntro": "أدخل نوع كل حقيبة وحجمها ووزنها ليقترح النظام أنسب خزانة. لكل حقيبة باركود فريد، وقد تتشارك عدة حقائب خزانة واحدة.",
     "bagPlaceholder": "حقيبة {{index}}",
     "bagDimension": "حقيبة {{index}} {{dimension}}",
-    "bagLine": "حقيبة {{index}} · {{description}}"
+    "bagLine": "حقيبة {{index}} · {{description}}",
+    "resumed": "تم استئناف العملية من حيث توقفت.",
+    "startFresh": "ابدأ عملية جديدة"
   },
   "operations": {
     "title": "العمليات الجارية",

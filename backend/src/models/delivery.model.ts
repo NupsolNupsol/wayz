@@ -33,7 +33,18 @@ export interface DeliveryRequestDoc {
   customerId: string
   customerName: string
   customerPhone: string
-  destination: { address: string; notes: string; contactPhone: string }
+  /**
+   * Where the bags are going. Shop & Drop sends them to an exit gate, where the customer collects
+   * them from that gate's agent; a `kind` of ADDRESS is the older door-to-door case.
+   */
+  destination: {
+    kind: 'ADDRESS' | 'GATE'
+    address: string
+    kioskId: string | null
+    kioskName: string
+    notes: string
+    contactPhone: string
+  }
   status: DeliveryStatus
   origin: DeliveryOrigin
   verifiedBy: string | null
@@ -46,8 +57,6 @@ export interface DeliveryRequestDoc {
   releaseRequestedAt: Date | null
   releaseApprovedBy: string | null
   releaseApprovedAt: Date | null
-  compartmentCode: string | null
-  compartmentCodeExpiresAt: Date | null
   assetUnitId: string | null
   assetUnitIdentifier: string | null
   pickedUpAt: Date | null
@@ -101,7 +110,10 @@ const deliverySchema = new Schema<DeliveryRequestDoc>(
     customerName: { type: String, default: '' },
     customerPhone: { type: String, default: '' },
     destination: {
+      kind: { type: String, enum: ['ADDRESS', 'GATE'], default: 'ADDRESS' },
       address: { type: String, required: true },
+      kioskId: { type: String, default: null },
+      kioskName: { type: String, default: '' },
       notes: { type: String, default: '' },
       contactPhone: { type: String, default: '' },
     },
@@ -117,8 +129,6 @@ const deliverySchema = new Schema<DeliveryRequestDoc>(
     releaseRequestedAt: { type: Date, default: null },
     releaseApprovedBy: { type: String, default: null },
     releaseApprovedAt: { type: Date, default: null },
-    compartmentCode: { type: String, default: null },
-    compartmentCodeExpiresAt: { type: Date, default: null },
     assetUnitId: { type: String, default: null },
     assetUnitIdentifier: { type: String, default: null },
     pickedUpAt: { type: Date, default: null },

@@ -1,10 +1,11 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { ShieldCheck, Send, Copy, MessageCircle, Mail } from 'lucide-react'
 import { clsx } from 'clsx'
 import { otpApi, type OtpIntent } from '@/api/otp.api'
 import { Button } from './ui'
 import { toast } from '@/state/toastStore'
+import { useAuthStore } from '@/store/auth'
 import type { OtpChannel } from '@/api/types'
 
 export function OtpBox({
@@ -28,6 +29,8 @@ export function OtpBox({
   const [demoCode, setDemoCode] = useState('')
   const [code, setCode] = useState('')
   const [busy, setBusy] = useState(false)
+  const [verifiedAt, setVerifiedAt] = useState<number | null>(null)
+  const ttlMin = useAuthStore((s) => s.me?.tenant?.phoneProofTtlMin ?? 30)
 
   const destination = channel === 'EMAIL' ? (email ?? '') : phone
   const canSend = !!destination
@@ -60,11 +63,30 @@ export function OtpBox({
     try {
       const { verified: ok } = await otpApi.verify(destination, intent, code)
       onVerified(ok)
+      if (ok) setVerifiedAt(Date.now())
       toast(ok ? 'success' : 'danger', ok ? 'Identity verified' : 'Incorrect code')
     } finally {
       setBusy(false)
     }
   }
+
+  /**
+   * The server only honours a confirmation for so long. Letting the tick box stay green past that
+   * means the agent presses Confirm payment and is refused with the customer standing there — so
+   * the box goes back to asking, a minute before the proof actually lapses.
+   */
+  useEffect(() => {
+    if (!verified || !verifiedAt) return
+    const lapsesIn = Math.max(0, (ttlMin - 1) * 60_000 - (Date.now() - verifiedAt))
+    const id = window.setTimeout(() => {
+      onVerified(false)
+      setSent(false)
+      setCode('')
+      setVerifiedAt(null)
+      toast('warning', t('otp.lapsed'), t('otp.lapsedDetail'))
+    }, lapsesIn)
+    return () => window.clearTimeout(id)
+  }, [verified, verifiedAt, ttlMin, onVerified, t])
 
   if (verified) {
     return (
@@ -75,7 +97,7 @@ export function OtpBox({
   }
 
   return (
-    <div className="lf-card p-4" data-testid="otp-box">
+    <div className="lf-card p-4" data-testid="otp-box" data-phone={phone ?? undefined}>
       {email && (
         <div className="flex gap-2 mb-3" role="tablist" aria-label={t('otp.channel')}>
           <ChannelTab active={channel === 'WHATSAPP'} onClick={() => switchChannel('WHATSAPP')} icon={<MessageCircle size={14} />} testId="otp-channel-whatsapp">{t('otp.whatsapp')}</ChannelTab>

@@ -39,8 +39,13 @@ export interface Me {
     vatRate: number
     enabledEngines: EngineKind[]
     branding: Branding
+    discountReasons?: { code: string; label: string; maxPercent: number; needsApproval?: boolean }[]
+    autoPrintReceipt?: boolean
+    /** How long a customer's confirmation counts for, mirrored from the API. */
+    phoneProofTtlMin?: number
   } | null
   station: { id: string; name: string; engineKinds: EngineKind[]; siteId: string; zoneId: string | null } | null
+  kiosk?: { id: string; name: string; code?: string; stationId: string; siteId: string } | null
 }
 
 export interface ProposedPolicy {
@@ -59,6 +64,7 @@ export interface Product {
   tenantId: string
   engineKind: EngineKind
   name: string
+  nameAr?: string
   category: string
   basePrice: number
   hourlyPrice?: number | null
@@ -138,6 +144,8 @@ export interface OvertimeState {
   withinGrace: boolean
   isOvertime: boolean
   chargeableHours: number
+  /** When the block being charged right now began — the API works this out, the screens read it. */
+  currentChargeStartedAt?: string | null
   hourlyRate: number
   penaltyAmount: number
 }
@@ -150,6 +158,8 @@ export interface Session {
   startedAt?: string | null
   expectedEndAt?: string | null
   chargeableEndedAt?: string | null
+  /** Where the clock actually stopped: the workflow's end, or the moment a finished booking last changed. */
+  endedAt?: string | null
   gracePeriodMin: number
   overtimeHourlyRate: number
   remainingMs: number | null

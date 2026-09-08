@@ -54,6 +54,7 @@ build/
 !/DELIVERY_AGENT.md
 !/README.md
 !/DEPLOYMENT.md
+!/STATUS_2026_09_08.md
 
 # Screenshots / images used only for reference
 mobile/screenshots/
@@ -103,7 +104,24 @@ coverage/
 tests.json
 
 # ---- docs, specs, client files ----
+# The client-facing documents are named again here: an earlier `!` cannot survive this second `*.md`.
 *.md
+!/WAYZ_CHANGELOG.md
+!/WHATS_CHANGED.md
+!/CLIENT_TESTING_NOTES_RESPONSE.md
+!/STATUS_2026_09_08.md
+!/WHATSAPP_INVOICE.md
+!/PLATFORM_GUIDE.md
+!/ROLES.md
+!/TILL.md
+!/TRANSACTIONS.md
+!/ACCOUNTANT.md
+!/HR.md
+!/ASSETS.md
+!/MANAGER_WORKSPACE.md
+!/DELIVERY_AGENT.md
+!/README.md
+!/DEPLOYMENT.md
 *.pdf
 *.PDF
 *.docx

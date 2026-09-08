@@ -48,6 +48,7 @@ export const FLOOR_LEADS: Role[] = ['SUPERVISOR', 'MANAGER', 'PROJECT_MANAGER', 
 
 export const BACK_OFFICE: Role[] = ['MANAGER', 'PROJECT_MANAGER', 'TENANT_ADMIN']
 
+/** HR keeps the inventory — the requirements folded the inventory-keeper seat into this role. */
 export const ESTATE_OWNERS: Role[] = [...BACK_OFFICE, 'HR']
 
 export const ESTATE_READERS: Role[] = [

@@ -4,13 +4,14 @@ import { asyncHandler } from '../utils/asyncHandler.js'
 import { ApiError } from '../utils/ApiError.js'
 import { ENGINE_KINDS, BILLING_MODELS, DURATION_UNITS, ROLES, SALE_TYPES, SALE_UNITS } from '../domain/types.js'
 import { managerIncidents, managerLiveSessions, managerOverview, managerRentals, managerRentalDetail, managerCustomers, managerCustomerDetail, managerPayments, managerShift, managerShifts } from '../services/manager.service.js'
-import { createKiosk, createSite, createStation, orgTree, removeKiosk, updateKiosk, updateSite, updateStation } from '../services/org.service.js'
-import { createStaff, listStaff, reinviteStaff, resetStaffPassword, updateStaff } from '../services/staff.service.js'
+import { createKiosk, createSite, createStation, orgTree, removeKiosk, removeSite, removeStation, updateKiosk, updateSite, updateStation } from '../services/org.service.js'
+import { createStaff, listStaff, reinviteStaff, removeStaff, resetStaffPassword, updateStaff } from '../services/staff.service.js'
 import { createProduct, getSettings, listPricing, updateProduct, updateSettings } from '../services/pricing.service.js'
 import {
   activityLog,
   agentRevenueReport,
   customersReport,
+  discountsReport,
   occupancyReport,
   rentalsReport,
   reportRows,
@@ -57,6 +58,7 @@ const kioskSchema = z.object({
   code: z.string().optional(),
   location: z.string().optional(),
   engineKind,
+  isExitGate: z.boolean().optional(),
 })
 
 const staffSchema = z.object({
@@ -73,6 +75,7 @@ const staffSchema = z.object({
 const productSchema = z.object({
   name: z.string().min(2),
   engineKind,
+  nameAr: z.string().max(120).optional(),
   category: z.string().optional(),
   basePrice: z.coerce.number().min(0),
   hourlyPrice: z.coerce.number().min(0).nullable().optional(),
@@ -132,6 +135,18 @@ export const managerController = {
   createKiosk: asyncHandler(async (req, res) => {
     res.status(201).json({ success: true, data: await createKiosk(managerScope(req), kioskSchema.parse(req.body)) })
   }),
+  removeStation: asyncHandler(async (req, res) => {
+    res.json({ success: true, data: await removeStation(managerScope(req), req.params.id) })
+  }),
+
+  removeSite: asyncHandler(async (req, res) => {
+    res.json({ success: true, data: await removeSite(managerScope(req), req.params.id) })
+  }),
+
+  removeStaff: asyncHandler(async (req, res) => {
+    res.json({ success: true, data: await removeStaff(managerScope(req), req.params.id) })
+  }),
+
   removeKiosk: asyncHandler(async (req, res) => {
     res.json({ success: true, data: await removeKiosk(managerScope(req), req.params.id) })
   }),
@@ -223,11 +238,16 @@ export const managerController = {
   reportRentals: asyncHandler(async (req, res) => {
     res.json({ success: true, data: await rentalsReport(managerScope(req), rangeSchema.parse(req.query)) })
   }),
+  reportDiscounts: asyncHandler(async (req, res) => {
+    res.json({ success: true, data: await discountsReport(managerScope(req), rangeSchema.parse(req.query)) })
+  }),
   reportCustomers: asyncHandler(async (req, res) => {
     res.json({ success: true, data: await customersReport(managerScope(req)) })
   }),
   exportReport: asyncHandler(async (req, res) => {
-    const params = z.object({ kind: z.enum(['revenue', 'occupancy', 'rentals', 'payments', 'agents']) }).parse(req.params)
+    const params = z
+      .object({ kind: z.enum(['revenue', 'occupancy', 'rentals', 'payments', 'agents', 'discounts']) })
+      .parse(req.params)
     const rows = await reportRows(managerScope(req), params.kind, rangeSchema.parse(req.query))
     const csv = toCsv(rows)
     res.setHeader('Content-Type', 'text/csv; charset=utf-8')

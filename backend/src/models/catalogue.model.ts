@@ -17,6 +17,7 @@ export interface CatalogueProductDoc {
   tenantId: string
   engineKind: EngineKind
   name: string
+  nameAr?: string
   category: string
   basePrice: number
   hourlyPrice?: number | null
@@ -42,6 +43,7 @@ const catalogueSchema = new Schema<CatalogueProductDoc>(
     tenantId: { type: String, required: true, index: true },
     engineKind: { type: String, required: true, index: true },
     name: { type: String, required: true },
+    nameAr: { type: String, default: '' },
     category: { type: String, default: 'General' },
     basePrice: { type: Number, required: true },
     hourlyPrice: { type: Number, default: null },

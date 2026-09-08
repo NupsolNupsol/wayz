@@ -2,6 +2,7 @@ import type { BillingModel, DurationUnit, EngineKind, IncidentType, SaleType, Sa
 
 export interface ProductInput {
   name: string
+  nameAr?: string
   engineKind: EngineKind
   category?: string
   basePrice: number

@@ -3,7 +3,9 @@ import type { DeliveryOrigin, TransitionPayload } from '../domain/workflow.js'
 
 export interface CreateDeliveryInput {
   bookingId: string
-  address: string
+  /** Where the bags go: an exit gate the customer will collect from, or a street address. */
+  toKioskId?: string
+  address?: string
   notes?: string
   contactPhone?: string
   origin: DeliveryOrigin

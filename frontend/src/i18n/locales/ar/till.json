@@ -74,7 +74,20 @@
     "itemCount_zero": "لا عناصر · ",
     "itemCount_two": "عنصران · ",
     "itemCount_few": "{{count}} عناصر · ",
-    "itemCount_many": "{{count}} عنصراً · "
+    "itemCount_many": "{{count}} عنصراً · ",
+    "confirmFirst": "أكد هوية العميل بالرمز قبل استلام المبلغ.",
+    "cancelIt": "إلغاء",
+    "cancelTitle": "إلغاء هذه العملية",
+    "cancelled": "تم إلغاء العملية",
+    "cancelledDetail": "{{ref}} خرجت من القائمة وتم تحرير كل ما كان محجوزاً.",
+    "notCancelled": "تعذر الإلغاء",
+    "reason": {
+      "left": "العميل غادر",
+      "wrongEntry": "أُدخلت بالخطأ",
+      "cannotPay": "العميل لا يستطيع الدفع",
+      "other": "سبب آخر"
+    },
+    "discountOff": "الخصم"
   },
   "transactions": {
     "title": "الحركات",

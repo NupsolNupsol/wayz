@@ -8,7 +8,7 @@ import { useCreateAssetKind } from '@/hooks'
 import { engineLabel, VISIBLE_ENGINES } from '@/config/engineMeta'
 import { ApiError } from '@/api/client'
 import { toast } from '@/state/toastStore'
-import { ASSET_KINDS, SALE_TYPES, SALE_UNITS, type AssetKind, type AssetStation, type SaleType, type SaleUnit } from '@/api/asset.api'
+import { ASSET_KINDS, SALE_TYPES, SALE_UNITS, type AssetKind, type AssetKiosk, type AssetStation, type SaleType, type SaleUnit } from '@/api/asset.api'
 import type { EngineKind } from '@/api/types'
 
 const KIND_ENGINE: Record<AssetKind, EngineKind> = {
@@ -25,12 +25,14 @@ export function NewAssetKindModal({
   open,
   onClose,
   stations,
+  kiosks,
   defaultEngine,
   onCreated,
 }: {
   open: boolean
   onClose: () => void
   stations: AssetStation[]
+  kiosks: AssetKiosk[]
   defaultEngine?: EngineKind
   onCreated?: (id: string) => void
 }) {
@@ -55,6 +57,7 @@ export function NewAssetKindModal({
   const [seats, setSeats] = useState(2)
 
   const [stationId, setStationId] = useState('')
+  const [kioskId, setKioskId] = useState('')
   const [initialCount, setInitialCount] = useState(4)
 
   useEffect(() => {
@@ -69,13 +72,19 @@ export function NewAssetKindModal({
     setDeposit(0)
     setOvertime(0)
     setStationId(stations[0]?._id ?? '')
+    setKioskId('')
     setInitialCount(4)
   }, [open, defaultEngine, stations])
 
   const pickKind = (next: AssetKind) => {
     setKind(next)
     setEngineKind(KIND_ENGINE[next])
+    setKioskId('')
   }
+
+  /** Only desks running this activity can hold these assets. */
+  const desks = (station: string) =>
+    kiosks.filter((k) => k.stationId === station && (!k.engineKind || k.engineKind === engineKind))
 
   const submit = () => {
     create.mutate(
@@ -93,7 +102,7 @@ export function NewAssetKindModal({
           kind === 'COMPARTMENT'
             ? { internalDimensions: { w, h, d }, maxWeight, maxRecommendedBagCount: bagCount, capacityScore: bagCount }
             : { seats, capacityScore: seats },
-        ...(initialCount > 0 && stationId ? { initialCount, stationId } : {}),
+        ...(initialCount > 0 && stationId && kioskId ? { initialCount, stationId, kioskId } : {}),
       },
       {
         onSuccess: (r) => {
@@ -125,7 +134,7 @@ export function NewAssetKindModal({
           <Button
             onClick={submit}
             loading={create.isPending}
-            disabled={name.trim().length < 2}
+            disabled={name.trim().length < 2 || (initialCount > 0 && !kioskId)}
             data-testid="asset-new-kind-submit"
           >
             {t('newKind.submit')}
@@ -239,7 +248,10 @@ export function NewAssetKindModal({
         <Field label={t('common:field.station')}>
           <Select
             value={stationId}
-            onChange={setStationId}
+            onChange={(v) => {
+              setStationId(v)
+              setKioskId(desks(v)[0]?._id ?? '')
+            }}
             options={stations.map((s) => ({ label: s.name, value: s._id }))}
             testId="asset-new-kind-station"
           />
@@ -248,6 +260,21 @@ export function NewAssetKindModal({
           <NumberInput min={0} max={200} value={initialCount} onChange={setInitialCount} testId="asset-new-kind-count" />
         </Field>
       </div>
+
+      {initialCount > 0 && (
+        <Field label={t('common:field.kiosk')} required hint={t('newKind.kioskHint')}>
+          {desks(stationId).length > 0 ? (
+            <Select
+              value={kioskId}
+              onChange={setKioskId}
+              options={[{ label: t('add.pickKiosk'), value: '' }, ...desks(stationId).map((k) => ({ label: k.name, value: k._id }))]}
+              testId="asset-new-kind-kiosk"
+            />
+          ) : (
+            <p className="text-xs text-danger-strong" data-testid="asset-new-kind-no-kiosk">{t('add.noKioskHere')}</p>
+          )}
+        </Field>
+      )}
     </Modal>
   )
 }

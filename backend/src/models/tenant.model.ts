@@ -29,9 +29,11 @@ export interface TenantDoc {
     expiryWarningMinutes: number
     paymentMethods: string[]
     verificationChannels: string[]
+    autoPrintReceipt: boolean
   }
   rentalRules: RentalRulesPatch
   shiftWindow?: { startsAt?: string; endsAt?: string }
+  discountReasons?: { code: string; label: string; maxPercent?: number; needsApproval?: boolean }[]
   penaltySchedule: PenaltyRule[]
   createdAt: Date
   updatedAt: Date
@@ -69,6 +71,7 @@ const settingsSchema = new Schema(
     expiryWarningMinutes: { type: Number, default: 15 },
     paymentMethods: { type: [String], default: ['CASH', 'CARD'] },
     verificationChannels: { type: [String], default: ['WHATSAPP', 'EMAIL'] },
+    autoPrintReceipt: { type: Boolean, default: true },
   },
   { _id: false },
 )
@@ -99,6 +102,7 @@ const tenantSchema = new Schema<TenantDoc>(
     settings: { type: settingsSchema, default: () => ({}) },
     rentalRules: { type: Schema.Types.Mixed, default: () => ({}) },
     shiftWindow: { type: Schema.Types.Mixed, default: () => ({}) },
+    discountReasons: { type: Schema.Types.Mixed, default: () => [] },
     penaltySchedule: { type: [penaltyRuleSchema], default: () => [] },
   },
   { timestamps: true, _id: false },

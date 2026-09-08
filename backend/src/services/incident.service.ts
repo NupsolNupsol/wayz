@@ -1,9 +1,10 @@
-import { Booking, Incident } from '../models/index.js'
+import { AssetUnit, Booking, Incident } from '../models/index.js'
 import { ApiError } from '../utils/ApiError.js'
 import { recordAudit } from './audit.service.js'
 import { allowedEngines, canWorkEngine } from '../domain/access.js'
 import { FLOOR_LEADS } from '../domain/roles.js'
 import { raise } from './notification.service.js'
+import { transitionBooking } from './booking.service.js'
 import { formatId, nextSequence, pad } from './counter.service.js'
 import type { EngineKind } from '../domain/types.js'
 import { isIncidentTypeValidFor } from '../domain/incidents.js'
@@ -74,7 +75,43 @@ export async function createIncident(scope: Scope, data: CreateIncidentInput) {
     reason: data.description,
   })
 
-  return incident
+  const held = data.bookingId ? await takeItOutOfService(scope, data.bookingId, incident.ref, data.description) : null
+
+  return { incident, held }
+}
+
+/**
+ * An incident stops the job it was raised on: the asset comes out of service and the booking is
+ * closed off so nothing keeps running against a scooter nobody can ride.
+ */
+async function takeItOutOfService(scope: Scope, bookingId: string, ref: string, why: string) {
+  const booking = await Booking.findOne({ _id: bookingId, tenantId: scope.tenantId })
+  if (!booking) return null
+
+  const unitId = booking.assetUnitId ?? booking.session?.assetUnitId ?? null
+  const live = ['DRAFT', 'CONFIRMED', 'RESERVED', 'ACTIVE', 'OVERTIME', 'RETRIEVAL_IN_PROGRESS', 'PREPARING']
+
+  let stopped = false
+  if (live.includes(booking.status)) {
+    for (const code of ['TO_CANCELLED', 'TO_RETURNED', 'TO_COMPLETED']) {
+      try {
+        await transitionBooking(scope, bookingId, code, { reason: `${ref}: ${why}` })
+        stopped = true
+        break
+      } catch {
+        continue
+      }
+    }
+  }
+
+  if (unitId) {
+    await AssetUnit.updateOne(
+      { _id: unitId, tenantId: scope.tenantId },
+      { $set: { status: 'MAINTENANCE', currentBookingId: null, note: `${ref}: ${why}`.slice(0, 300) } },
+    )
+  }
+
+  return { unitId, bookingId, stopped }
 }
 
 export async function updateIncidentStatus(scope: Scope, id: string, status: string) {

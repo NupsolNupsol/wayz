@@ -47,7 +47,8 @@
     "takePayment": "Take payment · {{amount}}",
     "payFirst": "The customer still owes {{amount}} — take the payment before handing anything back.",
     "verifyAgain": "The customer has run into more time since they were verified — check their identity again before anything is released.",
-    "verifyBeforePayment": "{{amount}} is owed — verify the customer, then take the payment."
+    "verifyBeforePayment": "{{amount}} is owed — verify the customer, then take the payment.",
+    "discountTaken": "{{amount}} came off this sale"
   },
   "meta": {
     "kind": "Kind",
@@ -149,7 +150,8 @@
     "whatsappRetry": "Send it again from the invoice when you have a moment.",
     "penaltyTag": "PENALTY",
     "overtimeTag": "OVERTIME",
-    "deliveryTag": "delivery"
+    "deliveryTag": "delivery",
+    "autoPrinted": "The slip prints on 80 mm thermal paper. It printed itself — take it from the printer and hand it over."
   },
   "replace": {
     "title": "Replace the vehicle",
@@ -185,5 +187,20 @@
     "failed": "Could not collect",
     "overtimeRunning_one": "Overtime running — {{count}} hour",
     "overtimeRunning_other": "Overtime running — {{count}} hours"
+  },
+  "cancel": {
+    "title": "Cancel this booking",
+    "subtitle": "{{ref}} — say why, so the record makes sense later.",
+    "confirm": "Cancel the booking",
+    "done": "Booking cancelled",
+    "doneDetail": "{{ref}} is cancelled and anything held is released.",
+    "failed": "Could not cancel it",
+    "reason": {
+      "changedMind": "Customer changed their mind",
+      "faulty": "The asset is faulty",
+      "wrongEntry": "Entered by mistake",
+      "noShow": "Customer never came",
+      "other": "Something else"
+    }
   }
 }

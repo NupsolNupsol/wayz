@@ -33,8 +33,10 @@ export const deliveryWorkflow: DeliveryWorkflowDef = {
       style: { backgroundColor: '#204897' },
     },
     {
+      // Optional: it only tells the desk a courier is on the way. The desk can hand the bags over
+      // without it, which is what happens when the courier simply walks up to the counter.
       code: 'TO_RELEASE_REQUESTED',
-      label: 'Request the bags',
+      label: 'Tell the desk you are here',
       source: [DLV_ASSIGNED, DLV_RELEASE_APPROVED],
       target: DLV_RELEASE_REQUESTED,
       actors: COURIER,
@@ -42,8 +44,8 @@ export const deliveryWorkflow: DeliveryWorkflowDef = {
     },
     {
       code: 'TO_RELEASE_APPROVED',
-      label: 'Approve & release compartment',
-      source: [DLV_RELEASE_REQUESTED],
+      label: 'Confirm & hand the bags over',
+      source: [DLV_ASSIGNED, DLV_RELEASE_REQUESTED],
       target: DLV_RELEASE_APPROVED,
       actors: KIOSK_OPS,
       style: { backgroundColor: '#249542' },

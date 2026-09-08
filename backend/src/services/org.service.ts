@@ -6,16 +6,26 @@ import { nextId } from './counter.service.js'
 import type { KioskInput, SiteInput, StationInput } from '../interfaces/index.js'
 import type { ManagerScope } from '../interfaces/index.js'
 
-export const VENUE_TYPES = ['AIRPORT', 'MALL', 'STADIUM', 'FESTIVAL', 'HOTEL', 'TRAIN_STATION', 'OTHER'] as const
+/** What we ship with. A tenant is not limited to these: any venue type typed on a site joins the list. */
+export const VENUE_TYPES = ['AIRPORT', 'MALL', 'STADIUM', 'FESTIVAL', 'HOTEL', 'TRAIN_STATION', 'BEACH', 'RESORT', 'PARK', 'OTHER'] as const
+
+export function venueTypeList(sites: { venueType?: string | null }[]) {
+  const seen = new Set<string>(VENUE_TYPES)
+  for (const site of sites) {
+    const value = (site.venueType ?? '').trim().toUpperCase()
+    if (value) seen.add(value)
+  }
+  return [...seen].sort()
+}
 
 const IN_USE = ['OCCUPIED', 'RESERVED', 'RETRIEVAL_PENDING']
 const LIVE_BOOKING = ['ACTIVE', 'OVERTIME', 'RETRIEVAL_IN_PROGRESS']
 
 export async function orgTree(scope: ManagerScope) {
   const [sites, stations, kiosks, unitAgg, bookingAgg] = await Promise.all([
-    Site.find({ tenantId: scope.tenantId }).sort({ name: 1 }).lean(),
-    Station.find({ tenantId: scope.tenantId }).sort({ name: 1 }).lean(),
-    Kiosk.find({ tenantId: scope.tenantId }).sort({ name: 1 }).lean(),
+    Site.find({ tenantId: scope.tenantId, active: { $ne: false } }).sort({ name: 1 }).lean(),
+    Station.find({ tenantId: scope.tenantId, active: { $ne: false } }).sort({ name: 1 }).lean(),
+    Kiosk.find({ tenantId: scope.tenantId, active: { $ne: false } }).sort({ name: 1 }).lean(),
     AssetUnit.aggregate([
       { $match: { tenantId: scope.tenantId } },
       {
@@ -51,7 +61,7 @@ export async function orgTree(scope: ManagerScope) {
   const zero: Counts = { total: 0, available: 0, inUse: 0 }
 
   return {
-    venueTypes: [...VENUE_TYPES],
+    venueTypes: venueTypeList(sites),
     sites: sites.map((site) => ({
       ...site,
       stations: stations
@@ -87,9 +97,9 @@ const coord = (value: unknown) => (typeof value === 'number' ? value : null)
 
 export async function stationMap(tenantId: string, siteId?: string) {
   const [sites, stations, kiosks] = await Promise.all([
-    Site.find({ tenantId }).sort({ name: 1 }).lean(),
-    Station.find({ tenantId, ...(siteId ? { siteId } : {}) }).sort({ name: 1 }).lean(),
-    Kiosk.find({ tenantId, ...(siteId ? { siteId } : {}) }).sort({ name: 1 }).lean(),
+    Site.find({ tenantId, active: { $ne: false } }).sort({ name: 1 }).lean(),
+    Station.find({ tenantId, active: { $ne: false }, ...(siteId ? { siteId } : {}) }).sort({ name: 1 }).lean(),
+    Kiosk.find({ tenantId, active: { $ne: false }, ...(siteId ? { siteId } : {}) }).sort({ name: 1 }).lean(),
   ])
 
   const siteName = new Map(sites.map((s) => [s._id, s.name]))
@@ -172,13 +182,19 @@ function clampUnit(value: number) {
   return Math.min(1, Math.max(0, Math.round(value * 10000) / 10000))
 }
 
+/** A venue type is free text with house style applied, so a tenant can name a venue we never thought of. */
+function normaliseVenueType(raw?: string | null) {
+  const value = (raw ?? '').trim().toUpperCase().replace(/\s+/g, '_').slice(0, 40)
+  return value || 'MALL'
+}
+
 export async function createSite(scope: ManagerScope, input: SiteInput) {
   return Site.create({
     _id: await nextId('site'),
     tenantId: scope.tenantId,
     name: input.name.trim(),
     city: input.city.trim(),
-    venueType: input.venueType ?? 'MALL',
+    venueType: normaliseVenueType(input.venueType),
     address: input.address ?? '',
     contactPhone: input.contactPhone ?? '',
     active: true,
@@ -198,7 +214,9 @@ export async function updateSite(scope: ManagerScope, id: string, patch: Partial
     if (live > 0) throw ApiError.unprocessable(`This site still has ${live} live session(s) across its stations.`)
   }
 
-  Object.assign(site, sanitise(patch))
+  const clean = sanitise(patch)
+  if (clean.venueType !== undefined) clean.venueType = normaliseVenueType(clean.venueType as string)
+  Object.assign(site, clean)
   await site.save()
   return site
 }
@@ -252,6 +270,7 @@ export async function createKiosk(scope: ManagerScope, input: KioskInput) {
     code: input.code ?? '',
     location: input.location ?? '',
     engineKind: input.engineKind,
+    isExitGate: !!input.isExitGate,
     active: true,
   })
 }
@@ -298,8 +317,42 @@ export async function removeKiosk(scope: ManagerScope, id: string) {
   if (units > 0) throw ApiError.unprocessable(`${kiosk.name} still holds ${units} unit(s) — move them to another desk first.`)
   if (staff > 0) throw ApiError.unprocessable(`${kiosk.name} still has ${staff} staff member(s) assigned — reassign them first.`)
 
-  await kiosk.deleteOne()
+  kiosk.active = false
+  await kiosk.save()
   return { removed: id, name: kiosk.name }
+}
+
+export async function removeStation(scope: ManagerScope, id: string) {
+  const station = await Station.findOne({ _id: id, tenantId: scope.tenantId })
+  if (!station) throw ApiError.notFound('Station not found.')
+
+  const [live, desks, units, staff] = await Promise.all([
+    Booking.countDocuments({ tenantId: scope.tenantId, stationId: id, status: { $in: LIVE_BOOKING } }),
+    Kiosk.countDocuments({ tenantId: scope.tenantId, stationId: id, active: { $ne: false } }),
+    AssetUnit.countDocuments({ tenantId: scope.tenantId, stationId: id }),
+    User.countDocuments({ tenantId: scope.tenantId, stationId: id, active: true }),
+  ])
+
+  if (live > 0) throw ApiError.unprocessable(`${station.name} still has ${live} live session(s) — finish them first.`)
+  if (desks > 0) throw ApiError.unprocessable(`${station.name} still has ${desks} desk(s) — remove them first.`)
+  if (units > 0) throw ApiError.unprocessable(`${station.name} still holds ${units} asset(s) — move them first.`)
+  if (staff > 0) throw ApiError.unprocessable(`${station.name} still has ${staff} staff member(s) — reassign them first.`)
+
+  station.active = false
+  await station.save()
+  return { removed: id, name: station.name }
+}
+
+export async function removeSite(scope: ManagerScope, id: string) {
+  const site = await Site.findOne({ _id: id, tenantId: scope.tenantId })
+  if (!site) throw ApiError.notFound('Site not found.')
+
+  const stations = await Station.countDocuments({ tenantId: scope.tenantId, siteId: id, active: true })
+  if (stations > 0) throw ApiError.unprocessable(`${site.name} still has ${stations} live station(s) — remove them first.`)
+
+  site.active = false
+  await site.save()
+  return { removed: id, name: site.name }
 }
 
 function assertStationRuns(runs: EngineKind[], stationName: string, engineKind: EngineKind) {

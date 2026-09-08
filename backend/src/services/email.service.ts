@@ -21,7 +21,8 @@ function primaryProfile(): SmtpProfile | null {
     port: env.MAIL_PORT,
     secure: env.MAIL_SECURE,
     user: env.SENDER_EMAIL,
-    pass: env.SENDER_PASSWORD,
+    // App passwords are shown in groups of four; a pasted space is a silent auth failure.
+    pass: env.SENDER_PASSWORD.replace(/\s+/g, ''),
     from: env.SENDER_EMAIL,
   }
 }

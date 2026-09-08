@@ -5,12 +5,12 @@ import { clsx } from 'clsx'
 import { Modal } from '@/components/Modal'
 import { Button, Field, Badge } from '@/components/ui'
 import { IdentityVerificationModal } from '@/components/IdentityVerification'
-import { useCreateDelivery, useCustomerBagsElsewhere } from '@/hooks'
+import { useCreateDelivery, useCustomerBagsElsewhere, useExitGates } from '@/hooks'
 import { ApiError } from '@/api/client'
 import { toast } from '@/state/toastStore'
 import type { DeliveryOrigin } from '@/api/delivery.api'
 import { PhoneInput } from '@/components/PhoneInput'
-import { NumberInput } from '@/components/NumberInput'
+import { Select } from '@/components/Select'
 
 const ORIGINS: { value: DeliveryOrigin; title: string; blurb: string; icon: typeof MapPin }[] = [
   {
@@ -51,15 +51,17 @@ export function DeliveryRequestModal({
 
   const [origin, setOrigin] = useState<DeliveryOrigin>('AT_STORAGE')
   const [address, setAddress] = useState('')
+  const { data: gates = [] } = useExitGates(open)
+  const [toGate, setToGate] = useState(true)
+  const [gateId, setGateId] = useState('')
   const [notes, setNotes] = useState('')
   const [contactPhone, setContactPhone] = useState(customerPhone ?? '')
-  const [fee, setFee] = useState(0)
   const [verifyOpen, setVerifyOpen] = useState(false)
   const [verified, setVerified] = useState(false)
   const [alsoBookingIds, setAlsoBookingIds] = useState<string[]>([])
 
   const reset = () => {
-    setOrigin('AT_STORAGE'); setAddress(''); setNotes(''); setContactPhone(customerPhone ?? ''); setVerified(false); setFee(0)
+    setOrigin('AT_STORAGE'); setAddress(''); setNotes(''); setContactPhone(customerPhone ?? ''); setVerified(false)
     setAlsoBookingIds([])
   }
 
@@ -77,18 +79,17 @@ export function DeliveryRequestModal({
   const close = () => { reset(); onClose() }
 
   const needsProof = origin === 'CUSTOMER_CONTACT' && !verified
-  const ready = address.trim().length >= 3 && !needsProof
+  const ready = (toGate ? !!gateId : address.trim().length >= 3) && !needsProof
 
   const submit = () => {
     create.mutate(
       {
         bookingId,
         alsoBookingIds: alsoBookingIds.length ? alsoBookingIds : undefined,
-        address: address.trim(),
+        ...(toGate ? { toKioskId: gateId } : { address: address.trim() }),
         notes: notes.trim() || undefined,
         contactPhone: contactPhone.trim() || undefined,
         origin,
-        fee,
       },
       {
         onSuccess: (d) => {
@@ -225,19 +226,59 @@ export function DeliveryRequestModal({
           </div>
         )}
 
-        <Field label={t('request.deliverTo')} required hint={t('request.addressHint')}>
-          <input
-            className="lf-input"
-            value={address}
-            onChange={(e) => setAddress(e.target.value)}
-            placeholder={t('request.addressPlaceholder')}
-            data-testid="delivery-address"
-          />
-        </Field>
+        {gates.length > 0 && (
+          <Field label={t('request.whereTo')} required hint={t('request.whereToHint')}>
+            <div className="flex flex-wrap gap-2" data-testid="delivery-where">
+              <button
+                type="button"
+                onClick={() => setToGate(true)}
+                data-testid="delivery-to-gate"
+                className={clsx(
+                  'lf-btn !h-9 !px-3 text-xs border',
+                  toGate ? 'bg-brand text-brand-fg border-brand' : 'bg-surface border-line text-muted hover:text-brand',
+                )}
+              >
+                {t('request.toExitGate')}
+              </button>
+              <button
+                type="button"
+                onClick={() => setToGate(false)}
+                data-testid="delivery-to-address"
+                className={clsx(
+                  'lf-btn !h-9 !px-3 text-xs border',
+                  !toGate ? 'bg-brand text-brand-fg border-brand' : 'bg-surface border-line text-muted hover:text-brand',
+                )}
+              >
+                {t('request.toAddress')}
+              </button>
+            </div>
+          </Field>
+        )}
 
-        <Field label={t('request.fee')} hint={t('request.feeHint')}>
-          <NumberInput value={fee} onChange={setFee} min={0} step={5} testId="delivery-fee" />
-        </Field>
+        {toGate && gates.length > 0 ? (
+          <Field label={t('request.exitGate')} required hint={t('request.exitGateHint')}>
+            <Select
+              value={gateId}
+              onChange={setGateId}
+              options={[
+                { label: t('request.pickGate'), value: '' },
+                ...gates.map((g) => ({ label: g.location ? `${g.name} — ${g.location}` : g.name, value: g._id })),
+              ]}
+              testId="delivery-gate"
+            />
+          </Field>
+        ) : (
+          <Field label={t('request.deliverTo')} required hint={t('request.addressHint')}>
+            <input
+              className="lf-input"
+              value={address}
+              onChange={(e) => setAddress(e.target.value)}
+              placeholder={t('request.addressPlaceholder')}
+              data-testid="delivery-address"
+            />
+          </Field>
+        )}
+
 
         <Field label={t('request.notes')} hint={t('request.notesHint')}>
           <textarea

@@ -53,6 +53,17 @@ const rulesSchema = z.object({
     )
     .max(100)
     .optional(),
+  discountReasons: z
+    .array(
+      z.object({
+        code: z.string().min(2).max(40),
+        label: z.string().min(2).max(80),
+        maxPercent: z.coerce.number().min(0).max(100).default(100),
+        needsApproval: z.boolean().optional(),
+      }),
+    )
+    .max(40)
+    .optional(),
 })
 
 const companySchema = z.object({

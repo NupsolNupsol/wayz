@@ -8,6 +8,8 @@ import { Card, Button, Field, SectionTitle, StatusBadge, Badge } from '@/compone
 import { Stepper, type Step } from '@/components/Stepper'
 import { CustomerPicker } from '@/components/CustomerPicker'
 import { OtpBox } from '@/components/OtpBox'
+import { DiscountButton } from '@/components/DiscountButton'
+import { VoucherField } from '@/components/VoucherField'
 import { PaymentPanel, type PaymentSplit } from '@/components/PaymentPanel'
 import { Select } from '@/components/Select'
 import { Barcode } from '@/components/Barcode'
@@ -17,6 +19,8 @@ import { StorageScanPanel, type StorageScanPayload } from '@/components/StorageS
 import { DeliveryRequestModal } from '@/features/delivery/DeliveryRequestModal'
 import { InvoiceModal } from '@/features/invoice/InvoiceModal'
 import { isUnfinishedSale } from '@/features/bookings/resumeDraft'
+import { readDraft, writeDraft, type WorkspaceDraft } from '@/features/bookings/workspaceDraft'
+import { bookingApi } from '@/api/booking.api'
 import { trackingUrl } from '@/api/public.api'
 import { useProducts, useUnits, useBooking, useBookingOrder, useCreateBooking, useCustomer, usePay, useReserve, useTransition, usePackingSuggestions } from '@/hooks'
 import { ApiError } from '@/api/client'
@@ -41,6 +45,13 @@ interface BagRow { description: string; category: BagCategory; w: number; h: num
 const defaultBag = (i: number): BagRow => ({ description: `Bag ${i}`, category: 'SOFT', w: 30, h: 25, d: 20, weight: 3 })
 const toSuggestBag = (b: BagRow) => ({ category: b.category, dimensions: { w: b.w, h: b.h, d: b.d }, weight: b.weight })
 
+/** Distinct from the engine workspace's own key, so the two never read each other's shape. */
+const DRAFT_KEY = 'shopdrop-counter'
+
+interface BagDraft extends WorkspaceDraft {
+  extra?: { bags?: BagRow[]; productId?: string; durationHours?: number }
+}
+
 export function ShopDropPage() {
   const { t } = useTranslation(['agent', 'bookings', 'common'])
   const navigate = useNavigate()
@@ -59,7 +70,7 @@ export function ShopDropPage() {
   const [deliveryOpen, setDeliveryOpen] = useState(false)
   const [deliveryId, setDeliveryId] = useState<string | null>(null)
   const [customer, setCustomer] = useState<Customer | null>(null)
-  const [bags, setBags] = useState<BagRow[]>([defaultBag(1), defaultBag(2), defaultBag(3)])
+  const [bags, setBags] = useState<BagRow[]>([defaultBag(1)])
   const [suggestions, setSuggestions] = useState<PackingSuggestion[]>([])
   const [productId, setProductId] = useState('')
   const [durationHours, setDurationHours] = useState(2)
@@ -67,6 +78,8 @@ export function ShopDropPage() {
   const [booking, setBooking] = useState<Booking | null>(null)
   const [order, setOrder] = useState<Order | null>(null)
   const [phoneVerified, setPhoneVerified] = useState(false)
+  const [restoring, setRestoring] = useState(() => !!readDraft(DRAFT_KEY))
+  const [resumed, setResumed] = useState(false)
   const [labelsOpen, setLabelsOpen] = useState(false)
   const [invoiceOpen, setInvoiceOpen] = useState(false)
 
@@ -92,6 +105,62 @@ export function ShopDropPage() {
     setParams({}, { replace: true })
   }, [resumeId, resuming, resumingOrder, resumingCustomer, booking, navigate, setParams])
 
+  const draft = restoring ? readDraft<BagDraft>(DRAFT_KEY) : null
+  const { data: draftBooking } = useBooking(draft?.bookingId || undefined)
+  const { data: draftOrder } = useBookingOrder(draft?.bookingId || undefined)
+  const { data: draftCustomer } = useCustomer(draft?.customerId || undefined)
+
+  /** Coming back to the counter picks the bag drop up where it was left, rather than starting over. */
+  useEffect(() => {
+    if (!restoring) return
+    if (resumeId) {
+      setRestoring(false)
+      return
+    }
+    const snap = readDraft<BagDraft>(DRAFT_KEY)
+    if (!snap) {
+      setRestoring(false)
+      return
+    }
+    if (snap.customerId && !draftCustomer) return
+    if (snap.bookingId && (!draftBooking || !draftOrder)) return
+
+    if (snap.bookingId && draftBooking && draftOrder && !isUnfinishedSale(draftBooking, draftOrder)) {
+      writeDraft(DRAFT_KEY, null)
+      setRestoring(false)
+      return
+    }
+
+    if (draftCustomer) setCustomer(draftCustomer)
+    if (snap.extra?.bags) setBags(snap.extra.bags as BagRow[])
+    if (snap.extra?.productId) setProductId(String(snap.extra.productId))
+    if (snap.extra?.durationHours) setDurationHours(Number(snap.extra.durationHours))
+    if (draftBooking) setBooking(draftBooking)
+    if (draftOrder) setOrder(draftOrder)
+    setStep(snap.step)
+    setResumed(true)
+    setRestoring(false)
+  }, [restoring, resumeId, draftBooking, draftOrder, draftCustomer])
+
+  useEffect(() => {
+    if (restoring) return
+    if (step === 0 && !customer && !booking) {
+      writeDraft(DRAFT_KEY, null)
+      return
+    }
+    if (step > 3) {
+      // The sale is paid and stored; there is nothing half-finished left to come back to.
+      writeDraft(DRAFT_KEY, null)
+      return
+    }
+    writeDraft(DRAFT_KEY, {
+      step,
+      customerId: customer?._id ?? null,
+      bookingId: booking?.id ?? null,
+      extra: { bags, productId, durationHours },
+    })
+  }, [restoring, step, customer, booking, bags, productId, durationHours])
+
   const priceOf = (pid: string) => products.find((p) => p._id === pid)?.basePrice ?? 0
   const selected = suggestions.find((s) => s.productId === productId)
   const reservedUnit = booking?.reservation ? units.find((u) => u._id === booking.reservation!.assetUnitId) : undefined
@@ -99,7 +168,9 @@ export function ShopDropPage() {
   const patchBag = (i: number, patch: Partial<BagRow>) => setBags((prev) => prev.map((x, idx) => (idx === i ? { ...x, ...patch } : x)))
 
   const reset = () => {
-    setStep(0); setCustomer(null); setBags([defaultBag(1), defaultBag(2), defaultBag(3)]); setSuggestions([]); setProductId('')
+    writeDraft(DRAFT_KEY, null)
+    setResumed(false)
+    setStep(0); setCustomer(null); setBags([defaultBag(1)]); setSuggestions([]); setProductId('')
     setDeliveryId(null); setDeliveryOpen(false)
     setBooking(null); setOrder(null); setPhoneVerified(false)
   }
@@ -154,6 +225,21 @@ export function ShopDropPage() {
     }
   }
 
+  /** What the customer is not being asked for, shown against the total so it cannot be misread. */
+  const quoteDiscount = Math.abs(
+    (order?.lines ?? []).filter((l) => l.unitPrice < 0).reduce((sum, l) => sum + l.unitPrice * (l.quantity ?? 1), 0),
+  )
+
+  /** After a discount or a code, the quote on screen has to be the one we are about to charge. */
+  const refreshOrder = async () => {
+    if (!booking) return
+    try {
+      setOrder(await bookingApi.order(booking.id))
+    } catch {
+      /* the panel keeps the figure it had; the server is the authority at payment */
+    }
+  }
+
   const pay = async (splits: PaymentSplit[]) => {
     if (!booking) return
     try {
@@ -190,6 +276,13 @@ export function ShopDropPage() {
       <div className="mb-5">
         <Stepper steps={STEPS} current={step} onStep={goToStep} canRevisit={canRevisit} />
       </div>
+
+      {resumed && step < 4 && (
+        <Card className="mb-4 p-3 flex flex-wrap items-center justify-between gap-3 border-brand/40 bg-brand/5" data-testid="sd-resumed">
+          <p className="text-sm text-navy dark:text-dk-text">{t('shopdrop.resumed')}</p>
+          <Button variant="ghost" onClick={reset} data-testid="sd-resumed-discard">{t('shopdrop.startFresh')}</Button>
+        </Card>
+      )}
 
       {step === 0 && (
         <Card data-testid="shopdrop-wizard">
@@ -287,7 +380,11 @@ export function ShopDropPage() {
           <Card>
             <SectionTitle className="mb-3">{t('shopdrop.verifyAndPay')}</SectionTitle>
             <div className="mb-4"><OtpBox phone={customer.phone} email={customer.email} intent="VERIFY_PHONE" verified={phoneVerified} onVerified={setPhoneVerified} /></div>
-            <PaymentPanel total={order.total} onConfirm={pay} confirming={payMut.isPending} disabled={!online || !phoneVerified} />
+            <VoucherField bookingId={booking.id} onApplied={refreshOrder} />
+            <div className="mb-3 flex flex-wrap justify-end gap-2">
+              <DiscountButton bookingId={booking.id} total={order.total} onDone={refreshOrder} />
+            </div>
+            <PaymentPanel total={order.total} discountOff={quoteDiscount} onConfirm={pay} confirming={payMut.isPending} disabled={!online || !phoneVerified} />
             {!phoneVerified && <p className="text-xs text-amber-600 mt-2">{t('shopdrop.verifyPhoneFirst')}</p>}
           </Card>
           <Card>
@@ -296,10 +393,37 @@ export function ShopDropPage() {
               <p className="text-sm"><strong data-testid="sd-compartments">{booking.packingPlan?.numberOfCompartmentsRequired ?? 1}</strong> compartment(s) for {booking.bags.length} bag(s)</p>
               <p className="text-xs text-muted mt-1">{booking.packingPlan?.priceCalculationSummary}</p>
             </div>
-            <div className="flex flex-col gap-1 text-sm">
-              <div className="flex justify-between text-muted"><span>{t('shopdrop.subtotal')}</span><span>{money(order.subtotal)}</span></div>
+            <div className="flex flex-col gap-1 text-sm" data-testid="sd-quote-lines">
+              {/* Itemised, so a discount is visible against what it came off rather than implied by the total. */}
+              {order.lines.map((line, i) => {
+                const off = line.unitPrice < 0
+                return (
+                  <div
+                    key={`${line.productId}-${i}`}
+                    className={clsx('flex justify-between', off ? 'text-success font-medium' : 'text-muted')}
+                    data-testid={off ? 'sd-quote-discount' : `sd-quote-line-${i}`}
+                  >
+                    <span>
+                      {line.name}
+                      {line.quantity > 1 && <span className="text-xs"> × {line.quantity}</span>}
+                    </span>
+                    <span className="tabular-nums">{money(line.unitPrice * line.quantity)}</span>
+                  </div>
+                )
+              })}
+              <div className="flex justify-between text-muted pt-1 border-t border-line"><span>{t('shopdrop.subtotal')}</span><span>{money(order.subtotal)}</span></div>
               <div className="flex justify-between text-muted"><span>VAT</span><span>{money(order.vat)}</span></div>
-              <div className="flex justify-between font-bold text-navy dark:text-dk-texthi text-base mt-1"><span>{t('common:field.total')}</span><span data-testid="sd-quote">{money(order.total)}</span></div>
+              <div className="flex justify-between font-bold text-navy dark:text-dk-texthi text-base mt-1">
+                <span>{t('common:field.total')}</span>
+                <span className="flex items-baseline gap-2">
+                  {quoteDiscount > 0 && (
+                    <span className="text-sm font-normal text-muted line-through tabular-nums" data-testid="sd-quote-before">
+                      {money(order.total + quoteDiscount)}
+                    </span>
+                  )}
+                  <span data-testid="sd-quote">{money(order.total)}</span>
+                </span>
+              </div>
             </div>
           </Card>
         </div>

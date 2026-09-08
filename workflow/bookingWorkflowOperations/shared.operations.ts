@@ -232,7 +232,11 @@ export function completeAndRelease(result: OperationResult, ctx: WorkflowContext
   }
 }
 
-export function cancelRelease(result: OperationResult): void {
+export function cancelRelease(result: OperationResult, ctx?: WorkflowContext): void {
+  // A cancelled session is over: stop its clock, or a cancelled rental keeps running up overtime.
+  if (ctx && result.booking.session.startedAt && !result.booking.session.chargeableEndedAt) {
+    result.booking.session.chargeableEndedAt = ctx.now.toISOString()
+  }
   if (result.booking.assetUnitId) {
     result.assetIntents.push({
       op: 'SET_STATUS',

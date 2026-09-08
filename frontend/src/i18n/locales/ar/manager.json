@@ -28,7 +28,9 @@
     "bookingsCount": "{{count}} حجز",
     "accruing": "يتراكم {{amount}}",
     "noneAccruing": "لا شيء يتراكم",
-    "utilisationLine": "<1>{{pct}}%</1> من {{units}}"
+    "utilisationLine": "<1>{{pct}}%</1> من {{units}}",
+    "discountsToday": "الخصومات اليوم",
+    "discountsSub": "{{count}} خصم · {{free}} مجاني"
   },
   "records": {
     "rentals": "الحجوزات والإيجارات",
@@ -117,7 +119,14 @@
     "noKioskForActivity": "لا يوجد مكتب في تلك المحطة يشغّل هذا النشاط بعد.",
     "headcount": "الموظفون",
     "onShiftNow": "على الوردية الآن",
-    "reconciling": "قيد المطابقة"
+    "reconciling": "قيد المطابقة",
+    "remove": {
+      "title": "حذف {{name}}؟",
+      "subtitle": "لا يُحذف شيء نهائيًا — يختفي من القوائم ويبقى سجله.",
+      "body": "لن يتمكن من تسجيل الدخول وسيختفي من قائمة الفريق، وتبقى حجوزاته ومناوباته وسجلاته. يجب إغلاق صندوقه أولًا.",
+      "done": "تمت إزالة {{name}}",
+      "refused": "لم تتم إزالة هذا الشخص"
+    }
   },
   "org": {
     "title": "الهيكل التنظيمي",
@@ -155,7 +164,22 @@
     "removeKiosk": "حذف {{name}}؟",
     "removeKioskSubtitle": "يُحذف سجل المكتب، ولا يُحذف شيء مما كان عليه.",
     "removeKioskBody": "لا يُحذف المكتب إلا بعد أن يخلو من المخزون والموظفين والجلسات النشطة. وإن بقي شيء من ذلك سترفض المنصة وتخبرك بالسبب.",
-    "kioskRemoved": "تم حذف {{name}}"
+    "kioskRemoved": "تم حذف {{name}}",
+    "remove": {
+      "siteTitle": "حذف {{name}}؟",
+      "stationTitle": "حذف {{name}}؟",
+      "kioskTitle": "حذف {{name}}؟",
+      "subtitle": "لا يُحذف شيء نهائيًا — يختفي من القوائم ويبقى سجله.",
+      "siteBody": "يُزال الموقع من المنشآت. يجب ألا تبقى فيه محطات.",
+      "stationBody": "تُزال المحطة. يجب ألا يبقى فيها مكاتب أو أصول أو موظفون أو جلسات جارية.",
+      "kioskBody": "يُزال المكتب من المحطة، وتبقى حجوزاته ومناوباته في السجل.",
+      "siteDone": "تمت إزالة {{name}}",
+      "stationDone": "تمت إزالة {{name}}",
+      "kioskDone": "تمت إزالة {{name}}"
+    },
+    "venueTypeHint": "اختر نوعًا أو أضف نوعًا خاصًا بك.",
+    "venueTypeAdd": "+ إضافة نوع موقع…",
+    "venueTypePlaceholder": "مثال: حديقة مائية"
   },
   "pricing": {
     "title": "التسعير",
@@ -187,7 +211,12 @@
     "perTour": "لكل جولة",
     "perTourHint": "اتركه فارغاً ولن يُباع هذا المنتج بالجولة.",
     "tourMinutes": "دقائق الجولة",
-    "tourMinutesHint": "مدة الجولة الواحدة. الافتراضي 60."
+    "tourMinutesHint": "مدة الجولة الواحدة. الافتراضي 60.",
+    "nameAr": "الاسم بالعربية",
+    "nameArHint": "يظهر في القائمة العربية وعلى الفاتورة.",
+    "icon": "الأيقونة",
+    "iconHint": "ما يضغط عليه الوكيل في القائمة.",
+    "noTypesYet": "لا توجد أنواع عهدة لهذا النشاط بعد — أضفها من صفحة العهدة أولاً."
   },
   "estate": {
     "title": "الأصول",
@@ -232,7 +261,20 @@
     "txnCount_few": "{{count}} عمليات",
     "txnCount_many": "{{count}} عملية",
     "noOccupancy": "لا توجد أصول لعرضها",
-    "noOccupancyHint": "لم يُزوَّد هذا النشاط بأي أصل بعد."
+    "noOccupancyHint": "لم يُزوَّد هذا النشاط بأي أصل بعد.",
+    "discounts": "الرحلات المجانية والخصومات",
+    "discountGiven": "إجمالي الخصم",
+    "discountCount": "عدد الخصومات",
+    "freeRides": "رحلات مجانية",
+    "discountAvg": "المتوسط",
+    "byReason": "حسب السبب",
+    "byAgent": "حسب الموظف",
+    "noDiscounts": "لا خصومات في هذه الفترة",
+    "reason": "السبب",
+    "kind": "النوع",
+    "given": "الخصم",
+    "givenBy": "بواسطة",
+    "freeRide": "مجاني"
   },
   "settings": {
     "title": "الإعدادات",

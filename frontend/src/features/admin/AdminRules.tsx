@@ -11,9 +11,10 @@ import { engineLabel, visibleEngineOptions } from '@/config/engineMeta'
 import { ApiError } from '@/api/client'
 import { toast } from '@/state/toastStore'
 import type { EngineKind } from '@/api/types'
-import type { PenaltyRule, RentalRules, TimerRule } from '@/api/rules.api'
+import type { DiscountReason, PenaltyRule, RentalRules, TimerRule } from '@/api/rules.api'
 
 const emptyPenalty = (): PenaltyRule => ({ code: '', label: '', amount: 0, engineKind: null })
+const emptyReason = (): DiscountReason => ({ code: '', label: '', maxPercent: 100, needsApproval: false })
 
 export function AdminRules() {
   const { t } = useTranslation(['admin', 'common'])
@@ -22,11 +23,13 @@ export function AdminRules() {
 
   const [rental, setRental] = useState<RentalRules | null>(null)
   const [penalties, setPenalties] = useState<PenaltyRule[]>([])
+  const [reasons, setReasons] = useState<DiscountReason[]>([])
 
   useEffect(() => {
     if (!data) return
     setRental(structuredClone(data.rental))
     setPenalties(structuredClone(data.penalties))
+    setReasons(structuredClone(data.discountReasons ?? []))
   }, [data])
 
   if (isLoading || !data || !rental) {
@@ -46,12 +49,16 @@ export function AdminRules() {
   const setPenalty = (index: number, patch: Partial<PenaltyRule>) =>
     setPenalties((prev) => prev.map((row, i) => (i === index ? { ...row, ...patch } : row)))
 
+  const setReason = (index: number, patch: Partial<DiscountReason>) =>
+    setReasons((prev) => prev.map((row, i) => (i === index ? { ...row, ...patch } : row)))
+
   const graceMismatch = rental.statedGraceMin > rental.graceMin
-  const incomplete = penalties.some((p) => !p.code.trim() || !p.label.trim())
+  const incomplete =
+    penalties.some((p) => !p.code.trim() || !p.label.trim()) || reasons.some((r) => !r.code.trim() || !r.label.trim())
 
   const save = () => {
     update.mutate(
-      { rental, penalties },
+      { rental, penalties, discountReasons: reasons },
       {
         onSuccess: () => toast('success', t('rules.saved'), t('rules.savedDetail')),
         onError: (e) =>
@@ -63,6 +70,7 @@ export function AdminRules() {
   const reset = () => {
     setRental(structuredClone(data.defaults.rental))
     setPenalties(structuredClone(data.defaults.penalties))
+    setReasons(structuredClone(data.defaults.discountReasons ?? []))
     toast('info', t('rules.reset'), t('rules.resetDetail'))
   }
 
@@ -203,7 +211,7 @@ export function AdminRules() {
             <SectionTitle>{t('rules.penalties.title')}</SectionTitle>
             <p className="text-sm text-muted">{t('rules.penalties.blurb')}</p>
           </div>
-          <Button variant="secondary" onClick={() => setPenalties([...penalties, emptyPenalty()])} data-testid="rules-penalty-add">
+          <Button variant="secondary" onClick={() => setPenalties([emptyPenalty(), ...penalties])} data-testid="rules-penalty-add">
             <Plus size={16} />
             {t('rules.penalties.add')}
           </Button>
@@ -277,6 +285,75 @@ export function AdminRules() {
           </p>
         )}
       </Card>
+
+      <Card className="mt-4" data-testid="rules-discount-reasons">
+        <div className="flex items-start justify-between gap-3 mb-3">
+          <div>
+            <SectionTitle>{t('rules.reasons.title')}</SectionTitle>
+            <p className="text-sm text-muted">{t('rules.reasons.blurb')}</p>
+          </div>
+          <Button variant="secondary" onClick={() => setReasons([emptyReason(), ...reasons])} data-testid="rules-reason-add">
+            <Plus size={16} />
+            {t('rules.reasons.add')}
+          </Button>
+        </div>
+
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm" data-testid="rules-reason-table">
+            <thead>
+              <tr className="text-start text-muted">
+                <th className="text-start font-medium py-2 pe-3">{t('rules.penalties.code')}</th>
+                <th className="text-start font-medium py-2 pe-3">{t('rules.reasons.shownAs')}</th>
+                <th className="text-start font-medium py-2 pe-3">{t('rules.reasons.ceiling')}</th>
+                <th className="py-2" />
+              </tr>
+            </thead>
+            <tbody>
+              {reasons.map((row, index) => (
+                <tr key={index} className="border-t border-line dark:border-dk-line align-top">
+                  <td className="py-2 pe-3">
+                    <input
+                      className="lf-input font-mono text-xs"
+                      value={row.code}
+                      onChange={(e) => setReason(index, { code: e.target.value.toUpperCase().replace(/\s+/g, '_') })}
+                      data-testid={`rules-reason-code-${index}`}
+                    />
+                  </td>
+                  <td className="py-2 pe-3">
+                    <input
+                      className="lf-input"
+                      value={row.label}
+                      onChange={(e) => setReason(index, { label: e.target.value })}
+                      data-testid={`rules-reason-label-${index}`}
+                    />
+                  </td>
+                  <td className="py-2 pe-3 w-40">
+                    <NumberInput
+                      value={row.maxPercent}
+                      min={1}
+                      max={100}
+                      onChange={(v) => setReason(index, { maxPercent: v })}
+                      testId={`rules-reason-max-${index}`}
+                    />
+                  </td>
+                  <td className="py-2 text-end">
+                    <Button
+                      variant="ghost"
+                      onClick={() => setReasons(reasons.filter((_, i) => i !== index))}
+                      title={t('common:action.remove')}
+                      data-testid={`rules-reason-remove-${index}`}
+                    >
+                      <Trash2 size={14} />
+                    </Button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+        <p className="text-xs text-muted mt-3">{t('rules.reasons.reported')}</p>
+      </Card>
+
     </div>
   )
 }
