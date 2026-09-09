@@ -2,7 +2,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom'
 import { clsx } from 'clsx'
 import { useTranslation } from 'react-i18next'
 import { useEffect, useState } from 'react'
-import { ArrowLeft, ArrowRight, PlayCircle, Sailboat, ShieldCheck, Camera } from 'lucide-react'
+import { ArrowLeft, ArrowRight, Loader2, PlayCircle, Sailboat, ShieldCheck, Camera } from 'lucide-react'
 import { PageHeader } from '@/components/PageHeader'
 import { Card, Button, Field, SectionTitle, StatusBadge, Badge, EmptyState } from '@/components/ui'
 import { Stepper, type Step } from '@/components/Stepper'
@@ -303,7 +303,15 @@ export function EngineWorkspace({ engineKind }: { engineKind: EngineKind }) {
         </Card>
       )}
 
-      {step === 0 && (
+      {/* Nothing to tap until we know whether a half-finished sale is coming back: a tile shown now
+          would be swapped for the restored sale under the agent's finger, and the tap lost. */}
+      {step === 0 && restoring && (
+        <div className="flex justify-center py-10 text-muted" data-testid="engine-restoring">
+          <Loader2 className="animate-spin" />
+        </div>
+      )}
+
+      {step === 0 && !restoring && (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3" data-testid="engine-products">
           {products.map((p) => (
             <button key={p._id} onClick={() => { setProduct(p); setStep(1) }} data-testid={`product-${p._id}`} className="text-start">

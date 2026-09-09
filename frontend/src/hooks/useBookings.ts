@@ -132,8 +132,10 @@ export function useRedeemVoucher() {
   const qc = useQueryClient()
   return useMutation({
     mutationFn: (v: { id: string; code: string }) => bookingApi.redeemVoucher(v.id, v.code),
-    onSuccess: (_d, v) => {
-      qc.invalidateQueries({ queryKey: qk.booking(v.id) })
+    // Awaited on purpose: the mutation stays in flight until the refreshed quote is in, so the desk
+    // never sees "25% off applied" sitting beside the price it was applied to.
+    onSuccess: async (_d, v) => {
+      await qc.invalidateQueries({ queryKey: qk.booking(v.id) })
       qc.invalidateQueries({ queryKey: ['bookings'] })
       qc.invalidateQueries({ queryKey: ['till'] })
     },

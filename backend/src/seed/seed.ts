@@ -926,6 +926,20 @@ function demoUsers(): DemoUser[] {
     },
 
     {
+      // One agent who works all three counters. Not how a real rota looks, but it lets a single
+      // login show the whole handheld product without swapping accounts.
+      ...base,
+      _id: "usr_agent_all_wayz",
+      email: "agent.all.wayz@lockerflow.demo",
+      passwordHash: hashPassword("Agent@123"),
+      fullName: "Nasser Al-Dosari",
+      role: "AGENT",
+      engineKinds: ["SHOP_AND_DROP", "MOBILITY", "LAGOON"],
+      kioskId: "ksk_wayz_iran",
+      phone: "0550000021",
+    },
+
+    {
       ...base,
       _id: "usr_courier_wayz",
       email: "courier.wayz@lockerflow.demo",
@@ -2352,6 +2366,7 @@ async function seedCostHistory() {
     ["usr_agent_till_wayz", "Reem Al-Sudairi — kiosk agent", 5000],
     ["usr_agent_gate1_wayz", "Majed Al-Subaie — kiosk agent", 5500],
     ["usr_agent_egypt_wayz", "Lina Al-Faraj — kiosk agent", 5500],
+    ["usr_agent_all_wayz", "Nasser Al-Dosari — kiosk agent", 5800],
     ["usr_welcome_wayz", "Huda Al-Qahtani — lagoon agent", 6000],
     ["usr_captain_wayz", "Saad Al-Balawi — chief captain", 7500],
     ["usr_sup_wayz", "Tariq Al-Anazi — supervisor", 9000],

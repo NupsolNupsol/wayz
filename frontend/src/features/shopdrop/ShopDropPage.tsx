@@ -284,7 +284,15 @@ export function ShopDropPage() {
         </Card>
       )}
 
-      {step === 0 && (
+      {/* Same reason as the rental counter: no form until we know whether a half-finished bag drop
+          is coming back, so a typed name cannot be swapped out mid-keystroke. */}
+      {step === 0 && restoring && (
+        <div className="flex justify-center py-10 text-muted" data-testid="shopdrop-restoring">
+          <Loader2 className="animate-spin" />
+        </div>
+      )}
+
+      {step === 0 && !restoring && (
         <Card data-testid="shopdrop-wizard">
           <SectionTitle className="mb-3">{t('shopdrop.whoIsCustomer')}</SectionTitle>
           <CustomerPicker value={customer} onChange={setCustomer} />
