@@ -97,7 +97,7 @@
     "unit": {
       "HOUR": "1 Hour",
       "FULL_DAY": "Full day",
-      "TOUR": "Per tour",
+      "TOUR": "Per trip",
       "BAG": "Per bag",
       "CART": "Per cart",
       "DELIVERY": "Per delivery",

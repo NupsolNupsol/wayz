@@ -19,7 +19,7 @@ import { useProducts, useBooking, useBookingOrder, useBookings, useCreateBooking
 import { ApiError } from '@/api/client'
 import { useAuthStore } from '@/store/auth'
 import { useBoatsWithRoom } from '@/hooks'
-import { engineLabel, engineTagline, productIcon } from '@/config/engineMeta'
+import { engineLabel, engineTagline, productIconFor } from '@/config/engineMeta'
 import { isCustomerComplete, money } from '@/utils'
 import { useActionLabel } from '@/i18n/useActionLabel'
 import { toast } from '@/state/toastStore'
@@ -310,7 +310,7 @@ export function EngineWorkspace({ engineKind }: { engineKind: EngineKind }) {
               <Card className="lf-card-hover h-full">
                 <div className="flex items-start justify-between">
                   <div className="w-11 h-11 rounded-xl bg-brand/10 text-brand flex items-center justify-center text-2xl leading-none">
-                    {p.emoji ? <span aria-hidden>{p.emoji}</span> : <Icon name={productIcon(p.name, engineKind)} size={22} />}
+                    <Icon name={productIconFor(p, engineKind)} size={22} />
                   </div>
                   <div className="text-end"><p className="font-bold text-navy dark:text-dk-texthi">{money(p.basePrice)}</p>{p.durationUnit && <p className="text-[11px] text-muted">{t(`status:durationUnit.${p.durationUnit}`, { defaultValue: p.durationUnit.replace('_', ' ').toLowerCase() })}</p>}</div>
                 </div>
@@ -328,7 +328,7 @@ export function EngineWorkspace({ engineKind }: { engineKind: EngineKind }) {
 
       {step === 1 && product && (
         <Card>
-          <SectionTitle className="mb-1 flex items-center gap-2"><Icon name={productIcon(product.name, engineKind)} size={18} className="text-brand" /> {product.name}</SectionTitle>
+          <SectionTitle className="mb-1 flex items-center gap-2"><Icon name={productIconFor(product, engineKind)} size={18} className="text-brand" /> {product.name}</SectionTitle>
           {product.proposedPolicy && (
             <div className="flex flex-wrap gap-1.5 my-2">
               <Badge tone="warning">{t('engine.proposedNotConfirmed')}</Badge>

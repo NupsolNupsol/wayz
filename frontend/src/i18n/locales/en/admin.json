@@ -141,7 +141,8 @@
       "add": "Add a reason",
       "shownAs": "Shown to the desk as",
       "ceiling": "Most allowed (%)",
-      "reported": "Every discount is reported against its reason — see Reports → Free rides & discounts."
+      "reported": "Every discount is reported against its reason — see Reports → Free rides & discounts.",
+      "shownAsAr": "Shown in Arabic"
     }
   },
   "map": {

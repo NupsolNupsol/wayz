@@ -180,7 +180,7 @@ function products(t: string) {
     saleType: "RENTAL",
     assetTypeId: null,
     billingModel: "PER_BAG",
-    emoji: "📦",
+    emoji: "Package",
     active: true,
     ...o,
   });
@@ -198,7 +198,7 @@ function products(t: string) {
       saleType: "SALE",
       billingModel: key === "s" || key === "m" ? "PER_BAG" : "PER_COMPARTMENT",
       assetTypeId: `at_${t}_cmp_${key}`,
-      emoji: "🛍️",
+      emoji: "ShoppingBag",
     });
 
   const boatTrip = (key: string, name: string, price: number, emoji: string, nameAr?: string) =>
@@ -232,7 +232,7 @@ function products(t: string) {
       saleUnit: "DELIVERY",
       saleType: "SALE",
       billingModel: "PACKAGE",
-      emoji: "🚚",
+      emoji: "Truck",
     }),
     p({
       _id: `pr_${t}_sd_trolley`,
@@ -247,7 +247,7 @@ function products(t: string) {
       billingModel: "DURATION_BASED",
       durationUnit: "HOUR",
       assetTypeId: `at_${t}_veh_trolley`,
-      emoji: "🛒",
+      emoji: "ShoppingCart",
     }),
 
     p({
@@ -267,7 +267,7 @@ function products(t: string) {
       billingModel: "DURATION_BASED",
       durationUnit: "HOUR",
       assetTypeId: `at_${t}_veh_single_scooter`,
-      emoji: "🛴",
+      emoji: "Bike",
       proposedPolicy: {
         minAge: 16,
         conditionInspection: "MANDATORY_PHOTO",
@@ -291,7 +291,7 @@ function products(t: string) {
       billingModel: "DURATION_BASED",
       durationUnit: "DAY",
       assetTypeId: `at_${t}_veh_single_scooter`,
-      emoji: "🛴",
+      emoji: "Bike",
     }),
     p({
       _id: `pr_${t}_mob_double_hour`,
@@ -307,7 +307,7 @@ function products(t: string) {
       billingModel: "DURATION_BASED",
       durationUnit: "HOUR",
       assetTypeId: `at_${t}_veh_double_scooter`,
-      emoji: "🛵",
+      emoji: "Bike",
       proposedPolicy: { minAge: 18, conditionInspection: "MANDATORY_PHOTO", safetyAck: true },
     }),
     p({
@@ -324,7 +324,7 @@ function products(t: string) {
       billingModel: "DURATION_BASED",
       durationUnit: "DAY",
       assetTypeId: `at_${t}_veh_double_scooter`,
-      emoji: "🛵",
+      emoji: "Bike",
     }),
     p({
       _id: `pr_${t}_mob_tuk`,
@@ -337,7 +337,7 @@ function products(t: string) {
       saleType: "RENTAL",
       billingModel: "PACKAGE",
       assetTypeId: `at_${t}_veh_tuktuk`,
-      emoji: "🛺",
+      emoji: "Car",
       proposedPolicy: { minAge: 18, licenseRequired: true, conditionInspection: "MANDATORY", safetyAck: true },
     }),
     p({
@@ -355,7 +355,7 @@ function products(t: string) {
       billingModel: "DURATION_BASED",
       durationUnit: "HOUR",
       assetTypeId: `at_${t}_veh_stroller_std`,
-      emoji: "🍼",
+      emoji: "Baby",
       proposedPolicy: { conditionInspection: "VISUAL" },
     }),
     p({
@@ -373,7 +373,7 @@ function products(t: string) {
       billingModel: "DURATION_BASED",
       durationUnit: "HOUR",
       assetTypeId: `at_${t}_veh_stroller_vip`,
-      emoji: "👶",
+      emoji: "Baby",
       proposedPolicy: { conditionInspection: "VISUAL" },
     }),
     p({
@@ -391,7 +391,7 @@ function products(t: string) {
       billingModel: "DURATION_BASED",
       durationUnit: "HOUR",
       assetTypeId: `at_${t}_veh_wheelchair`,
-      emoji: "♿",
+      emoji: "Accessibility",
       proposedPolicy: { conditionInspection: "VISUAL" },
     }),
     p({
@@ -408,7 +408,7 @@ function products(t: string) {
       billingModel: "DURATION_BASED",
       durationUnit: "DAY",
       assetTypeId: `at_${t}_veh_wheelchair`,
-      emoji: "♿",
+      emoji: "Accessibility",
     }),
     p({
       _id: `pr_${t}_mob_cart`,
@@ -421,15 +421,15 @@ function products(t: string) {
       saleType: "SALE",
       billingModel: "PACKAGE",
       assetTypeId: `at_${t}_veh_cart`,
-      emoji: "🛒",
+      emoji: "ShoppingCart",
       proposedPolicy: { conditionInspection: "SKIP" },
     }),
 
-    boatTrip("abra", "Abra Trip", 90, "🛶", "رحلة عبرة"),
-    boatTrip("gondola", "Gondola Trip", 120, "🚣", "رحلة جندول"),
-    boatTrip("feluka_small", "Feluka (Small) Trip", 150, "⛵", "رحلة فلوكة (صغيرة)"),
-    boatTrip("feluka_large", "Feluka (Large) Trip", 250, "⛵", "رحلة فلوكة (كبيرة)"),
-    boatTrip("donut", "Donut Boat Trip", 80, "🍩", "قارب الدونات"),
+    boatTrip("abra", "Abra Trip", 90, "Sailboat", "رحلة عبرة"),
+    boatTrip("gondola", "Gondola Trip", 120, "Ship", "رحلة جندول"),
+    boatTrip("feluka_small", "Feluka (Small) Trip", 150, "Sailboat", "رحلة فلوكة (صغيرة)"),
+    boatTrip("feluka_large", "Feluka (Large) Trip", 250, "Sailboat", "رحلة فلوكة (كبيرة)"),
+    boatTrip("donut", "Donut Boat Trip", 80, "Anchor", "قارب الدونات"),
     boatTrip("submarine", "Submarine Trip", 300, "🚤"),
     boatTrip("dragon", "Dragon Boat Trip", 200, "🐉"),
     boatTrip("amphicar", "Amphicar Trip", 180, "🚗"),
@@ -443,7 +443,7 @@ function products(t: string) {
       saleUnit: "ITEM",
       saleType: "SALE",
       billingModel: "PACKAGE",
-      emoji: "🍔",
+      emoji: "Beef",
     }),
     p({
       _id: `pr_${t}_cote_salad`,
@@ -454,7 +454,7 @@ function products(t: string) {
       saleUnit: "ITEM",
       saleType: "SALE",
       billingModel: "PACKAGE",
-      emoji: "🥗",
+      emoji: "Salad",
     }),
     p({
       _id: `pr_${t}_anaam_pony`,
@@ -467,7 +467,7 @@ function products(t: string) {
       saleType: "RENTAL",
       billingModel: "PACKAGE",
       assetTypeId: `at_${t}_animal`,
-      emoji: "🐴",
+      emoji: "Rabbit",
     }),
   ];
 }

@@ -19,6 +19,13 @@ export interface ProductInput {
   durationUnit?: DurationUnit
   emoji?: string
   active?: boolean
+  /**
+   * A product nobody can hand over is not sellable. Naming a desk and a number creates that many
+   * of the thing at that desk, so the agent standing there can sell it the same minute.
+   */
+  stationId?: string | null
+  kioskId?: string | null
+  initialCount?: number
 }
 
 export interface SettingsPatch {

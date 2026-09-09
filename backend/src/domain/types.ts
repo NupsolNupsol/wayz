@@ -25,6 +25,22 @@ export type SessionKind = 'STORAGE' | 'RENTAL' | 'ACTIVITY' | 'EXPERIENCE' | 'DI
 export const BILLING_MODELS = ['PER_BAG', 'PER_COMPARTMENT', 'PACKAGE', 'DURATION_BASED'] as const
 export type BillingModel = (typeof BILLING_MODELS)[number]
 
+/**
+ * How each activity is allowed to charge. A lagoon trip is sold as a trip — a captain takes the
+ * boat out and brings it back, so there is no period to bill and no bags to count.
+ */
+export const BILLING_FOR: Record<EngineKind, BillingModel[]> = {
+  SHOP_AND_DROP: ['PER_BAG', 'PER_COMPARTMENT', 'PACKAGE', 'DURATION_BASED'],
+  MOBILITY: ['DURATION_BASED', 'PACKAGE'],
+  LAGOON: ['PACKAGE'],
+  COTE_RESTAURANT: ['PACKAGE', 'PER_BAG'],
+  ANAAM: ['PACKAGE', 'DURATION_BASED'],
+}
+
+export function billingAllowedFor(engineKind: EngineKind): BillingModel[] {
+  return BILLING_FOR[engineKind] ?? [...BILLING_MODELS]
+}
+
 export const DURATION_UNITS = ['HOUR', 'DAY', 'HALF_HOUR', 'FIFTEEN_MIN'] as const
 export type DurationUnit = (typeof DURATION_UNITS)[number]
 
@@ -33,6 +49,27 @@ export type SaleType = (typeof SALE_TYPES)[number]
 
 export const SALE_UNITS = ['HOUR', 'FULL_DAY', 'TOUR', 'BAG', 'CART', 'DELIVERY', 'ITEM'] as const
 export type SaleUnit = (typeof SALE_UNITS)[number]
+
+/**
+ * What each activity is sold by. A boat trip is sold as a trip: there are no hours on the water to
+ * count and no bags to price, so offering them would only invite a mistake.
+ */
+export const SALE_UNITS_FOR: Record<EngineKind, SaleUnit[]> = {
+  SHOP_AND_DROP: ['BAG', 'CART', 'DELIVERY', 'ITEM', 'HOUR', 'FULL_DAY'],
+  MOBILITY: ['HOUR', 'FULL_DAY', 'TOUR', 'ITEM'],
+  LAGOON: ['TOUR'],
+  COTE_RESTAURANT: ['ITEM'],
+  ANAAM: ['TOUR', 'ITEM'],
+}
+
+export function saleUnitsFor(engineKind: EngineKind): SaleUnit[] {
+  return SALE_UNITS_FOR[engineKind] ?? [...SALE_UNITS]
+}
+
+/** Whether time is charged for at all. A trip has a captain, not a meter. */
+export function chargesForTime(engineKind: EngineKind): boolean {
+  return billingAllowedFor(engineKind).includes('DURATION_BASED')
+}
 export type BagCategory = 'SOFT' | 'HARD' | 'OVERSIZE' | 'FRAGILE'
 
 export type BookingStatus =

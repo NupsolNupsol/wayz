@@ -1,6 +1,7 @@
 import { isWhatsAppConfigured, sendWhatsAppText } from './whatsapp.service.js'
 import { isEmailConfigured, looksLikeEmail, otpEmail, sendEmail } from './email.service.js'
 import { env } from '../config/env.js'
+import { otpWhatsApp } from '../constants/messages.constants.js'
 import type { OtpChannel, OtpDelivery, OtpIntent, SendOtpOptions } from '../interfaces/index.js'
 
 interface Pending {
@@ -29,7 +30,7 @@ async function deliver(channel: OtpChannel, destination: string, code: string, o
       ...otpEmail(code, { brand: env.MAIL_FROM_NAME, purpose: options.purpose, customerName: options.customerName }),
     })
   }
-  return sendWhatsAppText(destination, `Your ${env.MAIL_FROM_NAME} verification code is ${code}. It expires in 5 minutes.`)
+  return sendWhatsAppText(destination, otpWhatsApp(code, env.MAIL_FROM_NAME))
 }
 
 export async function sendOtp(

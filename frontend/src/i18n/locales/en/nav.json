@@ -36,7 +36,7 @@
     "mgr-shifts": "Shifts & cash",
     "mgr-org": "Organisation",
     "mgr-estate": "Assets",
-    "mgr-pricing": "Pricing",
+    "mgr-pricing": "Products",
     "mgr-team": "Team",
     "mgr-settings": "Settings",
     "mgr-reports": "Reports",
@@ -57,7 +57,7 @@
     "admin-isolation": "Data & isolation",
     "admin-org": "Sites & stations",
     "admin-assets": "All assets",
-    "admin-pricing": "Pricing",
+    "admin-pricing": "Products",
     "admin-team": "Employees, accounts & roles",
     "admin-live": "Live sessions",
     "admin-rentals": "Rentals",
@@ -107,7 +107,7 @@
     "lagoon-trips": "Boats & trips",
     "lagoon-captain": "My trips",
     "hr-shifts": "Shifts & hours",
-    "hr-pricing": "Pricing"
+    "hr-pricing": "Products"
   },
   "notifications": {
     "title": "Notifications",

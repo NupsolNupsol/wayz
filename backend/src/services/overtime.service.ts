@@ -1,7 +1,8 @@
-import { Booking } from '../models/index.js'
+import { Booking, Tenant } from '../models/index.js'
 import type { BookingHydrated } from '../models/booking.model.js'
 import { env } from '../config/env.js'
 import { logger } from '../config/logger.js'
+import { expiryWarningWhatsApp } from '../constants/messages.constants.js'
 import { computeOvertime, describeOvertime, OVERTIME_BLOCK_MINUTES } from '../domain/overtime.js'
 import { sendWhatsAppText } from './whatsapp.service.js'
 import { raise } from './notification.service.js'
@@ -10,16 +11,30 @@ export function trackingUrl(trackingToken: string): string {
   return `${env.PUBLIC_APP_URL.replace(/\/$/, '')}/track/${trackingToken}`
 }
 
-function warningMessage(booking: BookingHydrated, minutesLeft: number): string {
-  const rate = booking.session.overtimeHourlyRate
-  return [
-    `LockerFlow: your storage for ${booking.ref} ends in about ${minutesLeft} minute(s).`,
-    `You have a ${booking.session.gracePeriodMin}-minute grace period after that — collect within it and you pay nothing extra.`,
-    rate > 0
-      ? `After the grace period a full ${OVERTIME_BLOCK_MINUTES}-minute block is charged (${rate} per hour), even if you are only a few minutes late.`
-      : `After the grace period a full ${OVERTIME_BLOCK_MINUTES}-minute block is charged, even if you are only a few minutes late.`,
-    `Track your session: ${trackingUrl(booking.trackingToken)}`,
-  ].join('\n')
+function warningMessage(booking: BookingHydrated, minutesLeft: number, currency: string): string {
+  return expiryWarningWhatsApp({
+    brand: env.MAIL_FROM_NAME,
+    ref: booking.ref,
+    minutesLeft,
+    graceMin: booking.session.gracePeriodMin,
+    blockMin: OVERTIME_BLOCK_MINUTES,
+    rate: booking.session.overtimeHourlyRate,
+    currency,
+    tracking: trackingUrl(booking.trackingToken),
+  })
+}
+
+/** One sweep touches a handful of tenants at most, so look each one up once. */
+function currencyLookup() {
+  const seen = new Map<string, string>()
+  return async (tenantId: string): Promise<string> => {
+    const known = seen.get(tenantId)
+    if (known) return known
+    const tenant = await Tenant.findById(tenantId).select('currency').lean()
+    const currency = tenant?.currency ?? 'SAR'
+    seen.set(tenantId, currency)
+    return currency
+  }
 }
 
 export async function sweepExpiryWarnings(now: Date = new Date()): Promise<number> {
@@ -31,6 +46,7 @@ export async function sweepExpiryWarnings(now: Date = new Date()): Promise<numbe
   }).limit(200)
 
   let sent = 0
+  const currencyFor = currencyLookup()
   for (const booking of due) {
     const minutesLeft = Math.max(1, Math.round((new Date(booking.session.expectedEndAt!).getTime() - now.getTime()) / 60_000))
 
@@ -38,7 +54,7 @@ export async function sweepExpiryWarnings(now: Date = new Date()): Promise<numbe
     await booking.save()
 
     const result = booking.customerPhone
-      ? await sendWhatsAppText(booking.customerPhone, warningMessage(booking, minutesLeft))
+      ? await sendWhatsAppText(booking.customerPhone, warningMessage(booking, minutesLeft, await currencyFor(booking.tenantId)))
       : { ok: false, error: 'Booking has no customer phone.' }
 
     await raise({

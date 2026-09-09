@@ -14,7 +14,7 @@ import type { EngineKind } from '@/api/types'
 import type { DiscountReason, PenaltyRule, RentalRules, TimerRule } from '@/api/rules.api'
 
 const emptyPenalty = (): PenaltyRule => ({ code: '', label: '', amount: 0, engineKind: null })
-const emptyReason = (): DiscountReason => ({ code: '', label: '', maxPercent: 100, needsApproval: false })
+const emptyReason = (): DiscountReason => ({ code: '', label: '', labelAr: '', maxPercent: 100, needsApproval: false })
 
 export function AdminRules() {
   const { t } = useTranslation(['admin', 'common'])
@@ -304,6 +304,7 @@ export function AdminRules() {
               <tr className="text-start text-muted">
                 <th className="text-start font-medium py-2 pe-3">{t('rules.penalties.code')}</th>
                 <th className="text-start font-medium py-2 pe-3">{t('rules.reasons.shownAs')}</th>
+                <th className="text-start font-medium py-2 pe-3">{t('rules.reasons.shownAsAr')}</th>
                 <th className="text-start font-medium py-2 pe-3">{t('rules.reasons.ceiling')}</th>
                 <th className="py-2" />
               </tr>
@@ -325,6 +326,16 @@ export function AdminRules() {
                       value={row.label}
                       onChange={(e) => setReason(index, { label: e.target.value })}
                       data-testid={`rules-reason-label-${index}`}
+                    />
+                  </td>
+                  <td className="py-2 pe-3">
+                    <input
+                      className="lf-input"
+                      dir="rtl"
+                      value={row.labelAr ?? ''}
+                      placeholder={row.label}
+                      onChange={(e) => setReason(index, { labelAr: e.target.value })}
+                      data-testid={`rules-reason-label-ar-${index}`}
                     />
                   </td>
                   <td className="py-2 pe-3 w-40">

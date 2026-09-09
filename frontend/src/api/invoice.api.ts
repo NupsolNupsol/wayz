@@ -6,6 +6,8 @@ export type InvoiceLineKind = 'ITEM' | 'PENALTY' | 'OVERTIME' | 'DELIVERY' | 'DE
 export interface InvoiceLine {
   index: number
   name: string
+  /** The slip always prints in Arabic; the API falls back to `name` when there is no Arabic one. */
+  nameAr: string
   quantity: number
   unitPrice: number
   total: number

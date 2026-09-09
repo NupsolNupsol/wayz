@@ -28,6 +28,7 @@ import type { PaymentSplit } from '../interfaces/index.js'
 import { CARD_SCHEMES } from '../domain/commission.js'
 import { canWorkEngine, engineFilter, kioskFilter } from '../domain/access.js'
 import { tenantRules } from './rules.service.js'
+import { lineNameAr } from '../constants/messages.constants.js'
 import { seatOnBoat, seatsLeftOn } from './trip.service.js'
 import { raise } from './notification.service.js'
 import { tillForTransaction } from './shift.service.js'
@@ -113,7 +114,10 @@ export async function createBooking(scope: Scope, input: CreateBookingInput) {
   }
 
   const tourMinutes = product.tourMinutes ?? 60
-  const durationMin = byTours ? tours * tourMinutes : (input.durationMin ?? 120)
+  // A lagoon trip is a ride, not a rental: no period is asked for and none is recorded, so nothing
+  // counts down and nothing runs into overtime.
+  const ridesOnly = input.engineKind === 'LAGOON'
+  const durationMin = ridesOnly ? 0 : byTours ? tours * tourMinutes : (input.durationMin ?? 120)
   const quantity = input.quantity ?? 1
 
   const lines: OrderLine[] = []
@@ -146,7 +150,15 @@ export async function createBooking(scope: Scope, input: CreateBookingInput) {
     const quote = priceQuote(product.billingModel, product.basePrice, bags.length, packed.numberOfCompartmentsRequired, periods, product.basePrice)
 
     productName = `${product.name} (${bags.length} bag${bags.length > 1 ? 's' : ''})`
-    lines.push({ productId: product._id, name: productName, quantity: 1, unitPrice: round2(quote.amount), isDeposit: false, taxable: true })
+    lines.push({
+      productId: product._id,
+      name: productName,
+      nameAr: lineNameAr.bags(product.nameAr || product.name, bags.length),
+      quantity: 1,
+      unitPrice: round2(quote.amount),
+      isDeposit: false,
+      taxable: true,
+    })
 
     packingPlan = {
       requiredCapacityScore: packed.requiredCapacityScore,
@@ -168,9 +180,26 @@ export async function createBooking(scope: Scope, input: CreateBookingInput) {
       ? `${product.name} — ${tours} tour${tours > 1 ? 's' : ''}`
       : `${product.name}${quantity > 1 ? ` × ${quantity}` : ''}`
     productName = soldAs
-    lines.push({ productId: product._id, name: soldAs, quantity: 1, unitPrice: round2(unit * periods), isDeposit: false, taxable: true })
+    const arabicProduct = product.nameAr || product.name
+    lines.push({
+      productId: product._id,
+      name: soldAs,
+      nameAr: byTours ? lineNameAr.tours(arabicProduct, tours) : lineNameAr.quantity(arabicProduct, quantity),
+      quantity: 1,
+      unitPrice: round2(unit * periods),
+      isDeposit: false,
+      taxable: true,
+    })
     if (product.depositRequired > 0) {
-      lines.push({ productId: product._id, name: 'Refundable Deposit', quantity: 1, unitPrice: product.depositRequired, isDeposit: true, taxable: false })
+      lines.push({
+        productId: product._id,
+        name: 'Refundable Deposit',
+        nameAr: lineNameAr.deposit,
+        quantity: 1,
+        unitPrice: product.depositRequired,
+        isDeposit: true,
+        taxable: false,
+      })
     }
     holdAssetTypeId = product.assetTypeId
   }
@@ -282,7 +311,7 @@ export async function discountBooking(
   bookingId: string,
   input: { reasonCode: string; percent?: number; amount?: number; note?: string; voucherCode?: string },
   /** A code redeemed at the desk carries its own authority: the batch decides the ceiling, not the desk's list. */
-  systemReason?: { code: string; label: string; maxPercent: number },
+  systemReason?: { code: string; label: string; labelAr?: string; maxPercent: number },
 ) {
   const booking = await loadBooking(scope, bookingId)
   const order = await Order.findById(booking.orderId)
@@ -328,13 +357,17 @@ export async function discountBooking(
     }
   }
   const name = off >= chargeable ? `Free — ${reason.label}` : `Discount — ${reason.label}`
+  const arabicName = off >= chargeable
+    ? lineNameAr.free(reason.labelAr || reason.label)
+    : lineNameAr.discount(reason.labelAr || reason.label)
 
   if (existing) {
     existing.name = name
+    existing.nameAr = arabicName
     existing.unitPrice = -off
     existing.quantity = 1
   } else {
-    order.lines.push({ productId: DISCOUNT_LINE_PRODUCT_ID, name, quantity: 1, unitPrice: -off, isDeposit: false, taxable: true })
+    order.lines.push({ productId: DISCOUNT_LINE_PRODUCT_ID, name, nameAr: arabicName, quantity: 1, unitPrice: -off, isDeposit: false, taxable: true })
   }
 
   const tenant = await Tenant.findById(scope.tenantId).lean()
@@ -528,16 +561,19 @@ async function applyOvertimeCharge(scope: Scope, booking: BookingHydrated): Prom
   if (charged <= 0) return 0
 
   const name = `Overtime — ${state.chargeableHours} × 1h block${state.chargeableHours > 1 ? 's' : ''}`
+  const arabicName = lineNameAr.overtime(state.chargeableHours)
   const tenant = await Tenant.findById(scope.tenantId).lean()
 
   if (existing) {
     existing.name = name
+    existing.nameAr = arabicName
     existing.quantity = 1
     existing.unitPrice = round2(state.penaltyAmount)
   } else {
     order.lines.push({
       productId: OVERTIME_LINE_PRODUCT_ID,
       name,
+      nameAr: arabicName,
       quantity: 1,
       unitPrice: round2(state.penaltyAmount),
       isDeposit: false,
@@ -782,6 +818,7 @@ async function chargeWrongStation(scope: Scope, booking: BookingHydrated): Promi
   order.lines.push({
     productId: WRONG_STATION_PRODUCT_ID,
     name: 'Returned to a different station',
+    nameAr: lineNameAr.wrongStation,
     quantity: 1,
     unitPrice: round2(amount),
     isDeposit: false,

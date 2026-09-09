@@ -58,6 +58,7 @@ const rulesSchema = z.object({
       z.object({
         code: z.string().min(2).max(40),
         label: z.string().min(2).max(80),
+        labelAr: z.string().max(80).optional(),
         maxPercent: z.coerce.number().min(0).max(100).default(100),
         needsApproval: z.boolean().optional(),
       }),

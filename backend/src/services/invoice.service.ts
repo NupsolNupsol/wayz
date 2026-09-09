@@ -2,6 +2,7 @@ import { InvoiceDoc, Kiosk, Order, Payment, Receipt, Station, Tenant, User } fro
 import { ApiError } from '../utils/ApiError.js'
 import { round2 } from '../utils/helpers.js'
 import { SCHEME_LABELS } from '../constants/labels.constants.js'
+import { invoiceWhatsApp } from '../constants/messages.constants.js'
 import type { BookingHydrated } from '../models/booking.model.js'
 import type { PaymentMethod } from '../domain/types.js'
 import type { CardScheme } from '../domain/commission.js'
@@ -14,6 +15,8 @@ export type InvoiceLineKind = 'ITEM' | 'PENALTY' | 'OVERTIME' | 'DELIVERY' | 'DE
 export interface InvoiceLine {
   index: number
   name: string
+  /** The slip prints in Arabic whatever the agent's screen language is. */
+  nameAr: string
   quantity: number
   unitPrice: number
   total: number
@@ -95,6 +98,7 @@ export async function buildInvoice(scope: Scope, booking: BookingHydrated): Prom
   const lines: InvoiceLine[] = order.lines.map((line, i) => ({
     index: i + 1,
     name: line.name,
+    nameAr: line.nameAr || line.name,
     quantity: line.quantity,
     unitPrice: round2(line.unitPrice),
     total: round2(line.unitPrice * line.quantity),
@@ -160,16 +164,17 @@ export async function whatsAppInvoice(
   const tracking = `${env.PUBLIC_APP_URL.replace(/\/$/, '')}/track/${booking.trackingToken}`
   const brand = tenant?.name ?? 'WAYZ'
 
-  const thanks = [
-    `${brand}: thank you for your custom.`,
-    `Invoice ${order?.ref ?? booking.ref} — ${(order?.total ?? 0).toFixed(2)} ${tenant?.currency ?? 'SAR'}.`,
-    '',
-    'Follow your booking:',
+  const message = {
+    brand,
+    invoiceRef: order?.ref ?? booking.ref,
+    total: order?.total ?? 0,
+    currency: tenant?.currency ?? 'SAR',
     tracking,
-  ].join('\n')
+  }
+  const thanks = invoiceWhatsApp(message)
 
   if (!isPubliclyFetchable(url)) {
-    const withLink = [thanks, '', 'Your invoice:', url].join('\n')
+    const withLink = invoiceWhatsApp({ ...message, invoiceUrl: url })
     const fallback = await sendWhatsAppText(booking.customerPhone, withLink)
     return {
       sent: fallback.ok,

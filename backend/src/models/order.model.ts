@@ -4,6 +4,8 @@ import { nanoid } from 'nanoid'
 export interface OrderLine {
   productId: string
   name: string
+  /** What the customer reads on the printed invoice; the English `name` stays for staff screens. */
+  nameAr?: string
   quantity: number
   unitPrice: number
   isDeposit: boolean
@@ -41,6 +43,7 @@ const lineSchema = new Schema<OrderLine>(
   {
     productId: { type: String, required: true },
     name: { type: String, required: true },
+    nameAr: { type: String, default: '' },
     quantity: { type: Number, default: 1 },
     unitPrice: { type: Number, required: true },
     isDeposit: { type: Boolean, default: false },

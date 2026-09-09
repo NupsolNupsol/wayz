@@ -1,6 +1,7 @@
 import nodemailer, { type Transporter } from 'nodemailer'
 import { env } from '../config/env.js'
 import { logger } from '../config/logger.js'
+import { invitationCopy, otpEmailCopy } from '../constants/messages.constants.js'
 import type { EmailMessage, EmailResult, InvitationEmailOptions } from '../interfaces/index.js'
 
 interface SmtpProfile {
@@ -109,31 +110,32 @@ const NEWLINE = String.fromCharCode(10)
 
 export function invitationEmail(options: InvitationEmailOptions): Pick<EmailMessage, 'subject' | 'text' | 'html'> {
   const { fullName, roleLabel, tenantName, link, expiresInHours, invitedByName } = options
-  const subject = `Set up your ${tenantName} account`
-  const invitedBy = invitedByName ? `${invitedByName} has` : `${tenantName} has`
+  const copy = invitationCopy(tenantName)
+  const subject = copy.subject
+  const invitedBy = invitedByName ?? tenantName
 
   const text = [
-    `Hello ${fullName},`,
+    copy.greeting(fullName),
     '',
-    `${invitedBy} created a ${tenantName} account for you as ${roleLabel}.`,
+    copy.opened(invitedBy, roleLabel),
     '',
-    'Choose your own password to finish setting it up:',
+    copy.choose,
     '',
     `    ${link}`,
     '',
-    `The link works once and expires in ${expiresInHours} hours.`,
-    'Nobody at the company knows your password, and nobody can see it.',
+    copy.expires(expiresInHours),
+    copy.privacy,
     '',
-    'If you were not expecting this, ignore the email — the account cannot be used until a password is set.',
+    copy.ignore,
     '',
     `— ${tenantName}`,
   ].join(NEWLINE)
 
   const html = `<!doctype html>
-<html lang="en">
-<body style="margin:0;padding:0;background:#f1f5f9;">
+<html lang="ar" dir="rtl">
+<body style="margin:0;padding:0;background:#f1f5f9;" dir="rtl">
   <!-- Preheader: the grey preview line in an inbox list. Hidden in the body itself. -->
-  <div style="display:none;max-height:0;overflow:hidden;opacity:0;">Choose your password to finish setting up your ${tenantName} account.</div>
+  <div style="display:none;max-height:0;overflow:hidden;opacity:0;">${copy.preheader}</div>
   <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f1f5f9;padding:32px 12px;">
     <tr>
       <td align="center">
@@ -147,11 +149,11 @@ export function invitationEmail(options: InvitationEmailOptions): Pick<EmailMess
           </tr>
 
           <tr>
-            <td style="padding:32px 32px 0;">
-              <p style="margin:0 0 6px;font-size:15px;color:#0f214a;">Hello ${fullName},</p>
-              <p style="margin:0 0 20px;font-size:14px;line-height:1.6;color:#64748b;">
-                ${invitedBy} created an account for you as <strong style="color:#0f214a;">${roleLabel}</strong>.
-                Choose your own password to finish setting it up.
+            <td style="padding:32px 32px 0;text-align:right;">
+              <p style="margin:0 0 6px;font-size:15px;color:#0f214a;">${copy.greeting(fullName)}</p>
+              <p style="margin:0 0 20px;font-size:14px;line-height:1.7;color:#64748b;">
+                ${invitedBy} أنشأ لك حسابًا بصفة <strong style="color:#0f214a;">${roleLabel}</strong>.
+                ${copy.choose}
               </p>
             </td>
           </tr>
@@ -162,7 +164,7 @@ export function invitationEmail(options: InvitationEmailOptions): Pick<EmailMess
                 <tr>
                   <td style="background:#14b8a6;border-radius:12px;">
                     <a href="${link}" style="display:inline-block;padding:14px 28px;color:#ffffff;text-decoration:none;font-size:15px;font-weight:700;">
-                      Choose my password
+                      ${copy.button}
                     </a>
                   </td>
                 </tr>
@@ -171,9 +173,9 @@ export function invitationEmail(options: InvitationEmailOptions): Pick<EmailMess
           </tr>
 
           <tr>
-            <td style="padding:22px 32px 0;">
-              <p style="margin:0 0 6px;font-size:13px;color:#64748b;">&#9201; The link works once and expires in <strong style="color:#0f214a;">${expiresInHours} hours</strong>.</p>
-              <p style="margin:0;font-size:13px;color:#64748b;">&#128274; Nobody at the company knows your password, and nobody can see it.</p>
+            <td style="padding:22px 32px 0;text-align:right;">
+              <p style="margin:0 0 6px;font-size:13px;color:#64748b;">&#9201; ${copy.expires(expiresInHours)}</p>
+              <p style="margin:0;font-size:13px;color:#64748b;">&#128274; ${copy.privacy}</p>
             </td>
           </tr>
 
@@ -181,9 +183,9 @@ export function invitationEmail(options: InvitationEmailOptions): Pick<EmailMess
             <td style="padding:20px 32px 0;">
               <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f0fdfa;border:1px solid #99f6e4;border-radius:12px;">
                 <tr>
-                  <td style="padding:14px 16px;">
-                    <div style="font-size:11px;text-transform:uppercase;letter-spacing:1.2px;color:#0f766e;font-weight:700;margin-bottom:6px;">If the button does not work</div>
-                    <span style="word-break:break-all;font-size:12px;color:#0f214a;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;">${link}</span>
+                  <td style="padding:14px 16px;text-align:right;">
+                    <div style="font-size:11px;letter-spacing:.4px;color:#0f766e;font-weight:700;margin-bottom:6px;">إذا لم يعمل الزر</div>
+                    <span dir="ltr" style="display:inline-block;word-break:break-all;font-size:12px;color:#0f214a;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;">${link}</span>
                   </td>
                 </tr>
               </table>
@@ -191,10 +193,10 @@ export function invitationEmail(options: InvitationEmailOptions): Pick<EmailMess
           </tr>
 
           <tr>
-            <td style="padding:24px 32px 32px;">
+            <td style="padding:24px 32px 32px;text-align:right;">
               <div style="border-top:1px solid #e2e8f0;padding-top:16px;">
-                <p style="margin:0;font-size:12px;line-height:1.6;color:#94a3b8;">
-                  If you were not expecting this, ignore the email — the account cannot be used until a password is set.
+                <p style="margin:0;font-size:12px;line-height:1.7;color:#94a3b8;">
+                  ${copy.ignore}
                 </p>
               </div>
             </td>
@@ -202,7 +204,7 @@ export function invitationEmail(options: InvitationEmailOptions): Pick<EmailMess
 
           <tr>
             <td style="background:#f8fafc;padding:16px 32px;text-align:center;">
-              <p style="margin:0;font-size:11px;color:#94a3b8;">This is an automated message from ${tenantName}. Please do not reply.</p>
+              <p style="margin:0;font-size:11px;color:#94a3b8;">هذه رسالة آلية من ${tenantName}. الرجاء عدم الرد عليها.</p>
             </td>
           </tr>
         </table>
@@ -220,34 +222,35 @@ export function otpEmail(
   options: { brand?: string; purpose?: 'VERIFY' | 'RETRIEVAL'; customerName?: string } = {},
 ): Pick<EmailMessage, 'subject' | 'text' | 'html'> {
   const brand = options.brand ?? env.MAIL_FROM_NAME
-  const retrieval = options.purpose === 'RETRIEVAL'
-  const greeting = options.customerName ? `Hello ${options.customerName},` : 'Hello,'
-  const reason = retrieval
-    ? 'to collect your items from our counter'
-    : 'to confirm your identity for your booking'
+  const copy = otpEmailCopy(code, brand, {
+    retrieval: options.purpose === 'RETRIEVAL',
+    customerName: options.customerName,
+  })
+  const greeting = copy.greeting
+  const reason = copy.reason
 
-  const subject = `${code} is your ${brand} verification code`
+  const subject = copy.subject
 
   const text = [
     `${greeting}`,
     '',
-    `Use this code ${reason}:`,
+    `استخدم هذا الرمز ${reason}:`,
     '',
     `    ${code}`,
     '',
-    'It expires in 5 minutes and can be used once.',
-    'Please read it out to the agent — never share it with anyone else.',
+    copy.expiry,
+    copy.warning,
     '',
-    `If you did not request this, ignore this email and no action will be taken.`,
+    copy.ignore,
     '',
     `— ${brand}`,
-  ].join('\n')
+  ].join(NEWLINE)
 
   const html = `<!doctype html>
-<html lang="en">
-<body style="margin:0;padding:0;background:#f1f5f9;">
+<html lang="ar" dir="rtl">
+<body style="margin:0;padding:0;background:#f1f5f9;" dir="rtl">
   <!-- Preheader: the grey preview line in an inbox list. Hidden in the body itself. -->
-  <div style="display:none;max-height:0;overflow:hidden;opacity:0;">Your ${brand} code is ${code}. It expires in 5 minutes.</div>
+  <div style="display:none;max-height:0;overflow:hidden;opacity:0;">${copy.preheader(brand)}</div>
   <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f1f5f9;padding:32px 12px;">
     <tr>
       <td align="center">
@@ -261,10 +264,10 @@ export function otpEmail(
           </tr>
 
           <tr>
-            <td style="padding:32px 32px 8px;">
+            <td style="padding:32px 32px 8px;text-align:right;">
               <p style="margin:0 0 6px;font-size:15px;color:#0f214a;">${greeting}</p>
-              <p style="margin:0 0 24px;font-size:14px;line-height:1.6;color:#64748b;">
-                Use the code below ${reason}.
+              <p style="margin:0 0 24px;font-size:14px;line-height:1.7;color:#64748b;">
+                استخدم الرمز أدناه ${reason}.
               </p>
             </td>
           </tr>
@@ -275,8 +278,8 @@ export function otpEmail(
               <table role="presentation" cellpadding="0" cellspacing="0" width="100%" style="background:#f0fdfa;border:1px solid #99f6e4;border-radius:12px;">
                 <tr>
                   <td align="center" style="padding:22px 16px;">
-                    <div style="font-size:11px;text-transform:uppercase;letter-spacing:1.4px;color:#0f766e;font-weight:700;margin-bottom:8px;">Verification code</div>
-                    <div style="font-size:40px;line-height:1;font-weight:700;letter-spacing:12px;color:#0f214a;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;padding-left:12px;">${code}</div>
+                    <div style="font-size:11px;letter-spacing:.4px;color:#0f766e;font-weight:700;margin-bottom:8px;">${copy.codeLabel}</div>
+                    <div dir="ltr" style="font-size:40px;line-height:1;font-weight:700;letter-spacing:12px;color:#0f214a;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;padding-left:12px;">${code}</div>
                   </td>
                 </tr>
               </table>
@@ -284,17 +287,17 @@ export function otpEmail(
           </tr>
 
           <tr>
-            <td style="padding:20px 32px 0;">
-              <p style="margin:0 0 6px;font-size:13px;color:#64748b;">⏱ Expires in <strong style="color:#0f214a;">5 minutes</strong> and can be used once.</p>
-              <p style="margin:0;font-size:13px;color:#64748b;">🔒 Read it out to the ${brand} agent only. We will never ask for it by phone or message.</p>
+            <td style="padding:20px 32px 0;text-align:right;">
+              <p style="margin:0 0 6px;font-size:13px;color:#64748b;">⏱ ${copy.expiry}</p>
+              <p style="margin:0;font-size:13px;color:#64748b;">🔒 اقرأه لموظف ${brand} فقط. لن نطلبه منك عبر الهاتف أو الرسائل أبدًا.</p>
             </td>
           </tr>
 
           <tr>
-            <td style="padding:24px 32px 32px;">
+            <td style="padding:24px 32px 32px;text-align:right;">
               <div style="border-top:1px solid #e2e8f0;padding-top:16px;">
-                <p style="margin:0;font-size:12px;line-height:1.6;color:#94a3b8;">
-                  If you did not request this code, you can safely ignore this email — no action will be taken on your booking.
+                <p style="margin:0;font-size:12px;line-height:1.7;color:#94a3b8;">
+                  ${copy.ignore}
                 </p>
               </div>
             </td>
@@ -302,7 +305,7 @@ export function otpEmail(
 
           <tr>
             <td style="background:#f8fafc;padding:16px 32px;text-align:center;">
-              <p style="margin:0;font-size:11px;color:#94a3b8;">This is an automated message from ${brand}. Please do not reply.</p>
+              <p style="margin:0;font-size:11px;color:#94a3b8;">هذه رسالة آلية من ${brand}. الرجاء عدم الرد عليها.</p>
             </td>
           </tr>
         </table>

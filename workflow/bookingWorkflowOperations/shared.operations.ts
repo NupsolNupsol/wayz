@@ -147,6 +147,16 @@ function extendForReplacement(result: OperationResult, ctx: WorkflowContext): vo
   result.audits.push({ action: 'REPLACEMENT_TIME_ADDED', detail: `+${bonusMin} min` })
 }
 
+/**
+ * A lagoon trip is sold as a ride: the customer pays for the trip, not for time on the water. It
+ * records when it cast off, and nothing counts down or runs into overtime.
+ */
+export function startRide(result: OperationResult, ctx: WorkflowContext): void {
+  result.booking.session.startedAt = timerStart(ctx).toISOString()
+  result.booking.session.expectedEndAt = null
+  result.audits.push({ action: 'START_RIDE', detail: 'Cast off — a ride is not timed' })
+}
+
 export function startTimer(result: OperationResult, ctx: WorkflowContext): void {
   const requested = ctx.payload.durationMin ?? ctx.booking.session.requestedDurationMin
   const durationMin = Number(requested)

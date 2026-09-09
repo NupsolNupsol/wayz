@@ -10,7 +10,7 @@ export async function withAmountsDue<T extends { orderId: string; session?: { ov
 
   const orderIds = [...new Set(rows.map((r) => r.orderId))]
   const [orders, paid] = await Promise.all([
-    Order.find({ _id: { $in: orderIds }, tenantId }, { total: 1, lines: 1 }).lean(),
+    Order.find({ _id: { $in: orderIds }, tenantId }, { total: 1, lines: 1, status: 1 }).lean(),
     Payment.aggregate([
       { $match: { tenantId, orderId: { $in: orderIds }, status: 'CAPTURED' } },
       {
@@ -22,11 +22,14 @@ export async function withAmountsDue<T extends { orderId: string; session?: { ov
     ]),
   ])
 
+  // A sale that was unwound by a full refund is owed by nobody.
+  const cancelled = new Set(orders.filter((o) => o.status === 'CANCELLED').map((o) => o._id))
   const totalOf = new Map(orders.map((o) => [o._id, o.total]))
   const linesOf = new Map(orders.map((o) => [o._id, o.lines ?? []]))
   const paidOf = new Map((paid as { _id: string; total: number }[]).map((p) => [p._id, p.total]))
 
   return rows.map((row) => {
+    if (cancelled.has(row.orderId)) return { ...row, amountCharged: 0, amountDue: 0 }
     const charged = totalOf.get(row.orderId) ?? 0
     const settled = Math.max(0, charged - (paidOf.get(row.orderId) ?? 0))
     const running = row.session?.overtime ? pendingOvertime(row.session.overtime, linesOf.get(row.orderId) ?? []) : 0

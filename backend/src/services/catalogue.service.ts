@@ -9,6 +9,12 @@ export function listProducts(tenantId: string, engineKind?: EngineKind, caller?:
   const q: Record<string, unknown> = { tenantId, active: true }
   const engines = caller ? engineFilter(caller, engineKind) : engineKind
   if (engines !== undefined) q.engineKind = engines
+
+  // A product kept to one desk is offered at that desk only; one with no desk named belongs to
+  // every counter running its activity.
+  const kiosk = caller ? kioskFilter(caller) : undefined
+  if (kiosk !== undefined) q.$or = [{ kioskId: null }, { kioskId: { $exists: false } }, { kioskId: kiosk }]
+
   return CatalogueProduct.find(q).sort({ category: 1, name: 1 }).lean()
 }
 

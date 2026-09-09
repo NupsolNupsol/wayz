@@ -1,7 +1,7 @@
 import type { OperationResult, WorkflowContext } from '../shared/types.js'
 import { ACTIVE, CANCELLED, COMPLETED, CONFIRMED } from '../shared/status.js'
 import { beginOperation, unknownTransition } from '../utils/clone.js'
-import { assignAndOccupy, cancelRelease, completeAndRelease, setStatus, startTimer } from './shared.operations.js'
+import { assignAndOccupy, cancelRelease, completeAndRelease, setStatus, startRide } from './shared.operations.js'
 
 export const useLagoonOperation = (transitionCode: string, ctx: WorkflowContext): OperationResult => {
   const result = beginOperation(ctx)
@@ -14,7 +14,7 @@ export const useLagoonOperation = (transitionCode: string, ctx: WorkflowContext)
 
     case 'TO_STARTED': {
       assignAndOccupy(result, ctx)
-      startTimer(result, ctx)
+      startRide(result, ctx)
       setStatus(result, ACTIVE)
       break
     }

@@ -36,7 +36,7 @@
     "mgr-shifts": "الورديات والنقد",
     "mgr-org": "الهيكل التنظيمي",
     "mgr-estate": "الأصول",
-    "mgr-pricing": "التسعير",
+    "mgr-pricing": "المنتجات",
     "mgr-team": "الفريق",
     "mgr-settings": "الإعدادات",
     "mgr-reports": "التقارير",
@@ -57,7 +57,7 @@
     "admin-isolation": "البيانات والعزل",
     "admin-org": "المواقع والمحطات",
     "admin-assets": "كل الأصول",
-    "admin-pricing": "التسعير",
+    "admin-pricing": "المنتجات",
     "admin-team": "الموظفون والحسابات والأدوار",
     "admin-live": "الجلسات الجارية",
     "admin-rentals": "الحجوزات",
@@ -107,7 +107,7 @@
     "lagoon-trips": "القوارب والرحلات",
     "lagoon-captain": "رحلاتي",
     "hr-shifts": "الورديات والساعات",
-    "hr-pricing": "التسعير"
+    "hr-pricing": "المنتجات"
   },
   "notifications": {
     "title": "الإشعارات",

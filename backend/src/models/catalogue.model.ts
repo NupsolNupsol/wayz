@@ -29,6 +29,12 @@ export interface CatalogueProductDoc {
   penaltyPrice: number
   overtimeHourlyRate?: number | null
   assetTypeId: string | null
+  /**
+   * Where this product is sold. Empty means every desk that runs the activity; naming a station or
+   * a desk keeps it to that counter, which is how a trip that only leaves from one jetty is priced.
+   */
+  stationId: string | null
+  kioskId: string | null
   billingModel: BillingModel
   durationUnit?: DurationUnit
   compatibleBagCategories?: BagCategory[]
@@ -55,6 +61,8 @@ const catalogueSchema = new Schema<CatalogueProductDoc>(
     penaltyPrice: { type: Number, default: 0 },
     overtimeHourlyRate: { type: Number, default: null },
     assetTypeId: { type: String, default: null },
+    stationId: { type: String, default: null },
+    kioskId: { type: String, default: null },
     billingModel: { type: String, required: true },
     durationUnit: { type: String },
     compatibleBagCategories: { type: [String] },

@@ -3,6 +3,7 @@ import { AssetType, AssetUnit, Booking, CatalogueProduct, Kiosk, Station } from 
 import { ApiError } from '../utils/ApiError.js'
 import { nextId } from './counter.service.js'
 import { recordAudit } from './audit.service.js'
+import { billingAllowedFor, chargesForTime, saleUnitsFor } from '../domain/types.js'
 import type { AssetUnitStatus, BagCategory, BillingModel, EngineKind, Role, SaleType, SaleUnit } from '../domain/types.js'
 import { canWorkEngine, engineFilter } from '../domain/access.js'
 import { tenantRules } from './rules.service.js'
@@ -37,7 +38,8 @@ export type AssetKind = (typeof ASSET_KINDS)[number]
 const KIND_DEFAULTS: Record<AssetKind, { billingModel: BillingModel; emoji: string }> = {
   COMPARTMENT: { billingModel: 'PER_COMPARTMENT', emoji: '🗄️' },
   VEHICLE: { billingModel: 'DURATION_BASED', emoji: '🛴' },
-  BOAT: { billingModel: 'DURATION_BASED', emoji: '⛵' },
+  // A boat trip is sold as a ride: the customer pays for the trip, not for time on the water.
+  BOAT: { billingModel: 'PACKAGE', emoji: '⛵' },
   TABLE: { billingModel: 'PACKAGE', emoji: '🍽️' },
   ANIMAL: { billingModel: 'PACKAGE', emoji: '🐪' },
 }
@@ -318,6 +320,25 @@ export async function createAssetKind(scope: AssetScope, input: NewAssetKind) {
   const clash = await AssetType.findOne({ tenantId: scope.tenantId, name }).lean()
   if (clash) throw ApiError.badRequest(`${name} already exists in this tenant.`)
 
+  // The same rules the price list enforces: an activity is sold and charged the way it works.
+  const saleUnit = input.saleUnit ?? SALE_UNIT_DEFAULTS[input.kind]
+  if (!saleUnitsFor(input.engineKind).includes(saleUnit)) {
+    throw ApiError.unprocessable(`${input.engineKind.toLowerCase().replace(/_/g, ' ')} is not sold that way.`, [
+      `It can be sold: ${saleUnitsFor(input.engineKind).join(', ')}.`,
+    ])
+  }
+  const billing = input.billingModel ?? KIND_DEFAULTS[input.kind].billingModel
+  if (!billingAllowedFor(input.engineKind).includes(billing)) {
+    throw ApiError.unprocessable(`${input.engineKind.toLowerCase().replace(/_/g, ' ')} is not charged that way.`, [
+      `It can be charged: ${billingAllowedFor(input.engineKind).join(', ')}.`,
+    ])
+  }
+  if (input.overtimeHourlyRate && !chargesForTime(input.engineKind)) {
+    throw ApiError.unprocessable(
+      `${input.engineKind.toLowerCase().replace(/_/g, ' ')} does not charge for time, so it has no overtime rate.`,
+    )
+  }
+
   const defaults = KIND_DEFAULTS[input.kind]
   const capacity = input.capacity ?? {}
   const assetTypeId = await nextId('assetType')
@@ -341,14 +362,14 @@ export async function createAssetKind(scope: AssetScope, input: NewAssetKind) {
     name,
     category: 'General',
     basePrice: round2(input.basePrice),
-    saleUnit: input.saleUnit ?? SALE_UNIT_DEFAULTS[input.kind],
+    saleUnit,
     saleType: input.saleType ?? SALE_TYPE_DEFAULTS[input.kind],
     depositRequired: round2(input.depositRequired ?? 0),
     penaltyPrice: round2(input.penaltyPrice ?? 0),
     overtimeHourlyRate: input.overtimeHourlyRate == null ? null : round2(input.overtimeHourlyRate),
     assetTypeId,
-    billingModel: input.billingModel ?? defaults.billingModel,
-    durationUnit: (input.billingModel ?? defaults.billingModel) === 'DURATION_BASED' ? 'HOUR' : undefined,
+    billingModel: billing,
+    durationUnit: billing === 'DURATION_BASED' ? 'HOUR' : undefined,
     compatibleBagCategories: capacity.compatibleBagCategories,
     emoji: defaults.emoji,
     active: true,

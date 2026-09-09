@@ -5,7 +5,7 @@ import { Button, Field, FieldGroupTitle } from '@/components/ui'
 import { Select } from '@/components/Select'
 import { NumberInput } from '@/components/NumberInput'
 import { useCreateAssetKind } from '@/hooks'
-import { engineLabel, VISIBLE_ENGINES } from '@/config/engineMeta'
+import { chargesForTime, engineLabel, saleUnitsFor, VISIBLE_ENGINES } from '@/config/engineMeta'
 import { ApiError } from '@/api/client'
 import { toast } from '@/state/toastStore'
 import { ASSET_KINDS, SALE_TYPES, SALE_UNITS, type AssetKind, type AssetKiosk, type AssetStation, type SaleType, type SaleUnit } from '@/api/asset.api'
@@ -20,6 +20,13 @@ const KIND_ENGINE: Record<AssetKind, EngineKind> = {
 }
 
 const VISIBLE_KINDS: AssetKind[] = ['COMPARTMENT', 'VEHICLE', 'BOAT']
+
+/** Each activity has one shape of thing behind it, so the two move together. */
+const KIND_FOR_ENGINE: Partial<Record<EngineKind, AssetKind>> = {
+  SHOP_AND_DROP: 'COMPARTMENT',
+  MOBILITY: 'VEHICLE',
+  LAGOON: 'BOAT',
+}
 
 export function NewAssetKindModal({
   open,
@@ -80,6 +87,17 @@ export function NewAssetKindModal({
     setKind(next)
     setEngineKind(KIND_ENGINE[next])
     setKioskId('')
+  }
+
+  /** Choosing the activity chooses the shape, so a boat is never asked for its dimensions in cm. */
+  const pickEngine = (next: EngineKind) => {
+    setEngineKind(next)
+    setKind(KIND_FOR_ENGINE[next] ?? kind)
+    setKioskId('')
+
+    const units = saleUnitsFor(next, SALE_UNITS)
+    if (!units.includes(saleUnit)) setSaleUnit(units[0] as SaleUnit)
+    if (!chargesForTime(next)) setOvertime(0)
   }
 
   /** Only desks running this activity can hold these assets. */
@@ -176,7 +194,7 @@ export function NewAssetKindModal({
       <Field label={t('common:column.activity')} required>
         <Select
           value={engineKind}
-          onChange={(v) => setEngineKind(v as EngineKind)}
+          onChange={(v) => pickEngine(v as EngineKind)}
           options={VISIBLE_ENGINES.map((k) => ({ label: engineLabel(k), value: k }))}
           testId="asset-new-kind-engine"
         />
@@ -188,7 +206,7 @@ export function NewAssetKindModal({
           <Select
             value={saleUnit}
             onChange={(v) => setSaleUnit(v as SaleUnit)}
-            options={SALE_UNITS.map((value) => ({ label: t(`price.unit.${value}`), value }))}
+            options={saleUnitsFor(engineKind, SALE_UNITS).map((value) => ({ label: t(`price.unit.${value}`), value }))}
             testId="asset-new-kind-sale-unit"
           />
         </Field>
@@ -211,7 +229,7 @@ export function NewAssetKindModal({
         <Field label={t('price.penalty')}>
           <NumberInput min={0} step={0.5} value={penalty} onChange={setPenalty} testId="asset-new-kind-penalty" />
         </Field>
-        {saleType === 'RENTAL' && (
+        {saleType === 'RENTAL' && chargesForTime(engineKind) && (
           <Field label={t('price.overtime')}>
             <NumberInput min={0} step={0.5} value={overtime} onChange={setOvertime} testId="asset-new-kind-overtime" />
           </Field>

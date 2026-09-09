@@ -90,6 +90,11 @@ const productSchema = z.object({
   billingModel: z.enum(BILLING_MODELS),
   durationUnit: z.enum(DURATION_UNITS).optional(),
   emoji: z.string().optional(),
+  // Where the product is sold. Empty means every desk running the activity.
+  stationId: z.string().min(1).nullish(),
+  kioskId: z.string().min(1).nullish(),
+  // An action rather than a property: create this many units at that desk now.
+  initialCount: z.coerce.number().int().min(0).max(200).optional(),
 })
 
 export const managerController = {

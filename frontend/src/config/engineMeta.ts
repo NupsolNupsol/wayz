@@ -40,6 +40,58 @@ export function engineOptionsFor(assigned: EngineKind[]) {
   return enginesFor(assigned).map((k) => ({ label: engineLabel(k), value: k }))
 }
 
+/**
+ * The icons a product can be given. They are drawn, not typed: an emoji renders differently on
+ * every device and reads as a stand-in rather than a considered choice.
+ */
+export const PRODUCT_ICONS = [
+  'Package', 'ShoppingBag', 'Boxes', 'PackageOpen', 'Bike', 'Car', 'Accessibility', 'Baby',
+  'ShoppingCart', 'Sailboat', 'Ship', 'Anchor', 'Truck', 'UtensilsCrossed', 'Coffee', 'Beef',
+  'Salad', 'GlassWater', 'Rabbit', 'Bird', 'Tag', 'Sparkles',
+] as const
+
+/**
+ * What to draw on a product tile: the icon the company chose, or one worked out from the name.
+ * A value that is not one of ours (an emoji from an older catalogue) is ignored rather than shown.
+ */
+export function productIconFor(
+  product: { name: string; emoji?: string | null },
+  engineKind: EngineKind,
+): string {
+  const chosen = (product.emoji ?? '').trim()
+  if (chosen && (PRODUCT_ICONS as readonly string[]).includes(chosen)) return chosen
+  return productIcon(product.name, engineKind)
+}
+
+/**
+ * What each activity is sold by, and whether time is charged for at all. Kept beside the labels so
+ * a form never offers a unit the API will refuse — a trip is sold as a trip.
+ */
+export const SALE_UNITS_FOR: Partial<Record<EngineKind, string[]>> = {
+  SHOP_AND_DROP: ['BAG', 'CART', 'DELIVERY', 'ITEM', 'HOUR', 'FULL_DAY'],
+  MOBILITY: ['HOUR', 'FULL_DAY', 'TOUR', 'ITEM'],
+  LAGOON: ['TOUR'],
+}
+
+export function saleUnitsFor(engineKind: EngineKind, all: readonly string[]): string[] {
+  return SALE_UNITS_FOR[engineKind] ?? [...all]
+}
+
+/** A lagoon trip has a captain, not a meter, so nothing about it is priced by time. */
+export function chargesForTime(engineKind: EngineKind): boolean {
+  return engineKind !== 'LAGOON'
+}
+
+/** How a charge reads to the person setting it, in the words that activity actually uses. */
+export function billingLabel(model: string, engineKind: EngineKind): string {
+  if (model === 'PACKAGE') {
+    if (engineKind === 'LAGOON') return 'PER TRIP'
+    if (engineKind === 'ANAAM') return 'PER EXPERIENCE'
+    if (engineKind === 'MOBILITY') return 'PER TOUR'
+  }
+  return model.replaceAll('_', ' ')
+}
+
 export function productIcon(name: string, engineKind: EngineKind): string {
   const n = name.toLowerCase()
   if (n.includes('scooter')) return 'Bike'

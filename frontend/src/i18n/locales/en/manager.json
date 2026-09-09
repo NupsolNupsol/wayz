@@ -178,8 +178,8 @@
     "venueTypePlaceholder": "e.g. WATERPARK"
   },
   "pricing": {
-    "title": "Pricing",
-    "subtitle": "What customers are charged, per service",
+    "title": "Products",
+    "subtitle": "What each activity sells, what it costs, and where it is sold.",
     "loading": "Loading catalogue…",
     "service": "Service",
     "assetType": "Asset type",
@@ -212,7 +212,25 @@
     "nameArHint": "Shown on the Arabic menu and the invoice.",
     "icon": "Icon",
     "iconHint": "What the agent taps on the menu.",
-    "noTypesYet": "No asset kinds for this activity yet — add them under Assets first."
+    "noTypesYet": "No asset kinds for this activity yet — add them under Assets first.",
+    "stockTitle": "Stock it",
+    "stockHint": "Create the first ones now, so the desk has something to hand over. You can add more later on the estate page.",
+    "noStock": "Not yet — just the price",
+    "pickKiosk": "Choose a desk…",
+    "howMany": "Create how many now",
+    "howManyHint": "Typing 4 creates four of them at the desk above. Leave it empty to change nothing.",
+    "stockMoreTitle": "Add more of them",
+    "stockMoreHint": "Where they are now is shown below. Adding here puts more at the desk you pick — it never moves the ones that exist.",
+    "whereSold": "Where it is sold",
+    "whereSoldHint": "Leave the station empty and every desk running this activity can sell it. Name one and only that counter sees it.",
+    "everywhere": "Every desk",
+    "anyDeskThere": "Any desk at that station",
+    "stockedNow": "There now:",
+    "howManyHere": "How many at this desk",
+    "howManyHereHint": "The number that should be standing there. Raising it creates the difference; the same number changes nothing.",
+    "seats": "Seats",
+    "seatsHint": "How many people {{name}} carries. Saved onto the thing itself, so every one of them carries the same.",
+    "seatsFailed": "The seats could not be saved"
   },
   "estate": {
     "title": "Estate",

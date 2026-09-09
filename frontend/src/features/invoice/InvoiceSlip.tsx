@@ -4,20 +4,24 @@ import { Barcode } from '@/components/Barcode'
 import type { Invoice } from '@/api/invoice.api'
 
 export function InvoiceSlip({ invoice, trackingUrl }: { invoice: Invoice; trackingUrl?: string }) {
-  const { t, i18n } = useTranslation(['bookings', 'common'])
-  const ar = i18n.language.startsWith('ar')
+  const { i18n } = useTranslation(['bookings', 'common'])
+  // The slip is the customer's document, not the agent's screen: it always comes out of the
+  // printer in Arabic, whichever language the agent happens to be working in.
+  const t = i18n.getFixedT('ar', ['bookings', 'common'])
   const currency = t('common:money.currency')
   const money = (n: number) => `${n.toFixed(2)} ${currency}`
-  const label = (pair: { en: string; ar: string }) => (ar ? pair.ar : pair.en)
+  const label = (pair: { en: string; ar: string }) => pair.ar
 
   return (
     <div
+      dir="rtl"
+      lang="ar"
       className="receipt-print mx-auto w-full max-w-[360px] bg-white text-black p-4 font-sans text-[13px] leading-snug"
       data-testid="invoice-document"
     >
       <header className="text-center border-b border-dashed border-black/40 pb-3">
-        <p className="font-bold text-[15px]">{invoice.seller.legalName}</p>
-        <p className="text-[12px]">{invoice.seller.name}</p>
+        <p className="font-bold text-[15px]" dir="auto">{invoice.seller.legalName}</p>
+        <p className="text-[12px]" dir="auto">{invoice.seller.name}</p>
         <p className="text-[11px] mt-1">
           {t('invoice.cr')}: <span dir="ltr">{invoice.seller.crNumber}</span>
         </p>
@@ -35,20 +39,20 @@ export function InvoiceSlip({ invoice, trackingUrl }: { invoice: Invoice; tracki
         <dd className="text-end" dir="ltr">{invoice.issuedAt.slice(0, 10)}</dd>
 
         <dt className="text-black/60">{t('invoice.branch')}</dt>
-        <dd className="text-end">{invoice.branch}</dd>
+        <dd className="text-end" dir="auto">{invoice.branch}</dd>
 
         {invoice.desk && (
           <>
             <dt className="text-black/60">{t('invoice.desk')}</dt>
-            <dd className="text-end">{invoice.desk}</dd>
+            <dd className="text-end" dir="auto">{invoice.desk}</dd>
           </>
         )}
 
         <dt className="text-black/60">{t('invoice.servedBy')}</dt>
-        <dd className="text-end" data-testid="invoice-served-by">{invoice.servedBy}</dd>
+        <dd className="text-end" dir="auto" data-testid="invoice-served-by">{invoice.servedBy}</dd>
 
         <dt className="text-black/60">{t('invoice.customerName')}</dt>
-        <dd className="text-end">{invoice.customer.name || '—'}</dd>
+        <dd className="text-end" dir="auto">{invoice.customer.name || '—'}</dd>
 
         <dt className="text-black/60">{t('invoice.customerPhone')}</dt>
         <dd className="text-end" dir="ltr">{invoice.customer.phone || '—'}</dd>
@@ -69,8 +73,8 @@ export function InvoiceSlip({ invoice, trackingUrl }: { invoice: Invoice; tracki
             {invoice.lines.map((line) => (
               <tr key={line.index} className="align-top">
                 <td className="py-1 tabular-nums">{line.index}</td>
-                <td className="py-1">
-                  {line.name}
+                <td className="py-1" dir="auto">
+                  {line.nameAr}
                   {line.isDeposit && <span className="text-[10px] text-black/60"> · {t('invoice.deposit')}</span>}
                   {(line.kind === 'PENALTY' || line.kind === 'OVERTIME') && (
                     <span className="ms-1 text-[10px] font-bold border border-black/50 rounded px-1 py-px" data-testid={`invoice-penalty-${line.index}`}>

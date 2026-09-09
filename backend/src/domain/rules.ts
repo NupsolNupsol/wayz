@@ -119,16 +119,18 @@ export function penaltyAmount(schedule: PenaltyRule[], code: string): number | n
 export interface DiscountReason {
   code: string
   label: string
+  /** Optional: what the customer reads on the printed slip. Falls back to `label`. */
+  labelAr?: string
   maxPercent: number
   needsApproval?: boolean
 }
 
 export const DEFAULT_DISCOUNT_REASONS: DiscountReason[] = [
-  { code: 'EMPLOYEE', label: 'Employee', maxPercent: 100 },
-  { code: 'MANAGER', label: 'Manager decision', maxPercent: 100 },
-  { code: 'VIP_SELA', label: 'VIP / SELA member', maxPercent: 100 },
-  { code: 'SERVICE_RECOVERY', label: 'Something went wrong', maxPercent: 50 },
-  { code: 'PROMOTION', label: 'Promotion', maxPercent: 30 },
+  { code: 'EMPLOYEE', label: 'Employee', labelAr: 'موظف', maxPercent: 100 },
+  { code: 'MANAGER', label: 'Manager decision', labelAr: 'قرار المدير', maxPercent: 100 },
+  { code: 'VIP_SELA', label: 'VIP / SELA member', labelAr: 'عضو مميز / سلا', maxPercent: 100 },
+  { code: 'SERVICE_RECOVERY', label: 'Something went wrong', labelAr: 'تعويض عن خلل في الخدمة', maxPercent: 50 },
+  { code: 'PROMOTION', label: 'Promotion', labelAr: 'عرض ترويجي', maxPercent: 30 },
 ]
 
 export function resolveDiscountReasons(stored?: Partial<DiscountReason>[] | null): DiscountReason[] {
@@ -138,6 +140,7 @@ export function resolveDiscountReasons(stored?: Partial<DiscountReason>[] | null
     .map((r) => ({
       code: r.code!.trim().toUpperCase().slice(0, 40),
       label: r.label!.trim().slice(0, 80),
+      labelAr: (r.labelAr ?? '').trim().slice(0, 80) || undefined,
       maxPercent: Math.min(100, Math.max(0, Number(r.maxPercent ?? 100))),
       needsApproval: !!r.needsApproval,
     }))

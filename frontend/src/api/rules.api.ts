@@ -28,6 +28,8 @@ export interface PenaltyRule {
 export interface DiscountReason {
   code: string
   label: string
+  /** Optional Arabic wording; it is what the customer reads on the printed slip. */
+  labelAr?: string
   maxPercent: number
   needsApproval?: boolean
 }

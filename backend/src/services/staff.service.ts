@@ -20,6 +20,7 @@ import {
   SUB_MANAGER_ROLES,
 } from '../domain/roles.js'
 import { ROLE_LABELS } from '../constants/labels.constants.js'
+import { ROLE_LABELS_AR } from '../constants/messages.constants.js'
 import { ApiError } from '../utils/ApiError.js'
 import { env } from '../config/env.js'
 import { logger } from '../config/logger.js'
@@ -72,7 +73,7 @@ async function sendInvitation(user: UserDoc, invitedBy: string): Promise<InviteR
     to: user.email,
     ...invitationEmail({
       fullName: user.fullName,
-      roleLabel: ROLE_LABELS[user.role] ?? user.role,
+      roleLabel: ROLE_LABELS_AR[user.role] ?? ROLE_LABELS[user.role] ?? user.role,
       tenantName: tenant?.name ?? 'the platform',
       link,
       expiresInHours: INVITE_TTL_HOURS,

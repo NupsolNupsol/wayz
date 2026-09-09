@@ -40,14 +40,21 @@ export async function boatsWithRoom(scope: Scope, assetTypeId?: string): Promise
     .sort({ identifier: 1 })
     .lean()
 
-  const boats = units.filter((u) => u.assetTypeId.includes('boat'))
-  if (boats.length === 0) return []
+  if (units.length === 0) return []
 
+  // What makes a boat a boat is its kind, not the shape of its id. Matching on the id meant any
+  // kind the tenant added themselves was invisible to the desk that had to sell it.
   const types = await AssetType.find(
-    { tenantId: scope.tenantId, _id: { $in: [...new Set(boats.map((u) => u.assetTypeId))] } },
-    { name: 1, capacity: 1 },
+    { tenantId: scope.tenantId, _id: { $in: [...new Set(units.map((u) => u.assetTypeId))] } },
+    { name: 1, capacity: 1, kind: 1, engineKind: 1 },
   ).lean()
   const byType = new Map(types.map((t) => [t._id, t]))
+
+  const boats = units.filter((u) => {
+    const type = byType.get(u.assetTypeId)
+    return type?.kind === 'BOAT' || type?.engineKind === 'LAGOON'
+  })
+  if (boats.length === 0) return []
 
   const [aboard, trips] = await Promise.all([
     Booking.find(

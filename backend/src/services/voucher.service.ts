@@ -16,7 +16,7 @@ const codeBody = customAlphabet(CODE_ALPHABET, 6)
 /** One press of "create" mints a batch; this is the ceiling on a single press. */
 export const MAX_BATCH = 5000
 
-export const VOUCHER_REASON = { code: 'VOUCHER', label: 'Discount code', maxPercent: 100 }
+export const VOUCHER_REASON = { code: 'VOUCHER', label: 'Discount code', labelAr: 'كود خصم', maxPercent: 100 }
 
 export interface CampaignInput {
   name: string

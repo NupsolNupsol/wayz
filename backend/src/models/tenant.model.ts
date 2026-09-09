@@ -33,7 +33,7 @@ export interface TenantDoc {
   }
   rentalRules: RentalRulesPatch
   shiftWindow?: { startsAt?: string; endsAt?: string }
-  discountReasons?: { code: string; label: string; maxPercent?: number; needsApproval?: boolean }[]
+  discountReasons?: { code: string; label: string; labelAr?: string; maxPercent?: number; needsApproval?: boolean }[]
   penaltySchedule: PenaltyRule[]
   createdAt: Date
   updatedAt: Date

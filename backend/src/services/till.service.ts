@@ -13,11 +13,12 @@ import {
   type CashMovementKind,
 } from '../models/index.js'
 import { recordAudit } from './audit.service.js'
+import { OVERTIME_LINE_PRODUCT_ID } from '../domain/overtime.js'
 import { ApiError } from '../utils/ApiError.js'
 import type { BookingHydrated } from '../models/booking.model.js'
 import type { PaymentHydrated } from '../models/payment.model.js'
 import { engineFilter, kioskFilter } from '../domain/access.js'
-import { round2 } from '../utils/helpers.js'
+import { computeTotals, round2 } from '../utils/helpers.js'
 import { nextId } from './counter.service.js'
 import { DEFAULT_VAT_RATE, noVat, splitInclusive } from '../domain/tax.js'
 
@@ -430,7 +431,55 @@ export async function refundBooking(
   })
 
   const after = await bookingRefundPosition(scope.tenantId, scope.stationId, booking)
+
+  // Everything the customer paid has gone back to them, so the transaction is being unwound. Left
+  // alone, the storage clock would keep running and hand them a fresh overtime charge against a
+  // sale they have already been refunded for — money owed on a booking that no longer exists.
+  if (after.refundable <= 0) await closeOutRefundedBooking(scope, booking, reason)
+
   return { booking, refunded: after.refunded, refundable: after.refundable, paid: after.paid, paymentIds: created }
+}
+
+async function closeOutRefundedBooking(scope: Scope, booking: BookingHydrated, reason: string) {
+  const now = new Date()
+  let touched = false
+
+  if (booking.session?.startedAt && !booking.session.chargeableEndedAt) {
+    booking.session.chargeableEndedAt = now
+    booking.markModified('session')
+    touched = true
+  }
+
+  // The sale itself is unwound. Left as it was, the money handed back would immediately read as
+  // owed again — the customer would be refunded and invoiced for the same booking at once.
+  const order = await Order.findById(booking.orderId)
+  if (order && order.status !== 'CANCELLED') {
+    const before = order.lines.length
+    order.lines = order.lines.filter((l) => l.productId !== OVERTIME_LINE_PRODUCT_ID)
+    if (order.lines.length !== before) {
+      const tenant = await Tenant.findById(scope.tenantId).lean()
+      Object.assign(order, computeTotals(order.lines, tenant?.vatRate ?? 0.15))
+      booking.baseAmount = order.subtotal
+      booking.vatAmount = order.vat
+      booking.totalAmount = order.total
+    }
+    order.status = 'CANCELLED'
+    await order.save()
+    touched = true
+  }
+
+  if (!touched) return
+  await booking.save()
+
+  await recordAudit({
+    tenantId: scope.tenantId,
+    actorId: scope.agentId,
+    action: 'BOOKING_CLOCK_STOPPED',
+    entity: 'Booking',
+    entityId: booking._id,
+    reason,
+    detail: `${booking.ref}: refunded in full, so nothing further is charged`,
+  })
 }
 
 export async function tillOverview(scope: Scope) {

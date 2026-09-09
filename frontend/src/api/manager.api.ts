@@ -169,6 +169,15 @@ export interface PricingProduct {
   depositRequired: number
   assetTypeId: string | null
   assetTypeName: string | null
+  /** Where this product is sold. Null means every desk running the activity. */
+  stationId?: string | null
+  stationName?: string | null
+  kioskId?: string | null
+  kioskName?: string | null
+  /** How many of them stand at this product's own desk right now. */
+  unitsHere?: number | null
+  /** Where the things behind it actually sit — an asset type can be stocked at several desks. */
+  stockedAt?: { stationId: string; stationName: string; kioskId: string | null; kioskName: string; count: number }[]
   billingModel: BillingModel
   durationUnit: string | null
   emoji: string
@@ -179,8 +188,12 @@ export interface PricingCatalogue {
   currency: string
   vatRate: number
   billingModels: BillingModel[]
+  /** What each activity may be charged by — a lagoon trip is a trip, not an hour or a bag. */
+  billingByEngine?: Partial<Record<EngineKind, BillingModel[]>>
+  stations?: { _id: string; name: string; engineKinds: EngineKind[] }[]
+  kiosks?: { _id: string; name: string; stationId: string; engineKind: EngineKind }[]
   durationUnits: string[]
-  assetTypes: { _id: string; name: string; kind: string; engineKind: EngineKind }[]
+  assetTypes: { _id: string; name: string; kind: string; engineKind: EngineKind; seats?: number | null }[]
   products: PricingProduct[]
 }
 
