@@ -86,6 +86,8 @@ export interface OrgKiosk {
   location?: string
   stationId: string
   engineKind: EngineKind
+  /** Desks customers collect bags from, offered as a destination when sending bags out. */
+  isExitGate?: boolean
   active: boolean
   total: number
   available: number

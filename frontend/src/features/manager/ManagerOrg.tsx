@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Building2, MapPin, Pencil, Plus, Boxes, Power, ChevronRight, Server, Trash2 } from 'lucide-react'
+import { Building2, DoorOpen, MapPin, Pencil, Plus, Boxes, Power, ChevronRight, Server, Trash2 } from 'lucide-react'
 import { clsx } from 'clsx'
 import { PageHeader } from '@/components/PageHeader'
 import { Card, SectionTitle, Button, Field, Spinner, Badge, EmptyState } from '@/components/ui'
@@ -89,6 +89,7 @@ export function ManagerOrg() {
         code: form.code,
         location: form.location,
         engineKind: form.engineKind,
+        isExitGate: form.isExitGate === 'yes',
       }
       if (dialog.id) updateKiosk.mutate({ id: dialog.id, patch: payload }, { onSuccess: () => done('Kiosk updated'), onError: fail })
       else createKiosk.mutate(payload, { onSuccess: () => done('Kiosk created'), onError: fail })
@@ -250,6 +251,14 @@ export function ManagerOrg() {
                                   <p className="text-[11px] text-brand mt-0.5" data-testid={`org-kiosk-activity-${k._id}`}>
                                     {engineLabel(k.engineKind)}
                                   </p>
+                                  {k.isExitGate && (
+                                    <span
+                                      className="mt-1 inline-flex items-center gap-1 rounded-full bg-brand/10 px-1.5 py-0.5 text-[10px] font-bold text-brand"
+                                      data-testid={`org-kiosk-gate-${k._id}`}
+                                    >
+                                      <DoorOpen size={10} /> {t('org.exitGate')}
+                                    </span>
+                                  )}
                                   {k.location && <p className="text-[11px] text-muted mt-0.5 line-clamp-1">{k.location}</p>}
                                 </div>
                                 <div className="flex items-center gap-1 shrink-0">
@@ -257,7 +266,13 @@ export function ManagerOrg() {
                                     onClick={() =>
                                       open(
                                         { kind: 'kiosk', id: k._id, stationId: station._id, runs: station.engineKinds },
-                                        { name: k.name, code: k.code ?? '', location: k.location ?? '', engineKind: k.engineKind },
+                                        {
+                                          name: k.name,
+                                          code: k.code ?? '',
+                                          location: k.location ?? '',
+                                          engineKind: k.engineKind,
+                                          isExitGate: k.isExitGate ? 'yes' : 'no',
+                                        },
                                       )
                                     }
                                     className="text-muted hover:text-brand"
@@ -400,6 +415,23 @@ export function ManagerOrg() {
             <Field label={t('org.code')}><input className="lf-input" value={form.code ?? ''} onChange={(e) => setForm({ ...form, code: e.target.value })} /></Field>
             <Field label={t('org.location')} hint={t('org.locationHint')}>
               <input className="lf-input" value={form.location ?? ''} onChange={(e) => setForm({ ...form, location: e.target.value })} placeholder={t('org.locationPlaceholder')} />
+            </Field>
+            <Field label={t('org.exitGate')} hint={t('org.exitGateHint')}>
+              <label className="lf-card flex cursor-pointer items-start gap-3 p-3">
+                <input
+                  type="checkbox"
+                  className="mt-0.5"
+                  checked={form.isExitGate === 'yes'}
+                  onChange={(e) => setForm({ ...form, isExitGate: e.target.checked ? 'yes' : 'no' })}
+                  data-testid="org-kiosk-exit-gate"
+                />
+                <span className="min-w-0">
+                  <span className="block text-sm font-semibold text-navy dark:text-dk-texthi">
+                    {t('org.exitGateLabel')}
+                  </span>
+                  <span className="block text-xs text-muted">{t('org.exitGateBlurb')}</span>
+                </span>
+              </label>
             </Field>
           </>
         )}

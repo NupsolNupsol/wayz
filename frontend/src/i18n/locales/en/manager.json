@@ -175,7 +175,11 @@
     },
     "venueTypeHint": "Pick one, or add a venue type of your own.",
     "venueTypeAdd": "+ Add a venue type…",
-    "venueTypePlaceholder": "e.g. WATERPARK"
+    "venueTypePlaceholder": "e.g. WATERPARK",
+    "exitGate": "Exit gate",
+    "exitGateLabel": "Customers collect bags here",
+    "exitGateBlurb": "A desk marked as an exit gate can be chosen when sending a customer’s bags out with a courier.",
+    "exitGateHint": "Gates are the exits people leave the venue by."
   },
   "pricing": {
     "title": "Products",

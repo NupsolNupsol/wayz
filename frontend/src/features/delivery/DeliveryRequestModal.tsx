@@ -12,6 +12,9 @@ import type { DeliveryOrigin } from '@/api/delivery.api'
 import { PhoneInput } from '@/components/PhoneInput'
 import { Select } from '@/components/Select'
 
+/** Bags either go to an exit gate the customer walks to, or to an address the courier finds. */
+type Destination = 'GATE' | 'ADDRESS'
+
 const ORIGINS: { value: DeliveryOrigin; title: string; blurb: string; icon: typeof MapPin }[] = [
   {
     value: 'AT_STORAGE',
@@ -49,11 +52,13 @@ export function DeliveryRequestModal({
   const elsewhere = useCustomerBagsElsewhere(bookingId, open)
   const otherKiosks = elsewhere.data ?? []
 
+  const { data: gates = [], isLoading: gatesLoading, isError: gatesFailed } = useExitGates(open)
+  const hasGates = gates.length > 0
+
   const [origin, setOrigin] = useState<DeliveryOrigin>('AT_STORAGE')
   const [address, setAddress] = useState('')
-  const { data: gates = [] } = useExitGates(open)
-  const [toGate, setToGate] = useState(true)
   const [gateId, setGateId] = useState('')
+  const [picked, setPicked] = useState<Destination>('GATE')
   const [notes, setNotes] = useState('')
   const [contactPhone, setContactPhone] = useState(customerPhone ?? '')
   const [verifyOpen, setVerifyOpen] = useState(false)
@@ -63,6 +68,8 @@ export function DeliveryRequestModal({
   const reset = () => {
     setOrigin('AT_STORAGE'); setAddress(''); setNotes(''); setContactPhone(customerPhone ?? ''); setVerified(false)
     setAlsoBookingIds([])
+    // The modal is kept mounted, so without these the next request opens on the last one's choices.
+    setPicked('GATE'); setGateId('')
   }
 
   const toggleKiosk = (id: string) =>
@@ -79,14 +86,27 @@ export function DeliveryRequestModal({
   const close = () => { reset(); onClose() }
 
   const needsProof = origin === 'CUSTOMER_CONTACT' && !verified
-  const ready = (toGate ? !!gateId : address.trim().length >= 3) && !needsProof
+
+  /**
+   * Where the bags are going, and the single thing that decides both the field on show and whether
+   * the button turns on.
+   *
+   * A gate can only be chosen when this site has one. If the list is empty — or could not be read
+   * at all — the only way to say where is an address, and asking for a gate id that is never
+   * offered would leave the desk with a form it can never submit.
+   */
+  // While the list is still coming, hold the choice the desk made rather than flashing the address
+  // field and snapping back to the gate a moment later.
+  const destination: Destination = hasGates || gatesLoading ? picked : 'ADDRESS'
+  const saidWhere = destination === 'GATE' ? !!gateId : address.trim().length >= 3
+  const ready = saidWhere && !needsProof
 
   const submit = () => {
     create.mutate(
       {
         bookingId,
         alsoBookingIds: alsoBookingIds.length ? alsoBookingIds : undefined,
-        ...(toGate ? { toKioskId: gateId } : { address: address.trim() }),
+        ...(destination === 'GATE' ? { toKioskId: gateId } : { address: address.trim() }),
         notes: notes.trim() || undefined,
         contactPhone: contactPhone.trim() || undefined,
         origin,
@@ -226,27 +246,31 @@ export function DeliveryRequestModal({
           </div>
         )}
 
-        {gates.length > 0 && (
+        {hasGates && (
           <Field label={t('request.whereTo')} required hint={t('request.whereToHint')}>
             <div className="flex flex-wrap gap-2" data-testid="delivery-where">
               <button
                 type="button"
-                onClick={() => setToGate(true)}
+                onClick={() => setPicked('GATE')}
                 data-testid="delivery-to-gate"
                 className={clsx(
                   'lf-btn !h-9 !px-3 text-xs border',
-                  toGate ? 'bg-brand text-brand-fg border-brand' : 'bg-surface border-line text-muted hover:text-brand',
+                  destination === 'GATE'
+                    ? 'bg-brand text-brand-fg border-brand'
+                    : 'bg-surface border-line text-muted hover:text-brand',
                 )}
               >
                 {t('request.toExitGate')}
               </button>
               <button
                 type="button"
-                onClick={() => setToGate(false)}
+                onClick={() => setPicked('ADDRESS')}
                 data-testid="delivery-to-address"
                 className={clsx(
                   'lf-btn !h-9 !px-3 text-xs border',
-                  !toGate ? 'bg-brand text-brand-fg border-brand' : 'bg-surface border-line text-muted hover:text-brand',
+                  destination === 'ADDRESS'
+                    ? 'bg-brand text-brand-fg border-brand'
+                    : 'bg-surface border-line text-muted hover:text-brand',
                 )}
               >
                 {t('request.toAddress')}
@@ -255,7 +279,7 @@ export function DeliveryRequestModal({
           </Field>
         )}
 
-        {toGate && gates.length > 0 ? (
+        {destination === 'GATE' ? (
           <Field label={t('request.exitGate')} required hint={t('request.exitGateHint')}>
             <Select
               value={gateId}
@@ -268,7 +292,11 @@ export function DeliveryRequestModal({
             />
           </Field>
         ) : (
-          <Field label={t('request.deliverTo')} required hint={t('request.addressHint')}>
+          <Field
+            label={t('request.deliverTo')}
+            required
+            hint={gatesFailed ? t('request.gatesUnavailable') : hasGates ? t('request.addressHint') : t('request.noGatesHint')}
+          >
             <input
               className="lf-input"
               value={address}
@@ -300,7 +328,7 @@ export function DeliveryRequestModal({
           <PhoneInput value={contactPhone} onChange={setContactPhone} testId="delivery-contact" />
         </Field>
 
-        {needsProof && address.trim().length >= 3 && (
+        {needsProof && saidWhere && (
           <Badge tone="warning" className="mt-1">
             <MapPin size={12} className="me-1 inline" />{t('request.verifyToEnable')}</Badge>
         )}

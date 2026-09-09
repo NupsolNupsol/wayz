@@ -139,7 +139,9 @@
     "toAddress": "An address",
     "exitGate": "Which gate",
     "exitGateHint": "The customer collects from the agent at this gate.",
-    "pickGate": "Choose a gate…"
+    "pickGate": "Choose a gate…",
+    "gatesUnavailable": "The gate list could not be loaded, so give the courier an address.",
+    "noGatesHint": "This site has no exit gates set up, so give the courier an address."
   },
   "state": {
     "REQUESTED": {
