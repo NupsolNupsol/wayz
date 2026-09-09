@@ -235,21 +235,21 @@ export async function createDeliveryRequest(scope: Scope, input: CreateDeliveryI
   }).lean()
   if (existing) throw ApiError.conflict(`A delivery (${existing._id}) is already open for this booking.`)
 
-  // Every kiosk on the run, not only the one that took the call: the courier carries no card reader.
+  /**
+   * What the bookings on this run still owe, recorded but never blocking.
+   *
+   * Sending bags out does not settle a bill, and by the client's rule a delivery is never held up
+   * over money: the courier carries bags and nothing else, and whatever is outstanding stays with
+   * the desk that raised it. The figure is kept on the run so the desk can see it rather than
+   * discover it later.
+   */
   const alsoOwing = await Promise.all(
     [...new Set([booking._id, ...(input.alsoBookingIds ?? [])])].map(async (id) => ({
       id,
       owed: await outstandingFor(scope.tenantId, id),
     })),
   )
-  const owed = round2(alsoOwing.reduce((sum, row) => sum + row.owed, 0))
-  if (owed > 0) {
-    const which = alsoOwing.filter((row) => row.owed > 0).map((row) => row.id)
-    throw ApiError.unprocessable(`${owed.toFixed(2)} is still owed on ${which.length > 1 ? 'these bookings' : 'this booking'}.`, [
-      'Take the money at the desk before sending the bags out — couriers do not handle payments.',
-      `Still owing: ${which.join(', ')}.`,
-    ])
-  }
+  const owedAtRequest = round2(alsoOwing.reduce((sum, row) => sum + row.owed, 0))
 
   let verifiedBy: string | null = null
   let verifiedAt: Date | null = null
@@ -326,6 +326,7 @@ export async function createDeliveryRequest(scope: Scope, input: CreateDeliveryI
     assetUnitId: unitId,
     assetUnitIdentifier: unit?.identifier ?? null,
     fee: input.fee ?? 0,
+    owedAtRequest,
     stops,
     timeline: [
       {
@@ -538,13 +539,9 @@ export async function applyDeliveryTransition(params: ApplyDeliveryParams) {
   }
 
   if (code === 'TO_DELIVERED') {
+    // The clock stops when the bags leave; anything still owed is the desk's to collect, not a
+    // reason to leave a courier standing at a gate with a customer's luggage.
     await stopStorageClockAtPickup(actor.tenantId, doc)
-    const owed = await deliveryAmountDue(actor.tenantId, doc)
-    if (owed > 0) {
-      throw ApiError.unprocessable('This delivery is not paid up.', [
-        `${owed.toFixed(2)} is still owed — ring the desk that raised it, they take the money, not you.`,
-      ])
-    }
   }
 
   const validator = getDeliveryValidator(DEFAULT_DELIVERY_ASSET_KIND)

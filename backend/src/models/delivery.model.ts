@@ -64,6 +64,8 @@ export interface DeliveryRequestDoc {
   deliveredAt: Date | null
   failureReason: string | null
   fee: number
+  /** What the bookings on this run owed when it was raised. Recorded, never a blocker. */
+  owedAtRequest?: number
   stops: DeliveryStopDoc[]
   timeline: DeliveryTimelineEntryDoc[]
   createdAt: Date
@@ -136,6 +138,7 @@ const deliverySchema = new Schema<DeliveryRequestDoc>(
     deliveredAt: { type: Date, default: null },
     failureReason: { type: String, default: null },
     fee: { type: Number, default: 0 },
+    owedAtRequest: { type: Number, default: 0 },
     stops: { type: [stopSchema], default: [] },
     timeline: { type: [timelineSchema], default: [] },
   },
