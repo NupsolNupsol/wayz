@@ -50,7 +50,7 @@ export const catalogueController = {
     const { bags } = suggestSchema.parse(req.body);
     res.json({
       success: true,
-      data: await suggestPacking(s.tenantId, s.stationId, bags),
+      data: await suggestPacking(s.tenantId, s.stationId, bags, s.kioskId),
     });
   }),
 };

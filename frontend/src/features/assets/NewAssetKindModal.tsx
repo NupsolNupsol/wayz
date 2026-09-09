@@ -5,7 +5,7 @@ import { Button, Field, FieldGroupTitle } from '@/components/ui'
 import { Select } from '@/components/Select'
 import { NumberInput } from '@/components/NumberInput'
 import { useCreateAssetKind } from '@/hooks'
-import { chargesForTime, engineLabel, saleUnitsFor, VISIBLE_ENGINES } from '@/config/engineMeta'
+import { billingForSaleUnit, billingLabel, chargesForTime, engineLabel, saleUnitsFor, VISIBLE_ENGINES } from '@/config/engineMeta'
 import { ApiError } from '@/api/client'
 import { toast } from '@/state/toastStore'
 import { ASSET_KINDS, SALE_TYPES, SALE_UNITS, type AssetKind, type AssetKiosk, type AssetStation, type SaleType, type SaleUnit } from '@/api/asset.api'
@@ -202,7 +202,13 @@ export function NewAssetKindModal({
 
       <FieldGroupTitle>{t('newKind.pricing')}</FieldGroupTitle>
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-        <Field label={t('price.saleUnit')} required hint={t('price.saleUnitHint')}>
+        <Field
+          label={t('price.saleUnit')}
+          required
+          hint={t('newKind.chargedAs', {
+            billing: billingLabel(billingForSaleUnit(saleUnit, kind), engineKind),
+          })}
+        >
           <Select
             value={saleUnit}
             onChange={(v) => setSaleUnit(v as SaleUnit)}

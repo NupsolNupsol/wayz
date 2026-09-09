@@ -20,6 +20,7 @@ export interface AssetTypeRow {
   engineKind: EngineKind
   capacityScore: number
   seats: number | null
+  maxRecommendedBagCount: number | null
   productId: string | null
   productName: string | null
   basePrice: number | null

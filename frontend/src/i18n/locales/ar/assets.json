@@ -140,7 +140,8 @@
     "couldNotCreateKind": "تعذّر إنشاء النوع",
     "kindRenamed": "أُعيدت التسمية إلى {{name}}",
     "kindRemoved": "تم حذف {{name}}",
-    "couldNotRemoveKind": "تعذّر حذف النوع"
+    "couldNotRemoveKind": "تعذّر حذف النوع",
+    "kindSaved": "تم حفظ {{name}}"
   },
   "free": {
     "title": "تحرير {{identifier}} قسرياً",
@@ -169,7 +170,8 @@
     "howMany": "كم أصلاً تُنشئ الآن",
     "howManyHint": "يحصل كل أصل على معرّف ورمز QR. اتركه صفراً لإضافتها لاحقاً.",
     "submit": "إنشاء النوع",
-    "kioskHint": "المكتب الذي توضع فيه هذه الأصول الأولى."
+    "kioskHint": "المكتب الذي توضع فيه هذه الأصول الأولى.",
+    "chargedAs": "يُحتسب كـ {{billing}}."
   },
   "removeKind": {
     "title": "حذف {{name}}",
@@ -178,7 +180,15 @@
   },
   "editKind": {
     "title": "إعادة تسمية {{name}}",
-    "subtitle": "يُعاد تسمية المنتج الذي يبيعه الكاونتر معه."
+    "subtitle": "يُعاد تسمية المنتج الذي يبيعه الكاونتر معه.",
+    "details": "التفاصيل",
+    "pricing": "التسعير",
+    "seats": "المقاعد",
+    "seatsHint": "عدد الركاب الذين يحملهم هذا القارب.",
+    "maxBags": "الحقائب لكل خزانة",
+    "maxBagsHint": "أقصى عدد حقائب يستوعبه هذا المقاس.",
+    "capacityScore": "درجة السعة",
+    "capacityScoreHint": "تستخدمها خطة التوزيع لاختيار المقاس المناسب."
   },
   "wrongDesk": {
     "title": "هذه ليست من مكتبك",

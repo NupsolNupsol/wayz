@@ -77,6 +77,24 @@ export function saleUnitsFor(engineKind: EngineKind, all: readonly string[]): st
   return SALE_UNITS_FOR[engineKind] ?? [...all]
 }
 
+/** Sale units that measure time — mirrors the platform's own rule. */
+export const TIMED_SALE_UNITS = ['HOUR', 'FULL_DAY']
+
+export const isTimedSaleUnit = (unit: string): boolean => TIMED_SALE_UNITS.includes(unit)
+
+/**
+ * How a kind sold in this unit will actually be charged.
+ *
+ * The form does not ask for a billing model — it is decided by how the thing is sold — so this is
+ * what the platform will do, shown back to the admin before they commit to it.
+ */
+export function billingForSaleUnit(unit: string, kind: string): string {
+  if (isTimedSaleUnit(unit)) return 'DURATION_BASED'
+  if (kind === 'COMPARTMENT') return 'PER_COMPARTMENT'
+  if (kind === 'VEHICLE') return 'DURATION_BASED'
+  return 'PACKAGE'
+}
+
 /** A lagoon trip has a captain, not a meter, so nothing about it is priced by time. */
 export function chargesForTime(engineKind: EngineKind): boolean {
   return engineKind !== 'LAGOON'

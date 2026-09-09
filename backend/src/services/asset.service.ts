@@ -3,7 +3,15 @@ import { AssetType, AssetUnit, Booking, CatalogueProduct, Kiosk, Station } from 
 import { ApiError } from '../utils/ApiError.js'
 import { nextId } from './counter.service.js'
 import { recordAudit } from './audit.service.js'
-import { billingAllowedFor, chargesForTime, saleUnitsFor } from '../domain/types.js'
+import {
+  billingAllowedFor,
+  billingForSaleUnit,
+  chargesForTime,
+  durationUnitFor,
+  isTimedSaleUnit,
+  saleUnitMatchesBilling,
+  saleUnitsFor,
+} from '../domain/types.js'
 import type { AssetUnitStatus, BagCategory, BillingModel, EngineKind, Role, SaleType, SaleUnit } from '../domain/types.js'
 import { canWorkEngine, engineFilter } from '../domain/access.js'
 import { tenantRules } from './rules.service.js'
@@ -139,6 +147,7 @@ export async function listAssetTypes(scope: AssetScope, engineKind?: EngineKind)
         engineKind: type.engineKind,
         capacityScore: type.capacity?.capacityScore ?? 0,
         seats: type.capacity?.seats ?? null,
+        maxRecommendedBagCount: type.capacity?.maxRecommendedBagCount ?? null,
         productId: product?._id ?? null,
         productName: product?.name ?? null,
         basePrice: product?.basePrice ?? null,
@@ -327,10 +336,19 @@ export async function createAssetKind(scope: AssetScope, input: NewAssetKind) {
       `It can be sold: ${saleUnitsFor(input.engineKind).join(', ')}.`,
     ])
   }
-  const billing = input.billingModel ?? KIND_DEFAULTS[input.kind].billingModel
+  // Something sold by the hour is charged by the hour. Left to the kind's default, a compartment
+  // sold by time would be priced per compartment and every duration would cost the same.
+  const billing = input.billingModel ?? billingForSaleUnit(saleUnit, KIND_DEFAULTS[input.kind].billingModel)
   if (!billingAllowedFor(input.engineKind).includes(billing)) {
     throw ApiError.unprocessable(`${input.engineKind.toLowerCase().replace(/_/g, ' ')} is not charged that way.`, [
       `It can be charged: ${billingAllowedFor(input.engineKind).join(', ')}.`,
+    ])
+  }
+  if (!saleUnitMatchesBilling(saleUnit, billing)) {
+    throw ApiError.unprocessable(`Something sold by ${saleUnit.toLowerCase().replace(/_/g, ' ')} cannot be charged that way.`, [
+      isTimedSaleUnit(saleUnit)
+        ? 'Sold by time, it has to be charged by duration — otherwise every length costs the same.'
+        : 'Charging by duration needs a sale unit measured in time, like an hour or a full day.',
     ])
   }
   if (input.overtimeHourlyRate && !chargesForTime(input.engineKind)) {
@@ -369,7 +387,8 @@ export async function createAssetKind(scope: AssetScope, input: NewAssetKind) {
     overtimeHourlyRate: input.overtimeHourlyRate == null ? null : round2(input.overtimeHourlyRate),
     assetTypeId,
     billingModel: billing,
-    durationUnit: billing === 'DURATION_BASED' ? 'HOUR' : undefined,
+    // What one billed period is: an hour-long unit bills per hour, a day pass per day.
+    durationUnit: billing === 'DURATION_BASED' ? (durationUnitFor(saleUnit) ?? 'HOUR') : undefined,
     compatibleBagCategories: capacity.compatibleBagCategories,
     emoji: defaults.emoji,
     active: true,
@@ -728,6 +747,21 @@ export async function updateTypePrice(
   if (input.saleUnit !== undefined) {
     changes.push(`unit ${product.saleUnit} → ${input.saleUnit}`)
     product.saleUnit = input.saleUnit
+
+    // Changing how it is sold changes how it is charged, or the two drift apart and a two-hour
+    // hire quietly costs the same as a one-hour one.
+    const billing = billingForSaleUnit(input.saleUnit, product.billingModel)
+    if (!saleUnitMatchesBilling(input.saleUnit, product.billingModel)) {
+      if (!billingAllowedFor(product.engineKind).includes(billing)) {
+        throw ApiError.unprocessable(
+          `${product.engineKind.toLowerCase().replace(/_/g, ' ')} cannot be sold by ${input.saleUnit.toLowerCase().replace(/_/g, ' ')}.`,
+          [`It can be charged: ${billingAllowedFor(product.engineKind).join(', ')}.`],
+        )
+      }
+      changes.push(`billing ${product.billingModel} → ${billing}`)
+      product.billingModel = billing
+    }
+    if (product.billingModel === 'DURATION_BASED') product.durationUnit = durationUnitFor(input.saleUnit) ?? 'HOUR'
   }
   if (input.saleType !== undefined) {
     changes.push(`sale type ${product.saleType} → ${input.saleType}`)

@@ -140,7 +140,8 @@
     "couldNotCreateKind": "Could not create the kind",
     "kindRenamed": "Renamed to {{name}}",
     "kindRemoved": "{{name}} deleted",
-    "couldNotRemoveKind": "Could not delete the kind"
+    "couldNotRemoveKind": "Could not delete the kind",
+    "kindSaved": "{{name}} saved"
   },
   "free": {
     "title": "Force {{identifier}} free",
@@ -169,7 +170,8 @@
     "howMany": "How many to create now",
     "howManyHint": "Each gets its own identifier and QR code. Leave at zero to add them later.",
     "submit": "Create kind",
-    "kioskHint": "Which desk these first assets sit at."
+    "kioskHint": "Which desk these first assets sit at.",
+    "chargedAs": "Charged as {{billing}}."
   },
   "removeKind": {
     "title": "Delete {{name}}",
@@ -178,7 +180,15 @@
   },
   "editKind": {
     "title": "Rename {{name}}",
-    "subtitle": "The product the counter sells is renamed with it."
+    "subtitle": "The product the counter sells is renamed with it.",
+    "details": "Details",
+    "pricing": "Pricing",
+    "seats": "Seats",
+    "seatsHint": "How many people this boat carries.",
+    "maxBags": "Bags per compartment",
+    "maxBagsHint": "The most bags this size should hold.",
+    "capacityScore": "Capacity score",
+    "capacityScoreHint": "Used by the packing plan to choose a size."
   },
   "wrongDesk": {
     "title": "This one is not yours",

@@ -213,9 +213,28 @@ export function EngineWorkspace({ engineKind }: { engineKind: EngineKind }) {
   }, [step, unitId, freeUnits])
 
   const snapshotBookingId = restoring ? (readSnapshot(engineKind)?.bookingId ?? null) : null
-  const { data: snapshotBooking } = useBooking(snapshotBookingId || undefined)
-  const { data: snapshotOrder } = useBookingOrder(snapshotBookingId || undefined)
-  const { data: snapshotCustomer } = useCustomer(restoring ? (readSnapshot(engineKind)?.customerId ?? undefined) : undefined)
+  const snapshotBookingQuery = useBooking(snapshotBookingId || undefined)
+  const snapshotOrderQuery = useBookingOrder(snapshotBookingId || undefined)
+  const snapshotCustomerQuery = useCustomer(restoring ? (readSnapshot(engineKind)?.customerId ?? undefined) : undefined)
+  const { data: snapshotBooking } = snapshotBookingQuery
+  const { data: snapshotOrder } = snapshotOrderQuery
+  const { data: snapshotCustomer } = snapshotCustomerQuery
+
+  /**
+   * A last resort on the restore.
+   *
+   * The counter shows nothing until we know whether a half-finished sale is coming back, so a
+   * stalled lookup would stall the whole screen. If the decision has not settled in a few seconds
+   * the draft is abandoned: losing a draft is a nuisance, a counter that never loads is a queue.
+   */
+  useEffect(() => {
+    if (!restoring) return
+    const id = window.setTimeout(() => {
+      writeSnapshot(engineKind, null)
+      setRestoring(false)
+    }, 6_000)
+    return () => window.clearTimeout(id)
+  }, [restoring, engineKind])
 
   /** Coming back to the tab picks the sale up where it was left, rather than starting over. */
   useEffect(() => {
@@ -229,8 +248,19 @@ export function EngineWorkspace({ engineKind }: { engineKind: EngineKind }) {
       return
     }
     if (!products.length) return
-    if (snap.customerId && !snapshotCustomer) return
-    if (snap.bookingId && (!snapshotBooking || !snapshotOrder)) return
+
+    // Wait only while something is genuinely in flight.
+    const fetching =
+      (!!snap.customerId && snapshotCustomerQuery.isLoading) ||
+      (!!snap.bookingId && (snapshotBookingQuery.isLoading || snapshotOrderQuery.isLoading))
+    if (fetching) return
+
+    // Settled with nothing: what the draft points at is gone, so let it go.
+    if ((snap.customerId && !snapshotCustomer) || (snap.bookingId && (!snapshotBooking || !snapshotOrder))) {
+      writeSnapshot(engineKind, null)
+      setRestoring(false)
+      return
+    }
 
     if (snap.bookingId && snapshotBooking && snapshotOrder && !isUnfinishedSale(snapshotBooking, snapshotOrder)) {
       writeSnapshot(engineKind, null)
@@ -250,7 +280,18 @@ export function EngineWorkspace({ engineKind }: { engineKind: EngineKind }) {
     setStep(snap.step)
     setResumed(true)
     setRestoring(false)
-  }, [restoring, resumeId, engineKind, products, snapshotBooking, snapshotOrder, snapshotCustomer])
+  }, [
+    restoring,
+    resumeId,
+    engineKind,
+    products,
+    snapshotBooking,
+    snapshotOrder,
+    snapshotCustomer,
+    snapshotBookingQuery.isLoading,
+    snapshotOrderQuery.isLoading,
+    snapshotCustomerQuery.isLoading,
+  ])
 
   useEffect(() => {
     if (restoring) return

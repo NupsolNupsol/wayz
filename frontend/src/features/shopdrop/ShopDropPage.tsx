@@ -1,7 +1,7 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useNavigate, useSearchParams } from 'react-router-dom'
-import { Minus, Plus, Check, Printer, ArrowLeft, ArrowRight, PackageCheck, Boxes, Sparkles, Loader2, ReceiptText, Truck } from 'lucide-react'
+import { Minus, Plus, Check, Printer, ArrowLeft, ArrowRight, PackageCheck, Boxes, Loader2, ReceiptText, Truck } from 'lucide-react'
 import { clsx } from 'clsx'
 import { PageHeader } from '@/components/PageHeader'
 import { Card, Button, Field, SectionTitle, StatusBadge, Badge } from '@/components/ui'
@@ -22,14 +22,16 @@ import { isUnfinishedSale } from '@/features/bookings/resumeDraft'
 import { readDraft, writeDraft, type WorkspaceDraft } from '@/features/bookings/workspaceDraft'
 import { bookingApi } from '@/api/booking.api'
 import { trackingUrl } from '@/api/public.api'
-import { useProducts, useUnits, useBooking, useBookingOrder, useCreateBooking, useCustomer, usePay, useReserve, useTransition, usePackingSuggestions } from '@/hooks'
+import { useUnits, useBooking, useBookingOrder, useCreateBooking, useCustomer, usePay, useReserve, useTransition } from '@/hooks'
 import { ApiError } from '@/api/client'
 import { useAuthStore } from '@/store/auth'
 import { money } from '@/utils'
 import { toast } from '@/state/toastStore'
 import { sendInvoiceOnPayment } from '@/features/invoice/sendInvoiceOnPayment'
-import type { Booking, Customer, Order, PackingSuggestion } from '@/api/types'
+import type { AssetUnit, Booking, Customer, Order } from '@/api/types'
 import { NumberInput } from '@/components/NumberInput'
+import { useStatusLabel } from '@/i18n/useStatusLabel'
+import { DataTable, type Column } from '@/components/DataTable'
 
 const STEPS: Step[] = [
   { key: 'customer', labelKey: 'agent:shopdrop.stepCustomer' },
@@ -43,7 +45,6 @@ const STEPS: Step[] = [
 type BagCategory = 'SOFT' | 'HARD' | 'OVERSIZE' | 'FRAGILE'
 interface BagRow { description: string; category: BagCategory; w: number; h: number; d: number; weight: number }
 const defaultBag = (i: number): BagRow => ({ description: `Bag ${i}`, category: 'SOFT', w: 30, h: 25, d: 20, weight: 3 })
-const toSuggestBag = (b: BagRow) => ({ category: b.category, dimensions: { w: b.w, h: b.h, d: b.d }, weight: b.weight })
 
 /** Distinct from the engine workspace's own key, so the two never read each other's shape. */
 const DRAFT_KEY = 'shopdrop-counter'
@@ -58,9 +59,8 @@ export function ShopDropPage() {
   const [params, setParams] = useSearchParams()
   const resumeId = params.get('resume') ?? ''
   const online = useAuthStore((s) => s.online)
-  const { data: products = [] } = useProducts('SHOP_AND_DROP')
   const { data: units = [] } = useUnits()
-  const suggestMut = usePackingSuggestions()
+  const statusLabel = useStatusLabel()
   const createMut = useCreateBooking()
   const payMut = usePay()
   const reserveMut = useReserve()
@@ -71,8 +71,9 @@ export function ShopDropPage() {
   const [deliveryId, setDeliveryId] = useState<string | null>(null)
   const [customer, setCustomer] = useState<Customer | null>(null)
   const [bags, setBags] = useState<BagRow[]>([defaultBag(1)])
-  const [suggestions, setSuggestions] = useState<PackingSuggestion[]>([])
   const [productId, setProductId] = useState('')
+  const [unitId, setUnitId] = useState('')
+  const [freeOnly, setFreeOnly] = useState(true)
   const [durationHours, setDurationHours] = useState(2)
 
   const [booking, setBooking] = useState<Booking | null>(null)
@@ -106,9 +107,29 @@ export function ShopDropPage() {
   }, [resumeId, resuming, resumingOrder, resumingCustomer, booking, navigate, setParams])
 
   const draft = restoring ? readDraft<BagDraft>(DRAFT_KEY) : null
-  const { data: draftBooking } = useBooking(draft?.bookingId || undefined)
-  const { data: draftOrder } = useBookingOrder(draft?.bookingId || undefined)
-  const { data: draftCustomer } = useCustomer(draft?.customerId || undefined)
+  const draftBookingQuery = useBooking(draft?.bookingId || undefined)
+  const draftOrderQuery = useBookingOrder(draft?.bookingId || undefined)
+  const draftCustomerQuery = useCustomer(draft?.customerId || undefined)
+  const { data: draftBooking } = draftBookingQuery
+  const { data: draftOrder } = draftOrderQuery
+  const { data: draftCustomer } = draftCustomerQuery
+
+  /**
+   * A last resort on the restore.
+   *
+   * The counter is held blank while we work out whether a half-finished sale is coming back, so
+   * anything that can stall that decision stalls the whole screen. If it has not settled in a few
+   * seconds, the draft is abandoned and the agent gets a counter they can work — a lost draft is a
+   * nuisance, a counter that never loads is a queue.
+   */
+  useEffect(() => {
+    if (!restoring) return
+    const id = window.setTimeout(() => {
+      writeDraft(DRAFT_KEY, null)
+      setRestoring(false)
+    }, 6_000)
+    return () => window.clearTimeout(id)
+  }, [restoring])
 
   /** Coming back to the counter picks the bag drop up where it was left, rather than starting over. */
   useEffect(() => {
@@ -122,8 +143,19 @@ export function ShopDropPage() {
       setRestoring(false)
       return
     }
-    if (snap.customerId && !draftCustomer) return
-    if (snap.bookingId && (!draftBooking || !draftOrder)) return
+    // Wait only while something is genuinely in flight.
+    const fetching =
+      (!!snap.customerId && draftCustomerQuery.isLoading) ||
+      (!!snap.bookingId && (draftBookingQuery.isLoading || draftOrderQuery.isLoading))
+    if (fetching) return
+
+    // Settled with nothing to show for it: the booking or customer the draft points at is gone.
+    // Drop the draft rather than waiting on data that is never coming.
+    if ((snap.customerId && !draftCustomer) || (snap.bookingId && (!draftBooking || !draftOrder))) {
+      writeDraft(DRAFT_KEY, null)
+      setRestoring(false)
+      return
+    }
 
     if (snap.bookingId && draftBooking && draftOrder && !isUnfinishedSale(draftBooking, draftOrder)) {
       writeDraft(DRAFT_KEY, null)
@@ -140,7 +172,16 @@ export function ShopDropPage() {
     setStep(snap.step)
     setResumed(true)
     setRestoring(false)
-  }, [restoring, resumeId, draftBooking, draftOrder, draftCustomer])
+  }, [
+    restoring,
+    resumeId,
+    draftBooking,
+    draftOrder,
+    draftCustomer,
+    draftBookingQuery.isLoading,
+    draftOrderQuery.isLoading,
+    draftCustomerQuery.isLoading,
+  ])
 
   useEffect(() => {
     if (restoring) return
@@ -161,8 +202,6 @@ export function ShopDropPage() {
     })
   }, [restoring, step, customer, booking, bags, productId, durationHours])
 
-  const priceOf = (pid: string) => products.find((p) => p._id === pid)?.basePrice ?? 0
-  const selected = suggestions.find((s) => s.productId === productId)
   const reservedUnit = booking?.reservation ? units.find((u) => u._id === booking.reservation!.assetUnitId) : undefined
 
   const patchBag = (i: number, patch: Partial<BagRow>) => setBags((prev) => prev.map((x, idx) => (idx === i ? { ...x, ...patch } : x)))
@@ -170,7 +209,7 @@ export function ShopDropPage() {
   const reset = () => {
     writeDraft(DRAFT_KEY, null)
     setResumed(false)
-    setStep(0); setCustomer(null); setBags([defaultBag(1)]); setSuggestions([]); setProductId('')
+    setStep(0); setCustomer(null); setBags([defaultBag(1)]); setProductId(''); setUnitId('')
     setDeliveryId(null); setDeliveryOpen(false)
     setBooking(null); setOrder(null); setPhoneVerified(false)
   }
@@ -198,16 +237,107 @@ export function ShopDropPage() {
     setStep(target)
   }
 
-  const goToPlan = async () => {
+  /**
+   * The agent chooses the compartment themselves, from what this desk is holding — no ranked
+   * suggestion to accept or argue with. Anything already picked is cleared if it has since been
+   * taken by another sale.
+   */
+  const goToPlan = () => {
     setStep(2)
-    try {
-      const res = await suggestMut.mutateAsync(bags.map(toSuggestBag))
-      setSuggestions(res.suggestions)
-      setProductId(res.recommendedProductId ?? res.suggestions[0]?.productId ?? '')
-    } catch (e) {
-      toast('danger', t('shopdrop.couldNotComputePlan'), e instanceof ApiError ? e.message : '')
+    if (unitId && !(units ?? []).some((u) => u._id === unitId && u.status === 'AVAILABLE')) {
+      setUnitId('')
+      setProductId('')
     }
   }
+
+  /**
+   * The compartments this desk actually holds.
+   *
+   * The agent picks a physical unit rather than a size, so what they choose on this step is what
+   * gets locked at the next one — no recommendation to second-guess, and nothing that can turn out
+   * to be standing at another desk.
+   */
+  const compartments = useMemo(
+    () => (units ?? []).filter((u) => u.assetKind === 'COMPARTMENT' || u.engineKind === 'SHOP_AND_DROP'),
+    [units],
+  )
+  const freeCompartments = useMemo(() => compartments.filter((u) => u.status === 'AVAILABLE'), [compartments])
+  const compartmentRows = freeOnly ? freeCompartments : compartments
+  const roomyEnough = useMemo(
+    () => freeCompartments.filter((u) => (u.maxBags ?? 0) >= bags.length).length,
+    [freeCompartments, bags.length],
+  )
+
+  const sizeOptions = useMemo(
+    () => [...new Set(compartments.map((u) => u.assetTypeName))].sort().map((name) => ({ label: name, value: name })),
+    [compartments],
+  )
+  const statusOptions = useMemo(
+    () => [...new Set(compartments.map((u) => u.status))].sort().map((s) => ({ label: statusLabel(s), value: s })),
+    [compartments, statusLabel],
+  )
+
+  const chosenUnit = useMemo(() => compartments.find((u) => u._id === unitId) ?? null, [compartments, unitId])
+
+  /** Choosing a compartment also chooses what it is sold as — the price comes from its own kind. */
+  const pickUnit = (unit: AssetUnit) => {
+    setUnitId(unit._id)
+    setProductId(unit.productId ?? '')
+  }
+
+  const compartmentColumns: Column<AssetUnit>[] = [
+    {
+      key: 'identifier',
+      header: t('shopdrop.compartment'),
+      sortValue: (u) => u.identifier,
+      filter: { kind: 'text', value: (u) => `${u.identifier} ${u.assetTypeName}` },
+      render: (u) => (
+        <div className="flex items-center gap-2">
+          <input
+            type="radio"
+            checked={unitId === u._id}
+            onChange={() => pickUnit(u)}
+            disabled={u.status !== 'AVAILABLE'}
+            aria-label={u.identifier}
+            data-testid={`sd-pick-${u._id}`}
+          />
+          <span className="font-mono font-semibold text-navy dark:text-dk-texthi">{u.identifier}</span>
+        </div>
+      ),
+    },
+    {
+      key: 'size',
+      header: t('shopdrop.size'),
+      sortValue: (u) => u.assetTypeName,
+      filter: { kind: 'select', options: sizeOptions, value: (u) => u.assetTypeName },
+      render: (u) => <span className="text-sm">{u.assetTypeName}</span>,
+    },
+    {
+      key: 'holds',
+      header: t('shopdrop.holds'),
+      align: 'right',
+      sortValue: (u) => u.maxBags ?? 0,
+      render: (u) => (
+        <span className={clsx('text-sm tabular-nums', (u.maxBags ?? 0) < bags.length && 'text-warn font-semibold')}>
+          {u.maxBags ? t('shopdrop.bagsCount', { count: u.maxBags }) : '—'}
+        </span>
+      ),
+    },
+    {
+      key: 'price',
+      header: t('shopdrop.price'),
+      align: 'right',
+      sortValue: (u) => u.price ?? 0,
+      render: (u) => <span className="text-sm tabular-nums">{u.price == null ? '—' : money(u.price)}</span>,
+    },
+    {
+      key: 'status',
+      header: t('common:column.status'),
+      sortValue: (u) => u.status,
+      filter: { kind: 'select', options: statusOptions, value: (u) => u.status },
+      render: (u) => <StatusBadge status={u.status} />,
+    },
+  ]
 
   const holdAndDraft = async () => {
     if (!customer || !productId) return
@@ -254,7 +384,7 @@ export function ShopDropPage() {
   const reserve = async () => {
     if (!booking) return
     try {
-      const b = await reserveMut.mutateAsync({ id: booking.id })
+      const b = await reserveMut.mutateAsync({ id: booking.id, unitId: unitId || undefined })
       setBooking(b)
       toast('success', t('shopdrop.unitReserved'), `${units.find((u) => u._id === b.reservation?.assetUnitId)?.identifier ?? ''} locked (Agent Lease).`)
     } catch (e) { toast('danger', t('shopdrop.reserveFailed'), e instanceof ApiError ? e.message : '') }
@@ -337,46 +467,68 @@ export function ShopDropPage() {
       {step === 2 && (
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
           <Card className="lg:col-span-2">
-            <SectionTitle className="mb-1 flex items-center gap-2"><Sparkles size={18} className="text-brand" />{t('shopdrop.suggestedCompartments')}</SectionTitle>
-            <p className="text-sm text-muted mb-3">Ranked by the packing algorithm for your {bags.length} bag(s) — fewest compartments and tightest fit first. You can override the suggestion.</p>
-            {suggestMut.isPending ? (
-              <div className="flex items-center gap-2 text-muted py-8 justify-center"><Loader2 className="animate-spin" size={18} />{t('shopdrop.computingBestFit')}</div>
-            ) : (
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3" data-testid="sd-suggestions">
-                {suggestions.map((s) => {
-                  const isSel = s.productId === productId
-                  const isRec = suggestMut.data?.recommendedProductId === s.productId
-                  return (
-                    <button key={s.productId} onClick={() => setProductId(s.productId)} data-testid={`sd-suggestion-${s.assetTypeName.replace(/\s+/g, '-')}`}
-                      className={clsx('lf-card p-3 text-start transition-all', isSel ? 'border-brand ring-2 ring-brand/30' : 'hover:border-brand', !s.fits && 'opacity-70')}>
-                      <div className="flex items-center justify-between">
-                        <span className="font-semibold text-navy dark:text-dk-texthi">{s.assetTypeName}</span>
-                        {isRec && <Badge tone="success"><Sparkles size={11} />{t('shopdrop.recommended')}</Badge>}
-                      </div>
-                      <p className="text-sm mt-1"><strong>{s.numberOfCompartments}</strong> compartment(s) · {money(priceOf(s.productId))}</p>
-                      <div className="flex items-center gap-2 mt-2">
-                        {s.fits ? <Badge tone="info">{s.availableUnits} available</Badge> : <Badge tone="danger">{t('shopdrop.notEnoughUnits')}</Badge>}
-                        {s.maxBagsPerCompartment != null && <Badge tone="neutral">≤ {s.maxBagsPerCompartment} bags/unit</Badge>}
-                      </div>
-                    </button>
-                  )
-                })}
-              </div>
-            )}
+            <SectionTitle className="mb-1 flex items-center gap-2">
+              <Boxes size={18} className="text-brand" />
+              {t('shopdrop.pickCompartment')}
+            </SectionTitle>
+            <p className="text-sm text-muted mb-3">{t('shopdrop.pickCompartmentBlurb', { count: bags.length })}</p>
+
+            <div className="flex flex-wrap items-center gap-2 mb-3">
+              <label className="flex items-center gap-2 text-sm cursor-pointer select-none">
+                <input
+                  type="checkbox"
+                  checked={freeOnly}
+                  onChange={(e) => setFreeOnly(e.target.checked)}
+                  data-testid="sd-free-only"
+                />
+                {t('shopdrop.freeOnly')}
+              </label>
+              <Badge tone={freeCompartments.length ? 'info' : 'danger'} testId="sd-free-count">
+                {t('shopdrop.freeHere', { count: freeCompartments.length })}
+              </Badge>
+              {roomyEnough > 0 && (
+                <Badge tone="neutral" testId="sd-roomy-count">
+                  {t('shopdrop.holdsYourBags', { count: roomyEnough })}
+                </Badge>
+              )}
+            </div>
+
+            <DataTable<AssetUnit>
+              testId="sd-compartments"
+              rows={compartmentRows}
+              keyOf={(u) => u._id}
+              pageSize={8}
+              initialSort={{ key: 'identifier', dir: 'asc' }}
+              onRowClick={(u) => {
+                if (u.status === 'AVAILABLE') pickUnit(u)
+              }}
+              empty={{ title: t('shopdrop.noCompartments'), message: t('shopdrop.noCompartmentsHint') }}
+              columns={compartmentColumns}
+            />
+
             <div className="mt-4"><Field label={t('shopdrop.storageDuration')}><NumberInput min={1} value={durationHours} onChange={setDurationHours} testId="sd-duration" /></Field></div>
             <div className="flex justify-between mt-2">
               <Button variant="ghost" onClick={() => goToStep(1)} data-testid="sd-back-bags"><ArrowLeft size={15} />{t('shopdrop.changeBags')}</Button>
-              <Button onClick={holdAndDraft} loading={createMut.isPending} disabled={!online || !productId || suggestMut.isPending} data-testid="sd-hold">{t('shopdrop.checkAvailability')}<ArrowRight size={15} /></Button>
+              <Button onClick={holdAndDraft} loading={createMut.isPending} disabled={!online || !unitId} data-testid="sd-hold">{t('shopdrop.checkAvailability')}<ArrowRight size={15} /></Button>
             </div>
           </Card>
           <Card>
-            <SectionTitle className="mb-3 flex items-center gap-2"><Boxes size={18} /> Plan</SectionTitle>
-            {selected ? (
-              <div className="lf-card p-3 bg-canvas dark:bg-dk-elevated">
-                <p className="text-sm">{t('shopdrop.chosen')} <strong>{selected.assetTypeName}</strong></p>
-                <p className="text-2xl font-bold text-navy dark:text-dk-texthi mt-1" data-testid="sd-plan-compartments">{selected.numberOfCompartments}</p>
-                <p className="text-xs text-muted">compartment(s) for {bags.length} bag(s)</p>
-                <p className="text-sm font-semibold mt-2">{money(priceOf(selected.productId))}</p>
+            <SectionTitle className="mb-3 flex items-center gap-2"><Boxes size={18} /> {t('shopdrop.chosenTitle')}</SectionTitle>
+            {chosenUnit ? (
+              <div className="lf-card p-3 bg-canvas dark:bg-dk-elevated" data-testid="sd-chosen">
+                <p className="text-sm">{t('shopdrop.chosen')}</p>
+                <p className="font-mono text-2xl font-bold text-navy dark:text-dk-texthi mt-1" data-testid="sd-chosen-unit">
+                  {chosenUnit.identifier}
+                </p>
+                <p className="text-xs text-muted">{chosenUnit.assetTypeName}</p>
+                {chosenUnit.maxBags != null && (
+                  <p className={clsx('text-xs mt-2', chosenUnit.maxBags < bags.length ? 'text-warn font-semibold' : 'text-muted')}>
+                    {chosenUnit.maxBags < bags.length
+                      ? t('shopdrop.tightFit', { holds: chosenUnit.maxBags, bags: bags.length })
+                      : t('shopdrop.roomFor', { count: chosenUnit.maxBags })}
+                  </p>
+                )}
+                <p className="text-sm font-semibold mt-2">{chosenUnit.price == null ? '—' : money(chosenUnit.price)}</p>
               </div>
             ) : <p className="text-sm text-muted">{t('shopdrop.selectCompartment')}</p>}
           </Card>

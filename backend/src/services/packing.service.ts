@@ -3,10 +3,19 @@ import type { BagItem } from '../models/index.js'
 import { packBags, bagScore } from '../domain/packing.js'
 import type { PackingSuggestion, SuggestBagInput } from '../interfaces/index.js'
 
+/**
+ * What this desk can offer for these bags.
+ *
+ * Counted at the desk, not across the station: a compartment standing at another desk cannot be
+ * reserved from here, so offering it would recommend a plan that fails after the customer has
+ * paid. What is free elsewhere is reported separately, so the agent can send them next door
+ * instead of guessing.
+ */
 export async function suggestPacking(
   tenantId: string,
   stationId: string,
   bags: SuggestBagInput[],
+  kioskId?: string | null,
 ): Promise<{ recommendedProductId: string | null; totalScore: number; suggestions: PackingSuggestion[] }> {
   const bagItems: BagItem[] = bags.map((b, i) => ({
     index: i + 1,
@@ -39,7 +48,19 @@ export async function suggestPacking(
     seenTypes.add(p.assetTypeId)
 
     const packed = packBags(bagItems, at)
-    const available = await AssetUnit.countDocuments({ tenantId, stationId, assetTypeId: at._id, status: 'AVAILABLE' })
+    const atThisDesk = kioskId ? { kioskId } : {}
+    const [available, elsewhere] = await Promise.all([
+      AssetUnit.countDocuments({ tenantId, stationId, assetTypeId: at._id, status: 'AVAILABLE', ...atThisDesk }),
+      kioskId
+        ? AssetUnit.countDocuments({
+            tenantId,
+            stationId,
+            assetTypeId: at._id,
+            status: 'AVAILABLE',
+            kioskId: { $ne: kioskId },
+          })
+        : 0,
+    ])
     suggestions.push({
       productId: p._id,
       productName: p.name,
@@ -49,6 +70,7 @@ export async function suggestPacking(
       maxBagsPerCompartment: at.capacity.maxRecommendedBagCount ?? null,
       numberOfCompartments: packed.numberOfCompartmentsRequired,
       availableUnits: available,
+      availableElsewhere: elsewhere,
       fits: available >= packed.numberOfCompartmentsRequired,
     })
   }

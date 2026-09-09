@@ -95,7 +95,10 @@ export interface PackingSuggestion {
   capacityScore: number
   maxBagsPerCompartment: number | null
   numberOfCompartments: number
+  /** Free at this desk — the only ones it can reserve. */
   availableUnits: number
+  /** Free at other desks in the station; shown so the agent can send them next door. */
+  availableElsewhere: number
   fits: boolean
 }
 export interface PackingSuggestResponse {
@@ -110,6 +113,19 @@ export interface AssetUnit {
   status: string
   assetTypeId: string
   stationId: string
+  kioskId?: string | null
+  /** Joined from the unit's kind and its product, so a counter can list units without a second call. */
+  assetTypeName: string
+  assetKind: string | null
+  engineKind: EngineKind | null
+  capacityScore: number | null
+  maxBags: number | null
+  seats: number | null
+  productId: string | null
+  productName: string | null
+  price: number | null
+  saleUnit: string | null
+  billingModel: string | null
 }
 
 export interface AssetTypeLite {

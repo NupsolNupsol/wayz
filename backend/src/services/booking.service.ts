@@ -68,7 +68,15 @@ async function loadBooking(scope: Scope, bookingId: string): Promise<BookingHydr
   return booking
 }
 
-async function assertStationCanFulfil(
+/**
+ * Can THIS DESK actually hand over what is being sold?
+ *
+ * A desk can only lock its own units — that is the rule the reservation enforces — so the check
+ * made before any money is taken has to be scoped the same way. Counting across the whole station
+ * would let an agent sell a compartment that is sitting at another desk, take the payment, and
+ * only discover at the reserve step that they cannot provide it.
+ */
+async function assertDeskCanFulfil(
   scope: Scope,
   assetTypeId: string | null,
   quantity: number,
@@ -76,19 +84,42 @@ async function assertStationCanFulfil(
 ): Promise<void> {
   if (!assetTypeId) return
 
-  const [owned, free] = await Promise.all([
-    AssetUnit.countDocuments({ tenantId: scope.tenantId, stationId: scope.stationId, assetTypeId }),
-    AssetUnit.countDocuments({ tenantId: scope.tenantId, stationId: scope.stationId, assetTypeId, status: 'AVAILABLE' }),
+  const atThisDesk = scope.kioskId ? { kioskId: scope.kioskId } : {}
+  const [owned, free, freeElsewhere] = await Promise.all([
+    AssetUnit.countDocuments({ tenantId: scope.tenantId, stationId: scope.stationId, assetTypeId, ...atThisDesk }),
+    AssetUnit.countDocuments({
+      tenantId: scope.tenantId,
+      stationId: scope.stationId,
+      assetTypeId,
+      status: 'AVAILABLE',
+      ...atThisDesk,
+    }),
+    scope.kioskId
+      ? AssetUnit.countDocuments({
+          tenantId: scope.tenantId,
+          stationId: scope.stationId,
+          assetTypeId,
+          status: 'AVAILABLE',
+          kioskId: { $ne: scope.kioskId },
+        })
+      : 0,
   ])
 
+  const elsewhere =
+    freeElsewhere > 0
+      ? [`${freeElsewhere} are free at other desks, but a desk can only hand over its own.`]
+      : []
+
   if (owned === 0) {
-    throw ApiError.unprocessable(`${productName} is not set up at this station.`, [
-      'Ask a manager to add units for it under Assets, or serve the customer from a station that has them.',
+    throw ApiError.unprocessable(`${productName} is not set up at this desk.`, [
+      'Ask a manager to add units for it here under Assets, or serve the customer from the desk that has them.',
+      ...elsewhere,
     ])
   }
   if (free < quantity) {
-    throw ApiError.unprocessable(`No ${productName} is free right now.`, [
-      `${owned} at this station, ${free} available — ${quantity} needed.`,
+    throw ApiError.unprocessable(`No ${productName} is free at this desk right now.`, [
+      `${owned} here, ${free} available — ${quantity} needed.`,
+      ...elsewhere,
     ])
   }
 }
@@ -204,7 +235,7 @@ export async function createBooking(scope: Scope, input: CreateBookingInput) {
     holdAssetTypeId = product.assetTypeId
   }
 
-  await assertStationCanFulfil(scope, holdAssetTypeId, holdQty, product.name)
+  await assertDeskCanFulfil(scope, holdAssetTypeId, holdQty, product.name)
 
   const totals = computeTotals(lines, vatRate)
 

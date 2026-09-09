@@ -70,6 +70,40 @@ export function saleUnitsFor(engineKind: EngineKind): SaleUnit[] {
 export function chargesForTime(engineKind: EngineKind): boolean {
   return billingAllowedFor(engineKind).includes('DURATION_BASED')
 }
+
+/** Sale units that measure time. Anything sold in these is charged by how long it is kept. */
+export const TIMED_SALE_UNITS: SaleUnit[] = ['HOUR', 'FULL_DAY']
+
+export const isTimedSaleUnit = (unit: SaleUnit): boolean => TIMED_SALE_UNITS.includes(unit)
+
+/** The length of one billed period for a sale unit — what the duration is divided by. */
+export function durationUnitFor(unit: SaleUnit): 'HOUR' | 'DAY' | undefined {
+  if (unit === 'HOUR') return 'HOUR'
+  if (unit === 'FULL_DAY') return 'DAY'
+  return undefined
+}
+
+/**
+ * How something sold in this unit should be charged, when nobody has said otherwise.
+ *
+ * Selling by the hour and charging a flat price per compartment are contradictory: the agent picks
+ * two hours and the customer pays for one. Anything sold by time is charged by time.
+ */
+export function billingForSaleUnit(unit: SaleUnit, fallback: BillingModel): BillingModel {
+  return isTimedSaleUnit(unit) ? 'DURATION_BASED' : fallback
+}
+
+/**
+ * Whether a sale unit and a billing model can honestly coexist.
+ *
+ * A flat package is allowed with anything — "a day pass for 90" is a real way to sell a day. What
+ * is not allowed is charging per bag or per compartment for something sold by time, or charging by
+ * duration for something that is not.
+ */
+export function saleUnitMatchesBilling(unit: SaleUnit, billing: BillingModel): boolean {
+  if (billing === 'PACKAGE') return true
+  return isTimedSaleUnit(unit) === (billing === 'DURATION_BASED')
+}
 export type BagCategory = 'SOFT' | 'HARD' | 'OVERSIZE' | 'FRAGILE'
 
 export type BookingStatus =

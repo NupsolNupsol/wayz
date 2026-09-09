@@ -1,10 +1,10 @@
 import { useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useNavigate } from 'react-router-dom'
-import { Boxes, Pencil, Plus, Tag, Trash2 } from 'lucide-react'
+import { Boxes, Pencil, Plus, Trash2 } from 'lucide-react'
 import { clsx } from 'clsx'
 import { PageHeader } from '@/components/PageHeader'
-import { Badge, Button, Card, EmptyState, Field, Spinner, StatCard } from '@/components/ui'
+import { Badge, Button, Card, EmptyState, Field, SectionTitle, Spinner, StatCard } from '@/components/ui'
 import { DataTable, type Column } from '@/components/DataTable'
 import { Modal } from '@/components/Modal'
 import { Select } from '@/components/Select'
@@ -36,8 +36,11 @@ export function AssetsPage() {
   const removeKind = useRemoveAssetKind()
 
   const [newKindOpen, setNewKindOpen] = useState(false)
-  const [renaming, setRenaming] = useState<AssetTypeRow | null>(null)
+  const [editing, setEditing] = useState<AssetTypeRow | null>(null)
   const [newName, setNewName] = useState('')
+  const [seats, setSeats] = useState(1)
+  const [maxBags, setMaxBags] = useState(1)
+  const [capacityScore, setCapacityScore] = useState(1)
   const [deleting, setDeleting] = useState<AssetTypeRow | null>(null)
 
   const [addFor, setAddFor] = useState<AssetTypeRow | null>(null)
@@ -45,7 +48,6 @@ export function AssetsPage() {
   const [kioskId, setKioskId] = useState('')
   const [count, setCount] = useState(4)
 
-  const [priceFor, setPriceFor] = useState<AssetTypeRow | null>(null)
   const [basePrice, setBasePrice] = useState(0)
   const [deposit, setDeposit] = useState(0)
   const [overtime, setOvertime] = useState(0)
@@ -99,8 +101,19 @@ export function AssetsPage() {
     )
   }
 
-  const openPrice = (row: AssetTypeRow) => {
-    setPriceFor(row)
+  /**
+   * One editor for a kind.
+   *
+   * The name, what it holds, and what it costs were three separate dialogs behind two icons, and
+   * the pencil only ever changed the name — so seats and bag ceilings could not be corrected at
+   * all once a kind existed. They are all one form now.
+   */
+  const openEdit = (row: AssetTypeRow) => {
+    setEditing(row)
+    setNewName(row.name)
+    setSeats(row.seats ?? 1)
+    setMaxBags(row.maxRecommendedBagCount ?? 1)
+    setCapacityScore(row.capacityScore ?? 1)
     setBasePrice(row.basePrice ?? 0)
     setDeposit(row.depositRequired ?? 0)
     setOvertime(row.overtimeHourlyRate ?? 0)
@@ -110,47 +123,46 @@ export function AssetsPage() {
     setClearOverrides(false)
   }
 
-  const submitPrice = () => {
-    if (!priceFor) return
-    priceType.mutate(
-      {
-        id: priceFor._id,
-        body: {
-          basePrice,
-          depositRequired: deposit,
-          penaltyPrice: penalty,
-          saleUnit,
-          saleType,
-          overtimeHourlyRate: saleType === 'SALE' ? null : overtime || null,
-          clearOverrides,
-        },
-      },
-      {
-        onSuccess: (r) => {
-          toast(
-            'success',
-            t('toast.priced', { name: priceFor.name }),
-            r.cleared ? t('toast.overridesCleared', { count: r.cleared }) : t('toast.appliesToAll'),
-          )
-          setPriceFor(null)
-        },
-        onError: (e) => toast('danger', t('toast.couldNotPrice'), e instanceof ApiError ? (e.errors?.join(' ') ?? e.message) : ''),
-      },
-    )
-  }
+  const submitEdit = async () => {
+    const row = editing
+    if (!row) return
 
-  const submitRename = () => {
-    if (!renaming) return
-    renameKind.mutate(
-      { id: renaming._id, body: { name: newName.trim() } },
-      {
-        onSuccess: (r) => {
-          toast('success', t('toast.kindRenamed', { name: r.name }))
-          setRenaming(null)
-        },
-        onError: (e) => toast('danger', t('toast.couldNotSave'), e instanceof ApiError ? (e.errors?.join(' ') ?? e.message) : ''),
-      },
-    )
+    try {
+      const capacity =
+        row.kind === 'COMPARTMENT'
+          ? { maxRecommendedBagCount: Math.max(1, maxBags), capacityScore: Math.max(0, capacityScore) }
+          : row.kind === 'BOAT'
+            ? { seats: Math.max(1, seats), capacityScore: Math.max(1, seats) }
+            : { capacityScore: Math.max(0, capacityScore) }
+
+      await renameKind.mutateAsync({ id: row._id, body: { name: newName.trim(), capacity } })
+
+      // A kind with no product behind it has nothing to price.
+      if (row.productId) {
+        const priced = await priceType.mutateAsync({
+          id: row._id,
+          body: {
+            basePrice,
+            depositRequired: deposit,
+            penaltyPrice: penalty,
+            saleUnit,
+            saleType,
+            overtimeHourlyRate: saleType === 'SALE' ? null : overtime || null,
+            clearOverrides,
+          },
+        })
+        toast(
+          'success',
+          t('toast.kindSaved', { name: newName.trim() }),
+          priced.cleared ? t('toast.overridesCleared', { count: priced.cleared }) : t('toast.appliesToAll'),
+        )
+      } else {
+        toast('success', t('toast.kindSaved', { name: newName.trim() }))
+      }
+      setEditing(null)
+    } catch (e) {
+      toast('danger', t('toast.couldNotSave'), e instanceof ApiError ? (e.errors?.join(' ') ?? e.message) : '')
+    }
   }
 
   const submitDelete = () => {
@@ -275,15 +287,12 @@ export function AssetsPage() {
       align: 'right',
       render: (r) => (
         <div className="flex justify-end gap-1" onClick={(e) => e.stopPropagation()}>
-          <Button variant="ghost" onClick={() => openPrice(r)} title={t('action.price')} aria-label={t('action.price')} data-testid={`asset-price-${r._id}`}>
-            <Tag size={15} />
-          </Button>
           <Button
             variant="ghost"
-            onClick={() => { setRenaming(r); setNewName(r.name) }}
+            onClick={() => openEdit(r)}
             title={t('action.editKind')}
             aria-label={t('action.editKind')}
-            data-testid={`asset-rename-${r._id}`}
+            data-testid={`asset-edit-${r._id}`}
           >
             <Pencil size={15} />
           </Button>
@@ -385,23 +394,99 @@ export function AssetsPage() {
       />
 
       <Modal
-        open={!!renaming}
-        onClose={() => setRenaming(null)}
-        title={t('editKind.title', { name: renaming?.name ?? '' })}
+        open={!!editing}
+        onClose={() => setEditing(null)}
+        title={t('editKind.title', { name: editing?.name ?? '' })}
         subtitle={t('editKind.subtitle')}
-        testId="asset-rename-modal"
+        size="lg"
+        testId="asset-edit-modal"
         footer={
           <>
-            <Button variant="ghost" onClick={() => setRenaming(null)}>{t('common:action.cancel')}</Button>
-            <Button onClick={submitRename} loading={renameKind.isPending} disabled={newName.trim().length < 2} data-testid="asset-rename-submit">
+            <Button variant="ghost" onClick={() => setEditing(null)}>{t('common:action.cancel')}</Button>
+            <Button
+              onClick={submitEdit}
+              loading={renameKind.isPending || priceType.isPending}
+              disabled={newName.trim().length < 2}
+              data-testid="asset-edit-submit"
+            >
               {t('common:action.save')}
             </Button>
           </>
         }
       >
+        <SectionTitle className="mb-2">{t('editKind.details')}</SectionTitle>
         <Field label={t('common:field.name')} required>
-          <input className="lf-input" value={newName} onChange={(e) => setNewName(e.target.value)} data-testid="asset-rename-name" />
+          <input className="lf-input" value={newName} onChange={(e) => setNewName(e.target.value)} data-testid="asset-edit-name" />
         </Field>
+
+        {editing?.kind === 'BOAT' && (
+          <Field label={t('editKind.seats')} hint={t('editKind.seatsHint')}>
+            <NumberInput min={1} step={1} value={seats} onChange={setSeats} testId="asset-edit-seats" />
+          </Field>
+        )}
+
+        {editing?.kind === 'COMPARTMENT' && (
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4">
+            <Field label={t('editKind.maxBags')} hint={t('editKind.maxBagsHint')}>
+              <NumberInput min={1} step={1} value={maxBags} onChange={setMaxBags} testId="asset-edit-max-bags" />
+            </Field>
+            <Field label={t('editKind.capacityScore')} hint={t('editKind.capacityScoreHint')}>
+              <NumberInput min={0} step={1} value={capacityScore} onChange={setCapacityScore} testId="asset-edit-capacity" />
+            </Field>
+          </div>
+        )}
+
+        <SectionTitle className="mb-2 mt-5">{t('editKind.pricing')}</SectionTitle>
+        {editing && editing.productId === null ? (
+          <p className="text-sm text-danger-strong" data-testid="asset-edit-no-product">{t('price.noProduct')}</p>
+        ) : (
+          <>
+            <Field label={t('price.base')} required hint={t('price.baseHint')}>
+              <NumberInput min={0} step={0.5} value={basePrice} onChange={setBasePrice} testId="asset-edit-base" />
+            </Field>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4">
+              <Field label={t('price.saleUnit')} hint={t('price.saleUnitHint')}>
+                <Select
+                  value={saleUnit}
+                  onChange={(v) => setSaleUnit(v as SaleUnit)}
+                  options={SALE_UNITS.map((value) => ({ label: t(`price.unit.${value}`), value }))}
+                  testId="asset-edit-sale-unit"
+                />
+              </Field>
+              <Field label={t('price.saleType')} hint={t('price.saleTypeHint')}>
+                <Select
+                  value={saleType}
+                  onChange={(v) => setSaleType(v as SaleType)}
+                  options={SALE_TYPES.map((value) => ({ label: t(`price.type.${value}`), value }))}
+                  testId="asset-edit-sale-type"
+                />
+              </Field>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4">
+              <Field label={t('price.deposit')}>
+                <NumberInput min={0} step={0.5} value={deposit} onChange={setDeposit} testId="asset-edit-deposit" />
+              </Field>
+              <Field label={t('price.penalty')} hint={t('price.penaltyHint')}>
+                <NumberInput min={0} step={0.5} value={penalty} onChange={setPenalty} testId="asset-edit-penalty" />
+              </Field>
+            </div>
+            {saleType !== 'SALE' && (
+              <Field label={t('price.overtime')} hint={t('price.overtimeHint')}>
+                <NumberInput min={0} step={0.5} value={overtime} onChange={setOvertime} testId="asset-edit-overtime" />
+              </Field>
+            )}
+            <label className="flex items-start gap-2 text-sm cursor-pointer select-none">
+              <input
+                type="checkbox"
+                className="mt-0.5"
+                checked={clearOverrides}
+                onChange={(e) => setClearOverrides(e.target.checked)}
+                data-testid="asset-edit-clear-overrides"
+              />
+              <span>{t('price.clearOverrides')}</span>
+            </label>
+          </>
+        )}
       </Modal>
 
       <Modal
@@ -468,68 +553,6 @@ export function AssetsPage() {
         </Field>
       </Modal>
 
-      <Modal
-        open={!!priceFor}
-        onClose={() => setPriceFor(null)}
-        title={t('price.title', { name: priceFor?.name ?? '' })}
-        subtitle={t('price.subtitle', { count: priceFor?.total ?? 0 })}
-        testId="asset-price-modal"
-        footer={
-          <>
-            <Button variant="ghost" onClick={() => setPriceFor(null)}>{t('common:action.cancel')}</Button>
-            <Button onClick={submitPrice} loading={priceType.isPending} disabled={basePrice < 0} data-testid="asset-price-submit">
-              {t('price.submit')}
-            </Button>
-          </>
-        }
-      >
-        {priceFor && priceFor.productId === null ? (
-          <p className="text-sm text-danger-strong">{t('price.noProduct')}</p>
-        ) : (
-          <>
-            <Field label={t('price.base')} required hint={t('price.baseHint')}>
-              <NumberInput min={0} step={0.5} value={basePrice} onChange={setBasePrice} testId="asset-price-base" />
-            </Field>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4">
-              <Field label={t('price.saleUnit')} hint={t('price.saleUnitHint')}>
-                <Select
-                  value={saleUnit}
-                  onChange={(v) => setSaleUnit(v as SaleUnit)}
-                  options={SALE_UNITS.map((value) => ({ label: t(`price.unit.${value}`), value }))}
-                  testId="asset-price-sale-unit"
-                />
-              </Field>
-              <Field label={t('price.saleType')} hint={t('price.saleTypeHint')}>
-                <Select
-                  value={saleType}
-                  onChange={(v) => setSaleType(v as SaleType)}
-                  options={SALE_TYPES.map((value) => ({ label: t(`price.type.${value}`), value }))}
-                  testId="asset-price-sale-type"
-                />
-              </Field>
-            </div>
-            <Field label={t('price.penalty')} hint={t('price.penaltyHint')}>
-              <NumberInput min={0} step={0.5} value={penalty} onChange={setPenalty} testId="asset-price-penalty" />
-            </Field>
-            <Field label={t('price.deposit')}>
-              <NumberInput min={0} step={0.5} value={deposit} onChange={setDeposit} testId="asset-price-deposit" />
-            </Field>
-            <Field label={t('price.overtime')} hint={t('price.overtimeHint')}>
-              <NumberInput min={0} step={0.5} value={overtime} onChange={setOvertime} testId="asset-price-overtime" />
-            </Field>
-            <label className="flex items-start gap-2 text-sm cursor-pointer select-none">
-              <input
-                type="checkbox"
-                className="mt-0.5"
-                checked={clearOverrides}
-                onChange={(e) => setClearOverrides(e.target.checked)}
-                data-testid="asset-price-clear"
-              />
-              <span>{t('price.clearOverrides')}</span>
-            </label>
-          </>
-        )}
-      </Modal>
     </div>
   )
 }

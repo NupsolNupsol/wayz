@@ -64,7 +64,10 @@ export interface PackingSuggestion {
   capacityScore: number
   maxBagsPerCompartment: number | null
   numberOfCompartments: number
+  /** Free at the agent's own desk — the only ones it can reserve. */
   availableUnits: number
+  /** Free at other desks in the station: cannot be reserved here, but worth telling the agent. */
+  availableElsewhere: number
   fits: boolean
 }
 

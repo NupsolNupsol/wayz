@@ -15,7 +15,7 @@
     "lint": "eslint . --max-warnings 0",
     "seed": "tsx src/seed/run.ts",
     "seed:versions": "tsx src/seed/versions.run.ts",
-    "test": "npm run seed && npm run test:roles && npm run seed && npm run test:rules && npm run seed && npm run test:notes && npm run seed && npm run test:shift && npm run seed && npm run test:lagoon && npm run seed && npm run test:hr && npm run seed && npm run test:multikiosk && npm run seed && npm run test:map && npm run seed && npm run test:transit && npm run seed && npm run test:billing && npm run seed && npm run test:lagoonkind && npm run seed && npm run test:refundclock && npm run seed && npm run test:productplace && npm run seed && npm run test:arabic && npm run seed && npm run test:points",
+    "test": "npm run seed && npm run test:roles && npm run seed && npm run test:rules && npm run seed && npm run test:notes && npm run seed && npm run test:shift && npm run seed && npm run test:lagoon && npm run seed && npm run test:hr && npm run seed && npm run test:multikiosk && npm run seed && npm run test:map && npm run seed && npm run test:transit && npm run seed && npm run test:billing && npm run seed && npm run test:lagoonkind && npm run seed && npm run test:refundclock && npm run seed && npm run test:productplace && npm run seed && npm run test:duration && npm run seed && npm run test:overtime && npm run seed && npm run test:arabic && npm run seed && npm run test:points",
     "test:rules": "node tests/rules.api.mjs",
     "test:notes": "node tests/clientNotes.api.mjs",
     "test:roles": "node tests/roles.api.mjs",
@@ -30,7 +30,9 @@
     "test:lagoonkind": "node tests/lagoonKind.api.mjs",
     "test:refundclock": "node tests/refundClock.api.mjs",
     "test:productplace": "node tests/productPlace.api.mjs",
-    "test:arabic": "tsx tests/arabic.api.mts"
+    "test:arabic": "tsx tests/arabic.api.mts",
+    "test:overtime": "node tests/overtimeMath.api.mjs",
+    "test:duration": "node tests/durationPricing.api.mjs"
   },
   "dependencies": {
     "@wayz/workflow": "file:../workflow",
