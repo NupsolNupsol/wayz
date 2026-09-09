@@ -153,6 +153,7 @@ export async function createBooking(scope: Scope, input: CreateBookingInput) {
 
   const lines: OrderLine[] = []
   let productName = product.name
+  let productNameAr = product.nameAr || product.name
   let bags: BagItem[] = []
   let packingPlan: BookingDoc['packingPlan'] = null
   let holdAssetTypeId: string | null = null
@@ -181,6 +182,7 @@ export async function createBooking(scope: Scope, input: CreateBookingInput) {
     const quote = priceQuote(product.billingModel, product.basePrice, bags.length, packed.numberOfCompartmentsRequired, periods, product.basePrice)
 
     productName = `${product.name} (${bags.length} bag${bags.length > 1 ? 's' : ''})`
+    productNameAr = lineNameAr.bags(product.nameAr || product.name, bags.length)
     lines.push({
       productId: product._id,
       name: productName,
@@ -211,6 +213,9 @@ export async function createBooking(scope: Scope, input: CreateBookingInput) {
       ? `${product.name} — ${tours} tour${tours > 1 ? 's' : ''}`
       : `${product.name}${quantity > 1 ? ` × ${quantity}` : ''}`
     productName = soldAs
+    productNameAr = byTours
+      ? lineNameAr.tours(product.nameAr || product.name, tours)
+      : lineNameAr.quantity(product.nameAr || product.name, quantity)
     const arabicProduct = product.nameAr || product.name
     lines.push({
       productId: product._id,
@@ -297,6 +302,7 @@ export async function createBooking(scope: Scope, input: CreateBookingInput) {
     customerEmail: customer.email ?? '',
     engineKind: input.engineKind,
     productName,
+    productNameAr,
     baseAmount: totals.subtotal,
     vatAmount: totals.vat,
     totalAmount: totals.total,

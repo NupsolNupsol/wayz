@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { localBaked } from '@/utils'
 import { useTranslation } from 'react-i18next'
 import { Banknote, ClipboardCheck, Clock, Printer, TriangleAlert, User, X } from 'lucide-react'
 import { clsx } from 'clsx'
@@ -58,7 +59,7 @@ function QueueCard({
             <User size={14} className="text-muted shrink-0" />
             {row.customerName || 'Walk-in'}
           </p>
-          <p className="text-sm text-muted truncate">{row.productName}</p>
+          <p className="text-sm text-muted truncate">{localBaked(row)}</p>
           <p className="text-xs text-muted mt-0.5">
             {row.items > 0 ? t('queue.itemCount', { count: row.items }) : ''}
             {t('queue.registeredAgo', { duration: waitedFor(row.waitingMs) })}
@@ -226,7 +227,7 @@ export function TillQueue() {
           <>
             <div className="lf-card p-3 mb-4">
               <div className="flex items-baseline justify-between py-1">
-                <span className="text-sm text-muted">{taking.productName}</span>
+                <span className="text-sm text-muted">{localBaked(taking)}</span>
                 <span className="tabular-nums">{money(taking.subtotal)}</span>
               </div>
               <div className="flex items-baseline justify-between py-1">

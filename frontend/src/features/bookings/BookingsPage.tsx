@@ -6,7 +6,7 @@ import { StatusBadge, Button, Spinner } from '@/components/ui'
 import { DataTable, type Column } from '@/components/DataTable'
 import { useBookings } from '@/hooks'
 import { engineLabel, engineOptionsFor } from '@/config/engineMeta'
-import { formatDateTime, money } from '@/utils'
+import { formatDateTime, localBaked, money } from '@/utils'
 import type { Booking } from '@/api/types'
 import { RefLink } from '@/components/RefLink'
 import { useAuthStore } from '@/store/auth'
@@ -24,7 +24,7 @@ export function BookingsPage() {
     { key: 'ref', header: t('common:column.reference'), sortValue: (b) => b.ref, filter: { kind: 'text', value: (b) => b.ref }, render: (b) => <RefLink to={`/bookings/${b.id}`}>{b.ref}</RefLink> },
     { key: 'client', header: t('common:column.client'), sortValue: (b) => b.customerName, filter: { kind: 'text', value: (b) => `${b.customerName} ${b.customerPhone}` }, render: (b) => <div><p className="font-medium text-navy dark:text-dk-text">{b.customerName || '—'}</p><p className="text-xs text-muted">{b.customerPhone}</p></div> },
     { key: 'engine', header: t('common:column.engine'), filter: { kind: 'select', options: ENGINE_OPTS, value: (b) => b.engineKind }, render: (b) => <span className="text-muted">{engineLabel(b.engineKind)}</span> },
-    { key: 'product', header: t('common:column.product'), sortValue: (b) => b.productName, filter: { kind: 'text', value: (b) => b.productName }, render: (b) => b.productName },
+    { key: 'product', header: t('common:column.product'), sortValue: (b) => localBaked(b), filter: { kind: 'text', value: (b) => localBaked(b) }, render: (b) => localBaked(b) },
     {
       key: 'price',
       header: t('common:column.price'),

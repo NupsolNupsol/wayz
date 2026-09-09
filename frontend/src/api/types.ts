@@ -259,6 +259,8 @@ export interface Booking {
   customerEmail: string
   engineKind: EngineKind
   productName: string
+  /** Written onto the booking at sale time, so an agent working in Arabic reads it in Arabic. */
+  productNameAr?: string
   status: BookingStatus
   bags: BagItem[]
   session: Session
@@ -281,6 +283,8 @@ export interface Booking {
 export interface OrderLine {
   productId: string
   name: string
+  /** The same line in Arabic, written at sale time — what an Arabic screen and the slip both use. */
+  nameAr?: string
   quantity: number
   unitPrice: number
   isDeposit: boolean

@@ -5,7 +5,7 @@ import { PageHeader } from '@/components/PageHeader'
 import { Card, SectionTitle, StatusBadge, EmptyState, Spinner } from '@/components/ui'
 import { DataTable } from '@/components/DataTable'
 import { useCustomer, useBookings } from '@/hooks'
-import { formatDateTime } from '@/utils'
+import { formatDateTime, localBaked } from '@/utils'
 import { RefLink } from '@/components/RefLink'
 
 export function CustomerDetailPage() {
@@ -44,7 +44,7 @@ export function CustomerDetailPage() {
             empty={{ title: 'No bookings yet' }}
             columns={[
               { key: 'ref', header: t('common:column.reference'), sortValue: (b) => b.ref, render: (b) => <RefLink to={`/bookings/${b.id}`}>{b.ref}</RefLink> },
-              { key: 'product', header: t('common:column.product'), render: (b) => b.productName },
+              { key: 'product', header: t('common:column.product'), render: (b) => localBaked(b) },
               { key: 'status', header: t('common:column.status'), render: (b) => <StatusBadge status={b.status} /> },
               { key: 'date', header: t('common:column.date'), render: (b) => <span className="text-muted">{formatDateTime(new Date(b.createdAt).getTime())}</span> },
             ]}

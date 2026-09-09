@@ -5,7 +5,7 @@ import { clsx } from 'clsx'
 import { usePublicTracking } from '@/hooks'
 import { useNow } from '@/hooks/useNow'
 import { LanguageToggle } from '@/components/LanguageToggle'
-import { humanizeRemaining } from '@/utils'
+import { humanizeRemaining, localBaked } from '@/utils'
 import type { PublicTracking } from '@/api/types'
 
 export function TrackingPage() {
@@ -55,7 +55,7 @@ function TrackingCard({ data }: { data: PublicTracking }) {
       <header className="text-center">
         <p className="text-xs font-semibold uppercase tracking-wider text-muted">{data.brandName}</p>
         <h1 className="mt-1 text-2xl font-bold text-navy dark:text-dk-texthi" data-testid="tracking-ref">{data.ref}</h1>
-        <p className="text-sm text-muted">{data.productName}</p>
+        <p className="text-sm text-muted">{localBaked(data)}</p>
       </header>
 
       <CountdownCard data={data} msToDue={msToDue} msToPenalty={msToPenalty} finished={finished} />

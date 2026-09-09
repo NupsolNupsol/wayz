@@ -17,7 +17,7 @@ import {
   useManagerActivity,
 } from '@/hooks'
 import { ENGINE_META, engineLabel } from '@/config/engineMeta'
-import { formatDateTime, money } from '@/utils'
+import { formatDateTime, localBaked, localName, money } from '@/utils'
 import type { EngineKind } from '@/api/types'
 import { RefLink, RefText } from '@/components/RefLink'
 
@@ -99,7 +99,7 @@ export function ManagerRentalDetail() {
     <div data-testid="manager-rental-detail">
       <PageHeader
         title={b.ref}
-        subtitle={`${b.productName} · ${data.stationName} · agent ${data.agentName}`}
+        subtitle={`${localBaked(b)} · ${data.stationName} · agent ${data.agentName}`}
         crumbs={[{ label: t('common:crumb.manager') }, { label: t('common:crumb.rentals'), to: '/manager/rentals' }, { label: b.ref }]}
       />
 
@@ -125,7 +125,7 @@ export function ManagerRentalDetail() {
                 <tbody>
                   {data.order.lines.map((l, i) => (
                     <tr key={i} className="border-b border-line last:border-0">
-                      <td className="py-1.5">{l.name}</td>
+                      <td className="py-1.5">{localName(l)}</td>
                       <td className="py-1.5 text-end tabular-nums">{money(l.unitPrice * l.quantity)}</td>
                     </tr>
                   ))}

@@ -25,7 +25,7 @@ import { trackingUrl } from '@/api/public.api'
 import { useUnits, useBooking, useBookingOrder, useCreateBooking, useCustomer, usePay, useReserve, useTransition } from '@/hooks'
 import { ApiError } from '@/api/client'
 import { useAuthStore } from '@/store/auth'
-import { money } from '@/utils'
+import { localName, money } from '@/utils'
 import { toast } from '@/state/toastStore'
 import { sendInvoiceOnPayment } from '@/features/invoice/sendInvoiceOnPayment'
 import type { AssetUnit, Booking, Customer, Order } from '@/api/types'
@@ -564,7 +564,7 @@ export function ShopDropPage() {
                     data-testid={off ? 'sd-quote-discount' : `sd-quote-line-${i}`}
                   >
                     <span>
-                      {line.name}
+                      {localName(line)}
                       {line.quantity > 1 && <span className="text-xs"> × {line.quantity}</span>}
                     </span>
                     <span className="tabular-nums">{money(line.unitPrice * line.quantity)}</span>

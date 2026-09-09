@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useStatusLabel } from '@/i18n/useStatusLabel'
-import { formatDate, formatTime } from '@/utils'
+import { formatDate, formatTime, localBaked } from '@/utils'
 import { useTranslation } from 'react-i18next'
 import { Banknote, CreditCard, Receipt as ReceiptIcon, Undo2 } from 'lucide-react'
 import { PageHeader } from '@/components/PageHeader'
@@ -105,7 +105,7 @@ export function TillTransactions() {
             header: t('common:column.for'),
             render: (r: TillTransaction) => (
               <div className="max-w-[240px]">
-                <p className="text-sm truncate">{r.productName || '—'}</p>
+                <p className="text-sm truncate">{localBaked(r) || '—'}</p>
                 <RefText className="text-muted">{r.bookingRef}</RefText>
               </div>
             ),

@@ -12,7 +12,7 @@ import { ENGINE_META, engineLabel, engineOptionsFor } from '@/config/engineMeta'
 import type { Booking } from '@/api/types'
 import { RefLink } from '@/components/RefLink'
 import { useAuthStore } from '@/store/auth'
-import { formatDateTime, money, sinceLabel } from '@/utils'
+import { formatDateTime, localBaked, money, sinceLabel } from '@/utils'
 
 const ACTIVE = ['ACTIVE', 'OVERTIME', 'RETRIEVAL_IN_PROGRESS', 'PREPARING', 'CONFIRMED', 'RESERVED']
 const STATUS_OPTS = ACTIVE.map((s) => ({ label: s.replaceAll('_', ' '), value: s }))
@@ -48,7 +48,7 @@ export function OperationsPage() {
       filter: { kind: 'select', options: ENGINE_OPTS, value: (b) => b.engineKind },
       render: (b) => <span className="inline-flex items-center gap-2"><Icon name={ENGINE_META[b.engineKind].icon} size={16} className="text-brand" /> <span className="text-muted">{engineLabel(b.engineKind)}</span></span>,
     },
-    { key: 'product', header: t('common:column.product'), filter: { kind: 'text', value: (b) => b.productName }, sortValue: (b) => b.productName, render: (b) => b.productName },
+    { key: 'product', header: t('common:column.product'), filter: { kind: 'text', value: (b) => localBaked(b) }, sortValue: (b) => localBaked(b), render: (b) => localBaked(b) },
     { key: 'unit', header: t('common:column.unit'), sortValue: (b) => unitName.get(b.assetUnitId ?? '') ?? '', render: (b) => <span className="font-mono text-xs">{unitName.get(b.assetUnitId ?? '') ?? '—'}</span> },
     {
       key: 'started',

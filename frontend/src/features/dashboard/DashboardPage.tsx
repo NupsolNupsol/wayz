@@ -14,7 +14,7 @@ import { useAuthStore } from '@/store/auth'
 import { can } from '@/permissions/permissions'
 import { useDashboard, useBookings, useShift } from '@/hooks'
 import { ENGINE_META } from '@/config/engineMeta'
-import { money, formatTime } from '@/utils'
+import { formatTime, localBaked, money } from '@/utils'
 import type { EngineKind } from '@/api/types'
 
 const shortEngine = (kind: EngineKind): string => i18n.t(`common:engineShort.${kind}`, { defaultValue: kind })
@@ -126,7 +126,7 @@ export function DashboardPage() {
                   <div className="w-10 h-10 rounded-xl bg-brand/10 flex items-center justify-center text-brand shrink-0"><Icon name={ENGINE_META[b.engineKind].icon} size={18} /></div>
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-2"><span className="font-semibold text-sm text-navy dark:text-dk-texthi">{b.ref}</span><StatusBadge status={b.status} /></div>
-                    <p className="text-xs text-muted truncate">{b.productName}</p>
+                    <p className="text-xs text-muted truncate">{localBaked(b)}</p>
                   </div>
                   <div className="text-end shrink-0">
                     <Timer expectedEndAt={b.session.expectedEndAt} endedAt={b.session.endedAt ?? b.session.chargeableEndedAt} />
@@ -160,7 +160,7 @@ export function DashboardPage() {
             {recent.map((b) => (
               <button key={b.id} onClick={() => navigate(`/bookings/${b.id}`)} className="flex items-center gap-2 py-2 text-start text-sm">
                 <RefLink to={`/bookings/${b.id}`} className="w-16 shrink-0">{b.ref}</RefLink>
-                <span className="flex-1 truncate">{b.productName}</span>
+                <span className="flex-1 truncate">{localBaked(b)}</span>
                 <StatusBadge status={b.status} />
               </button>
             ))}

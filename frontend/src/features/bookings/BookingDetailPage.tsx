@@ -22,7 +22,7 @@ import { ReasonDialog } from '@/components/ReasonDialog'
 import { isUnfinishedSale, resumeRoute } from './resumeDraft'
 import { DevClockPanel } from './DevClockPanel'
 import { ApiError } from '@/api/client'
-import { formatDateTime, money } from '@/utils'
+import { formatDateTime, localBaked, localName, money } from '@/utils'
 import { useActionLabel } from '@/i18n/useActionLabel'
 import { useStatusLabel } from '@/i18n/useStatusLabel'
 import { toast } from '@/state/toastStore'
@@ -259,7 +259,7 @@ export function BookingDetailPage() {
       <PageHeader
         helpId="booking-detail"
         title={booking.ref}
-        subtitle={`${booking.productName}${booking.customerName ? ` · ${booking.customerName}` : ''}`}
+        subtitle={`${localBaked(booking)}${booking.customerName ? ` · ${booking.customerName}` : ''}`}
         crumbs={[{ label: t('common:crumb.home'), to: '/dashboard' }, { label: t('common:crumb.bookings'), to: '/bookings' }, { label: booking.ref }]}
         actions={
           <>
@@ -490,7 +490,7 @@ export function BookingDetailPage() {
                       data-testid={`booking-charge-${i}`}
                     >
                       <span className={off ? undefined : 'text-muted'}>
-                        {line.name}
+                        {localName(line)}
                         {line.quantity > 1 && <span className="text-xs"> × {line.quantity}</span>}
                       </span>
                       <span className="tabular-nums">{money(line.unitPrice * line.quantity)}</span>

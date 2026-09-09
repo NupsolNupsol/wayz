@@ -107,6 +107,8 @@ export interface BookingDoc {
   customerEmail: string
   engineKind: EngineKind
   productName: string
+  /** The same name in Arabic, so an agent working in Arabic reads the sale in Arabic. */
+  productNameAr?: string
   baseAmount: number
   vatAmount: number
   totalAmount: number
@@ -295,6 +297,7 @@ const bookingSchema = new Schema<BookingDoc>(
     customerEmail: { type: String, default: '' },
     engineKind: { type: String, required: true },
     productName: { type: String, required: true },
+    productNameAr: { type: String, default: '' },
     baseAmount: { type: Number, default: 0 },
     vatAmount: { type: Number, default: 0 },
     totalAmount: { type: Number, default: 0 },

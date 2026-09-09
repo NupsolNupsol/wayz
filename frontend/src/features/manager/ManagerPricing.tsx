@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { localName } from '@/utils'
 import { clsx } from 'clsx'
 import { Trans, useTranslation } from 'react-i18next'
 import { Plus, Tag, Info } from 'lucide-react'
@@ -178,13 +179,13 @@ export function ManagerPricing() {
           {
             key: 'name',
             header: t('common:column.product'),
-            sortValue: (r) => r.name,
-            filter: { kind: 'text', value: (r) => r.name },
+            sortValue: (r) => localName(r),
+            filter: { kind: 'text', value: (r) => `${r.name} ${r.nameAr ?? ''}` },
             render: (r) => (
               <div>
                 <p className="font-semibold text-navy dark:text-dk-texthi flex items-center gap-2">
                   <Icon name={productIconFor(r, r.engineKind)} size={16} className="text-brand shrink-0" />
-                  {r.name}
+                  {localName(r)}
                 </p>
                 <p className="text-xs text-muted">{r.assetTypeName ?? t('pricing.noAsset')} · {r.category}</p>
               </div>

@@ -7,7 +7,7 @@ import { PaymentPanel, type PaymentSplit } from '@/components/PaymentPanel'
 import { useBookingOrder, useRefundPosition, useSettleBooking } from '@/hooks'
 import { ApiError } from '@/api/client'
 import { toast } from '@/state/toastStore'
-import { money } from '@/utils'
+import { localName, money } from '@/utils'
 import { sendInvoiceOnPayment } from '@/features/invoice/sendInvoiceOnPayment'
 
 export function AmountDuePanel({
@@ -102,7 +102,7 @@ export function AmountDuePanel({
                 )}
                 {extras.map((l, i) => (
                   <li key={i} className="flex justify-between gap-4">
-                    <span>{l.name}</span>
+                    <span>{localName(l)}</span>
                     <span className="tabular-nums">{money(l.unitPrice * l.quantity)}</span>
                   </li>
                 ))}

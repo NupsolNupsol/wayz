@@ -20,7 +20,7 @@ import { ApiError } from '@/api/client'
 import { useAuthStore } from '@/store/auth'
 import { useBoatsWithRoom } from '@/hooks'
 import { engineLabel, engineTagline, productIconFor } from '@/config/engineMeta'
-import { isCustomerComplete, money } from '@/utils'
+import { isCustomerComplete, localBaked, localName, money } from '@/utils'
 import { useActionLabel } from '@/i18n/useActionLabel'
 import { toast } from '@/state/toastStore'
 import { sendInvoiceOnPayment } from '@/features/invoice/sendInvoiceOnPayment'
@@ -363,8 +363,13 @@ export function EngineWorkspace({ engineKind }: { engineKind: EngineKind }) {
                   </div>
                   <div className="text-end"><p className="font-bold text-navy dark:text-dk-texthi">{money(p.basePrice)}</p>{p.durationUnit && <p className="text-[11px] text-muted">{t(`status:durationUnit.${p.durationUnit}`, { defaultValue: p.durationUnit.replace('_', ' ').toLowerCase() })}</p>}</div>
                 </div>
-                <h3 className="font-semibold mt-2">{p.name}</h3>
-                {p.nameAr ? <p className="text-xs text-muted" dir="rtl">{p.nameAr}</p> : null}
+                <h3 className="font-semibold mt-2">{localName(p)}</h3>
+                {/* The other spelling underneath, so an agent can read out whichever the customer speaks. */}
+                {p.nameAr && p.nameAr !== localName(p) ? (
+                  <p className="text-xs text-muted" dir="rtl">{p.nameAr}</p>
+                ) : p.name !== localName(p) ? (
+                  <p className="text-xs text-muted" dir="ltr">{p.name}</p>
+                ) : null}
                 <div className="flex flex-wrap gap-1 mt-2">
                   {p.depositRequired > 0 && <Badge tone="warning">{t('common:field.deposit', { defaultValue: 'Deposit' })} {money(p.depositRequired)}</Badge>}
                   {p.proposedPolicy && <Badge tone="neutral">{t('engine.proposedPolicy')}</Badge>}
@@ -377,7 +382,7 @@ export function EngineWorkspace({ engineKind }: { engineKind: EngineKind }) {
 
       {step === 1 && product && (
         <Card>
-          <SectionTitle className="mb-1 flex items-center gap-2"><Icon name={productIconFor(product, engineKind)} size={18} className="text-brand" /> {product.name}</SectionTitle>
+          <SectionTitle className="mb-1 flex items-center gap-2"><Icon name={productIconFor(product, engineKind)} size={18} className="text-brand" /> {localName(product)}</SectionTitle>
           {product.proposedPolicy && (
             <div className="flex flex-wrap gap-1.5 my-2">
               <Badge tone="warning">{t('engine.proposedNotConfirmed')}</Badge>
@@ -534,7 +539,7 @@ export function EngineWorkspace({ engineKind }: { engineKind: EngineKind }) {
           <Card>
             <SectionTitle className="mb-3">{t('engine.summary')}</SectionTitle>
             <div className="flex flex-col gap-1 text-sm">
-              {order.lines.map((l, i) => <div key={i} className="flex justify-between"><span>{l.name} {l.isDeposit && <span className="text-muted text-xs">(deposit)</span>}</span><span>{money(l.unitPrice * l.quantity)}</span></div>)}
+              {order.lines.map((l, i) => <div key={i} className="flex justify-between"><span>{localName(l)} {l.isDeposit && <span className="text-muted text-xs">(deposit)</span>}</span><span>{money(l.unitPrice * l.quantity)}</span></div>)}
               <div className="flex justify-between font-bold text-navy dark:text-dk-texthi border-t border-line mt-2 pt-2"><span>{t('common:field.total')}</span><span>{money(order.total)}</span></div>
             </div>
           </Card>
@@ -580,7 +585,7 @@ export function EngineWorkspace({ engineKind }: { engineKind: EngineKind }) {
             {active.map((b) => (
               <Card key={b.id} data-testid={`engine-active-${b.ref}`}>
                 <div className="flex items-center justify-between mb-1"><span className="font-semibold text-sm">{b.ref}</span><StatusBadge status={b.status} /></div>
-                <p className="text-sm">{b.productName}</p>
+                <p className="text-sm">{localBaked(b)}</p>
                 <div className="flex items-center justify-between mt-3 pt-3 border-t border-line"><Timer expectedEndAt={b.session.expectedEndAt} endedAt={b.session.endedAt ?? b.session.chargeableEndedAt} /><Button variant="secondary" onClick={() => navigate(`/bookings/${b.id}`)}>{t('common:action.open')}</Button></div>
               </Card>
             ))}
