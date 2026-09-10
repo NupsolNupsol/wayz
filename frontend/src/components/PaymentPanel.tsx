@@ -10,11 +10,14 @@ import { money, round2 } from '@/utils'
 import { CARD_SCHEMES, schemeLabel } from '@/config/cardSchemes'
 import type { CardScheme, PaymentMethod } from '@/models'
 import { NumberInput } from './NumberInput'
+import { SecondPayerModal, type SecondPayer } from './SecondPayerModal'
 
 export interface PaymentSplit {
   method: PaymentMethod
   cardScheme?: CardScheme | null
   amount: number
+  /** Set on the second half when somebody other than the booking's customer is paying it. */
+  payerId?: string
 }
 
 export function PaymentPanel({
@@ -31,7 +34,7 @@ export function PaymentPanel({
   confirming?: boolean
   disabled?: boolean
 }) {
-  const { t } = useTranslation('ui')
+  const { t } = useTranslation(['ui', 'common'])
   const [method, setMethod] = useState<PaymentMethod>('CARD')
   const [scheme, setScheme] = useState<CardScheme>('MADA')
 
@@ -47,13 +50,41 @@ export function PaymentPanel({
   const [secondMethod, setSecondMethod] = useState<PaymentMethod>('CASH')
   const [secondScheme, setSecondScheme] = useState<CardScheme>('MADA')
 
+  /**
+   * Who is covering the other half.
+   *
+   * Ticking the box asks for them straight away: a split is a second person paying, so there is
+   * nothing to configure until we know who they are and they have been confirmed.
+   */
+  const [payerOpen, setPayerOpen] = useState(false)
+  const [payer, setPayer] = useState<SecondPayer | null>(null)
+
   useEffect(() => setFirstAmount(total), [total])
+
+  const openSplit = (on: boolean) => {
+    setSplit(on)
+    if (on) setPayerOpen(true)
+    else setPayer(null)
+  }
+
+  const takeSecondPayer = (next: SecondPayer) => {
+    setPayer(next)
+    setPayerOpen(false)
+    // Their share decides what is left for the customer on the booking.
+    setFirstAmount(round2(total - next.amount))
+  }
+
+  const cancelSplit = () => {
+    setPayerOpen(false)
+    if (!payer) setSplit(false)
+  }
 
   const firstPart = Math.min(Math.max(0, round2(firstAmount)), round2(total))
   const secondPart = round2(total - firstPart)
   const splitCoversEverything = split && secondPart <= 0
   const splitTakesNothing = split && firstPart <= 0
-  const splitReady = !split || (firstPart > 0 && secondPart > 0 && (secondMethod !== 'CARD' || !!secondScheme))
+  const splitReady =
+    !split || (!!payer && firstPart > 0 && secondPart > 0 && (secondMethod !== 'CARD' || !!secondScheme))
 
   /** A blocked Confirm always says why — a greyed button with no reason is a stuck agent. */
   const blockedBecause = tillShut
@@ -64,9 +95,11 @@ export function PaymentPanel({
         ? t('payment.splitTooBig')
         : splitTakesNothing
           ? t('payment.splitTooSmall')
-          : split && secondMethod === 'CARD' && !secondScheme
-            ? t('payment.pickScheme')
-            : ''
+          : split && !payer
+            ? t('payment.splitNeedsPayer')
+            : split && secondMethod === 'CARD' && !secondScheme
+              ? t('payment.pickScheme')
+              : ''
 
   const confirm = () => {
     if (!split) {
@@ -75,7 +108,12 @@ export function PaymentPanel({
     }
     onConfirm([
       { method, cardScheme: method === 'CARD' ? scheme : null, amount: firstPart },
-      { method: secondMethod, cardScheme: secondMethod === 'CARD' ? secondScheme : null, amount: secondPart },
+      {
+        method: secondMethod,
+        cardScheme: secondMethod === 'CARD' ? secondScheme : null,
+        amount: secondPart,
+        payerId: payer?.customer._id,
+      },
     ])
   }
 
@@ -140,12 +178,32 @@ export function PaymentPanel({
 
       <div className="mt-3">
         <label className="flex items-center gap-2 text-xs text-muted cursor-pointer">
-          <input type="checkbox" checked={split} onChange={(e) => setSplit(e.target.checked)} data-testid="pay-split-toggle" />
+          <input type="checkbox" checked={split} onChange={(e) => openSplit(e.target.checked)} data-testid="pay-split-toggle" />
           {t('payment.splitIt')}
         </label>
       </div>
 
-      {split && (
+      {split && payer && (
+        <div
+          className="mt-3 rounded-xl2 border border-brand/40 bg-brand/5 px-3 py-2 flex flex-wrap items-center justify-between gap-2"
+          data-testid="pay-split-payer"
+        >
+          <span className="text-sm">
+            <strong className="text-navy dark:text-dk-texthi">{payer.customer.name}</strong>{' '}
+            <span className="text-muted">{t('payment.paysShare', { amount: money(secondPart) })}</span>
+          </span>
+          <button
+            type="button"
+            className="text-xs font-semibold text-brand-ink"
+            onClick={() => setPayerOpen(true)}
+            data-testid="pay-split-change-payer"
+          >
+            {t('common:action.change')}
+          </button>
+        </div>
+      )}
+
+      {split && payer && (
         <div className="mt-3 rounded-xl2 border border-line dark:border-dk-border p-3" data-testid="pay-split">
           <div className="flex flex-wrap items-end gap-3">
             <div className="min-w-[140px]">
@@ -234,6 +292,8 @@ export function PaymentPanel({
         </Button>
       </div>
       <p className="text-[11px] text-muted mt-2">{t('payment.noTimerNote')}</p>
+
+      <SecondPayerModal open={payerOpen} total={total} onClose={cancelSplit} onConfirm={takeSecondPayer} />
     </div>
   )
 }

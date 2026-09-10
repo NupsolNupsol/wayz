@@ -373,7 +373,7 @@ export function ShopDropPage() {
   const pay = async (splits: PaymentSplit[]) => {
     if (!booking) return
     try {
-      const res = await payMut.mutateAsync({ id: booking.id, splits: splits.map((s) => ({ method: s.method, cardScheme: s.cardScheme ?? null, amount: s.amount, kind: 'SALE' })) })
+      const res = await payMut.mutateAsync({ id: booking.id, splits: splits.map((s) => ({ method: s.method, cardScheme: s.cardScheme ?? null, amount: s.amount, kind: 'SALE', payerId: s.payerId })) })
       setBooking(res.booking)
       void sendInvoiceOnPayment(res.booking.id, res.booking.trackingToken)
       toast('success', t('shopdrop.paymentCaptured'), t('shopdrop.bookingConfirmed'))

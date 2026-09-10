@@ -98,7 +98,11 @@
     "seatsLeft": "{{free}} seat(s) left on {{boat}}",
     "pickABoatFirst": "Pick a boat first.",
     "resumed": "Picked up where you left off — this sale was still open.",
-    "startFresh": "Start a new one"
+    "startFresh": "Start a new one",
+    "whichUnit": "Which one",
+    "whichUnitHint": "Pick the vehicle you are handing over. Only the free ones at this desk are listed.",
+    "noneFreeHere": "None of these are free at this desk right now.",
+    "freeNow": "Free"
   },
   "shopdrop": {
     "title": "Shop & Drop",

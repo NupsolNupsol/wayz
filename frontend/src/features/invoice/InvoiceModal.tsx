@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { MessageCircle, Printer } from 'lucide-react'
 import { Modal } from '@/components/Modal'
+import { PrintableSlip } from './PrintableSlip'
 import { Button, Spinner } from '@/components/ui'
 import { useInvoice } from '@/hooks'
 import { bookingApi } from '@/api/booking.api'
@@ -77,6 +78,9 @@ export function InvoiceModal({
       ) : invoice ? (
         <>
           <InvoiceSlip invoice={invoice} trackingUrl={trackingToken ? trackingUrl(trackingToken) : undefined} />
+          {/* What the agent reads is the copy above; what the printer gets is this one, mounted on
+              the body so no dialog furniture travels with it. */}
+          <PrintableSlip invoice={invoice} trackingUrl={trackingToken ? trackingUrl(trackingToken) : undefined} />
           <p className="text-xs text-muted mt-3 text-center no-print" data-testid="invoice-print-note">
             {t('invoice.thermalNote')}
           </p>

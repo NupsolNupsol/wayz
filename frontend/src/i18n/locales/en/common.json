@@ -38,7 +38,8 @@
     "retire": "Retire",
     "restore": "Restore",
     "suspend": "Suspend",
-    "remove": "Remove"
+    "remove": "Remove",
+    "change": "Change"
   },
   "field": {
     "name": "Name",
@@ -131,7 +132,8 @@
       "PAYMENT": "Payment",
       "TRANSACTION": "Terminal"
     },
-    "whatsNew": "What's new — releases and how to test them"
+    "whatsNew": "What's new — releases and how to test them",
+    "noDesk": "No desk assigned"
   },
   "offline": {
     "title": "You are offline",

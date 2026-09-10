@@ -76,4 +76,10 @@ export interface PaymentSplit {
   cardScheme?: CardScheme | null
   amount: number
   kind?: string
+  /**
+   * Who is paying this half. Left out, it is the customer on the booking; naming somebody else
+   * records the sale as split between two people, and that person is confirmed like any other
+   * before their money is taken.
+   */
+  payerId?: string
 }

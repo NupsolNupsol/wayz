@@ -5,7 +5,7 @@ import { recordAudit } from './audit.service.js'
 import { stationMap } from './org.service.js'
 import { raise } from './notification.service.js'
 import { outstandingFor, transitionBooking } from './booking.service.js'
-import { canWorkEngine } from '../domain/access.js'
+import { canWorkEngine, kioskFilter } from '../domain/access.js'
 import type { Scope } from '../interfaces/index.js'
 
 function peopleOn(booking: { metadata?: Record<string, unknown> | null }): number {
@@ -31,9 +31,14 @@ const FILLING_BOOKINGS = ['CONFIRMED', 'ACTIVE', 'OVERTIME']
 export async function boatsWithRoom(scope: Scope, assetTypeId?: string): Promise<BoatSpace[]> {
   if (!canWorkEngine(scope, 'LAGOON')) throw ApiError.forbidden('You are not assigned to the lagoon.')
 
+  // Only this desk's boats. A station can run several lagoon desks, and offering all of them meant
+  // an agent could pick a boat moored at another desk and be refused after choosing the customer.
+  const kiosk = kioskFilter(scope)
+
   const units = await AssetUnit.find({
     tenantId: scope.tenantId,
     stationId: scope.stationId,
+    ...(kiosk !== undefined ? { kioskId: kiosk } : {}),
     ...(assetTypeId ? { assetTypeId } : {}),
     status: { $in: ['AVAILABLE', 'RESERVED'] },
   })

@@ -64,7 +64,7 @@ export function AmountDuePanel({
 
   const collect = (splits: PaymentSplit[]) => {
     settle.mutate(
-      { id: bookingId, splits: splits.map((s) => ({ method: s.method, cardScheme: s.cardScheme ?? null, amount: s.amount })) },
+      { id: bookingId, splits: splits.map((s) => ({ method: s.method, cardScheme: s.cardScheme ?? null, amount: s.amount, payerId: s.payerId })) },
       {
         onSuccess: (r) => {
           toast('success', t('due.collected'), t('due.collectedDetail', { amount: money(r.collected) }))

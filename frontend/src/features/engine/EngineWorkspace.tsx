@@ -133,7 +133,17 @@ export function EngineWorkspace({ engineKind }: { engineKind: EngineKind }) {
 
   const reset = () => { writeSnapshot(engineKind, null); setResumed(false); setStep(0); setProduct(null); setCustomer(null); setPhoneVerified(false); setFlag(false); setUnitId(''); setBooking(null); setOrder(null); setDuration(1); setVisitors(2) }
 
+  /**
+   * The vehicles this desk can actually hand over for the chosen kind.
+   *
+   * Only AVAILABLE: anything damaged, in for maintenance, blocked or already out with a customer
+   * has no business on a list an agent picks from. The list itself comes from the desk's own
+   * units, so nothing here can turn out to belong to another counter.
+   */
   const freeUnits = units.filter((u) => u.assetTypeId === product?.assetTypeId && u.status === 'AVAILABLE')
+
+  /** Rentals pick a numbered vehicle up front; a lagoon trip picks a boat instead. */
+  const picksAUnit = !isLagoon && !!fulfilment && !!product?.assetTypeId
 
   const paid = step > 2
   const canRevisit = (target: number) => !paid && target < step
@@ -177,7 +187,7 @@ export function EngineWorkspace({ engineKind }: { engineKind: EngineKind }) {
   const pay = async (splits: PaymentSplit[]) => {
     if (!booking) return
     try {
-      const res = await payMut.mutateAsync({ id: booking.id, splits: splits.map((s) => ({ method: s.method, cardScheme: s.cardScheme ?? null, amount: s.amount, kind: 'SALE' })) })
+      const res = await payMut.mutateAsync({ id: booking.id, splits: splits.map((s) => ({ method: s.method, cardScheme: s.cardScheme ?? null, amount: s.amount, kind: 'SALE', payerId: s.payerId })) })
       setBooking(res.booking)
       void sendInvoiceOnPayment(res.booking.id, res.booking.trackingToken)
       toast('success', t('engine.toast.paid'), t('engine.toast.awaitingFulfilment'))
@@ -422,6 +432,39 @@ export function EngineWorkspace({ engineKind }: { engineKind: EngineKind }) {
               >
                 {t('engine.byTour', { price: money(product.tourPrice ?? 0) })}
               </button>
+            </div>
+          )}
+
+          {picksAUnit && (
+            <div className="mt-3" data-testid="engine-units">
+              <p className="text-xs uppercase tracking-wider text-muted font-bold mb-1.5">{t('engine.whichUnit')}</p>
+              <p className="text-xs text-muted mb-2">{t('engine.whichUnitHint')}</p>
+              {freeUnits.length === 0 ? (
+                <p className="text-sm text-amber-600" data-testid="engine-no-free-units">
+                  {t('engine.noneFreeHere')}
+                </p>
+              ) : (
+                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2">
+                  {freeUnits.map((u) => {
+                    const chosen = u._id === unitId
+                    return (
+                      <button
+                        key={u._id}
+                        type="button"
+                        onClick={() => setUnitId(chosen ? '' : u._id)}
+                        data-testid={`engine-unit-${u._id}`}
+                        className={clsx(
+                          'lf-card p-3 text-start transition-colors',
+                          chosen ? 'border-brand ring-1 ring-brand/30 bg-brand/5' : 'hover:border-brand',
+                        )}
+                      >
+                        <p className="font-mono font-semibold text-sm text-navy dark:text-dk-texthi">{u.identifier}</p>
+                        <p className="text-xs text-muted mt-0.5">{t('engine.freeNow')}</p>
+                      </button>
+                    )
+                  })}
+                </div>
+              )}
             </div>
           )}
 

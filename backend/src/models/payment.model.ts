@@ -15,6 +15,15 @@ export interface PaymentDoc {
   vatAmount: number
   vatRate: number
   engineKind: string | null
+  /**
+   * Who handed the money over.
+   *
+   * Usually the customer on the booking, but a sale can be split between two people — a friend
+   * paying half a rental — and each half has to be attributable to the person who actually paid
+   * it, for the receipt, the refund and the books.
+   */
+  payerId: string | null
+  payerName: string
   method: PaymentMethod
   cardScheme: CardScheme | null
   kind: PaymentKind
@@ -38,6 +47,8 @@ const paymentSchema = new Schema<PaymentDoc>(
     vatAmount: { type: Number, default: 0 },
     vatRate: { type: Number, default: 0 },
     engineKind: { type: String, default: null, index: true },
+    payerId: { type: String, default: null, index: true },
+    payerName: { type: String, default: '' },
     method: { type: String, required: true },
     cardScheme: { type: String, default: null, index: true },
     kind: { type: String, default: 'SALE' },

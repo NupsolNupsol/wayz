@@ -92,6 +92,15 @@ export function Header({ onOpenMobile, me, dataSw }: { onOpenMobile: () => void;
     setSearchOpen(false)
   }
 
+  /**
+   * Where this person is standing.
+   *
+   * Station and desk, whichever of them we actually know. The company name is deliberately not a
+   * fallback: printing "WAYZ" under a pin reads like a place and tells the agent nothing, and it
+   * hid the fact that a desk had never been assigned.
+   */
+  const where = [me.station?.name, me.kiosk?.name].filter(Boolean).join(' · ') || t('header.noDesk')
+
   return (
     <header
       data-testid="app-header"
@@ -108,21 +117,16 @@ export function Header({ onOpenMobile, me, dataSw }: { onOpenMobile: () => void;
         </div>
         <div className="text-xs text-muted mt-1 flex items-center gap-1 truncate" data-testid="header-where">
           <MapPin size={12} className="shrink-0" />
-          <span className="truncate">
-            {me.station?.name ?? me.tenant?.name}
-            {me.kiosk?.name ? ` · ${me.kiosk.name}` : ''}
-          </span>
+          <span className="truncate">{where}</span>
         </div>
       </div>
 
-      {me.kiosk?.name && (
-        <span
-          className="lg:hidden shrink-0 rounded-full bg-brand/10 text-brand text-xs font-semibold px-2.5 py-1 truncate max-w-[40vw]"
-          data-testid="header-where-compact"
-        >
-          {me.kiosk.name}
-        </span>
-      )}
+      <span
+        className="lg:hidden shrink-0 rounded-full bg-brand/10 text-brand text-xs font-semibold px-2.5 py-1 truncate max-w-[40vw]"
+        data-testid="header-where-compact"
+      >
+        {me.kiosk?.name ?? me.station?.name ?? t('header.noDesk')}
+      </span>
 
       <div className="flex-1 flex justify-center min-w-0 px-2 md:px-6">
         {searchable && (

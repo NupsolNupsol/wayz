@@ -99,7 +99,10 @@ export const bookingApi = {
   create: (input: CreateBookingInput) => unwrap<{ booking: Booking; order: Order }>(http.post('/bookings', input)),
   discount: (id: string, body: { reasonCode: string; percent?: number; amount?: number; note?: string }) =>
     unwrap<{ booking: Booking; order: Order }>(http.post(`/bookings/${id}/discount`, body)),
-  pay: (id: string, splits: { method: PaymentMethod; amount: number; kind?: string }[]) =>
+  pay: (
+    id: string,
+    splits: { method: PaymentMethod; cardScheme?: string | null; amount: number; kind?: string; payerId?: string }[],
+  ) =>
     unwrap<{ booking: Booking; order: Order; receipt: Receipt }>(http.post(`/bookings/${id}/pay`, { splits })),
   redeemVoucher: (id: string, code: string) =>
     unwrap<{ code: string; percent: number; name: string; order: Order }>(http.post(`/bookings/${id}/voucher`, { code })),

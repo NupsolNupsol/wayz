@@ -10,6 +10,7 @@ import {
 } from '../services/verification.service.js'
 import {
   availableTransitions,
+  bookingPayments,
   createBooking,
   discountBooking,
   getBookingOrder,
@@ -56,6 +57,7 @@ const paySchema = z.object({
         cardScheme: z.enum(CARD_SCHEMES).nullable().optional(),
         amount: z.number().min(0),
         kind: z.string().optional(),
+        payerId: z.string().min(1).optional(),
       }),
     )
     .min(1),
@@ -139,6 +141,11 @@ export const bookingController = {
   order: asyncHandler(async (req, res) => {
     const s = scopeFromReq(req)
     res.json({ success: true, data: await getBookingOrder(s, req.params.id) })
+  }),
+
+  payments: asyncHandler(async (req, res) => {
+    const s = scopeFromReq(req)
+    res.json({ success: true, data: await bookingPayments(s, req.params.id) })
   }),
 
   invoice: asyncHandler(async (req, res) => {

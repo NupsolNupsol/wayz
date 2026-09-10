@@ -134,26 +134,48 @@ body {
 
 @media print {
   @page {
-    /* A continuous roll: fixed width, and a height the content decides. */
+    /* A continuous roll: fixed width, and a height the content decides. A desktop driver or a
+       print-to-PDF will ignore this and give us its own sheet, which is why the slip centres
+       itself rather than assuming the page is 80mm. */
     size: 80mm auto;
     margin: 0;
   }
 
   html,
   body {
-    width: 80mm;
+    /* Deliberately not width: 80mm. Pinning the body to the roll's width parks the slip against
+       the left edge of any wider sheet, with a field of white beside it. */
+    width: auto !important;
     margin: 0 !important;
     padding: 0 !important;
     background: #fff !important;
   }
 
   /*
-   * Hiding with `visibility` leaves the whole workspace occupying print boxes, and a thermal roll
-   * then feeds a metre of blank paper. Take the app out of the flow entirely and print the slip,
-   * which the modal has already portalled to the body.
+   * Nothing reaches the paper unless it is a slip.
+   *
+   * The app, the dialog it was opened from, the toast that popped in the corner and every other
+   * popover are all portalled onto the body, so hiding the app alone kept letting one of them
+   * through — a modal title one day, "Payment captured" the next. Hiding every child of the body
+   * and then bringing back only the slip closes that off for good, including whatever gets
+   * portalled there next.
+   *
+   * `display: none` and not `visibility: hidden`: a hidden element still occupies its print box,
+   * and on a thermal roll that feeds out as a metre of blank paper before the receipt appears.
    */
-  body > #root {
+  body > * {
     display: none !important;
+  }
+
+  body > .print-only {
+    display: block !important;
+    position: static !important;
+    inset-inline-start: auto !important;
+    /* Centred on whatever sheet we are given. On a real 80mm roll this changes nothing. */
+    width: 80mm !important;
+    margin: 0 auto !important;
+    opacity: 1 !important;
+    pointer-events: auto !important;
   }
 
   .receipt-print,
@@ -171,33 +193,10 @@ body {
     max-width: 80mm;
     /* The roll's printable area, less a hair each side so nothing is shaved off. */
     padding: 0 4mm !important;
-    margin: 0 !important;
+    margin: 0 auto !important;
     border: none !important;
     font-size: 12px;
     line-height: 1.35;
-  }
-
-  /* The dialog around the slip is screen furniture: it must not print, or pad the roll. */
-  [role='dialog'] {
-    position: static !important;
-    display: block !important;
-    padding: 0 !important;
-    background: transparent !important;
-    backdrop-filter: none !important;
-  }
-
-  [role='dialog'] > div:first-child {
-    display: none !important;
-  }
-
-  [role='dialog'] > div {
-    position: static !important;
-    max-height: none !important;
-    max-width: none !important;
-    border: 0 !important;
-    border-radius: 0 !important;
-    box-shadow: none !important;
-    overflow: visible !important;
   }
 
   /* A slip must never be split across a tear. */
@@ -206,13 +205,6 @@ body {
   .receipt-print tr {
     break-inside: avoid;
     page-break-inside: avoid;
-  }
-
-  .print-only {
-    position: static !important;
-    inset-inline-start: auto !important;
-    opacity: 1 !important;
-    pointer-events: auto !important;
   }
 
   .no-print {

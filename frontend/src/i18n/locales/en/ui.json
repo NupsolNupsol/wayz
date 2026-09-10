@@ -27,7 +27,9 @@
     "splitTooBig": "The first method is taking the whole sale — lower it so the second method has something to take, or untick the split.",
     "splitTooSmall": "The first method is taking nothing — give it an amount, or untick the split.",
     "pickScheme": "Choose which card was used.",
-    "youSaved": "{{amount}} off"
+    "youSaved": "{{amount}} off",
+    "splitNeedsPayer": "Say who is paying the other half.",
+    "paysShare": "pays {{amount}}"
   },
   "customer": {
     "search": "Search customer name or phone…",
@@ -187,5 +189,19 @@
     "hint": "Six characters after the dash — letters and numbers only.",
     "redeem": "Redeem",
     "applied": "{{percent}}% off"
+  },
+  "split": {
+    "title": "Who is splitting this?",
+    "subtitle": "Their half goes on their name, so they are confirmed like any other customer.",
+    "whoElse": "The other person",
+    "confirmTitle": "Confirm them",
+    "theirShare": "Their share",
+    "theirShareHint": "Half is {{half}}. Type over it if they are paying a different amount.",
+    "breakdown": "Customer + them",
+    "use": "They pay {{amount}}",
+    "pickSomeone": "Find them, or add them.",
+    "confirmThem": "Send them a code and have them read it back.",
+    "shareTooSmall": "Their share has to be more than nothing.",
+    "shareTooBig": "Leave something for the customer to pay."
   }
 }

@@ -1,14 +1,4 @@
-import {
-  AssetUnit,
-  Booking,
-  Order,
-  Payment,
-  Receipt,
-  Shift,
-  type BagItem,
-  type BookingDoc,
-  type OrderLine,
-} from '../models/index.js'
+import { AssetUnit, Booking, Customer, Order, Payment, Receipt, Shift, type BagItem, type BookingDoc, type OrderLine } from '../models/index.js'
 import { recordAudit } from './audit.service.js'
 import type { BookingHydrated } from '../models/booking.model.js'
 import type { DurationUnit, EngineKind, Role } from '../domain/types.js'
@@ -445,6 +435,70 @@ export async function discountBooking(
   return { booking, order }
 }
 
+interface Payer {
+  id: string
+  name: string
+  phone: string
+  isPrimary: boolean
+}
+
+/**
+ * Everyone paying towards this sale, the booking's own customer first.
+ *
+ * A split names a second person; anyone else on the splits is looked up so their name goes on
+ * their payment and their identity can be checked before it is taken.
+ */
+async function resolvePayers(scope: Scope, booking: BookingHydrated, splits: PaymentSplit[]): Promise<Payer[]> {
+  const primary: Payer = {
+    id: booking.customerId,
+    name: booking.customerName,
+    phone: booking.customerPhone,
+    isPrimary: true,
+  }
+
+  const others = [...new Set(splits.map((s) => s.payerId).filter((id): id is string => !!id && id !== booking.customerId))]
+  if (others.length === 0) return [primary]
+  if (others.length > 1) {
+    throw ApiError.unprocessable('A sale can be split between two people, not more.', [
+      'Take the rest as a separate sale.',
+    ])
+  }
+
+  const found = await Customer.find({ _id: { $in: others }, tenantId: scope.tenantId }).lean()
+  const missing = others.filter((id) => !found.some((c) => c._id === id))
+  if (missing.length) throw ApiError.badRequest(`No customer ${missing.join(', ')} in this tenant.`)
+
+  return [
+    primary,
+    ...found.map((c) => ({ id: c._id, name: c.name, phone: c.phone, isPrimary: false })),
+  ]
+}
+
+/**
+ * What was actually taken against a booking, and from whom.
+ *
+ * The invoice groups payments by method for the customer's copy; this is the desk's view — one row
+ * per payment, so a sale split between two people shows both names and both amounts.
+ */
+export async function bookingPayments(scope: Scope, bookingId: string) {
+  const booking = await loadBooking(scope, bookingId)
+  const rows = await Payment.find({ tenantId: scope.tenantId, bookingId: booking._id })
+    .sort({ createdAt: 1 })
+    .lean()
+
+  return rows.map((p) => ({
+    _id: p._id,
+    amount: p.amount,
+    method: p.method,
+    cardScheme: p.cardScheme,
+    kind: p.kind,
+    status: p.status,
+    payerId: p.payerId ?? booking.customerId,
+    payerName: p.payerName || booking.customerName,
+    takenAt: p.createdAt,
+  }))
+}
+
 export async function payBooking(scope: Scope, bookingId: string, splits: PaymentSplit[]) {
   const booking = await loadBooking(scope, bookingId)
   const order = await Order.findById(booking.orderId)
@@ -462,11 +516,26 @@ export async function payBooking(scope: Scope, bookingId: string, splits: Paymen
   const cashOffered = splits.filter((s) => s.method === 'CASH').reduce((sum, x) => sum + x.amount, 0)
   const till = await tillForTransaction(scope, { cash: cashOffered > 0 })
 
-  if (booking.customerPhone && !(await phoneProofIsFresh(scope.tenantId, booking.customerPhone))) {
-    throw ApiError.unprocessable('Confirm the customer before taking their money.', [
-      `Send the code to ${booking.customerPhone} and have them read it back — the confirmation lasts ${PHONE_PROOF_TTL_MIN} minutes.`,
-    ])
+  /**
+   * Everyone whose money is being taken has to be confirmed first.
+   *
+   * A sale can be split between two people — a friend paying half — and the second payer is a
+   * customer in their own right: their half goes on their name, so their identity is checked the
+   * same way, with the same code and the same expiry. Skipping it for the second person would put
+   * a stranger's name on a payment nobody verified.
+   */
+  const payers = await resolvePayers(scope, booking, splits)
+  for (const payer of payers) {
+    if (!payer.phone) continue
+    if (await phoneProofIsFresh(scope.tenantId, payer.phone)) continue
+    throw ApiError.unprocessable(
+      payer.isPrimary ? 'Confirm the customer before taking their money.' : `Confirm ${payer.name} before taking their money.`,
+      [
+        `Send the code to ${payer.phone} and have them read it back — the confirmation lasts ${PHONE_PROOF_TTL_MIN} minutes.`,
+      ],
+    )
   }
+  const payerById = new Map(payers.map((p) => [p.id, p]))
 
   for (const split of splits) {
     if (split.method === 'CASH' && split.cardScheme) {
@@ -503,6 +572,8 @@ export async function payBooking(scope: Scope, bookingId: string, splits: Paymen
         vatAmount: tax.vatAmount,
         vatRate: tax.vatRate,
         engineKind: booking.engineKind,
+        payerId: s.payerId ?? booking.customerId,
+        payerName: payerById.get(s.payerId ?? booking.customerId)?.name ?? booking.customerName,
         method: s.method,
         cardScheme: s.method === 'CARD' ? (s.cardScheme ?? null) : null,
         kind,
