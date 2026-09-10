@@ -94,14 +94,14 @@ export function EmptyState({ icon, title, message, action }: { icon?: ReactNode;
   )
 }
 
-export function Field({ label, htmlFor, hint, error, children, required, className }: { label: string; htmlFor?: string; hint?: string; error?: string; required?: boolean; children: ReactNode; className?: string }) {
+export function Field({ label, htmlFor, hint, hintTestId, error, children, required, className }: { label: string; htmlFor?: string; hint?: string; /** For a hint that carries a live figure worth asserting on, e.g. seats left. */ hintTestId?: string; error?: string; required?: boolean; children: ReactNode; className?: string }) {
   return (
     <div className={clsx('mb-4', className)}>
       <label htmlFor={htmlFor} className="lf-label">
         {label} {required && <span className="text-danger-strong">*</span>}
       </label>
       {children}
-      {hint && !error && <p className="text-xs text-muted mt-1">{hint}</p>}
+      {hint && !error && <p className="text-xs text-muted mt-1" data-testid={hintTestId}>{hint}</p>}
       {error && <p className="text-xs text-danger-strong mt-1" role="alert">{error}</p>}
     </div>
   )

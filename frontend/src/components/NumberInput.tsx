@@ -37,6 +37,24 @@ export function NumberInput({
   /** A comma is what many keyboards give for a decimal point; treat it as one rather than as NaN. */
   const asNumber = (text: string) => Number(text.replace(',', '.'))
 
+  const signed = min === undefined || min < 0
+
+  /**
+   * Keep the box to the shape of a number as it is typed.
+   *
+   * Filtering to "digits and separators" is not enough: 4-8-8-31 survives that filter, parses to
+   * nothing, and so sits on screen while the sale quietly keeps whatever the field last emitted —
+   * the agent reads one figure and the customer is charged another. A minus is allowed only at the
+   * front and only where negatives are meaningful, and only the first separator is kept.
+   */
+  const shape = (text: string) => {
+    const negative = signed && text.trimStart().startsWith('-')
+    const body = text.replace(/[^0-9.,]/g, '')
+    const at = body.search(/[.,]/)
+    const once = at === -1 ? body : body.slice(0, at + 1) + body.slice(at + 1).replace(/[.,]/g, '')
+    return (negative ? '-' : '') + once
+  }
+
   const settle = (text: string): number => {
     const parsed = asNumber(text)
     const floor = fallback ?? min ?? 0
@@ -65,14 +83,10 @@ export function NumberInput({
       aria-label={ariaLabel}
       data-testid={testId}
       onChange={(e) => {
-        // Digits, one separator and a leading minus: anything else typed at a counter is a slip.
-        const text = e.target.value.replace(/[^0-9.,-]/g, '')
-        if (text.trim() === '') {
-          setRaw(text)
-          return
-        }
+        const text = shape(e.target.value)
         const parsed = asNumber(text)
-        if (Number.isNaN(parsed)) {
+        // "", "-" and "12." are a number half typed; they are shown but nothing is emitted yet.
+        if (text.trim() === '' || Number.isNaN(parsed)) {
           setRaw(text)
           return
         }

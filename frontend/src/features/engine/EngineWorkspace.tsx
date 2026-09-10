@@ -25,7 +25,7 @@ import { useActionLabel } from '@/i18n/useActionLabel'
 import { toast } from '@/state/toastStore'
 import { sendInvoiceOnPayment } from '@/features/invoice/sendInvoiceOnPayment'
 import type { Booking, Customer, EngineKind, Order, Product } from '@/api/types'
-import { NumberInput } from '@/components/NumberInput'
+import { Counter } from '@/components/Counter'
 import { Select } from '@/components/Select'
 
 const FULFILMENT: Record<EngineKind, { code: string; label: string; flag?: 'inspectionDone' | 'safetyAck' | 'boardingVerified'; promptKey?: string } | null> = {
@@ -96,7 +96,7 @@ export function EngineWorkspace({ engineKind }: { engineKind: EngineKind }) {
   const [duration, setDuration] = useState(1)
   const [rateMode, setRateMode] = useState<'HOURS' | 'TOURS'>('HOURS')
   const [tours, setTours] = useState(1)
-  const [visitors, setVisitors] = useState(2)
+  const [visitors, setVisitors] = useState(1)
   const [boatId, setBoatId] = useState('')
   const [phoneVerified, setPhoneVerified] = useState(false)
   const [flag, setFlag] = useState(false)
@@ -126,12 +126,12 @@ export function EngineWorkspace({ engineKind }: { engineKind: EngineKind }) {
   const isLagoon = engineKind === 'LAGOON'
   const { data: boats = [] } = useBoatsWithRoom(product?.assetTypeId ?? undefined, isLagoon && !!product)
   const boat = boats.find((b) => b._id === boatId) ?? null
-  const seatCap = boat ? Math.max(1, boat.free) : undefined
+  const seatCap = boat ? boat.free : undefined
 
   const fulfilment = FULFILMENT[engineKind]
   const active = bookings.filter((b) => ['ACTIVE', 'OVERTIME', 'PREPARING', 'CONFIRMED'].includes(b.status))
 
-  const reset = () => { writeSnapshot(engineKind, null); setResumed(false); setStep(0); setProduct(null); setCustomer(null); setPhoneVerified(false); setFlag(false); setUnitId(''); setBooking(null); setOrder(null); setDuration(1); setVisitors(2) }
+  const reset = () => { writeSnapshot(engineKind, null); setResumed(false); setStep(0); setProduct(null); setCustomer(null); setPhoneVerified(false); setFlag(false); setUnitId(''); setBooking(null); setOrder(null); setDuration(1); setVisitors(1) }
 
   /**
    * The vehicles this desk can actually hand over for the chosen kind.
@@ -221,6 +221,24 @@ export function EngineWorkspace({ engineKind }: { engineKind: EngineKind }) {
     if (unitId && freeUnits.some((u) => u._id === unitId)) return
     setUnitId(freeUnits[0]?._id ?? '')
   }, [step, unitId, freeUnits])
+
+  /**
+   * Seats can go while this sale is being written up.
+   *
+   * The boat list polls, so another desk may fill the hull between choosing it and pressing
+   * Continue. The party is brought back down to what is left rather than left sitting on a number
+   * the server is about to refuse — and if the boat filled up entirely, the choice is dropped so
+   * the agent picks again instead of arguing with an error.
+   */
+  useEffect(() => {
+    if (!isLagoon || !boat) return
+    if (boat.free === 0) {
+      setBoatId('')
+      toast('warning', t('engine.boatFilledUp', { boat: boat.identifier }))
+      return
+    }
+    setVisitors((n) => Math.min(Math.max(1, n), boat.free))
+  }, [isLagoon, boat, t])
 
   const snapshotBookingId = restoring ? (readSnapshot(engineKind)?.bookingId ?? null) : null
   const snapshotBookingQuery = useBooking(snapshotBookingId || undefined)
@@ -515,22 +533,26 @@ export function EngineWorkspace({ engineKind }: { engineKind: EngineKind }) {
           <div className="grid grid-cols-2 gap-3 mt-2">
             {byTours ? (
               <Field label={t('engine.tours')} hint={t('engine.toursHint', { minutes: product.tourMinutes ?? 60 })}>
-                <NumberInput min={1} value={tours} onChange={setTours} testId="engine-tours" />
+                <Counter min={1} value={tours} onChange={setTours} testId="engine-tours" ariaLabel={t('engine.tours')} />
               </Field>
             ) : product.billingModel === 'DURATION_BASED' ? (
-              <Field label={t('engine.durationPeriods')}><NumberInput min={1} value={duration} onChange={setDuration} testId="engine-duration" /></Field>
+              <Field label={t('engine.durationPeriods')}>
+                <Counter min={1} value={duration} onChange={setDuration} testId="engine-duration" ariaLabel={t('engine.durationPeriods')} />
+              </Field>
             ) : (
               <Field
                 label={engineKind === 'COTE_RESTAURANT' ? 'Quantity' : 'Visitors'}
                 hint={isLagoon ? (boat ? t('engine.seatsLeft', { free: boat.free, boat: boat.identifier }) : t('engine.pickABoatFirst')) : undefined}
+                hintTestId={isLagoon ? 'engine-seats-left' : undefined}
               >
-                <NumberInput
+                <Counter
                   min={1}
                   max={seatCap}
                   value={visitors}
-                  onChange={(n) => setVisitors(seatCap ? Math.min(n, seatCap) : n)}
+                  onChange={setVisitors}
                   disabled={isLagoon && !boat}
                   testId="engine-visitors"
+                  ariaLabel={engineKind === 'COTE_RESTAURANT' ? 'Quantity' : 'Visitors'}
                 />
               </Field>
             )}

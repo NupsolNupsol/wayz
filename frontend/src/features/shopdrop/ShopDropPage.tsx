@@ -29,6 +29,7 @@ import { localName, money } from '@/utils'
 import { toast } from '@/state/toastStore'
 import { sendInvoiceOnPayment } from '@/features/invoice/sendInvoiceOnPayment'
 import type { AssetUnit, Booking, Customer, Order } from '@/api/types'
+import { Counter } from '@/components/Counter'
 import { NumberInput } from '@/components/NumberInput'
 import { useStatusLabel } from '@/i18n/useStatusLabel'
 import { DataTable, type Column } from '@/components/DataTable'
@@ -506,7 +507,11 @@ export function ShopDropPage() {
               columns={compartmentColumns}
             />
 
-            <div className="mt-4"><Field label={t('shopdrop.storageDuration')}><NumberInput min={1} value={durationHours} onChange={setDurationHours} testId="sd-duration" /></Field></div>
+            <div className="mt-4">
+              <Field label={t('shopdrop.storageDuration')}>
+                <Counter min={1} max={24} value={durationHours} onChange={setDurationHours} testId="sd-duration" ariaLabel={t('shopdrop.storageDuration')} />
+              </Field>
+            </div>
             <div className="flex justify-between mt-2">
               <Button variant="ghost" onClick={() => goToStep(1)} data-testid="sd-back-bags"><ArrowLeft size={15} />{t('shopdrop.changeBags')}</Button>
               <Button onClick={holdAndDraft} loading={createMut.isPending} disabled={!online || !unitId} data-testid="sd-hold">{t('shopdrop.checkAvailability')}<ArrowRight size={15} /></Button>
