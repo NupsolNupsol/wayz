@@ -19,7 +19,7 @@ import { CARD_SCHEMES } from '../domain/commission.js'
 import { canWorkEngine, engineFilter, kioskFilter } from '../domain/access.js'
 import { tenantRules } from './rules.service.js'
 import { lineNameAr } from '../constants/messages.constants.js'
-import { seatOnBoat, seatsLeftOn } from './trip.service.js'
+import { seatOnBoat, unseatFromBoat, seatsLeftOn } from './trip.service.js'
 import { raise } from './notification.service.js'
 import { tillForTransaction } from './shift.service.js'
 import { FLOOR_LEADS } from '../domain/roles.js'
@@ -739,6 +739,12 @@ export async function transitionBooking(scope: Scope, bookingId: string, code: s
     const penalty = await applyOvertimeCharge(scope, booking)
     if (penalty > 0) audits.push({ action: 'OVERTIME_CHARGE', detail: `${penalty}` })
     await settleWrongDesk(scope, booking, audits)
+  }
+
+  // A party that is cancelled leaves the boat it was seated on, so the captain's manifest matches
+  // who is actually coming.
+  if (booking.engineKind === 'LAGOON' && booking.status === 'CANCELLED') {
+    await unseatFromBoat(scope, booking._id)
   }
 
   await writeAudits(scope.tenantId, scope.agentId, booking._id, audits)

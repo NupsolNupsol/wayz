@@ -194,9 +194,12 @@ function products(t: string) {
       category: "Shop & Drop",
       basePrice: price,
       overtimeHourlyRate: overtime,
-      saleUnit: "BAG",
-      saleType: "SALE",
-      billingModel: key === "s" || key === "m" ? "PER_BAG" : "PER_COMPARTMENT",
+      // Storage is time. Every compartment is hired by the hour, so a four-hour stay costs four
+      // hours and the overtime rate has something to run on when the customer is late back.
+      saleUnit: "HOUR",
+      saleType: "RENTAL",
+      billingModel: "DURATION_BASED",
+      durationUnit: "HOUR",
       assetTypeId: `at_${t}_cmp_${key}`,
       emoji: "ShoppingBag",
     });
@@ -493,12 +496,19 @@ function assetUnits(t: string, stationId: string) {
       penaltyPrice,
     });
 
+  /*
+   * A season venue's wall of lockers, spread across the desks.
+   *
+   * Ten small ones per desk was a demo-sized number: a busy afternoon fills them, and so did the
+   * test suite — every bag drop holds one until it is collected. It also has to leave room for a
+   * customer taking several compartments at once.
+   */
   const sizes: [string, string, number][] = [
-    ["cmp_s", "S", 30],
-    ["cmp_m", "M", 30],
-    ["cmp_l", "L", 24],
-    ["cmp_xl", "X", 12],
-    ["cmp_xxl", "Z", 9],
+    ["cmp_s", "S", 96],
+    ["cmp_m", "M", 96],
+    ["cmp_l", "L", 60],
+    ["cmp_xl", "X", 24],
+    ["cmp_xxl", "Z", 15],
   ];
   let n = 1;
   for (const [key, letter, count] of sizes) {

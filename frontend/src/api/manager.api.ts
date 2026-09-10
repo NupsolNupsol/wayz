@@ -1,4 +1,5 @@
 import { http, unwrap } from './client'
+import type { SaleType, SaleUnit } from './asset.api'
 import type { BillingModel, EngineKind, Incident, Role, Shift } from './types'
 
 export interface ManagerOverview {
@@ -169,6 +170,10 @@ export interface PricingProduct {
   overtimeHourlyRate: number | null
   effectiveOvertimeRate: number
   depositRequired: number
+  /** How it is sold and charged. The server has always sent these; the form needs them to edit. */
+  saleUnit: SaleUnit
+  saleType: SaleType
+  penaltyPrice: number
   assetTypeId: string | null
   assetTypeName: string | null
   /** Where this product is sold. Null means every desk running the activity. */

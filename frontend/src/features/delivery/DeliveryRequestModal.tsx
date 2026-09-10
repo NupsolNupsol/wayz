@@ -15,19 +15,16 @@ import { Select } from '@/components/Select'
 /** Bags either go to an exit gate the customer walks to, or to an address the courier finds. */
 type Destination = 'GATE' | 'ADDRESS'
 
-const ORIGINS: { value: DeliveryOrigin; title: string; blurb: string; icon: typeof MapPin }[] = [
-  {
-    value: 'AT_STORAGE',
-    title: 'Customer is here',
-    blurb: 'They are at the desk asking now — no extra check needed.',
-    icon: CircleCheck,
-  },
-  {
-    value: 'CUSTOMER_CONTACT',
-    title: 'They called or messaged',
-    blurb: 'Verify them before the bags are promised to anyone.',
-    icon: Phone,
-  },
+/**
+ * How the request reached the desk, which decides whether the customer has to prove who they are.
+ *
+ * The wording is looked up rather than written here: an agent working in Arabic was being asked
+ * the one question on this form that decides whether a stranger can have somebody's luggage, in a
+ * language they may not read.
+ */
+const ORIGINS: { value: DeliveryOrigin; key: string; icon: typeof MapPin }[] = [
+  { value: 'AT_STORAGE', key: 'here', icon: CircleCheck },
+  { value: 'CUSTOMER_CONTACT', key: 'remote', icon: Phone },
 ]
 
 export function DeliveryRequestModal({
@@ -156,9 +153,9 @@ export function DeliveryRequestModal({
                 )}
               >
                 <p className="font-semibold text-navy dark:text-dk-texthi flex items-center gap-2 text-sm">
-                  <Ico size={16} className={active ? 'text-brand' : 'text-muted'} /> {o.title}
+                  <Ico size={16} className={active ? 'text-brand' : 'text-muted'} /> {t(`request.origin.${o.key}.title`)}
                 </p>
-                <p className="text-xs text-muted mt-1">{o.blurb}</p>
+                <p className="text-xs text-muted mt-1">{t(`request.origin.${o.key}.blurb`)}</p>
               </button>
             )
           })}
@@ -319,11 +316,7 @@ export function DeliveryRequestModal({
 
         <Field
           label={t('request.contact')}
-          hint={
-            customerPhone
-              ? 'Taken from the booking. Change it if the courier should call somebody else.'
-              : 'The number the courier calls when they arrive.'
-          }
+          hint={customerPhone ? t('request.contactFromBooking') : t('request.contactHint')}
         >
           <PhoneInput value={contactPhone} onChange={setContactPhone} testId="delivery-contact" />
         </Field>

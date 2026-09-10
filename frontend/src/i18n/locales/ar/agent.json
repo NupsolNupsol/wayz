@@ -193,7 +193,8 @@
     "noCompartmentsHint": "هذا المكتب لا يملك خزائن بعد. يضيفها المدير من صفحة الأصول.",
     "chosenTitle": "المختارة",
     "roomFor": "تتسع لـ {{count}} حقائب",
-    "tightFit": "تتسع لـ {{holds}} ولديك {{bags}} حقائب"
+    "tightFit": "تتسع لـ {{holds}} ولديك {{bags}} حقائب",
+    "findCompartment": "ابحث عن خزانة — الرقم أو الحجم أو سعتها"
   },
   "operations": {
     "title": "العمليات الجارية",

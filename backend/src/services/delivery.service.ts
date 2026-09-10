@@ -404,7 +404,7 @@ export async function courierBoard(scope: CourierScope) {
   ])
 
   const withDue = await Promise.all(
-    mine.map(async (d) => ({ ...d, amountDue: await deliveryAmountDue(scope.tenantId, d) })),
+    mine.map(async (d) => d),
   )
 
   return { available, mine: withDue, history }
@@ -475,7 +475,6 @@ export async function deliveryDetail(tenantId: string, id: string, actor?: Deliv
       collectedAt: stop.collectedAt,
       active: stop.status === 'PENDING' && stop.bookingId === doc.bookingId,
     })),
-    amountDue: await deliveryAmountDue(tenantId, doc),
   }
 }
 
@@ -702,14 +701,15 @@ async function stopStorageClockAtPickup(
   }
 }
 
-export async function deliveryAmountDue(
-  tenantId: string,
-  delivery: { bookingId: string; stops?: { bookingId: string }[] },
-): Promise<number> {
-  const ids = [...new Set([delivery.bookingId, ...(delivery.stops ?? []).map((s) => s.bookingId)])]
-  const each = await Promise.all(ids.map((id) => outstandingFor(tenantId, id)))
-  return round2(each.reduce((sum, owed) => sum + owed, 0))
-}
+/*
+ * A courier is never a debt collector.
+ *
+ * Deliveries used to carry an "amount due" so the run could ask for money at the door. The client
+ * was explicit that they never should: the bags go out, and whatever is owed is settled at the
+ * counter. The figure is gone rather than merely zeroed, so nobody builds a collect-on-delivery
+ * flow on top of it again — what was outstanding when the run was raised is kept as
+ * `owedAtRequest`, which is a record, not an instruction.
+ */
 
 export function activeStop(doc: { stops?: DeliveryStopDoc[] }) {
   return (doc.stops ?? []).find((s) => s.status === 'PENDING') ?? null

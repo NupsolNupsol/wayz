@@ -25,7 +25,8 @@
     "qr": "QR",
     "noStation": "Not provisioned anywhere yet",
     "stationsMore": "{{first}} +{{count}}",
-    "penalty": "Penalty"
+    "penalty": "Penalty",
+    "findKind": "Find a kind — name, activity or what it is"
   },
   "action": {
     "add": "Add assets",
@@ -106,7 +107,9 @@
     "type": {
       "RENTAL": "Rental",
       "SALE": "Sale"
-    }
+    },
+    "depositHint": "Held at the counter and given back when the thing comes back.",
+    "billingWillBe": "Charged: {{billing}}"
   },
   "qr": {
     "title": "QR code — {{identifier}}",
@@ -179,8 +182,8 @@
     "body": "The kind disappears from the estate and its product is retired from the counter. Past bookings keep their history."
   },
   "editKind": {
-    "title": "Rename {{name}}",
-    "subtitle": "The product the counter sells is renamed with it.",
+    "title": "Edit {{name}}",
+    "subtitle": "What it is, what it holds, and what the counter charges for it.",
     "details": "Details",
     "pricing": "Pricing",
     "seats": "Seats",
@@ -207,5 +210,32 @@
     "takenBack": "Returned at this desk",
     "charged": "{{amount}} added to the customer’s bill.",
     "failed": "Could not take it back"
+  },
+  "products": {
+    "title": "Sold as",
+    "hint": "What the counter offers for this kind, and what it costs.",
+    "add": "Add a product",
+    "none": "Nothing is sold for this kind yet",
+    "noneHint": "Add a product and the counter can start selling it.",
+    "newTitle": "New product for {{name}}",
+    "editTitle": "Edit {{name}}",
+    "subtitle": "What the customer is charged for, and what it is called on their receipt.",
+    "what": "What it is",
+    "howSold": "How it is sold",
+    "money": "Money",
+    "nameAr": "Name in Arabic",
+    "nameArHint": "What an Arabic-speaking agent and the customer’s receipt will show.",
+    "category": "Category",
+    "categoryHint": "How it is grouped on the counter.",
+    "icon": "Icon",
+    "iconHint": "Picked out at a glance on a busy counter.",
+    "tourPrice": "Price per trip",
+    "tourMinutes": "Minutes per trip",
+    "active": "On sale at the counter",
+    "inactive": "Not on sale",
+    "created": "{{name}} is on sale",
+    "saved": "{{name}} saved",
+    "sellsAs": "Sold to the customer as",
+    "sellsAsHint": "The name on their receipt. Usually the same as the kind."
   }
 }

@@ -16,6 +16,16 @@ export function maskPhone(phone: string): string {
   return `${'•'.repeat(Math.max(2, digits.length - 4))}${digits.slice(-4)}`
 }
 
+/**
+ * How long the counter will wait for the provider.
+ *
+ * There is an agent holding a phone and a customer waiting on a code. If Vonage is slow or
+ * unreachable the request used to hang on the default socket timeout — minutes, in practice — and
+ * the desk simply froze. Failing after ten seconds lets the caller fall back or say so out loud,
+ * which is always better than a spinner nobody can explain.
+ */
+const PROVIDER_TIMEOUT_MS = 10_000
+
 async function send(phone: string, message: Record<string, unknown>): Promise<WhatsAppResult> {
   if (!isWhatsAppConfigured()) return { ok: false, error: 'WhatsApp provider is not configured.' }
 
@@ -23,6 +33,7 @@ async function send(phone: string, message: Record<string, unknown>): Promise<Wh
   try {
     const res = await fetch(env.VONAGE_MESSAGES_URL, {
       method: 'POST',
+      signal: AbortSignal.timeout(PROVIDER_TIMEOUT_MS),
       headers: { Authorization: `Basic ${auth}`, 'Content-Type': 'application/json' },
       body: JSON.stringify({
         from: toDigits(env.VONAGE_WHATSAPP_NUMBER!),
@@ -39,7 +50,12 @@ async function send(phone: string, message: Record<string, unknown>): Promise<Wh
     logger.info('WhatsApp sent', { to: maskPhone(phone), kind: message.message_type })
     return { ok: true }
   } catch (err) {
-    const error = err instanceof Error ? err.message : String(err)
+    const error =
+      err instanceof Error && err.name === 'TimeoutError'
+        ? `WhatsApp provider did not answer within ${PROVIDER_TIMEOUT_MS / 1000}s.`
+        : err instanceof Error
+          ? err.message
+          : String(err)
     logger.warn('WhatsApp send errored', { to: maskPhone(phone), error })
     return { ok: false, error }
   }

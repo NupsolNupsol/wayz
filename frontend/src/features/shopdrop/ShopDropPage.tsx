@@ -505,6 +505,13 @@ export function ShopDropPage() {
               }}
               empty={{ title: t('shopdrop.noCompartments'), message: t('shopdrop.noCompartmentsHint') }}
               columns={compartmentColumns}
+              search={{
+                // Everything an agent might say out loud about a compartment: its number, its
+                // size, what it holds and whether it is free.
+                of: (u) =>
+                  `${u.identifier} ${u.assetTypeName ?? ''} ${u.maxBags ?? ''} ${statusLabel(u.status)}`,
+                placeholder: t('shopdrop.findCompartment'),
+              }}
             />
 
             <div className="mt-4">

@@ -5,7 +5,7 @@ import { Button, Field, FieldGroupTitle } from '@/components/ui'
 import { Select } from '@/components/Select'
 import { NumberInput } from '@/components/NumberInput'
 import { useCreateAssetKind } from '@/hooks'
-import { billingForSaleUnit, billingLabel, chargesForTime, engineLabel, saleUnitsFor, VISIBLE_ENGINES } from '@/config/engineMeta'
+import { billingForSaleUnit, billingLabel, chargesForTime, defaultSaleUnitFor, engineLabel, saleUnitsFor, VISIBLE_ENGINES } from '@/config/engineMeta'
 import { ApiError } from '@/api/client'
 import { toast } from '@/state/toastStore'
 import { ASSET_KINDS, SALE_TYPES, SALE_UNITS, type AssetKind, type AssetKiosk, type AssetStation, type SaleType, type SaleUnit } from '@/api/asset.api'
@@ -53,7 +53,7 @@ export function NewAssetKindModal({
   const [deposit, setDeposit] = useState(0)
   const [overtime, setOvertime] = useState(0)
   const [penalty, setPenalty] = useState(0)
-  const [saleUnit, setSaleUnit] = useState<SaleUnit>('ITEM')
+  const [saleUnit, setSaleUnit] = useState<SaleUnit>(() => defaultSaleUnitFor(defaultEngine ?? 'SHOP_AND_DROP', SALE_UNITS) as SaleUnit)
   const [saleType, setSaleType] = useState<SaleType>('RENTAL')
 
   const [w, setW] = useState(40)
@@ -96,7 +96,7 @@ export function NewAssetKindModal({
     setKioskId('')
 
     const units = saleUnitsFor(next, SALE_UNITS)
-    if (!units.includes(saleUnit)) setSaleUnit(units[0] as SaleUnit)
+    if (!units.includes(saleUnit)) setSaleUnit(defaultSaleUnitFor(next, SALE_UNITS) as SaleUnit)
     if (!chargesForTime(next)) setOvertime(0)
   }
 

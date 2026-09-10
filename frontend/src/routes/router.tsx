@@ -26,7 +26,6 @@ import {
 } from "@/features/manager/ManagerOperations";
 import { ManagerOrg } from "@/features/manager/ManagerOrg";
 import { ManagerTeam } from "@/features/manager/ManagerTeam";
-import { ManagerPricing } from "@/features/manager/ManagerPricing";
 import { ManagerSettings } from "@/features/manager/ManagerSettings";
 import { ManagerReports } from "@/features/manager/ManagerReports";
 import {
@@ -98,6 +97,10 @@ import { NoWorkspacePage } from "@/features/misc/NoWorkspacePage";
 export const router = createBrowserRouter([
   { path: "/login", element: <LoginPage /> },
   { path: "/manager/estate", element: <Navigate to="/assets" replace /> },
+  // Products moved onto the kind that sells them; an old bookmark lands on the estate rather than
+  // on nothing.
+  { path: "/manager/pricing", element: <Navigate to="/assets" replace /> },
+  { path: "/admin/pricing", element: <Navigate to="/assets" replace /> },
   { path: "/cashier", element: <Navigate to="/till" replace /> },
   { path: "/admin/people", element: <Navigate to="/manager/team" replace /> },
   { path: "/notifications", element: <Navigate to="/dashboard" replace /> },
@@ -123,7 +126,6 @@ export const router = createBrowserRouter([
       { path: "shifts", element: <ManagerShifts /> },
       { path: "shifts/:id", element: <ManagerShiftDetail /> },
       { path: "organisation", element: <ManagerOrg /> },
-      { path: "pricing", element: <ManagerPricing /> },
       { path: "team", element: <ManagerTeam /> },
       { path: "settings", element: <ManagerSettings /> },
       { path: "reports", element: <ManagerReports /> },
@@ -175,7 +177,6 @@ export const router = createBrowserRouter([
       { index: true, element: <HrCosts /> },
       { path: "seasons", element: <HrSeasons /> },
       { path: "shifts", element: <HrShifts /> },
-      { path: "pricing", element: <ManagerPricing /> },
       { path: "seasons/:id", element: <SeasonDetail /> },
       { path: "profile", element: <ProfilePage /> },
     ],

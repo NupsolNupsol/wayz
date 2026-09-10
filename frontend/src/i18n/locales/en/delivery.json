@@ -141,7 +141,19 @@
     "exitGateHint": "The customer collects from the agent at this gate.",
     "pickGate": "Choose a gate…",
     "gatesUnavailable": "The gate list could not be loaded, so give the courier an address.",
-    "noGatesHint": "This site has no exit gates set up, so give the courier an address."
+    "noGatesHint": "This site has no exit gates set up, so give the courier an address.",
+    "origin": {
+      "here": {
+        "title": "Customer is here",
+        "blurb": "They are at the desk asking now — no extra check needed."
+      },
+      "remote": {
+        "title": "They called or messaged",
+        "blurb": "Verify them before the bags are promised to anyone."
+      }
+    },
+    "contactFromBooking": "Taken from the booking. Change it if the courier should call somebody else.",
+    "contactHint": "The number the courier calls when they arrive."
   },
   "state": {
     "REQUESTED": {

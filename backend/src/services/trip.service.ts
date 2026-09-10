@@ -117,6 +117,62 @@ export async function seatsLeftOn(scope: Scope, unitId: string) {
   return boat
 }
 
+/**
+ * Takes a party back off a boat that has not sailed.
+ *
+ * A cancelled booking stops holding a seat the moment it is cancelled — the seat count already
+ * follows that — but the captain's manifest was left with the party still on it, so a boat that
+ * nobody was actually boarding still read as filling, and the passenger list named someone who had
+ * gone home. Once the boat has sailed the manifest is a record of who was aboard, so nothing is
+ * removed from it.
+ */
+export async function unseatFromBoat(scope: Scope, bookingId: string) {
+  const trip = await Trip.findOne({
+    tenantId: scope.tenantId,
+    'passengers.bookingId': bookingId,
+    status: { $in: ['FILLING', 'READY'] },
+  })
+  if (!trip) return null
+
+  const aboard = trip.passengers.find((p) => p.bookingId === bookingId)
+  if (!aboard) return null
+
+  trip.passengers = trip.passengers.filter((p) => p.bookingId !== bookingId)
+  trip.headcount = Math.max(0, trip.headcount - aboard.people)
+
+  // The booking no longer belongs to a trip, so it should stop claiming one.
+  await Booking.updateOne({ _id: bookingId }, { $unset: { 'metadata.tripId': '' } })
+
+  // An empty boat is not a trip anybody should be offered or asked to claim.
+  if (trip.passengers.length === 0) {
+    await Trip.deleteOne({ _id: trip._id })
+    await recordAudit({
+      tenantId: scope.tenantId,
+      actorId: scope.agentId,
+      action: 'TRIP_EMPTIED',
+      entity: 'Trip',
+      entityId: trip._id,
+      detail: `${trip.assetUnitIdentifier}: last party left, trip closed`,
+    })
+    return null
+  }
+
+  // Room again, so it goes back to filling rather than waiting on a captain.
+  if (trip.status === 'READY' && trip.headcount < trip.seats) trip.status = 'FILLING'
+  await trip.save()
+
+  await recordAudit({
+    tenantId: scope.tenantId,
+    actorId: scope.agentId,
+    action: 'TRIP_UNSEATED',
+    entity: 'Trip',
+    entityId: trip._id,
+    detail: `${aboard.bookingRef} · ${aboard.people} off ${trip.assetUnitIdentifier} (${trip.headcount}/${trip.seats})`,
+  })
+
+  return trip.toObject()
+}
+
 export async function seatOnBoat(scope: Scope, booking: {
   _id: string
   ref: string

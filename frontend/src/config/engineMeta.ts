@@ -68,13 +68,33 @@ export function productIconFor(
  * a form never offers a unit the API will refuse — a trip is sold as a trip.
  */
 export const SALE_UNITS_FOR: Partial<Record<EngineKind, string[]>> = {
-  SHOP_AND_DROP: ['BAG', 'CART', 'DELIVERY', 'ITEM', 'HOUR', 'FULL_DAY'],
+  SHOP_AND_DROP: ['HOUR', 'FULL_DAY', 'BAG', 'CART', 'DELIVERY', 'ITEM'],
   MOBILITY: ['HOUR', 'FULL_DAY', 'TOUR', 'ITEM'],
   LAGOON: ['TOUR'],
 }
 
 export function saleUnitsFor(engineKind: EngineKind, all: readonly string[]): string[] {
   return SALE_UNITS_FOR[engineKind] ?? [...all]
+}
+
+/**
+ * What an activity is sold by unless somebody deliberately changes it.
+ *
+ * Storage and hire are both time: a compartment held for four hours costs four hours, and a
+ * scooter out all afternoon costs the afternoon. Defaulting them to anything else means every new
+ * kind starts out charging a flat fee and the first long stay is undercharged before anyone
+ * notices. A lagoon trip is a trip, so it defaults to one.
+ */
+export const DEFAULT_SALE_UNIT: Partial<Record<EngineKind, string>> = {
+  SHOP_AND_DROP: 'HOUR',
+  MOBILITY: 'HOUR',
+  LAGOON: 'TOUR',
+}
+
+export function defaultSaleUnitFor(engineKind: EngineKind, all: readonly string[]): string {
+  const offered = saleUnitsFor(engineKind, all)
+  const wanted = DEFAULT_SALE_UNIT[engineKind]
+  return wanted && offered.includes(wanted) ? wanted : (offered[0] ?? 'ITEM')
 }
 
 /** Sale units that measure time — mirrors the platform's own rule. */

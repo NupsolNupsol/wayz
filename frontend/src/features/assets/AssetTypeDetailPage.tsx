@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next'
 import { useNavigate, useParams } from 'react-router-dom'
 import { Boxes, Pencil, Plus, QrCode, Tag, Trash2 } from 'lucide-react'
 import { PageHeader } from '@/components/PageHeader'
-import { Badge, Button, Card, EmptyState, Field, Spinner, StatCard, StatusBadge } from '@/components/ui'
+import { Badge, Button, Card, EmptyState, Field, SectionTitle, Spinner, StatCard, StatusBadge } from '@/components/ui'
 import { DataTable, type Column } from '@/components/DataTable'
 import { Modal } from '@/components/Modal'
 import { Select } from '@/components/Select'
@@ -19,8 +19,12 @@ import {
 } from '@/hooks'
 import { can } from '@/permissions/permissions'
 import { useAuthStore } from '@/store/auth'
-import { engineLabel } from '@/config/engineMeta'
+import { billingLabel, engineLabel } from '@/config/engineMeta'
 import { ApiError } from '@/api/client'
+import { KindEditorModal } from './KindEditorModal'
+import { useManagerPricing } from '@/hooks'
+import { Icon } from '@/components/Icon'
+import type { PricingProduct } from '@/api/manager.api'
 import { toast } from '@/state/toastStore'
 import { money } from '@/utils'
 import { SALE_TYPES, SALE_UNITS, type AssetUnitRow, type SaleType, type SaleUnit } from '@/api/asset.api'
@@ -39,6 +43,7 @@ export function AssetTypeDetailPage() {
   const updateUnit = useUpdateAssetUnit()
   const removeUnit = useRemoveAssetUnit()
   const priceType = usePriceAssetType()
+  const pricing = useManagerPricing()
 
   const [addOpen, setAddOpen] = useState(false)
   const [stationId, setStationId] = useState('')
@@ -59,6 +64,8 @@ export function AssetTypeDetailPage() {
   const [freeing, setFreeing] = useState<AssetUnitRow | null>(null)
 
   const [priceOpen, setPriceOpen] = useState(false)
+  const [productOpen, setProductOpen] = useState(false)
+  const [editingProduct, setEditingProduct] = useState<PricingProduct | null>(null)
   const [penalty, setPenalty] = useState(0)
   const [saleUnit, setSaleUnit] = useState<SaleUnit>('ITEM')
   const [saleType, setSaleType] = useState<SaleType>('RENTAL')
@@ -162,6 +169,9 @@ export function AssetTypeDetailPage() {
       onError: (e) => toast('danger', t('toast.couldNotRemove'), e instanceof ApiError ? (e.errors?.join(' ') ?? e.message) : ''),
     })
   }
+
+  /** Everything this kind is sold as. A kind usually has one, but nothing stops it having more. */
+  const kindProducts = (pricing.data?.products ?? []).filter((p) => p.assetTypeId === id)
 
   const openPrice = () => {
     setBasePrice(type.basePrice ?? 0)
@@ -336,6 +346,70 @@ export function AssetTypeDetailPage() {
         />
       </div>
 
+      {/*
+        What this kind is sold as.
+        A product belongs to a kind, so it is managed here rather than on a page of its own — one
+        place, one set of controls, and no second opinion about what a thing can be sold by.
+      */}
+      <Card className="mb-5" data-testid="kind-products">
+        <div className="flex flex-wrap items-start justify-between gap-3 mb-4">
+          <div>
+            <SectionTitle className="!mb-0.5">{t('products.title')}</SectionTitle>
+            <p className="text-xs text-muted">{t('products.hint')}</p>
+          </div>
+          {mayManage && (
+            <Button
+              variant="secondary"
+              onClick={() => {
+                setEditingProduct(null)
+                setProductOpen(true)
+              }}
+              data-testid="kind-product-add"
+            >
+              <Plus size={15} />
+              {t('products.add')}
+            </Button>
+          )}
+        </div>
+        {kindProducts.length === 0 ? (
+          <EmptyState icon={<Tag size={22} />} title={t('products.none')} message={t('products.noneHint')} />
+        ) : (
+          <div className="flex flex-col gap-2">
+            {kindProducts.map((product) => (
+              <div
+                key={product._id}
+                className="flex flex-wrap items-center gap-3 rounded-xl2 border border-line dark:border-dk-border p-3"
+                data-testid={`kind-product-${product._id}`}
+              >
+                <div className="w-9 h-9 rounded-xl2 bg-canvas dark:bg-dk-elevated grid place-items-center text-muted">
+                  <Icon name={product.emoji} size={18} />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <p className="font-semibold text-navy dark:text-dk-texthi text-sm">{product.name}</p>
+                  <p className="text-xs text-muted" dir="auto">
+                    {product.nameAr || t('price.noProductShort')} · {billingLabel(product.billingModel, product.engineKind)}
+                  </p>
+                </div>
+                <p className="font-semibold tabular-nums text-sm">{money(product.basePrice)}</p>
+                {!product.active && <Badge tone="neutral">{t('products.inactive')}</Badge>}
+                {mayManage && (
+                  <Button
+                    variant="secondary"
+                    onClick={() => {
+                      setEditingProduct(product)
+                      setProductOpen(true)
+                    }}
+                    data-testid={`kind-product-edit-${product._id}`}
+                  >
+                    {t('common:action.edit')}
+                  </Button>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
+      </Card>
+
       {data.units.length === 0 ? (
         <Card>
           <EmptyState
@@ -491,6 +565,21 @@ export function AssetTypeDetailPage() {
       >
         <p className="text-sm text-muted">{t('remove.body')}</p>
       </Modal>
+
+      <KindEditorModal
+        open={productOpen}
+        onClose={() => setProductOpen(false)}
+        kind={{
+          _id: type._id,
+          name: type.name,
+          kind: type.kind,
+          engineKind: type.engineKind,
+          seats: (type.capacity?.seats as number | undefined) ?? null,
+          maxRecommendedBagCount: (type.capacity?.maxRecommendedBagCount as number | undefined) ?? null,
+          capacityScore: (type.capacity?.capacityScore as number | undefined) ?? null,
+        }}
+        product={editingProduct}
+      />
 
       <Modal
         open={priceOpen}

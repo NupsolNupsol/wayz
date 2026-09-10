@@ -2,7 +2,7 @@ import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, typ
 import { useTranslation } from 'react-i18next'
 import { createPortal } from 'react-dom'
 import { clsx } from 'clsx'
-import { ArrowDown, ArrowUp, ArrowUpDown, ChevronLeft, ChevronRight, Filter, Inbox, X } from 'lucide-react'
+import { ArrowDown, ArrowUp, ArrowUpDown, ChevronLeft, ChevronRight, Filter, Inbox, Search, X } from 'lucide-react'
 import { EmptyState } from './ui'
 import type { SelectOption } from './Select'
 
@@ -34,6 +34,7 @@ export function DataTable<T>({
   pageSize = 10,
   className,
   footer,
+  search,
 }: {
   columns: Column<T>[]
   rows: T[]
@@ -45,10 +46,19 @@ export function DataTable<T>({
   pageSize?: number
   className?: string
   footer?: (rows: T[]) => ReactNode[]
+  /**
+   * One box that looks across the whole row.
+   *
+   * The per-column filters answer "show me the medium ones"; this answers "where is the M one",
+   * which is what somebody with a queue in front of them actually types. `of` returns everything
+   * about a row worth matching on — its number, its kind, its size — in one string.
+   */
+  search?: { of: (row: T) => string; placeholder?: string }
 }) {
   const { t } = useTranslation('ui')
   const [sort, setSort] = useState<SortState>(initialSort ?? null)
   const [filters, setFilters] = useState<Record<string, string>>({})
+  const [query, setQuery] = useState('')
   const [open, setOpen] = useState<OpenFilter>(null)
   const [anchor, setAnchor] = useState<{ top: number; left: number } | null>(null)
   const [page, setPage] = useState(0)
@@ -73,6 +83,15 @@ export function DataTable<T>({
       const val = col.filter.value
       out = col.filter.kind === 'text' ? out.filter((r) => val(r).toLowerCase().includes(active.toLowerCase())) : out.filter((r) => val(r) === active)
     }
+    const term = query.trim().toLowerCase()
+    if (term && search) {
+      // Every word has to appear somewhere on the row, so "med 3" narrows rather than widens.
+      const words = term.split(/\s+/)
+      out = out.filter((r) => {
+        const hay = search.of(r).toLowerCase()
+        return words.every((w) => hay.includes(w))
+      })
+    }
     if (sort) {
       const col = columns.find((c) => c.key === sort.key)
       if (col?.sortValue) {
@@ -86,9 +105,9 @@ export function DataTable<T>({
       }
     }
     return out
-  }, [rows, columns, filters, sort])
+  }, [rows, columns, filters, sort, query, search])
 
-  useEffect(() => setPage(0), [filters, sort, rows.length])
+  useEffect(() => setPage(0), [filters, sort, query, rows.length])
 
   useEffect(() => {
     if (!open) return
@@ -136,7 +155,22 @@ export function DataTable<T>({
     return <EmptyState icon={<Inbox size={22} />} title={empty?.title ?? 'Nothing here yet'} message={empty?.message} />
   }
 
+  const searchBox = search ? (
+    <div className="mb-3 relative">
+      <Search size={15} className="pointer-events-none absolute start-3 top-1/2 -translate-y-1/2 text-muted" />
+      <input
+        className="lf-input ps-9"
+        value={query}
+        onChange={(e) => setQuery(e.target.value)}
+        placeholder={search.placeholder ?? t('table.search')}
+        data-testid={testId ? `${testId}-search` : undefined}
+      />
+    </div>
+  ) : null
+
   return (
+    <>
+    {searchBox}
     <div data-testid={testId} className={clsx('bg-surface dark:bg-dk-surface rounded-card border border-line shadow-card overflow-hidden', className)}>
       <div className="overflow-x-auto scroll-thin">
         <table className="w-full text-sm border-collapse">
@@ -265,5 +299,6 @@ export function DataTable<T>({
           document.body,
         )}
     </div>
+    </>
   )
 }

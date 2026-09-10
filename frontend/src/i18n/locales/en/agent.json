@@ -193,7 +193,8 @@
     "noCompartmentsHint": "This desk holds none yet. A manager adds them under Assets.",
     "chosenTitle": "Chosen",
     "roomFor": "Room for {{count}} bags",
-    "tightFit": "Holds {{holds}} — you have {{bags}} bags"
+    "tightFit": "Holds {{holds}} — you have {{bags}} bags",
+    "findCompartment": "Find a compartment — number, size or how much it holds"
   },
   "operations": {
     "title": "Active operations",

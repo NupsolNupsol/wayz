@@ -52,8 +52,15 @@ const KIND_DEFAULTS: Record<AssetKind, { billingModel: BillingModel; emoji: stri
   ANIMAL: { billingModel: 'PACKAGE', emoji: '🐪' },
 }
 
+/**
+ * What a kind is sold by when nobody says otherwise.
+ *
+ * Storage and hire are both time. A compartment defaulted to "per bag" charges the same for twenty
+ * minutes as for a whole day, which is undercharging that only shows up on the takings — so both
+ * start on the hour and an admin has to choose to change it.
+ */
 const SALE_UNIT_DEFAULTS: Record<AssetKind, SaleUnit> = {
-  COMPARTMENT: 'BAG',
+  COMPARTMENT: 'HOUR',
   VEHICLE: 'HOUR',
   BOAT: 'TOUR',
   TABLE: 'ITEM',
@@ -61,7 +68,8 @@ const SALE_UNIT_DEFAULTS: Record<AssetKind, SaleUnit> = {
 }
 
 const SALE_TYPE_DEFAULTS: Record<AssetKind, SaleType> = {
-  COMPARTMENT: 'SALE',
+  // Storage is hired and handed back, so it carries an overtime rate like any other hire.
+  COMPARTMENT: 'RENTAL',
   VEHICLE: 'RENTAL',
   BOAT: 'RENTAL',
   TABLE: 'RENTAL',

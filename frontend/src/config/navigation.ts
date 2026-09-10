@@ -45,7 +45,6 @@ export const MANAGER_NAV: NavGroup[] = [
     items: [
       { id: 'mgr-org', label: 'Organisation', to: '/manager/organisation', icon: 'Building2', testId: 'nav-mgr-org', permission: 'manager.configure' },
       { id: 'mgr-estate', label: 'Assets', to: '/assets', icon: 'Grid3x3', testId: 'nav-mgr-estate' },
-      { id: 'mgr-pricing', label: 'Products', to: '/manager/pricing', icon: 'Tag', testId: 'nav-mgr-pricing', permission: 'pricing.edit' },
       { id: 'mgr-team', label: 'Team', to: '/manager/team', icon: 'UserCog', testId: 'nav-mgr-team', permission: 'manager.configure' },
       { id: 'mgr-settings', label: 'Settings', to: '/manager/settings', icon: 'Settings', testId: 'nav-mgr-settings', permission: 'manager.configure' },
       { id: 'mgr-rules', label: 'Operating rules', to: '/admin/rules', icon: 'Gavel', testId: 'nav-mgr-rules', permission: 'rules.edit' },
@@ -144,7 +143,6 @@ export const TENANT_ADMIN_NAV: NavGroup[] = [
       { id: 'admin-org', label: 'Sites & stations', to: '/manager/organisation', icon: 'MapPin', testId: 'nav-admin-org' },
       { id: 'admin-stations', label: 'Station map', to: '/admin/stations', icon: 'Map', testId: 'nav-admin-stations' },
       { id: 'admin-assets', label: 'All assets', to: '/assets', icon: 'Grid3x3', testId: 'nav-admin-assets' },
-      { id: 'admin-pricing', label: 'Products', to: '/manager/pricing', icon: 'Tag', testId: 'nav-admin-pricing' },
     ],
   },
   {
