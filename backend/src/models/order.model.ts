@@ -1,4 +1,4 @@
-import mongoose, { Schema } from 'mongoose'
+import { Schema } from 'mongoose'
 import { nanoid } from 'nanoid'
 
 export interface OrderLine {
@@ -83,4 +83,4 @@ const orderSchema = new Schema<OrderDoc>(
   { _id: false, timestamps: true },
 )
 
-export const Order = mongoose.model<OrderDoc>('Order', orderSchema)
+export const OrderSchema = orderSchema

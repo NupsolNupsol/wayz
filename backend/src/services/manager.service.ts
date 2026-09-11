@@ -251,6 +251,7 @@ export async function managerLiveSessions(scope: ManagerScope) {
       stationName: stationName.get(b.stationId) ?? b.stationId,
       expectedEndAt: overtime.expectedEndAt,
       remainingMs: overtime.remainingMs,
+      gracePeriodMin: overtime.gracePeriodMin,
       isOvertime: overtime.isOvertime,
       penaltyAmount: overtime.penaltyAmount,
     }
@@ -298,6 +299,7 @@ export async function managerRentals(scope: ManagerScope, which: keyof typeof RE
       startedAt: b.session.startedAt ?? null,
       expectedEndAt: o.expectedEndAt,
       remainingMs: o.remainingMs,
+      gracePeriodMin: o.gracePeriodMin,
       isOvertime: o.isOvertime,
       penaltyAmount: o.penaltyAmount,
       createdAt: b.createdAt,

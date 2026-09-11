@@ -1,4 +1,4 @@
-import mongoose, { Schema } from 'mongoose'
+import { Schema } from 'mongoose'
 import type { EngineKind, PaymentMethod } from '../domain/types.js'
 
 export const MANUAL_SALE_STATUSES = ['PENDING', 'APPROVED', 'REJECTED'] as const
@@ -51,4 +51,4 @@ const manualSaleSchema = new Schema<ManualSaleDoc>(
 
 manualSaleSchema.index({ tenantId: 1, status: 1, occurredAt: -1 })
 
-export const ManualSale = mongoose.model<ManualSaleDoc>('ManualSale', manualSaleSchema)
+export const ManualSaleSchema = manualSaleSchema

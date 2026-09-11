@@ -107,7 +107,8 @@
     "lagoon-trips": "Boats & trips",
     "lagoon-captain": "My trips",
     "hr-shifts": "Shifts & hours",
-    "hr-pricing": "Products"
+    "hr-pricing": "Products",
+    "my-gate": "My gate"
   },
   "notifications": {
     "title": "Notifications",

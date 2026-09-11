@@ -1,4 +1,4 @@
-import { AssetUnit, Booking, DeliveryRequest, Kiosk, Station, User } from '../models/index.js'
+import { AssetUnit, Booking, DeliveryRequest, Gate, Kiosk, Station, User } from '../models/index.js'
 import { recordAudit } from './audit.service.js'
 import { raise } from './notification.service.js'
 import type { BookingHydrated } from '../models/booking.model.js'
@@ -8,6 +8,7 @@ import { ApiError } from '../utils/ApiError.js'
 import { nextId } from './counter.service.js'
 import { round2 } from '../utils/helpers.js'
 import { outstandingFor } from './booking.service.js'
+import { applyTransition } from './workflow.service.js'
 import { env } from '../config/env.js'
 
 import {
@@ -15,6 +16,7 @@ import {
   DLV_ASSIGNED,
   DLV_DELIVERED,
   DLV_ORIGIN_AT_STORAGE,
+  DLV_ORIGIN_KIOSK_INTAKE,
   DLV_ORIGIN_CUSTOMER_CONTACT,
   DLV_PICKED_UP,
   DLV_REQUESTED,
@@ -384,6 +386,136 @@ const sortNewest = { requestedAt: -1 as const }
 
 
 
+/**
+ * Raises the run that carries a customer's bags from the counter to a gate.
+ *
+ * This is the journey the client described, and the reason the clock cannot start at the till: a
+ * Shop & Drop counter is a point of sale and holds no lockers, so the bags a customer hands over
+ * are still at the counter when the sale is finished. A courier takes the task off the board,
+ * collects them, walks them to the gate that holds the reserved locker, and puts them away. Only
+ * then is anything actually stored, and only then does the customer's time begin.
+ *
+ * It reuses the delivery board wholesale — same states, same courier, same handover — because it
+ * is the same job in the other direction. What it does not reuse is the ending: an outbound run
+ * finishes by stopping a clock, and this one finishes by starting it.
+ */
+export async function requestStorageRun(scope: Scope, bookingId: string) {
+  const booking = await Booking.findOne({ _id: bookingId, tenantId: scope.tenantId, stationId: scope.stationId })
+  if (!booking) throw ApiError.notFound('Booking not found.')
+  if (booking.engineKind !== 'SHOP_AND_DROP') {
+    throw ApiError.unprocessable('Only a bag drop is carried to a gate to be stored.')
+  }
+  if (booking.status !== 'RESERVED') {
+    throw ApiError.unprocessable(`${booking.ref} is ${booking.status.toLowerCase()}, so there is nothing to carry yet.`, [
+      'Take the payment and reserve a locker first — the run carries the bags to the locker that is being held.',
+    ])
+  }
+
+  const already = await DeliveryRequest.findOne({
+    tenantId: scope.tenantId,
+    bookingId: booking._id,
+    origin: DLV_ORIGIN_KIOSK_INTAKE,
+    status: { $nin: DELIVERY_TERMINAL },
+  }).lean()
+  if (already) throw ApiError.conflict(`${booking.ref} is already waiting for a courier.`)
+
+  const unitId = booking.reservation?.assetUnitId ?? booking.assetUnitId ?? null
+  const unit = unitId ? await AssetUnit.findOne({ _id: unitId, tenantId: scope.tenantId }).lean() : null
+  if (!unit?.gateId) {
+    throw ApiError.unprocessable('No locker is being held for this booking, so there is nowhere to carry the bags.')
+  }
+  const gate = await Gate.findOne({ _id: unit.gateId, tenantId: scope.tenantId }).lean()
+  if (!gate) throw ApiError.unprocessable('The gate holding that locker no longer exists.')
+
+  const desk = booking.kioskId
+    ? await Kiosk.findOne({ _id: booking.kioskId, tenantId: scope.tenantId }, { name: 1 }).lean()
+    : null
+  const siteId = await siteOfStation(scope.tenantId, scope.stationId)
+  const now = new Date()
+
+  const doc = await DeliveryRequest.create({
+    _id: await nextId('delivery'),
+    tenantId: scope.tenantId,
+    siteId,
+    stationId: scope.stationId,
+    kioskId: booking.kioskId ?? null,
+    bookingId: booking._id,
+    bookingRef: booking.ref,
+    customerId: booking.customerId,
+    customerName: booking.customerName,
+    customerPhone: booking.customerPhone,
+    destination: {
+      kind: 'GATE_LOCKER',
+      address: gate.location || gate.name,
+      kioskId: null,
+      kioskName: gate.name,
+      gateId: gate._id,
+      notes: '',
+      contactPhone: booking.customerPhone,
+    },
+    status: DLV_REQUESTED,
+    origin: DLV_ORIGIN_KIOSK_INTAKE,
+    verifiedBy: null,
+    verifiedAt: null,
+    verificationMethod: null,
+    requestedBy: scope.agentId,
+    requestedAt: now,
+    assetUnitId: unitId,
+    assetUnitIdentifier: unit.identifier,
+    fee: 0,
+    // Nothing about a storage run turns on money: the sale is already paid before a locker is
+    // held. Recorded at zero so the board reads the same shape as every other run.
+    owedAtRequest: 0,
+    stops: [
+      {
+        bookingId: booking._id,
+        bookingRef: booking.ref,
+        // The bags are at the counter. That is where the courier goes to get them.
+        kioskId: booking.kioskId ?? null,
+        kioskName: desk?.name ?? '',
+        assetUnitId: unitId,
+        assetUnitIdentifier: unit.identifier,
+        bagBarcodes: booking.bags.map((b) => b.barcode),
+        bagCount: booking.bags.length,
+        status: 'PENDING' as const,
+        scannedBarcodes: [],
+        collectedAt: null,
+      },
+    ],
+    timeline: [
+      {
+        status: DLV_REQUESTED,
+        at: now,
+        by: scope.agentId,
+        note: `Storage run raised at ${desk?.name ?? 'the counter'} — ${booking.bags.length} bag(s) to ${gate.name}, locker ${unit.identifier}`,
+      },
+    ],
+  })
+
+  await recordAudit({
+    tenantId: scope.tenantId,
+    actorId: scope.agentId,
+    action: 'STORAGE_RUN_REQUESTED',
+    entity: 'Delivery',
+    entityId: doc._id,
+    detail: `${booking.ref}: ${booking.bags.length} bag(s) from ${desk?.name ?? 'the counter'} to ${gate.name} (${unit.identifier})`,
+  })
+
+  await raise({
+    tenantId: scope.tenantId,
+    stationId: scope.stationId,
+    kioskId: booking.kioskId,
+    engineKind: 'SHOP_AND_DROP',
+    title: 'Bags waiting to be stored',
+    body: `${booking.ref}: ${booking.bags.length} bag(s) at ${desk?.name ?? 'the counter'} for ${gate.name}, locker ${unit.identifier}.`,
+    level: 'info',
+    audience: ['DELIVERY_AGENT'],
+    link: '/courier',
+  })
+
+  return deliveryDetail(scope.tenantId, doc._id)
+}
+
 export async function courierBoard(scope: CourierScope) {
   const [available, mine, history] = await Promise.all([
     DeliveryRequest.find({ tenantId: scope.tenantId, siteId: scope.siteId, status: DLV_REQUESTED, assignedTo: null })
@@ -537,10 +669,53 @@ export async function applyDeliveryTransition(params: ApplyDeliveryParams) {
     }
   }
 
-  if (code === 'TO_DELIVERED') {
+  /*
+   * A storage run ends the opposite way round.
+   *
+   * Every other run carries bags *out*, and finishing one stops a clock that has been running
+   * since the bags were put away. A storage run carries them *in*: nothing has been stored yet,
+   * there is no clock, and finishing it is the moment storage actually begins.
+   */
+  const carryingIn = doc.origin === DLV_ORIGIN_KIOSK_INTAKE
+
+  if (code === 'TO_DELIVERED' && !carryingIn) {
     // The clock stops when the bags leave; anything still owed is the desk's to collect, not a
     // reason to leave a courier standing at a gate with a customer's luggage.
     await stopStorageClockAtPickup(actor.tenantId, doc)
+  }
+
+  /*
+   * The bags go into the locker before the run is called finished.
+   *
+   * Order matters here and there is no transaction to lean on. If the run were marked delivered
+   * first and the storing then failed, the board would say the job was done while the customer's
+   * clock had never started and their bags were, as far as the platform knew, nowhere. Doing it
+   * this way round means a failure leaves the run picked up and the bags still in the courier's
+   * hands — which is exactly where they would actually be.
+   *
+   * It goes through the booking's own workflow rather than being written out by hand, so the
+   * checks that guard storing — the right locker, every bag scanned — still apply. The courier is
+   * the actor because the courier is the person putting them away.
+   */
+  if (code === 'TO_DELIVERED' && carryingIn) {
+    if (!booking) throw ApiError.unprocessable('The booking these bags belong to no longer exists.')
+    const scanned = doc.scannedBarcodes?.length
+      ? doc.scannedBarcodes
+      : (doc.stops ?? []).flatMap((stop) => stop.scannedBarcodes ?? [])
+    await applyTransition({
+      booking,
+      code: 'TO_STORED',
+      payload: {
+        scannedUnitId: doc.assetUnitId ?? undefined,
+        scannedBarcodes: scanned,
+        durationMin: booking.session.requestedDurationMin ?? undefined,
+      },
+      actor: { id: actor.userId, role: actor.role },
+      tenantId: actor.tenantId,
+      stationId: doc.stationId,
+      kioskId: null,
+      now,
+    })
   }
 
   const validator = getDeliveryValidator(DEFAULT_DELIVERY_ASSET_KIND)
@@ -564,7 +739,7 @@ export async function applyDeliveryTransition(params: ApplyDeliveryParams) {
     await doc.save()
   }
 
-  if (booking) await applyBookingEffects(booking, code, actor, result.delivery, now)
+  if (booking && !carryingIn) await applyBookingEffects(booking, code, actor, result.delivery, now)
 
   if (code === 'TO_DELIVERED') {
     for (const stop of doc.stops ?? []) {

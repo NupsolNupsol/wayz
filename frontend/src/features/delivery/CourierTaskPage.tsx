@@ -5,7 +5,6 @@ import { useParams } from 'react-router-dom'
 import {
   Check,
   Hand,
-  MapPin,
   Package,
   PackageCheck,
   Phone,
@@ -23,7 +22,7 @@ import { Icon } from '@/components/Icon'
 import { useCollectStop, useCourierTransition, useDelivery } from '@/hooks'
 import { ApiError } from '@/api/client'
 import { toast } from '@/state/toastStore'
-import { DELIVERY_STEPS, meta, relativeTime } from './deliveryMeta'
+import { DELIVERY_STEPS, isStorageRun, jobDestinationLine, jobKindLabel, meta, relativeTime } from './deliveryMeta'
 import type { DeliveryBag, DeliveryDetail } from '@/api/delivery.api'
 
 
@@ -198,6 +197,8 @@ export function CourierTaskPage() {
 
   const d = detail.delivery
   const m = meta(d.status)
+  /** Bags going in, not out: a different job with a different ending. */
+  const storing = isStorageRun(d)
   const mine = detail.mine !== false
   const claimed = !!d.assignedTo
   const can = (code: string) => detail.transitions.some((t) => t.code === code)
@@ -266,23 +267,42 @@ export function CourierTaskPage() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-5 items-start">
       <div className="lg:col-span-2 flex flex-col gap-5">
 
+      {/*
+        Where this job ends, and it is not the same place for the two kinds of job.
+        A delivery ends at a person, so it shows an address and a phone to ring. A storage run ends
+        at a locker, so it shows the gate and the locker number — and offers no phone, because
+        there is nobody to call: the customer walked off the moment they handed their bags over.
+      */}
       <Card className="p-4">
         <div className="flex items-start gap-3">
-          <MapPin size={18} className="text-brand shrink-0 mt-0.5" />
+          <Icon name={storing ? 'PackageOpen' : 'MapPin'} size={18} className="text-brand shrink-0 mt-0.5" />
           <div className="min-w-0 flex-1">
             <p className="text-xs text-muted mb-0.5">
               {d.customerName} · {t('common:unit.bags', { count: detail.bags.length })}
             </p>
-            <p className="font-semibold text-navy dark:text-dk-texthi">{d.destination.address}</p>
+            <p className="font-semibold text-navy dark:text-dk-texthi" data-testid="courier-destination">
+              {jobDestinationLine(d)}
+            </p>
+            {storing && d.stops?.[0]?.kioskName && (
+              <p className="text-sm text-muted mt-1" data-testid="courier-collect-from">
+                {t('kind.collectFrom', { desk: d.stops[0].kioskName, count: d.stops[0].bagCount })}
+              </p>
+            )}
             {d.destination.notes && <p className="text-sm text-muted mt-1">{d.destination.notes}</p>}
             <div className="flex items-center gap-3 mt-2 text-sm">
-              <a
-                href={`tel:${d.destination.contactPhone || d.customerPhone}`}
-                className="text-brand no-underline flex items-center gap-1.5 hover:underline"
-                data-testid="courier-call-customer"
-              >
-                <Phone size={14} /> {d.destination.contactPhone || d.customerPhone}
-              </a>
+              {!storing && (
+                <a
+                  href={`tel:${d.destination.contactPhone || d.customerPhone}`}
+                  className="text-brand no-underline flex items-center gap-1.5 hover:underline"
+                  data-testid="courier-call-customer"
+                >
+                  <Phone size={14} /> {d.destination.contactPhone || d.customerPhone}
+                </a>
+              )}
+              <Badge tone={storing ? 'info' : 'neutral'} testId="courier-job-kind">
+                <Icon name={storing ? 'PackageOpen' : 'Truck'} size={12} className="me-1 inline" />
+                {jobKindLabel(d)}
+              </Badge>
               <Badge tone={m.tone}>
                 <Icon name={m.icon} size={12} className="me-1 inline" />
                 {t(m.labelKey)}
@@ -413,19 +433,24 @@ export function CourierTaskPage() {
         {mine && d.status === 'PICKED_UP' && (
           <>
             <p className="text-sm text-muted mb-4">
-              You are carrying {bagsCarried} bag{bagsCarried === 1 ? '' : 's'}
-              {multiStop ? ` from ${stops.length} kiosks` : ''}. Hand them to the customer at the address above, then close
-              the task.
+              {storing
+                ? t('kind.carryingToGate', {
+                    count: bagsCarried,
+                    gate: d.destination.kioskName || d.destination.address,
+                    unit: d.assetUnitIdentifier ?? '—',
+                  })
+                : `You are carrying ${bagsCarried} bag${bagsCarried === 1 ? '' : 's'}${multiStop ? ` from ${stops.length} kiosks` : ''}. Hand them to the customer at the address above, then close the task.`}
             </p>
             <div className="flex flex-col sm:flex-row gap-2">
               <Button
                 className="flex-1"
                 variant="success"
-                onClick={() => fire('TO_DELIVERED', undefined, 'Delivered — nice work')}
+                onClick={() => fire('TO_DELIVERED', undefined, storing ? 'Stored — the clock is running' : 'Delivered — nice work')}
                 loading={run.isPending}
                 data-testid="courier-deliver"
               >
-                <PackageCheck size={16} />{t('task.markDelivered')}</Button>
+                <PackageCheck size={16} />
+                {storing ? t('kind.confirmStorage') : t('task.markDelivered')}</Button>
               <Button variant="ghost" onClick={() => setFailOpen(true)} data-testid="courier-report-problem">
                 <TriangleAlert size={16} />{t('task.reportProblem')}</Button>
             </div>

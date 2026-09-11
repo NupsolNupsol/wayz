@@ -86,7 +86,18 @@ export function AssetTypeDetailPage() {
   }
 
   const type = data.assetType
+  /*
+   * Lockers go into a gate; everything else onto a desk.
+   *
+   * The kind decides, not the person filling in the form — a compartment provisioned onto a
+   * counter would be invisible to the gate that has to hold it and unreachable by the courier who
+   * has to fill it. The server enforces the same rule, so this is the form agreeing with it
+   * rather than the form deciding it.
+   */
+  const atAGate = data.assetType.kind === 'COMPARTMENT'
   const kiosksHere = data.kiosks.filter((k) => k.stationId === stationId)
+  const gatesHere = (data.gates ?? []).filter((g) => g.stationId === stationId)
+  const placesHere = atAGate ? gatesHere : kiosksHere
 
   const stationsForType = data.stations.filter((st) => st.engineKinds.includes(type.engineKind))
   const desksForMove = data.kiosks.filter((k) => k.stationId === moveStation)
@@ -100,7 +111,7 @@ export function AssetTypeDetailPage() {
 
   const submitAdd = () => {
     addUnits.mutate(
-      { id, body: { stationId, kioskId: kioskId || null, count } },
+      { id, body: { stationId, ...(atAGate ? { gateId: kioskId || null } : { kioskId: kioskId || null }), count } },
       {
         onSuccess: (r) => {
           toast('success', t('toast.added', { count: r.created }), r.identifiers.slice(0, 6).join(', '))
@@ -455,16 +466,25 @@ export function AssetTypeDetailPage() {
             testId="asset-detail-add-station"
           />
         </Field>
-        <Field label={t('common:field.kiosk')} required hint={t('add.kioskHint')}>
-          {kiosksHere.length > 0 ? (
+        <Field
+          label={atAGate ? t('common:field.gate') : t('common:field.kiosk')}
+          required
+          hint={atAGate ? t('add.gateHint') : t('add.kioskHint')}
+        >
+          {placesHere.length > 0 ? (
             <Select
               value={kioskId}
               onChange={setKioskId}
-              options={[{ label: t('add.pickKiosk'), value: '' }, ...kiosksHere.map((k) => ({ label: k.name, value: k._id }))]}
+              options={[
+                { label: atAGate ? t('add.pickGate') : t('add.pickKiosk'), value: '' },
+                ...placesHere.map((k) => ({ label: k.name, value: k._id })),
+              ]}
               testId="asset-detail-add-kiosk"
             />
           ) : (
-            <p className="text-xs text-danger-strong" data-testid="asset-detail-no-kiosk">{t('add.noKioskHere')}</p>
+            <p className="text-xs text-danger-strong" data-testid="asset-detail-no-kiosk">
+              {atAGate ? t('add.noGateHere') : t('add.noKioskHere')}
+            </p>
           )}
         </Field>
         <Field label={t('add.howMany')} required hint={t('add.identifierNote')}>

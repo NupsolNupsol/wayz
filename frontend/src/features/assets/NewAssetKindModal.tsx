@@ -8,7 +8,7 @@ import { useCreateAssetKind } from '@/hooks'
 import { billingForSaleUnit, billingLabel, chargesForTime, defaultSaleUnitFor, engineLabel, saleUnitsFor, VISIBLE_ENGINES } from '@/config/engineMeta'
 import { ApiError } from '@/api/client'
 import { toast } from '@/state/toastStore'
-import { ASSET_KINDS, SALE_TYPES, SALE_UNITS, type AssetKind, type AssetKiosk, type AssetStation, type SaleType, type SaleUnit } from '@/api/asset.api'
+import { ASSET_KINDS, SALE_TYPES, SALE_UNITS, type AssetKind, type AssetGate, type AssetKiosk, type AssetStation, type SaleType, type SaleUnit } from '@/api/asset.api'
 import type { EngineKind } from '@/api/types'
 
 const KIND_ENGINE: Record<AssetKind, EngineKind> = {
@@ -33,6 +33,7 @@ export function NewAssetKindModal({
   onClose,
   stations,
   kiosks,
+  gates,
   defaultEngine,
   onCreated,
 }: {
@@ -40,6 +41,7 @@ export function NewAssetKindModal({
   onClose: () => void
   stations: AssetStation[]
   kiosks: AssetKiosk[]
+  gates: AssetGate[]
   defaultEngine?: EngineKind
   onCreated?: (id: string) => void
 }) {
@@ -102,7 +104,10 @@ export function NewAssetKindModal({
 
   /** Only desks running this activity can hold these assets. */
   const desks = (station: string) =>
-    kiosks.filter((k) => k.stationId === station && (!k.engineKind || k.engineKind === engineKind))
+    // A locker kind is provisioned into a gate; anything a desk hands over goes to a desk.
+    kind === 'COMPARTMENT'
+      ? gates.filter((g) => g.stationId === station)
+      : kiosks.filter((k) => k.stationId === station && (!k.engineKind || k.engineKind === engineKind))
 
   const submit = () => {
     create.mutate(
@@ -120,7 +125,9 @@ export function NewAssetKindModal({
           kind === 'COMPARTMENT'
             ? { internalDimensions: { w, h, d }, maxWeight, maxRecommendedBagCount: bagCount, capacityScore: bagCount }
             : { seats, capacityScore: seats },
-        ...(initialCount > 0 && stationId && kioskId ? { initialCount, stationId, kioskId } : {}),
+        ...(initialCount > 0 && stationId && kioskId
+          ? { initialCount, stationId, ...(kind === 'COMPARTMENT' ? { gateId: kioskId } : { kioskId }) }
+          : {}),
       },
       {
         onSuccess: (r) => {
@@ -286,16 +293,25 @@ export function NewAssetKindModal({
       </div>
 
       {initialCount > 0 && (
-        <Field label={t('common:field.kiosk')} required hint={t('newKind.kioskHint')}>
+        <Field
+          label={kind === 'COMPARTMENT' ? t('common:field.gate') : t('common:field.kiosk')}
+          required
+          hint={kind === 'COMPARTMENT' ? t('add.gateHint') : t('newKind.kioskHint')}
+        >
           {desks(stationId).length > 0 ? (
             <Select
               value={kioskId}
               onChange={setKioskId}
-              options={[{ label: t('add.pickKiosk'), value: '' }, ...desks(stationId).map((k) => ({ label: k.name, value: k._id }))]}
+              options={[
+                { label: kind === 'COMPARTMENT' ? t('add.pickGate') : t('add.pickKiosk'), value: '' },
+                ...desks(stationId).map((k) => ({ label: k.name, value: k._id })),
+              ]}
               testId="asset-new-kind-kiosk"
             />
           ) : (
-            <p className="text-xs text-danger-strong" data-testid="asset-new-kind-no-kiosk">{t('add.noKioskHere')}</p>
+            <p className="text-xs text-danger-strong" data-testid="asset-new-kind-no-kiosk">
+              {kind === 'COMPARTMENT' ? t('add.noGateHere') : t('add.noKioskHere')}
+            </p>
           )}
         </Field>
       )}

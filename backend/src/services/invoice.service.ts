@@ -7,7 +7,7 @@ import type { BookingHydrated } from '../models/booking.model.js'
 import type { PaymentMethod } from '../domain/types.js'
 import type { CardScheme } from '../domain/commission.js'
 import { env } from '../config/env.js'
-import { isPubliclyFetchable, sendWhatsAppFile, sendWhatsAppText } from './whatsapp.service.js'
+import { isPubliclyFetchable, sendFile, sendTextVia, isChannelConfigured } from './vonage.service.js'
 import type { Scope } from '../interfaces/index.js'
 
 export type InvoiceLineKind = 'ITEM' | 'PENALTY' | 'OVERTIME' | 'DELIVERY' | 'DEPOSIT'
@@ -175,7 +175,7 @@ export async function whatsAppInvoice(
 
   if (!isPubliclyFetchable(url)) {
     const withLink = invoiceWhatsApp({ ...message, invoiceUrl: url })
-    const fallback = await sendWhatsAppText(booking.customerPhone, withLink)
+    const fallback = await sendTextVia(['whatsapp', 'sms'], booking.customerPhone, withLink)
     return {
       sent: fallback.ok,
       asText: true,
@@ -186,10 +186,18 @@ export async function whatsAppInvoice(
     }
   }
 
-  const result = await sendWhatsAppFile(booking.customerPhone, {
-    url,
-    caption: thanks,
-  })
+  /*
+   * WhatsApp carries the PDF itself; SMS carries the link to it.
+   *
+   * If WhatsApp is not configured at all, the invoice still reaches the customer over SMS
+   * as a link rather than not reaching them.
+   */
+  if (!isChannelConfigured('whatsapp')) {
+    const asLink = await sendTextVia(['sms'], booking.customerPhone, invoiceWhatsApp({ ...message, invoiceUrl: url }))
+    return { sent: asLink.ok, asText: true, url, reason: asLink.ok ? undefined : asLink.error }
+  }
+
+  const result = await sendFile('whatsapp', booking.customerPhone, { url, caption: thanks })
   return { sent: result.ok, asText: false, url, reason: result.ok ? undefined : result.error }
 }
 

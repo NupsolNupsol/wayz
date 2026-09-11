@@ -1,7 +1,7 @@
 import { useNavigate } from 'react-router-dom'
 import { formatDate } from '@/utils'
 import { useTranslation } from 'react-i18next'
-import { Truck, MapPin, PackageCheck, Hand, Clock, Navigation, TriangleAlert } from 'lucide-react'
+import { Truck, MapPin, PackageCheck, PackageOpen, Hand, Clock, Navigation, TriangleAlert } from 'lucide-react'
 import { clsx } from 'clsx'
 import { PageHeader } from '@/components/PageHeader'
 import { RefText } from '@/components/RefLink'
@@ -11,7 +11,7 @@ import { DataTable } from '@/components/DataTable'
 import { useCourierBoard, useCourierTransition } from '@/hooks'
 import { ApiError } from '@/api/client'
 import { toast } from '@/state/toastStore'
-import { meta, relativeTime } from './deliveryMeta'
+import { meta, relativeTime, isStorageRun, jobKindLabel, jobDestinationLine } from './deliveryMeta'
 import type { Delivery } from '@/api/delivery.api'
 
 function JobCard({
@@ -27,6 +27,7 @@ function JobCard({
 }) {
   const { t } = useTranslation(['delivery', 'common'])
   const m = meta(job.status)
+  const storing = isStorageRun(job)
   return (
     <Card
       className={clsx(
@@ -40,15 +41,34 @@ function JobCard({
         <div className="min-w-0">
           <div className="flex items-center gap-2 flex-wrap">
             <RefText className="text-muted">{job._id}</RefText>
+            {/*
+              The first thing on the card says which of the two jobs this is.
+
+              A delivery ends with a customer; a storage run ends with a locker. A courier who
+              reads one as the other walks to the wrong side of the venue, so the kind is stated
+              before anything else and never left to be inferred from the address.
+            */}
+            <Badge tone={storing ? 'info' : 'neutral'} testId={`delivery-kind-${job._id}`}>
+              <Icon name={storing ? 'PackageOpen' : 'Truck'} size={12} className="me-1 inline" />
+              {jobKindLabel(job)}
+            </Badge>
             <Badge tone={m.tone}>
               <Icon name={m.icon} size={12} className="me-1 inline" />
               {t(m.labelKey)}
             </Badge>
           </div>
           <p className="font-semibold text-navy dark:text-dk-texthi mt-1.5 truncate">{job.customerName}</p>
+          {storing && job.stops?.[0]?.kioskName && (
+            <p className="text-sm text-muted flex items-start gap-1.5 mt-0.5">
+              <PackageOpen size={14} className="shrink-0 mt-0.5" />
+              <span className="line-clamp-2">
+                {t('kind.collectFrom', { desk: job.stops[0].kioskName, count: job.stops[0].bagCount })}
+              </span>
+            </p>
+          )}
           <p className="text-sm text-muted flex items-start gap-1.5 mt-0.5">
             <MapPin size={14} className="shrink-0 mt-0.5" />
-            <span className="line-clamp-2">{job.destination.address}</span>
+            <span className="line-clamp-2">{jobDestinationLine(job)}</span>
           </p>
         </div>
         <div className="text-end shrink-0">

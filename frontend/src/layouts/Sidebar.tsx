@@ -50,6 +50,7 @@ export function Sidebar({
 }) {
   const { t } = useTranslation(['nav', 'common'])
   const language = useAuthStore((st) => st.language)
+  const hasGate = useAuthStore((st) => !!st.me?.gate)
   const rtl = language === 'ar'
 
   const tree = navFor(role)
@@ -100,7 +101,9 @@ export function Sidebar({
             const items = group.items.filter(
               (it) =>
                 (!it.permission || can(role, it.permission)) &&
-                (!it.engineKind || !engineKinds.length || engineKinds.includes(it.engineKind)),
+                (!it.engineKind || !engineKinds.length || engineKinds.includes(it.engineKind)) &&
+                // A locker hall only appears for the people posted to one.
+                (!it.needsGate || !!hasGate),
             )
             if (items.length === 0) return null
             return (

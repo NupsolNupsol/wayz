@@ -51,6 +51,9 @@ export const useUpdateStation = () => useOrgMutation((v: { id: string; patch: Re
 export const useCreateKiosk = () => useOrgMutation((v: Record<string, unknown>) => managerApi.createKiosk(v))
 export const useUpdateKiosk = () => useOrgMutation((v: { id: string; patch: Record<string, unknown> }) => managerApi.updateKiosk(v.id, v.patch))
 export const useRemoveKiosk = () => useOrgMutation((id: string) => managerApi.removeKiosk(id))
+export const useCreateGate = () => useOrgMutation((v: Record<string, unknown>) => managerApi.createGate(v))
+export const useUpdateGate = () => useOrgMutation((v: { id: string; patch: Record<string, unknown> }) => managerApi.updateGate(v.id, v.patch))
+export const useRemoveGate = () => useOrgMutation((id: string) => managerApi.removeGate(id))
 export const useRemoveStation = () => useOrgMutation((id: string) => managerApi.removeStation(id))
 export const useRemoveSite = () => useOrgMutation((id: string) => managerApi.removeSite(id))
 

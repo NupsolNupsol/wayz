@@ -8,23 +8,21 @@ import { packBags, priceQuote } from '../domain/packing.js'
 import { OVERTIME_LINE_PRODUCT_ID, computeOvertime, describeOvertime, pendingOvertime } from '../domain/overtime.js'
 import { DEFAULT_VAT_RATE, noVat, splitInclusive } from '../domain/tax.js'
 import { getWorkflow, type TransitionPayload } from '../domain/workflow.js'
-import { applyTransition, getAvailableTransitions } from './workflow.service.js'
+import { applyTransition, getAvailableTransitions, type PlaceContext } from './workflow.service.js'
 import { formatId, nextId, nextSequence, pad } from './counter.service.js'
 import { getProduct, getAssetType } from './catalogue.service.js'
 import { getCustomer, phoneProofIsFresh, PHONE_PROOF_TTL_MIN } from './customer.service.js'
-import { Tenant } from '../models/index.js'
+import { Gate, Tenant, User, Voucher } from '../models/index.js'
 import type { CreateBookingInput, Scope } from '../interfaces/index.js'
 import type { PaymentSplit } from '../interfaces/index.js'
 import { CARD_SCHEMES } from '../domain/commission.js'
-import { canWorkEngine, engineFilter, kioskFilter } from '../domain/access.js'
+import { canWorkEngine, engineFilter, kioskFilter, reachableUnitFilter, scopeKiosk } from '../domain/access.js'
 import { tenantRules } from './rules.service.js'
 import { lineNameAr } from '../constants/messages.constants.js'
 import { seatOnBoat, unseatFromBoat, seatsLeftOn } from './trip.service.js'
 import { raise } from './notification.service.js'
 import { tillForTransaction } from './shift.service.js'
 import { FLOOR_LEADS } from '../domain/roles.js'
-import { Voucher } from '../models/voucher.model.js'
-import { User } from '../models/user.model.js'
 
 const UNIT_MINUTES: Record<DurationUnit, number> = { HOUR: 60, DAY: 1440, HALF_HOUR: 30, FIFTEEN_MIN: 15 }
 
@@ -44,27 +42,51 @@ async function writeAudits(tenantId: string, actorId: string, entityId: string, 
   }
 }
 
+/**
+ * Whose booking is this?
+ *
+ * Two answers, because a booking now touches two places. The desk that took the sale owns it —
+ * the money, the customer, the cancellation. And the gate holding the locker owns the bags: the
+ * customer comes back to the gate, not to the counter that served them, so the staff posted there
+ * have to be able to open the booking and hand the bags over.
+ *
+ * Everyone else tied to a counter sees neither, which is the same fence as before.
+ */
+function mineToHandle(scope: Scope, booking: Pick<BookingDoc, 'kioskId' | 'gateId'>): boolean {
+  const kiosk = kioskFilter(scope)
+  if (kiosk === undefined) return true
+  if (booking.kioskId === kiosk) return true
+  return !!scope.gateId && booking.gateId === scope.gateId
+}
+
 async function loadBooking(scope: Scope, bookingId: string): Promise<BookingHydrated> {
   const booking = await Booking.findOne({ _id: bookingId, tenantId: scope.tenantId, stationId: scope.stationId })
   if (!booking) throw ApiError.notFound('Booking not found.')
 
-  const kiosk = kioskFilter(scope)
-  const atMyDesk = kiosk !== undefined && booking.kioskId === kiosk
+  const mine = mineToHandle(scope, booking)
 
-  // Bags parked at an exit gate are that gate's job to hand back, whatever the gate normally sells:
-  // the customer is standing there and the bags are behind that counter.
-  if (!atMyDesk && !canWorkEngine(scope, booking.engineKind)) throw ApiError.notFound('Booking not found.')
-  if (kiosk !== undefined && !atMyDesk) throw ApiError.notFound('Booking not found.')
+  /*
+   * An activity a person does not work is not theirs to touch — unless the bags are in front of
+   * them, in which case the place outranks the activity.
+   *
+   * Two ways that happens, and both are real. A mobility agent posted to a gate fetches Shop &
+   * Drop bags out of its lockers, because that is where they are. And bags delivered to a desk to
+   * be collected are that desk's to hand over, whatever it normally sells, because the customer
+   * is standing at it and the bags are behind it.
+   */
+  if (!mine && !canWorkEngine(scope, booking.engineKind)) throw ApiError.notFound('Booking not found.')
+  if (!mine) throw ApiError.notFound('Booking not found.')
   return booking
 }
 
 /**
- * Can THIS DESK actually hand over what is being sold?
+ * Can this desk actually provide what is being sold?
  *
- * A desk can only lock its own units — that is the rule the reservation enforces — so the check
- * made before any money is taken has to be scoped the same way. Counting across the whole station
- * would let an agent sell a compartment that is sitting at another desk, take the payment, and
- * only discover at the reserve step that they cannot provide it.
+ * The check before the money is taken has to be scoped exactly the way the reservation is, or an
+ * agent sells something, takes payment, and finds out at the reserve step that they cannot
+ * provide it. What changed is what "this desk" reaches: its own counter for the things it hands
+ * over itself, and the gates of its station for the lockers — a Shop & Drop counter holds none of
+ * its own, and asking only about the counter would refuse every bag drop in the platform.
  */
 async function assertDeskCanFulfil(
   scope: Scope,
@@ -74,41 +96,33 @@ async function assertDeskCanFulfil(
 ): Promise<void> {
   if (!assetTypeId) return
 
-  const atThisDesk = scope.kioskId ? { kioskId: scope.kioskId } : {}
+  const gates = await Gate.find(
+    { tenantId: scope.tenantId, stationId: scope.stationId, active: { $ne: false } },
+    { _id: 1 },
+  ).lean()
+  const reach = reachableUnitFilter(scope, gates.map((g) => g._id)) ?? {}
+  const base = { tenantId: scope.tenantId, stationId: scope.stationId, assetTypeId }
+
   const [owned, free, freeElsewhere] = await Promise.all([
-    AssetUnit.countDocuments({ tenantId: scope.tenantId, stationId: scope.stationId, assetTypeId, ...atThisDesk }),
-    AssetUnit.countDocuments({
-      tenantId: scope.tenantId,
-      stationId: scope.stationId,
-      assetTypeId,
-      status: 'AVAILABLE',
-      ...atThisDesk,
-    }),
-    scope.kioskId
-      ? AssetUnit.countDocuments({
-          tenantId: scope.tenantId,
-          stationId: scope.stationId,
-          assetTypeId,
-          status: 'AVAILABLE',
-          kioskId: { $ne: scope.kioskId },
-        })
-      : 0,
+    AssetUnit.countDocuments({ ...base, ...reach }),
+    AssetUnit.countDocuments({ ...base, status: 'AVAILABLE', ...reach }),
+    // What is free at this station but out of this desk's reach, so the agent can send the
+    // customer somewhere that can serve them instead of guessing.
+    scope.kioskId ? AssetUnit.countDocuments({ ...base, status: 'AVAILABLE', $nor: [reach] }) : 0,
   ])
 
   const elsewhere =
-    freeElsewhere > 0
-      ? [`${freeElsewhere} are free at other desks, but a desk can only hand over its own.`]
-      : []
+    freeElsewhere > 0 ? [`${freeElsewhere} are free elsewhere, but this desk cannot reach them.`] : []
 
   if (owned === 0) {
-    throw ApiError.unprocessable(`${productName} is not set up at this desk.`, [
-      'Ask a manager to add units for it here under Assets, or serve the customer from the desk that has them.',
+    throw ApiError.unprocessable(`${productName} is not set up where this desk can reach it.`, [
+      'Ask a manager to add units for it at this desk or at one of its gates, under Assets.',
       ...elsewhere,
     ])
   }
   if (free < quantity) {
-    throw ApiError.unprocessable(`No ${productName} is free at this desk right now.`, [
-      `${owned} here, ${free} available — ${quantity} needed.`,
+    throw ApiError.unprocessable(`No ${productName} is free for this desk right now.`, [
+      `${owned} within reach, ${free} available — ${quantity} needed.`,
       ...elsewhere,
     ])
   }
@@ -733,6 +747,8 @@ export async function transitionBooking(scope: Scope, bookingId: string, code: s
     tenantId: scope.tenantId,
     stationId: scope.stationId,
     kioskId: scope.kioskId ?? null,
+    // A person at a desk, so the transitions that turn on where they stand are checked.
+    at: placeOf(scope),
   })
 
   if (!hadChargeEnd && booking.session.chargeableEndedAt) {
@@ -751,7 +767,22 @@ export async function transitionBooking(scope: Scope, bookingId: string, code: s
   return booking
 }
 
+/**
+ * Was this actually brought back to the wrong place?
+ *
+ * The penalty exists for a customer who takes a scooter from one gate and leaves it at another:
+ * somebody has to walk it back, and the charge pays for that.
+ *
+ * Bags are the opposite case and must never be caught by it. A Shop & Drop counter sells the
+ * storage and holds no lockers; the bags are carried to a gate and put away there, and the
+ * customer returns to that gate to collect them. The desk on the booking is the counter that took
+ * the money, which is a different place by design — so comparing it to where the handover happens
+ * would charge a penalty on every single bag drop, for a journey nothing made.
+ */
 async function settleWrongDesk(scope: Scope, booking: BookingHydrated, audits: AuditIntent[]): Promise<boolean> {
+  // Handed back at the gate its locker is in: exactly where it was left, and where it belongs.
+  if (scope.gateId && booking.gateId === scope.gateId) return false
+
   const movedStation = booking.stationId !== scope.stationId
   const movedDesk = !!booking.kioskId && !!scope.kioskId && booking.kioskId !== scope.kioskId
   if (!movedStation && !movedDesk) return false
@@ -955,7 +986,17 @@ async function chargeWrongStation(scope: Scope, booking: BookingHydrated): Promi
   return amount
 }
 
+/**
+ * Moves a unit to the desk that has just taken it back.
+ *
+ * A scooter returned to another gate now belongs to that gate — that is how a fleet actually
+ * drifts around a venue. A locker is different: it is bolted to a wall in a gate and cannot be
+ * carried to a counter, so one is never rehomed, however it came back.
+ */
 async function rehomeUnit(scope: Scope, unitId: string) {
+  const unit = await AssetUnit.findOne({ _id: unitId, tenantId: scope.tenantId }, { gateId: 1 }).lean()
+  if (unit?.gateId) return
+
   await AssetUnit.updateOne(
     { _id: unitId, tenantId: scope.tenantId },
     { $set: { stationId: scope.stationId, kioskId: scope.kioskId ?? null } },
@@ -1019,8 +1060,13 @@ export async function getBookingOrder(scope: Scope, bookingId: string) {
   return order
 }
 
-export function availableTransitions(booking: BookingHydrated, roles: Role[]) {
-  return getAvailableTransitions(booking, roles)
+export function availableTransitions(booking: BookingHydrated, roles: Role[], scope?: Scope) {
+  return getAvailableTransitions(booking, roles, scope ? placeOf(scope) : undefined)
+}
+
+/** Where this member of staff stands, for the actions that depend on it. */
+export function placeOf(scope: Scope): PlaceContext {
+  return { kioskScoped: scopeKiosk(scope) !== null, gateId: scope.gateId ?? null }
 }
 
 export function listBookings(scope: Scope, filter?: { status?: string; engineKind?: EngineKind }) {
@@ -1030,9 +1076,15 @@ export function listBookings(scope: Scope, filter?: { status?: string; engineKin
   const kiosk = kioskFilter(scope)
 
   if (kiosk !== undefined) {
-    // A desk sees its own work. That includes anything parked at it — bags waiting at an exit gate
-    // belong to the agent standing there, even if the gate normally sells something else.
-    q.kioskId = kiosk
+    /*
+     * A desk sees its own work, and a gate sees the bags standing in it.
+     *
+     * The second half is the point of a gate: the customer comes back to where their bags are,
+     * which is a locker hall, not the counter that sold them the storage. Without it a mobility
+     * agent posted to a gate would look at an empty board while the bags sat behind them.
+     */
+    if (scope.gateId) q.$or = [{ kioskId: kiosk }, { gateId: scope.gateId }]
+    else q.kioskId = kiosk
     if (engines !== undefined && filter?.engineKind) q.engineKind = engines
   } else if (engines !== undefined) {
     q.engineKind = engines

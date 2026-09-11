@@ -162,7 +162,7 @@ export function IdentityVerificationModal({
     !coded && holderName.trim().length > 1 && holderName.trim().toLowerCase() !== customerName.trim().toLowerCase()
 
   const canSubmit = coded
-    ? code.length === 4 && !!challenge && challenge.delivered !== 'FAILED'
+    ? code.length >= 4 && !!challenge && challenge.delivered !== 'FAILED'
     : tab === 'DOCUMENT'
       ? !!docNumber.trim() && !!holderName.trim() && reason.trim().length >= 3
       : !!authoriserEmail.trim() && !!authoriserPassword && reason.trim().length >= 3
@@ -243,10 +243,12 @@ export function IdentityVerificationModal({
                 Code sent to {challenge.phoneMasked} — ask the customer to read it back.
               </p>
               <div className="flex items-center gap-2">
+                {/* Same reason as the other code box: a deployment's standing code may be longer
+                    than the four digits the platform itself sends. */}
                 <input
                   data-testid="verify-code"
                   inputMode="numeric"
-                  maxLength={4}
+                  maxLength={12}
                   value={code}
                   onChange={(e) => setCode(e.target.value.replace(/\D/g, ''))}
                   placeholder={t('identity.code')}

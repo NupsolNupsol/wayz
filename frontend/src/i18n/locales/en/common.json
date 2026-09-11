@@ -75,7 +75,8 @@
     "required": "required",
     "optional": "optional",
     "deposit": "Deposit",
-    "reasonRequired": "Say what happened."
+    "reasonRequired": "Say what happened.",
+    "gate": "Gate"
   },
   "table": {
     "showing": "Showing",
@@ -340,7 +341,8 @@
     "activities": "Activities",
     "ends": "Ends",
     "starts": "Starts",
-    "supplier": "Supplier"
+    "supplier": "Supplier",
+    "due": "Due"
   },
   "label": {
     "active": "Active",
@@ -447,5 +449,9 @@
     "title": "Sign out?",
     "subtitle": "You will need your password to get back in.",
     "nothingOpen": "Nothing is left open at your desk."
+  },
+  "timer": {
+    "overtime": "OT",
+    "grace": "GRACE"
   }
 }

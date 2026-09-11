@@ -75,7 +75,7 @@ export function OperationsPage() {
           <span className="text-muted text-xs">{t('operations.settled')}</span>
         ),
     },
-    { key: 'remaining', header: t('common:column.remaining'), align: 'right', sortValue: (b) => endMs(b), render: (b) => (b.session.startedAt ? <Timer expectedEndAt={b.session.expectedEndAt} endedAt={b.session.endedAt ?? b.session.chargeableEndedAt} /> : <span className="text-amber-600 text-xs">{t('operations.awaitingFulfilment')}</span>) },
+    { key: 'remaining', header: t('common:column.remaining'), align: 'right', sortValue: (b) => endMs(b), render: (b) => (b.session.startedAt ? <Timer expectedEndAt={b.session.expectedEndAt} endedAt={b.session.endedAt ?? b.session.chargeableEndedAt} gracePeriodMin={b.session.gracePeriodMin} /> : <span className="text-amber-600 text-xs">{t('operations.awaitingFulfilment')}</span>) },
     { key: 'action', header: '', align: 'right', render: (b) => <Button variant="secondary" onClick={(e) => { e.stopPropagation(); navigate(`/bookings/${b.id}`) }}>{t('operations.open')}</Button> },
   ]
 

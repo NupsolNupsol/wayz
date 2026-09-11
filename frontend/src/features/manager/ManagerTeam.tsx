@@ -47,6 +47,9 @@ export function ManagerTeam() {
   const [inviteLink, setInviteLink] = useState<{ person: ManagerStaff; link: string; reason: string } | null>(null)
 
   const stations = (org?.sites ?? []).flatMap((s) => s.stations.map((st) => ({ label: `${s.name} — ${st.name}`, value: st._id })))
+  const gatesByStation = (org?.sites ?? []).flatMap((s) =>
+    s.stations.flatMap((st) => st.gates.map((g) => ({ label: g.name, value: g._id, stationId: st._id }))),
+  )
   const kiosksByStation = (org?.sites ?? []).flatMap((s) =>
     s.stations.flatMap((st) =>
       st.kiosks.map((k) => ({
@@ -77,6 +80,23 @@ export function ManagerTeam() {
     (k) => k.stationId === form.stationId && (!engines.length || engines.includes(k.engineKind)),
   )
 
+  /*
+   * A mobility agent answers for a gate as well as for their bay.
+   *
+   * These are two different places and the form must read that way. The bay is where they hand
+   * over scooters; the gate is the locker hall beside it, and the reason they are the one who
+   * retrieves a customer's bags — the Shop & Drop counter that sold the storage is elsewhere and
+   * holds no lockers at all. Nothing about their existing desk changes.
+   */
+  const needsGate = role === 'AGENT' && engines.includes('MOBILITY')
+  const gatesHere = gatesByStation.filter((g) => g.stationId === form.stationId)
+
+  useEffect(() => {
+    if (!needsGate) return
+    if (form.gateId && gatesHere.some((g) => g.value === form.gateId)) return
+    setForm((prev) => ({ ...prev, gateId: gatesHere[0]?.value ?? '' }))
+  }, [needsGate, form.stationId, form.gateId, gatesHere])
+
   useEffect(() => {
     if (!needsKiosk) return
     if (form.kioskId && kiosksHere.some((k) => k.value === form.kioskId)) return
@@ -104,6 +124,7 @@ export function ManagerTeam() {
       role: 'AGENT',
       stationId: stations[0]?.value ?? '',
       kioskId: '',
+      gateId: '',
       engineKinds: '',
       reportsTo: '',
       phone: '',
@@ -118,6 +139,7 @@ export function ManagerTeam() {
       role: u.role,
       stationId: u.stationId,
       kioskId: u.kioskId ?? '',
+      gateId: u.gateId ?? '',
       engineKinds: (u.engineKinds ?? []).join(','),
       reportsTo: u.reportsTo ?? '',
       phone: u.phone ?? '',
@@ -127,9 +149,15 @@ export function ManagerTeam() {
 
   const missingStation = !form.stationId
   const missingActivity = scopedToActivities && engines.length === 0
+  const missingGate = needsGate && !form.gateId
   const canSubmitCreate =
-    !!form.fullName?.trim() && !!form.email?.trim() && !missingStation && !missingActivity && !(needsKiosk && !form.kioskId)
-  const canSubmitEdit = !missingStation && !missingActivity && !(needsKiosk && !form.kioskId)
+    !!form.fullName?.trim() &&
+    !!form.email?.trim() &&
+    !missingStation &&
+    !missingActivity &&
+    !(needsKiosk && !form.kioskId) &&
+    !missingGate
+  const canSubmitEdit = !missingStation && !missingActivity && !(needsKiosk && !form.kioskId) && !missingGate
 
   const announce = (person: ManagerStaff, resent = false) => {
     const invitation = person.invitation
@@ -152,6 +180,7 @@ export function ManagerTeam() {
         role: form.role,
         stationId: form.stationId,
         kioskId: needsKiosk ? form.kioskId : null,
+        gateId: needsGate ? form.gateId : null,
         engineKinds: engines,
         reportsTo: isSubManager(role) ? form.reportsTo || null : null,
         phone: form.phone,
@@ -181,6 +210,7 @@ export function ManagerTeam() {
           role: form.role,
           stationId: form.stationId,
           kioskId: needsKiosk ? form.kioskId : null,
+        gateId: needsGate ? form.gateId : null,
           engineKinds: engines,
           reportsTo: isSubManager(role) ? form.reportsTo || null : null,
           phone: form.phone,
@@ -337,7 +367,7 @@ export function ManagerTeam() {
           </>
         }
       >
-        <StaffFields form={form} setForm={setForm} stations={stations} kiosks={kiosksHere} leads={leadOptions} />
+        <StaffFields form={form} setForm={setForm} stations={stations} kiosks={kiosksHere} gates={gatesHere} leads={leadOptions} />
         <div className="flex items-start gap-2 text-sm text-muted" data-testid="team-invite-note">
           <MailCheck size={16} className="text-brand shrink-0 mt-0.5" />
           <p>
@@ -359,7 +389,7 @@ export function ManagerTeam() {
           </>
         }
       >
-        <StaffFields form={form} setForm={setForm} stations={stations} kiosks={kiosksHere} leads={leadOptions} />
+        <StaffFields form={form} setForm={setForm} stations={stations} kiosks={kiosksHere} gates={gatesHere} leads={leadOptions} />
       </Modal>
 
       <Modal
@@ -443,12 +473,14 @@ function StaffFields({
   setForm,
   stations,
   kiosks,
+  gates,
   leads,
 }: {
   form: Record<string, string>
   setForm: (f: Record<string, string>) => void
   stations: { label: string; value: string }[]
   kiosks: { label: string; value: string }[]
+  gates: { label: string; value: string }[]
   leads: { label: string; value: string }[]
 }) {
   const { t } = useTranslation(['manager', 'common'])
@@ -458,6 +490,8 @@ function StaffFields({
   const role = (form.role ?? 'AGENT') as Role
   const scopedToActivities = isActivityScoped(role)
   const needsKiosk = isKioskScoped(role)
+  /** A mobility agent works a bay and answers for a locker hall. Two postings, not one. */
+  const needsGate = role === 'AGENT' && engines.includes('MOBILITY')
   const oneActivityOnly = needsKiosk
   const activityOptions = isLagoonOnly(role)
     ? visibleEngineOptions().filter((o) => o.value === 'LAGOON')
@@ -510,6 +544,7 @@ function StaffFields({
                           : [...engines, opt.value]
                       ).join(','),
                       kioskId: '',
+                      gateId: '',
                     })
                   }
                   className={clsx(
@@ -540,6 +575,16 @@ function StaffFields({
           }
         >
           <Select value={form.kioskId ?? ''} onChange={(v) => setForm({ ...form, kioskId: v })} options={kiosks} testId="team-kiosk" />
+        </Field>
+      )}
+      {needsGate && (
+        <Field
+          label={t('common:field.gate')}
+          required
+          hint={t('team.gateHint')}
+          error={gates.length === 0 ? t('team.noGateAtStation') : undefined}
+        >
+          <Select value={form.gateId ?? ''} onChange={(v) => setForm({ ...form, gateId: v })} options={gates} testId="team-gate" />
         </Field>
       )}
       {isSubManager(role) && (

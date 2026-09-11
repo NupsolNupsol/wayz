@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { ShieldCheck, Send, Copy, MessageCircle, Mail } from 'lucide-react'
+import { ShieldCheck, Send, Copy, MessageCircle, MessageSquare, Mail } from 'lucide-react'
 import { clsx } from 'clsx'
 import { otpApi, type OtpIntent } from '@/api/otp.api'
 import { Button } from './ui'
@@ -32,6 +32,7 @@ export function OtpBox({
   const [verifiedAt, setVerifiedAt] = useState<number | null>(null)
   const ttlMin = useAuthStore((s) => s.me?.tenant?.phoneProofTtlMin ?? 30)
 
+  // WhatsApp and SMS both go to the phone; only email goes anywhere else.
   const destination = channel === 'EMAIL' ? (email ?? '') : phone
   const canSend = !!destination
 
@@ -98,12 +99,20 @@ export function OtpBox({
 
   return (
     <div className="lf-card p-4" data-testid="otp-box" data-phone={phone ?? undefined}>
-      {email && (
-        <div className="flex gap-2 mb-3" role="tablist" aria-label={t('otp.channel')}>
-          <ChannelTab active={channel === 'WHATSAPP'} onClick={() => switchChannel('WHATSAPP')} icon={<MessageCircle size={14} />} testId="otp-channel-whatsapp">{t('otp.whatsapp')}</ChannelTab>
+      {/*
+        Always offered, not only when there is an email on file.
+
+        A customer's WhatsApp number is frequently not the number they answer — the desk
+        needs to be able to say "it did not arrive, send it as a text" without leaving the
+        screen or editing the customer.
+      */}
+      <div className="flex gap-2 mb-3" role="tablist" aria-label={t('otp.channel')}>
+        <ChannelTab active={channel === 'WHATSAPP'} onClick={() => switchChannel('WHATSAPP')} icon={<MessageCircle size={14} />} testId="otp-channel-whatsapp">{t('otp.whatsapp')}</ChannelTab>
+        <ChannelTab active={channel === 'SMS'} onClick={() => switchChannel('SMS')} icon={<MessageSquare size={14} />} testId="otp-channel-sms">{t('otp.sms')}</ChannelTab>
+        {email && (
           <ChannelTab active={channel === 'EMAIL'} onClick={() => switchChannel('EMAIL')} icon={<Mail size={14} />} testId="otp-channel-email">{t('otp.email')}</ChannelTab>
-        </div>
-      )}
+        )}
+      </div>
 
       {!sent ? (
         <>
@@ -135,16 +144,24 @@ export function OtpBox({
             </p>
           )}
           <div className="flex items-center gap-2">
+            {/*
+              Four digits is what the platform sends, not what the box may hold.
+
+              A deployment can also carry a standing code for a test team, and that is set by
+              whoever runs the server — it may be six digits, or eight. Pinning the field to four
+              made such a code impossible to type: the agent got as far as the fourth character
+              and the box stopped accepting input, so a correct code was rejected as a wrong one.
+            */}
             <input
               data-testid="otp-input"
               inputMode="numeric"
-              maxLength={4}
+              maxLength={12}
               value={code}
               onChange={(e) => setCode(e.target.value.replace(/\D/g, ''))}
               placeholder={t('otp.code')}
               className="lf-input tracking-[0.4em] text-center font-mono w-40"
             />
-            <Button onClick={doVerify} loading={busy} disabled={code.length !== 4} data-testid="otp-verify">{t('otp.verify')}</Button>
+            <Button onClick={doVerify} loading={busy} disabled={code.length < 4} data-testid="otp-verify">{t('otp.verify')}</Button>
             <button className="text-xs text-brand" onClick={doSend} type="button">{t('otp.resend')}</button>
           </div>
         </div>

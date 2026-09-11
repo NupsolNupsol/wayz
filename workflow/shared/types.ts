@@ -49,6 +49,15 @@ export interface SessionSnapshot {
   gracePeriodMin: number
   overtimeHourlyRate: number
   paidAt?: string | null
+  /**
+   * Minutes handed back after a faulty unit was swapped, totalled.
+   *
+   * The clock already moves when a replacement happens, but a moved clock does not explain
+   * itself — an agent looking at "expected end 12:29" cannot tell it was 12:19 a minute
+   * ago. This is what makes the compensation visible on the booking rather than only in
+   * the audit trail.
+   */
+  replacementBonusMin?: number
 }
 
 export type TimerStart = 'FULFILMENT' | 'PAYMENT'
@@ -186,7 +195,9 @@ export type WorkflowOperator = (transitionCode: string, ctx: WorkflowContext) =>
 
 export interface DeliveryDestination {
   /** GATE means an exit the customer collects from; ADDRESS is door-to-door. */
-  kind?: 'ADDRESS' | 'GATE'
+  kind?: 'ADDRESS' | 'GATE' | 'GATE_LOCKER'
+  /** The gate a storage run carries bags to. Null on a run going the other way. */
+  gateId?: string | null
   address: string
   kioskId?: string | null
   kioskName?: string

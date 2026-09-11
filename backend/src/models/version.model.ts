@@ -1,4 +1,4 @@
-import mongoose, { Schema } from 'mongoose'
+import { Schema } from 'mongoose'
 
 export interface VersionLink {
   label: string
@@ -90,4 +90,4 @@ const versionSchema = new Schema<VersionDoc>(
   { _id: false, timestamps: true },
 )
 
-export const Version = mongoose.model<VersionDoc>('Version', versionSchema)
+export const VersionSchema = versionSchema

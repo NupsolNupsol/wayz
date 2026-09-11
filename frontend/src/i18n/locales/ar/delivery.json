@@ -196,5 +196,13 @@
     "RELEASE_APPROVED": "الخزانة مفتوحة",
     "PICKED_UP": "تم الاستلام",
     "DELIVERED": "تم التوصيل"
+  },
+  "kind": {
+    "delivery": "توصيل",
+    "storageRun": "مهمة تخزين",
+    "collectFrom": "استلم {{count}} حقيبة من {{desk}}",
+    "storeAt": "خزّنها في {{gate}} — الخزانة {{unit}}",
+    "carryingToGate": "تحمل {{count}} حقيبة إلى {{gate}}. ضعها في الخزانة {{unit}} ثم أكّد — عندها يبدأ وقت العميل، وليس قبل ذلك.",
+    "confirmStorage": "تأكيد التخزين (يبدأ العدّاد)"
   }
 }

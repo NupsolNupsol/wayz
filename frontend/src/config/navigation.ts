@@ -8,6 +8,13 @@ export interface NavItem {
   icon: string
   permission?: Permission
   engineKind?: EngineKind
+  /**
+   * Only shown to staff posted to a gate.
+   *
+   * A gate is a locker hall, and only some people answer for one — a mobility agent does, a Shop
+   * & Drop counter does not. An entry nobody is posted to would open an empty page.
+   */
+  needsGate?: boolean
   testId: string
 }
 export interface NavGroup {
@@ -260,6 +267,7 @@ export const AGENT_NAV: NavGroup[] = [
     id: 'operations',
     label: 'Operations',
     items: [
+      { id: 'my-gate', label: 'My gate', to: '/my-gate', icon: 'DoorOpen', needsGate: true, testId: 'nav-my-gate' },
       { id: 'active', label: 'Active Operations', to: '/operations', icon: 'Activity', testId: 'nav-operations' },
       { id: 'deliveries', label: 'Deliveries', to: '/deliveries', icon: 'Truck', permission: 'delivery.request', testId: 'nav-deliveries' },
       { id: 'assets', label: 'Assets', to: '/assets', icon: 'Grid3x3', permission: 'assets.view', testId: 'nav-assets' },

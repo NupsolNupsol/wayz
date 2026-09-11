@@ -68,7 +68,7 @@ export function ManagerRentals() {
             { key: 'station', header: t('common:column.station'), filter: { kind: 'text', value: (r) => r.stationName }, render: (r) => <span className="text-muted">{r.stationName}</span> },
             { key: 'agent', header: t('common:column.agent'), render: (r) => <span className="text-muted">{r.agentName}</span> },
             { key: 'status', header: t('common:column.status'), filter: { kind: 'text', value: (r) => r.status }, render: (r) => <StatusBadge status={r.status} /> },
-            { key: 'remaining', header: t('common:column.remaining'), align: 'right', sortValue: (r) => r.remainingMs ?? 0, render: (r) => (r.startedAt ? <Timer expectedEndAt={r.expectedEndAt} /> : <span className="text-muted">—</span>) },
+            { key: 'remaining', header: t('common:column.remaining'), align: 'right', sortValue: (r) => r.remainingMs ?? 0, render: (r) => (r.startedAt ? <Timer expectedEndAt={r.expectedEndAt} gracePeriodMin={r.gracePeriodMin} /> : <span className="text-muted">—</span>) },
             { key: 'penalty', header: t('common:column.penalty'), align: 'right', sortValue: (r) => r.penaltyAmount, render: (r) => (r.penaltyAmount > 0 ? <strong className="text-danger-strong">{money(r.penaltyAmount)}</strong> : <span className="text-muted">—</span>) },
           ]}
         />

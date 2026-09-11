@@ -112,5 +112,21 @@ export const DELIVERY_TERMINAL: DeliveryStatus[] = [DLV_DELIVERED, DLV_CANCELLED
 
 export const DLV_ORIGIN_AT_STORAGE = 'AT_STORAGE'
 export const DLV_ORIGIN_CUSTOMER_CONTACT = 'CUSTOMER_CONTACT'
-export const DELIVERY_ORIGINS = [DLV_ORIGIN_AT_STORAGE, DLV_ORIGIN_CUSTOMER_CONTACT] as const
+
+/**
+ * A run that carries bags *in*, rather than out.
+ *
+ * A Shop & Drop counter sells storage and holds none: the lockers stand at the gates of the
+ * venue. So the bags a customer hands over at the counter have to be carried to a gate and put
+ * away there, and that journey is a delivery like any other — the same board, the same courier,
+ * the same handover. What makes it different is only its direction, and that the customer's clock
+ * does not start until it finishes.
+ */
+export const DLV_ORIGIN_KIOSK_INTAKE = 'KIOSK_INTAKE'
+
+export const DELIVERY_ORIGINS = [
+  DLV_ORIGIN_AT_STORAGE,
+  DLV_ORIGIN_CUSTOMER_CONTACT,
+  DLV_ORIGIN_KIOSK_INTAKE,
+] as const
 export type DeliveryOrigin = (typeof DELIVERY_ORIGINS)[number]

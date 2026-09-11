@@ -1,4 +1,4 @@
-import mongoose, { Schema } from 'mongoose'
+import { Schema } from 'mongoose'
 import type { EngineKind, TenantBranding } from '../domain/types.js'
 import type { PenaltyRule, RentalRulesPatch } from '../domain/rules.js'
 
@@ -70,7 +70,7 @@ const settingsSchema = new Schema(
     overtimeBlockMinutes: { type: Number, default: 60 },
     expiryWarningMinutes: { type: Number, default: 15 },
     paymentMethods: { type: [String], default: ['CASH', 'CARD'] },
-    verificationChannels: { type: [String], default: ['WHATSAPP', 'EMAIL'] },
+    verificationChannels: { type: [String], default: ['WHATSAPP', 'SMS', 'EMAIL'] },
     autoPrintReceipt: { type: Boolean, default: true },
   },
   { _id: false },
@@ -108,4 +108,4 @@ const tenantSchema = new Schema<TenantDoc>(
   { timestamps: true, _id: false },
 )
 
-export const Tenant = mongoose.model<TenantDoc>('Tenant', tenantSchema)
+export const TenantSchema = tenantSchema

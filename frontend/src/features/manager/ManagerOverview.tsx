@@ -177,7 +177,7 @@ export function ManagerOverview() {
                   <span className="text-muted"> · {s.customerName} · {s.stationName}</span>
                 </span>
                 <span className="flex items-center gap-3 text-sm">
-                  <Timer expectedEndAt={s.expectedEndAt} />
+                  <Timer expectedEndAt={s.expectedEndAt} gracePeriodMin={s.gracePeriodMin} />
                   <strong className="text-danger-strong tabular-nums">{money(s.penaltyAmount)}</strong>
                 </span>
               </li>

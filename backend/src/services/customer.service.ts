@@ -39,13 +39,17 @@ export async function getCustomer(tenantId: string, id: string) {
   return c
 }
 
-export async function createCustomer(tenantId: string, data: { name: string; phone: string; email?: string }) {
+export async function createCustomer(
+  tenantId: string,
+  data: { name: string; phone: string; email?: string; nationalId: string },
+) {
   return Customer.create({
     _id: await nextId('customer'),
     tenantId,
     name: data.name.trim(),
     phone: data.phone.trim(),
     email: data.email?.trim() || undefined,
+    nationalId: data.nationalId.trim(),
   })
 }
 

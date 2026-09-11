@@ -1,6 +1,6 @@
 import mongoose from 'mongoose'
 import { recordAudit } from './audit.service.js'
-import { Kiosk, Station, Tenant, User, hashPassword, hashInviteToken } from '../models/index.js'
+import { Gate, Kiosk, Station, Tenant, User, hashPassword, hashInviteToken } from '../models/index.js'
 import type { UserDoc } from '../models/index.js'
 import type { Role } from '../domain/types.js'
 import { resolveDiscountReasons } from '../domain/rules.js'
@@ -39,6 +39,7 @@ export async function login(email: string, password: string) {
     tenantId: user.tenantId,
     stationId: user.stationId,
     kioskId: user.kioskId ?? null,
+    gateId: user.gateId ?? null,
     engineKinds: user.engineKinds ?? [],
   })
 
@@ -78,9 +79,10 @@ export async function buildMe(userId: string) {
   const user = await User.findById(userId).lean()
   if (!user) throw ApiError.notFound('User not found.')
   const tenant = await Tenant.findById(user.tenantId).lean()
-  const [station, kiosk] = await Promise.all([
+  const [station, kiosk, gate] = await Promise.all([
     Station.findById(user.stationId).lean(),
     user.kioskId ? Kiosk.findById(user.kioskId).lean() : null,
+    user.gateId ? Gate.findById(user.gateId).lean() : null,
   ])
   return {
     id: user._id,
@@ -107,6 +109,9 @@ export async function buildMe(userId: string) {
       : null,
     station: station ? { id: station._id, name: station.name, engineKinds: station.engineKinds, siteId: station.siteId, zoneId: station.zoneId } : null,
     kiosk: kiosk ? { id: kiosk._id, name: kiosk.name, code: kiosk.code, stationId: kiosk.stationId, siteId: kiosk.siteId } : null,
+    // The locker hall they answer for. A mobility agent works a bay and covers a gate; the gate is
+    // where the bags are, and what the retrieval screens are built around.
+    gate: gate ? { id: gate._id, name: gate.name, code: gate.code, stationId: gate.stationId, location: gate.location } : null,
   }
 }
 
@@ -173,6 +178,7 @@ export async function acceptInvitation(token: string, password: string, confirmP
     tenantId: user.tenantId,
     stationId: user.stationId,
     kioskId: user.kioskId ?? null,
+    gateId: user.gateId ?? null,
     engineKinds: user.engineKinds ?? [],
   })
   return { token: authToken, user: await buildMe(user._id) }

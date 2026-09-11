@@ -48,7 +48,8 @@
     "payFirst": "The customer still owes {{amount}} — take the payment before handing anything back.",
     "verifyAgain": "The customer has run into more time since they were verified — check their identity again before anything is released.",
     "verifyBeforePayment": "{{amount}} is owed — verify the customer, then take the payment.",
-    "discountTaken": "{{amount}} came off this sale"
+    "discountTaken": "{{amount}} came off this sale",
+    "replacementBonus": "A faulty unit was swapped, so {{minutes}} minutes were added to this rental."
   },
   "meta": {
     "kind": "Kind",

@@ -4,7 +4,7 @@ import { asyncHandler } from '../utils/asyncHandler.js'
 import { ApiError } from '../utils/ApiError.js'
 import { ENGINE_KINDS, BILLING_MODELS, DURATION_UNITS, ROLES, SALE_TYPES, SALE_UNITS } from '../domain/types.js'
 import { managerIncidents, managerLiveSessions, managerOverview, managerRentals, managerRentalDetail, managerCustomers, managerCustomerDetail, managerPayments, managerShift, managerShifts } from '../services/manager.service.js'
-import { createKiosk, createSite, createStation, orgTree, removeKiosk, removeSite, removeStation, updateKiosk, updateSite, updateStation } from '../services/org.service.js'
+import { createGate, createKiosk, createSite, createStation, orgTree, removeGate, removeKiosk, removeSite, removeStation, updateGate, updateKiosk, updateSite, updateStation } from '../services/org.service.js'
 import { createStaff, listStaff, reinviteStaff, removeStaff, resetStaffPassword, updateStaff } from '../services/staff.service.js'
 import { createProduct, getSettings, listPricing, updateProduct, updateSettings } from '../services/pricing.service.js'
 import {
@@ -52,6 +52,14 @@ const stationSchema = z.object({
   contactPhone: z.string().optional(),
 })
 
+/** A gate names no activity: it holds lockers, and any desk at the station can allocate them. */
+const gateSchema = z.object({
+  stationId: z.string().min(1),
+  name: z.string().min(2).max(60),
+  code: z.string().max(16).optional(),
+  location: z.string().max(120).optional(),
+})
+
 const kioskSchema = z.object({
   stationId: z.string().min(1),
   name: z.string().min(1),
@@ -67,6 +75,8 @@ const staffSchema = z.object({
   role: z.enum(ROLES),
   stationId: z.string().min(1),
   kioskId: z.string().nullable().optional(),
+  // The locker hall a mobility agent answers for. Required for that job, ignored for every other.
+  gateId: z.string().nullable().optional(),
   engineKinds: z.array(z.enum(ENGINE_KINDS)).optional(),
   reportsTo: z.string().nullable().optional(),
   phone: z.string().optional(),
@@ -139,6 +149,17 @@ export const managerController = {
   }),
   createKiosk: asyncHandler(async (req, res) => {
     res.status(201).json({ success: true, data: await createKiosk(managerScope(req), kioskSchema.parse(req.body)) })
+  }),
+
+  createGate: asyncHandler(async (req, res) => {
+    res.status(201).json({ success: true, data: await createGate(managerScope(req), gateSchema.parse(req.body)) })
+  }),
+  updateGate: asyncHandler(async (req, res) => {
+    const body = gateSchema.partial().extend({ active: z.boolean().optional() }).parse(req.body)
+    res.json({ success: true, data: await updateGate(managerScope(req), req.params.id, body) })
+  }),
+  removeGate: asyncHandler(async (req, res) => {
+    res.json({ success: true, data: await removeGate(managerScope(req), req.params.id) })
   }),
   removeStation: asyncHandler(async (req, res) => {
     res.json({ success: true, data: await removeStation(managerScope(req), req.params.id) })

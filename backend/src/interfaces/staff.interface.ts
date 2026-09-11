@@ -6,6 +6,8 @@ export interface StaffInput {
   role: Role
   stationId: string
   kioskId?: string | null
+  /** The locker hall they answer for. Required of a mobility agent, and of nobody else. */
+  gateId?: string | null
   engineKinds?: EngineKind[]
   reportsTo?: string | null
   phone?: string
@@ -45,6 +47,14 @@ export interface KioskInput {
   engineKind: EngineKind
   /** Marks this desk as an exit gate customers collect their bags from. */
   isExitGate?: boolean
+}
+
+/** A gate: a place at a station that holds lockers. It runs no activity, so it names none. */
+export interface GateInput {
+  stationId: string
+  name: string
+  code?: string
+  location?: string
 }
 
 export interface CompanyPatch {

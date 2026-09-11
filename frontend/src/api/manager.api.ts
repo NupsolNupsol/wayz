@@ -42,6 +42,8 @@ export interface ManagerLiveSession {
   stationName: string
   expectedEndAt: string | null
   remainingMs: number | null
+  /** The tenant's grace rule, so a live clock can tell late apart from charged. */
+  gracePeriodMin: number
   isOvertime: boolean
   penaltyAmount: number
 }
@@ -94,6 +96,23 @@ export interface OrgKiosk {
   available: number
   inUse: number
 }
+/**
+ * A gate: a place at a station that holds lockers.
+ *
+ * It runs no activity, which is what makes it a different thing from a desk — a Shop & Drop
+ * counter sells storage and holds none, and the bags are carried here to be stored.
+ */
+export interface OrgGate {
+  _id: string
+  name: string
+  code?: string
+  location?: string
+  stationId: string
+  active: boolean
+  total: number
+  available: number
+  inUse: number
+}
 export interface OrgStation {
   _id: string
   name: string
@@ -109,6 +128,7 @@ export interface OrgStation {
   inUse: number
   activeSessions: number
   kiosks: OrgKiosk[]
+  gates: OrgGate[]
 }
 export interface OrgSite {
   _id: string
@@ -148,6 +168,9 @@ export interface ManagerStaff {
   stationName: string
   kioskId: string | null
   kioskName: string | null
+  /** The locker hall a mobility agent answers for — not the same place as their desk. */
+  gateId: string | null
+  gateName: string | null
   engineKinds: EngineKind[]
   reportsTo: string | null
   reportsToName: string | null
@@ -338,6 +361,9 @@ export const managerApi = {
   createKiosk: (d: Record<string, unknown>) => unwrap<OrgKiosk>(http.post('/manager/org/kiosks', d)),
   updateKiosk: (id: string, d: Record<string, unknown>) => unwrap<OrgKiosk>(http.patch(`/manager/org/kiosks/${id}`, d)),
   removeKiosk: (id: string) => unwrap<{ removed: string; name: string }>(http.delete(`/manager/org/kiosks/${id}`)),
+  createGate: (d: Record<string, unknown>) => unwrap<OrgGate>(http.post('/manager/org/gates', d)),
+  updateGate: (id: string, d: Record<string, unknown>) => unwrap<OrgGate>(http.patch(`/manager/org/gates/${id}`, d)),
+  removeGate: (id: string) => unwrap<{ removed: string; name: string }>(http.delete(`/manager/org/gates/${id}`)),
   removeStation: (id: string) => unwrap<{ removed: string; name: string }>(http.delete(`/manager/org/stations/${id}`)),
   removeSite: (id: string) => unwrap<{ removed: string; name: string }>(http.delete(`/manager/org/sites/${id}`)),
 

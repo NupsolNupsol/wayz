@@ -25,4 +25,13 @@ export class ApiError extends Error {
   static unprocessable(msg: string, errors?: string[]) {
     return new ApiError(422, msg, errors)
   }
+  /**
+   * Our fault, not the caller's.
+   *
+   * The message here is for the log and for us; the error handler is responsible for not
+   * repeating internals to a production client.
+   */
+  static internal(msg: string, errors?: string[]) {
+    return new ApiError(500, msg, errors)
+  }
 }

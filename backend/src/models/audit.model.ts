@@ -1,4 +1,4 @@
-import mongoose, { Schema } from 'mongoose'
+import { Schema } from 'mongoose'
 import { nanoid } from 'nanoid'
 
 export interface AuditDoc {
@@ -28,4 +28,4 @@ const auditSchema = new Schema<AuditDoc>(
   { _id: false },
 )
 
-export const Audit = mongoose.model<AuditDoc>('Audit', auditSchema)
+export const AuditSchema = auditSchema

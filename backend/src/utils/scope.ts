@@ -11,6 +11,7 @@ export function scopeFromReq(req: Request): Scope {
     agentId: req.auth.sub,
     role: req.auth.role,
     kioskId: req.auth.kioskId ?? null,
+    gateId: req.auth.gateId ?? null,
     engineKinds: req.auth.engineKinds ?? [],
   }
 }

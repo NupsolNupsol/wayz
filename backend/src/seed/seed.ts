@@ -12,6 +12,7 @@ import {
   Site,
   Station,
   Kiosk,
+  Gate,
   Counter,
   CashMovement,
   CardTransaction,
@@ -29,7 +30,7 @@ import {
   Zone,
   hashPassword,
 } from "../models/index.js";
-import { Incident, VerificationEvidence, Version, Voucher, VoucherCampaign } from "../models/index.js";
+import { Incident, VerificationEvidence, Voucher, VoucherCampaign } from "../models/index.js";
 import { seedVersions } from "./versions.seed.js";
 import { seedVouchers } from "./vouchers.seed.js";
 import type { UserDoc } from "../models/index.js";
@@ -518,9 +519,18 @@ function assetUnits(t: string, stationId: string) {
     }
   }
 
+  /*
+   * Headroom, for the same reason the compartments have it.
+   *
+   * These are spread across three mobility desks, so a count of eighteen leaves six single
+   * scooters at each — and the end-to-end suite takes more than six rentals at Gate 1 in a run.
+   * When the bay emptied, every mobility test after that point failed on a booking that could not
+   * be created, which reads as a dozen unrelated regressions rather than "the demo ran out of
+   * scooters". A season venue would not stock six either.
+   */
   const veh: [string, string, number, number | null][] = [
-    ["veh_single_scooter", "SC", 18, 500],
-    ["veh_double_scooter", "DS", 9, 500],
+    ["veh_single_scooter", "SC", 45, 500],
+    ["veh_double_scooter", "DS", 24, 500],
     ["veh_wheelchair", "WC", 9, 200],
     ["veh_stroller_std", "ST", 9, 150],
     ["veh_stroller_vip", "SV", 6, 150],
@@ -562,11 +572,73 @@ const SHOP_AND_DROP_DESKS: [string, string, string][] = [
   ["levant", "Levant", "Levant pavilion, east entrance"],
 ];
 
+/*
+ * Vehicle bays, named for the gate they stand beside — never named *as* that gate.
+ *
+ * A desk and a gate are different things: a bay hands over scooters, a gate holds lockers.
+ * Calling both of them "Gate 1" put two unrelated rows with the same name in front of a tenant
+ * admin picking one from a list, which is a mistake waiting to happen rather than a label.
+ */
 const MOBILITY_DESKS: [string, string, string][] = [
-  ["gate1", "Gate 1", "Main gate, vehicle bay"],
-  ["gate2", "Gate 2", "South gate, vehicle bay"],
-  ["vip", "VIP Gate", "VIP entrance, covered bay"],
+  ["gate1", "Gate 1 Vehicle Bay", "Main gate, vehicle bay"],
+  ["gate2", "Gate 2 Vehicle Bay", "South gate, vehicle bay"],
+  ["vip", "VIP Vehicle Bay", "VIP entrance, covered bay"],
 ];
+
+/*
+ * The gates of Boulevard World: where the lockers actually are.
+ *
+ * A Shop & Drop counter is a point of sale and holds nothing. The customer's bags are carried to
+ * one of these and stored there, and it is that moment — not the sale — that starts their clock.
+ */
+const BOULEVARD_GATES: [string, string, string][] = [
+  ["1", "Gate 1", "Main gate, locker hall"],
+  ["2", "Gate 2", "South gate, locker hall"],
+];
+
+const gateDoc = (
+  id: string,
+  tenantId: string,
+  siteId: string,
+  stationId: string,
+  name: string,
+  code: string,
+  location: string,
+  map: [number, number] | null = null,
+) => ({
+  _id: id,
+  tenantId,
+  siteId,
+  stationId,
+  name,
+  code,
+  location,
+  active: true,
+  mapX: map?.[0] ?? null,
+  mapY: map?.[1] ?? null,
+});
+
+/** Every gate in the demo estate, across both tenants and all four stations. */
+const allGates = () => [
+  ...BOULEVARD_GATES.map(([key, name, location]) =>
+    gateDoc(
+      `gate_wayz_${key}`,
+      "wayz",
+      "site_wayz_1",
+      "stn_wayz_1",
+      name,
+      `BLV-GT-${key}`,
+      location,
+      BOULEVARD_MAP[`gate${key}`] ?? null,
+    ),
+  ),
+  gateDoc("gate_wayz_ww_1", "wayz", "site_wayz_2", "stn_wayz_2", "Wonderland Gate", "WW-GT-1", "North entrance, locker hall"),
+  gateDoc("gate_wiqar_1", "wiqar", "site_wiqar_1", "stn_wiqar_1", "Marina Gate", "MAR-GT-1", "Marina promenade, locker hall"),
+  gateDoc("gate_wiqar_2", "wiqar", "site_wiqar_2", "stn_wiqar_2", "Boardwalk Gate", "BRD-GT-1", "Boardwalk entrance, locker hall"),
+];
+
+/** Which gate a locker belongs to: spread evenly across the gates of its station. */
+const gatesAtStation = (stationId: string) => allGates().filter((g) => g.stationId === stationId);
 
 const LAGOON_DESKS: [string, string, string][] = [
   ["mountain", "Mountain", "Mountain jetty"],
@@ -607,17 +679,32 @@ const boulevardKiosk = (
   mapY: BOULEVARD_MAP[key]?.[1] ?? null,
 });
 
+/**
+ * A free unit a desk can actually use.
+ *
+ * Two places, because a desk reaches two. Its own counter holds what it hands over itself, and
+ * the gates of its station hold the lockers — a Shop & Drop desk has none of its own, so asking
+ * only about the counter found nothing at all once the lockers moved to the gates.
+ */
 async function freeUnitAt(kioskId: string, assetTypeId: string) {
+  const desk = await Kiosk.findOne({ tenantId: "wayz", _id: kioskId }, { stationId: 1 }).lean();
+  const gates = desk ? gatesAtStation(String(desk.stationId)).map((g) => g._id) : [];
+
   const unit = await AssetUnit.findOne({
     tenantId: "wayz",
-    kioskId,
     assetTypeId,
     status: "AVAILABLE",
+    ...(gates.length ? { $or: [{ kioskId }, { gateId: { $in: gates } }] } : { kioskId }),
   })
     .sort({ identifier: 1 })
     .lean();
-  if (!unit) throw new Error(`Seed: ${kioskId} has no free ${assetTypeId} to hand out.`);
-  return { _id: String(unit._id), identifier: String(unit.identifier), kioskId };
+  if (!unit) throw new Error(`Seed: ${kioskId} can reach no free ${assetTypeId} to hand out.`);
+  return {
+    _id: String(unit._id),
+    identifier: String(unit.identifier),
+    kioskId,
+    gateId: unit.gateId ? String(unit.gateId) : null,
+  };
 }
 
 async function seedStoredElsewhere(input: {
@@ -740,26 +827,37 @@ async function seedStoredElsewhere(input: {
   );
 }
 
-function boulevardDeskFor(assetTypeId: string, index: number): string | null {
-  const desks = assetTypeId.includes("cmp")
+/**
+ * Where a unit stands: a desk, or a gate.
+ *
+ * Compartments go to gates, because that is where lockers are — a Shop & Drop counter sells the
+ * storage and holds none of it. Everything a desk hands over itself stays at that desk. Exactly
+ * one of the two is answered, which is the rule the model states and this keeps true in the data.
+ */
+function boulevardPlaceFor(assetTypeId: string, index: number): { kioskId: string | null; gateId: string | null } {
+  if (assetTypeId.includes("cmp")) {
+    const gates = gatesAtStation("stn_wayz_1");
+    return { kioskId: null, gateId: gates[index % gates.length]._id };
+  }
+  const desks = assetTypeId.includes("veh_trolley")
     ? SHOP_AND_DROP_DESKS
-    : assetTypeId.includes("veh_trolley")
-      ? SHOP_AND_DROP_DESKS
-      : assetTypeId.includes("veh")
-        ? MOBILITY_DESKS
-        : assetTypeId.includes("boat")
-          ? LAGOON_DESKS
-          : null;
-  if (!desks) return null;
-  return `ksk_wayz_${desks[index % desks.length][0]}`;
+    : assetTypeId.includes("veh")
+      ? MOBILITY_DESKS
+      : assetTypeId.includes("boat")
+        ? LAGOON_DESKS
+        : null;
+  if (!desks) return { kioskId: null, gateId: null };
+  return { kioskId: `ksk_wayz_${desks[index % desks.length][0]}`, gateId: null };
 }
 
 const shopAndDropKiosks = () => SHOP_AND_DROP_DESKS.map((d) => boulevardKiosk("SHOP_AND_DROP", "SD", d));
 const mobilityKiosks = () => MOBILITY_DESKS.map((d) => boulevardKiosk("MOBILITY", "MB", d));
 const lagoonKiosks = () => LAGOON_DESKS.map((d) => boulevardKiosk("LAGOON", "LG", d));
 
-type DemoUser = Omit<UserDoc, "comparePassword" | "invite" | "engineKinds"> & {
+// A gate posting belongs to the staff who work one; the rest of the org chart leaves it unsaid.
+type DemoUser = Omit<UserDoc, "comparePassword" | "invite" | "engineKinds" | "gateId"> & {
   engineKinds?: EngineKind[];
+  gateId?: string | null;
 };
 
 function demoUsers(): DemoUser[] {
@@ -921,7 +1019,25 @@ function demoUsers(): DemoUser[] {
       role: "AGENT",
       engineKinds: ["MOBILITY"],
       kioskId: "ksk_wayz_gate1",
+      // Their bay, and the gate they stand beside. The bay is where they hand over scooters; the
+      // gate is where the lockers are, and the reason they are the one who fetches a customer's
+      // bags out of one. Two different places, and a Mobility agent works both.
+      gateId: "gate_wayz_1",
       phone: "0550000008",
+    },
+    {
+      ...base,
+      _id: "usr_agent_gate2_wayz",
+      email: "agent.gate2.wayz@lockerflow.demo",
+      passwordHash: hashPassword("Agent@123"),
+      fullName: "Rakan Al-Otaibi",
+      role: "AGENT",
+      engineKinds: ["MOBILITY"],
+      kioskId: "ksk_wayz_gate2",
+      // Both gates are staffed, because both hold lockers. A gate with nobody posted to it is a
+      // hall full of bags that no one on the platform is able to hand back.
+      gateId: "gate_wayz_2",
+      phone: "0550000018",
     },
     {
       ...base,
@@ -1048,6 +1164,7 @@ export async function seedFresh() {
     Zone.deleteMany({}),
     Station.deleteMany({}),
     Kiosk.deleteMany({}),
+    Gate.deleteMany({}),
     Counter.deleteMany({}),
     DeliveryRequest.deleteMany({}),
     CashMovement.deleteMany({}),
@@ -1073,7 +1190,6 @@ export async function seedFresh() {
     Trip.deleteMany({}),
     Incident.deleteMany({}),
     VerificationEvidence.deleteMany({}),
-    Version.deleteMany({}),
     Voucher.deleteMany({}),
     VoucherCampaign.deleteMany({}),
   ]);
@@ -1274,6 +1390,8 @@ export async function seedFresh() {
     },
   ]));
 
+  await Gate.insertMany(onlySeeded(allGates()));
+
   await User.insertMany(onlySeeded(demoUsers()));
 
   const types = onlyRunEngines(onlySeeded([...assetTypes("wayz"), ...assetTypes("wiqar")]));
@@ -1281,7 +1399,7 @@ export async function seedFresh() {
   await AssetType.insertMany(types);
   const wayzUnits = assetUnits("wayz", "stn_wayz_1").map((u, i) => ({
     ...u,
-    kioskId: boulevardDeskFor(String((u as { assetTypeId: string }).assetTypeId), i),
+    ...boulevardPlaceFor(String((u as { assetTypeId: string }).assetTypeId), i),
   }));
   const jeddahUnits = assetUnits("wayz", "stn_wayz_2")
     .filter((u) => {
@@ -1290,28 +1408,32 @@ export async function seedFresh() {
     })
     .map((u) => {
       const type = String((u as { assetTypeId: string }).assetTypeId);
+      const atGate = type.includes("cmp");
       return {
         ...u,
         _id: `${u._id}_ww`,
         identifier: `${u.identifier}W`,
-        kioskId: type.includes("cmp") ? "ksk_wayz_ww_sd" : "ksk_wayz_ww_mob",
+        kioskId: atGate ? null : "ksk_wayz_ww_mob",
+        gateId: atGate ? "gate_wayz_ww_1" : null,
       };
     });
 
   await AssetUnit.insertMany(onlySeeded([
     ...wayzUnits,
     ...jeddahUnits,
-    ...assetUnits("wiqar", "stn_wiqar_1").map((u) => ({
-      ...u,
-      kioskId: String((u as { assetTypeId: string }).assetTypeId).includes("boat") ? "ksk_wiqar_lagoon" : "ksk_wiqar_1",
-    })),
+    ...assetUnits("wiqar", "stn_wiqar_1").map((u) => {
+      const type = String((u as { assetTypeId: string }).assetTypeId);
+      if (type.includes("cmp")) return { ...u, kioskId: null, gateId: "gate_wiqar_1" };
+      return { ...u, kioskId: type.includes("boat") ? "ksk_wiqar_lagoon" : "ksk_wiqar_1", gateId: null };
+    }),
     ...assetUnits("wiqar", "stn_wiqar_2")
       .filter((u) => String((u as { assetTypeId: string }).assetTypeId).includes("cmp"))
       .map((u) => ({
         ...u,
         _id: `${u._id}_b`,
         identifier: `${u.identifier}B`,
-        kioskId: "ksk_wiqar_2",
+        kioskId: null,
+        gateId: "gate_wiqar_2",
       })),
   ]).filter((u) => typeIds.has(String((u as unknown as { assetTypeId: string }).assetTypeId))));
   await CatalogueProduct.insertMany(
@@ -1320,6 +1442,7 @@ export async function seedFresh() {
   await Customer.insertMany(onlySeeded([
     {
       _id: "cust_wayz_whatsapp",
+      nationalId: "AB1234567",
       tenantId: "wayz",
       name: "Mouad Houmada",
       phone: "+212 628436082",
@@ -1328,6 +1451,7 @@ export async function seedFresh() {
     },
     {
       _id: "cust_wayz_1",
+      nationalId: "1043928817",
       tenantId: "wayz",
       name: "Ahmed Saleh",
       phone: "0599709998",
@@ -1335,6 +1459,7 @@ export async function seedFresh() {
     },
     {
       _id: "cust_wayz_2",
+      nationalId: "2098371465",
       tenantId: "wayz",
       name: "Sara Kamal",
       phone: "0561234567",
@@ -1342,6 +1467,7 @@ export async function seedFresh() {
     },
     {
       _id: "cust_wayz_3",
+      nationalId: "1076654203",
       tenantId: "wayz",
       name: "Nora Hassan",
       phone: "0512223344",
@@ -1349,6 +1475,7 @@ export async function seedFresh() {
     },
     {
       _id: "cust_wiqar_2",
+      nationalId: "2011478392",
       tenantId: "wiqar",
       name: "Hessa Al-Amoudi",
       phone: "0544455566",
@@ -1356,6 +1483,7 @@ export async function seedFresh() {
     },
     {
       _id: "cust_wiqar_1",
+      nationalId: "1058823741",
       tenantId: "wiqar",
       name: "Yusuf Marina",
       phone: "0538889900",
@@ -1857,6 +1985,32 @@ async function stampDesks() {
       Order.updateMany({ agentId: user._id, kioskId: null }, { $set: { kioskId: user.kioskId } }),
       Payment.updateMany({ takenBy: user._id, kioskId: null }, { $set: { kioskId: user.kioskId } }),
     ]);
+  }
+
+  /*
+   * A stored booking points at the gate its locker is in.
+   *
+   * The running platform sets this whenever a locker is allocated, but demo bookings are written
+   * straight into the database, so without this they would arrive with bags in a locker and no
+   * gate on record — and the agent posted to that gate, whose whole job is fetching them back
+   * out, would open an empty board with the bags sitting behind them.
+   */
+  const lockers = await AssetUnit.find({ gateId: { $ne: null } }, { gateId: 1 }).lean();
+  const gateOfUnit = new Map(lockers.map((u) => [String(u._id), String(u.gateId)]));
+
+  const stored = await Booking.find(
+    { gateId: null },
+    { _id: 1, assetUnitId: 1, "reservation.assetUnitId": 1, "session.assetUnitId": 1 },
+  ).lean();
+
+  for (const booking of stored) {
+    const unitId =
+      (booking as { assetUnitId?: string | null }).assetUnitId ??
+      (booking as { reservation?: { assetUnitId?: string | null } }).reservation?.assetUnitId ??
+      (booking as { session?: { assetUnitId?: string | null } }).session?.assetUnitId ??
+      null;
+    const gateId = unitId ? gateOfUnit.get(String(unitId)) : undefined;
+    if (gateId) await Booking.updateOne({ _id: booking._id }, { $set: { gateId } });
   }
 }
 
@@ -2375,6 +2529,7 @@ async function seedCostHistory() {
     ["usr_agent_wayz", "Omar Al-Wayz — kiosk agent", 5500],
     ["usr_agent_till_wayz", "Reem Al-Sudairi — kiosk agent", 5000],
     ["usr_agent_gate1_wayz", "Majed Al-Subaie — kiosk agent", 5500],
+    ["usr_agent_gate2_wayz", "Rakan Al-Otaibi — kiosk agent", 5500],
     ["usr_agent_egypt_wayz", "Lina Al-Faraj — kiosk agent", 5500],
     ["usr_agent_all_wayz", "Nasser Al-Dosari — kiosk agent", 5800],
     ["usr_welcome_wayz", "Huda Al-Qahtani — lagoon agent", 6000],

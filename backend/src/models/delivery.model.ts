@@ -1,4 +1,4 @@
-import mongoose, { Schema } from 'mongoose'
+import { Schema } from 'mongoose'
 import type { DeliveryOrigin, DeliveryStatus } from '../domain/workflow.js'
 
 export interface DeliveryTimelineEntryDoc {
@@ -38,7 +38,9 @@ export interface DeliveryRequestDoc {
    * them from that gate's agent; a `kind` of ADDRESS is the older door-to-door case.
    */
   destination: {
-    kind: 'ADDRESS' | 'GATE'
+    kind: 'ADDRESS' | 'GATE' | 'GATE_LOCKER'
+    /** The gate a storage run is carrying bags *to*. Null on any run going the other way. */
+    gateId?: string | null
     address: string
     kioskId: string | null
     kioskName: string
@@ -112,7 +114,8 @@ const deliverySchema = new Schema<DeliveryRequestDoc>(
     customerName: { type: String, default: '' },
     customerPhone: { type: String, default: '' },
     destination: {
-      kind: { type: String, enum: ['ADDRESS', 'GATE'], default: 'ADDRESS' },
+      kind: { type: String, enum: ['ADDRESS', 'GATE', 'GATE_LOCKER'], default: 'ADDRESS' },
+      gateId: { type: String, default: null },
       address: { type: String, required: true },
       kioskId: { type: String, default: null },
       kioskName: { type: String, default: '' },
@@ -148,6 +151,4 @@ const deliverySchema = new Schema<DeliveryRequestDoc>(
 deliverySchema.index({ tenantId: 1, siteId: 1, status: 1 })
 deliverySchema.index({ tenantId: 1, assignedTo: 1, status: 1 })
 
-export const DeliveryRequest =
-  (mongoose.models.DeliveryRequest as mongoose.Model<DeliveryRequestDoc>) ??
-  mongoose.model<DeliveryRequestDoc>('DeliveryRequest', deliverySchema)
+export const DeliveryRequestSchema = deliverySchema

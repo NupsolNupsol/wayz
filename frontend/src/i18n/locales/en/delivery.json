@@ -196,5 +196,13 @@
     "RELEASE_APPROVED": "Compartment released",
     "PICKED_UP": "Collected",
     "DELIVERED": "Delivered"
+  },
+  "kind": {
+    "delivery": "Delivery",
+    "storageRun": "Storage run",
+    "collectFrom": "Collect {{count}} bag(s) from {{desk}}",
+    "storeAt": "Store at {{gate}} — locker {{unit}}",
+    "carryingToGate": "You are carrying {{count}} bag(s) to {{gate}}. Put them in locker {{unit}} and confirm — the customer’s time starts then, not before.",
+    "confirmStorage": "Confirm storage (starts the clock)"
   }
 }

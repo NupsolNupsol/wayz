@@ -70,6 +70,14 @@ services:
       JWT_EXPIRES_IN: ${JWT_EXPIRES_IN:-12h}
       EXPIRY_WARNING_MINUTES: ${EXPIRY_WARNING_MINUTES:-15}
 
+      # --- What this deployment is for. -------------------------------------------------
+      # MODE says who the server is for, not how it was built: `dev` is a server a test team uses,
+      # `live` is one customers reach. STATIC_OTP is a confirmation code that always works, and it
+      # is honoured only when MODE is dev. Both default to the safe answer, so a stack started
+      # without them has no standing code at all.
+      MODE: ${MODE:-live}
+      STATIC_OTP: ${STATIC_OTP:-}
+
       # --- Demo / test affordances. -----------------------------------------------------
       # These expose data that production must not hand out: OTP_TEST_PEEK opens the endpoint
       # that returns a live OTP, INVITE_TEST_PEEK returns the staff invitation link in the API
@@ -95,7 +103,11 @@ services:
       VONAGE_API_KEY: ${VONAGE_API_KEY:-}
       VONAGE_API_SECRET: ${VONAGE_API_SECRET:-}
       VONAGE_WHATSAPP_NUMBER: ${VONAGE_WHATSAPP_NUMBER:-}
-      VONAGE_MESSAGES_URL: ${VONAGE_MESSAGES_URL:-https://messages-sandbox.nexmo.com/v1/messages}
+      # SMS goes to the live Messages API; WhatsApp stays on the sandbox. Two endpoints
+      # because the sandbox carries social channels only and cannot send SMS at all.
+      VONAGE_MESSAGES_URL: ${VONAGE_MESSAGES_URL:-https://api.nexmo.com/v1/messages}
+      VONAGE_WHATSAPP_URL: ${VONAGE_WHATSAPP_URL:-https://messages-sandbox.nexmo.com/v1/messages}
+      VONAGE_SMS_FROM: ${VONAGE_SMS_FROM:-WAYZ}
 
       # Primary SMTP (email OTP channel).
       MAIL_HOST: ${MAIL_HOST:-}

@@ -73,13 +73,26 @@ export function AssetsPage() {
     setCount(4)
   }
 
+  /**
+   * Where a kind of asset can be put, which depends on what it is.
+   *
+   * Lockers stand in a gate and everything else at a desk — a Shop & Drop counter holds no
+   * compartments at all, so offering one here would create stock nothing could ever reach. The
+   * server enforces the same rule; this is the form agreeing with it.
+   */
+  const atAGate = (row: AssetTypeRow | null) => row?.kind === 'COMPARTMENT'
+
   const desksFor = (row: AssetTypeRow | null, station: string) =>
-    (data?.kiosks ?? []).filter((k) => k.stationId === station && (!k.engineKind || !row || k.engineKind === row.engineKind))
+    atAGate(row)
+      ? (data?.gates ?? []).filter((g) => g.stationId === station)
+      : (data?.kiosks ?? []).filter(
+          (k) => k.stationId === station && (!k.engineKind || !row || k.engineKind === row.engineKind),
+        )
 
   const submitAdd = () => {
     if (!addFor) return
     addUnits.mutate(
-      { id: addFor._id, body: { stationId, kioskId, count } },
+      { id: addFor._id, body: { stationId, ...(atAGate(addFor) ? { gateId: kioskId } : { kioskId }), count } },
       {
         onSuccess: (r) => {
           toast('success', t('toast.added', { count: r.created }), r.identifiers.slice(0, 6).join(', '))
@@ -121,6 +134,14 @@ export function AssetsPage() {
       render: (r) => (
         <div className="min-w-0 max-w-[220px]">
           <p className="font-semibold text-navy dark:text-dk-texthi truncate">{r.name}</p>
+          {/*
+            When a kind stands in more than one venue, say how many rather than naming the first.
+
+            The total on this row is everything the company owns, across every venue. Naming one
+            station beside it read as "this station has all of these" — and the "+1" that said
+            otherwise was the first thing the truncation ate, because venue names are long. A
+            count cannot be truncated into a different meaning; the names are still in the tooltip.
+          */}
           <p className="text-xs text-muted truncate" title={r.stationNames.join(' · ')}>
             {t(`kind.${r.kind}`, { defaultValue: r.kind })}
             {' · '}
@@ -128,7 +149,7 @@ export function AssetsPage() {
               ? t('table.noStation')
               : r.stationNames.length === 1
                 ? r.stationNames[0]
-                : t('table.stationsMore', { first: r.stationNames[0], count: r.stationNames.length - 1 })}
+                : t('table.acrossStations', { count: r.stationNames.length })}
           </p>
         </div>
       ),
@@ -331,6 +352,7 @@ export function AssetsPage() {
         onClose={() => setNewKindOpen(false)}
         stations={data.stations}
         kiosks={data.kiosks ?? []}
+        gates={data.gates ?? []}
         defaultEngine={filter === 'ALL' ? undefined : filter}
         onCreated={(id) => navigate(`/assets/${id}`)}
       />
@@ -386,19 +408,25 @@ export function AssetsPage() {
             testId="asset-add-station"
           />
         </Field>
-        <Field label={t('common:field.kiosk')} required hint={t('add.kioskHint')}>
+        <Field
+          label={atAGate(addFor) ? t('common:field.gate') : t('common:field.kiosk')}
+          required
+          hint={atAGate(addFor) ? t('add.gateHint') : t('add.kioskHint')}
+        >
           {desksFor(addFor, stationId).length > 0 ? (
             <Select
               value={kioskId}
               onChange={setKioskId}
               options={[
-                { label: t('add.pickKiosk'), value: '' },
+                { label: atAGate(addFor) ? t('add.pickGate') : t('add.pickKiosk'), value: '' },
                 ...desksFor(addFor, stationId).map((k) => ({ label: k.name, value: k._id })),
               ]}
               testId="asset-add-kiosk"
             />
           ) : (
-            <p className="text-xs text-danger-strong" data-testid="asset-add-no-kiosk">{t('add.noKioskHere')}</p>
+            <p className="text-xs text-danger-strong" data-testid="asset-add-no-kiosk">
+              {atAGate(addFor) ? t('add.noGateHere') : t('add.noKioskHere')}
+            </p>
           )}
         </Field>
         <Field label={t('add.howMany')} required hint={t('add.identifierNote')}>

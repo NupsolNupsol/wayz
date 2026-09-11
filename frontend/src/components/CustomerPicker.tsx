@@ -5,7 +5,7 @@ import { useCustomers, useCreateCustomer } from '@/hooks'
 import { Field, Button } from './ui'
 import { PhoneInput } from './PhoneInput'
 import { toast } from '@/state/toastStore'
-import { customerProblems } from '@/utils'
+import { registrationProblems } from '@/utils'
 import type { Customer } from '@/api/types'
 
 export function CustomerPicker({ value, onChange }: { value: Customer | null; onChange: (c: Customer | null) => void }) {
@@ -15,21 +15,29 @@ export function CustomerPicker({ value, onChange }: { value: Customer | null; on
   const [name, setName] = useState('')
   const [phone, setPhone] = useState('')
   const [email, setEmail] = useState('')
+  const [nationalId, setNationalId] = useState('')
   const [touched, setTouched] = useState(false)
   const { data: matches = [] } = useCustomers(query.trim() || undefined)
   const createMut = useCreateCustomer()
 
-  const problems = customerProblems({ name, phone, email })
-  const problemFor = (field: 'name' | 'phone' | 'email') => problems.find((p) => p.field === field)
+  const problems = registrationProblems({ name, phone, email, nationalId })
+  const problemFor = (field: 'name' | 'phone' | 'email' | 'nationalId') =>
+    problems.find((p) => p.field === field)
 
   const submitCreate = async () => {
     if (problems.length > 0) return
-    const c = await createMut.mutateAsync({ name, phone, email: email.trim() || undefined })
+    const c = await createMut.mutateAsync({
+      name,
+      phone,
+      email: email.trim() || undefined,
+      nationalId: nationalId.trim(),
+    })
     onChange(c)
     setCreating(false)
     setName('')
     setPhone('')
     setEmail('')
+    setNationalId('')
     toast('success', t('customer.created'), c.name)
   }
 
@@ -40,6 +48,11 @@ export function CustomerPicker({ value, onChange }: { value: Customer | null; on
         <div className="flex-1">
           <p className="font-semibold text-sm text-navy dark:text-dk-texthi">{value.name}</p>
           <p className="text-xs text-muted">{value.phone}{value.email ? ` · ${value.email}` : ''}</p>
+          {value.nationalId && (
+            <p className="text-xs text-muted" data-testid="customer-selected-national-id">
+              {t('customer.nationalId')}: {value.nationalId}
+            </p>
+          )}
         </div>
         <Button variant="ghost" onClick={() => onChange(null)} data-testid="customer-change">{t('customer.change')}</Button>
       </div>
@@ -88,6 +101,22 @@ export function CustomerPicker({ value, onChange }: { value: Customer | null; on
             error={touched && problemFor('phone') ? t(problemFor('phone')!.messageKey) : undefined}
           >
             <PhoneInput value={phone} onChange={(v) => { setPhone(v); setTouched(true) }} testId="customer-phone" />
+          </Field>
+          <Field
+            label={t('customer.nationalId')}
+            required
+            htmlFor="cust-national-id"
+            hint={t('customer.nationalIdHint')}
+            error={touched && problemFor('nationalId') ? t(problemFor('nationalId')!.messageKey) : undefined}
+          >
+            <input
+              id="cust-national-id"
+              className="lf-input"
+              value={nationalId}
+              onChange={(e) => setNationalId(e.target.value)}
+              onBlur={() => setTouched(true)}
+              data-testid="customer-national-id"
+            />
           </Field>
           <Field
             label={t('customer.email')}

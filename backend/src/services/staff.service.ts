@@ -1,15 +1,6 @@
-import {
-  Booking,
-  Kiosk,
-  Shift,
-  Station,
-  Tenant,
-  User,
-  hashPassword,
-  newInviteToken,
-  INVITE_TTL_HOURS,
-  type UserDoc,
-} from '../models/index.js'
+import { currentTenant } from '../platform/tenantContext.js'
+import { registerPublicToken } from '../platform/publicLinks.js'
+import { Booking, Gate, INVITE_TTL_HOURS, Kiosk, Shift, Station, Tenant, User, hashPassword, newInviteToken, type UserDoc } from '../models/index.js'
 import { recordAudit } from './audit.service.js'
 import { ENGINE_KINDS, ROLES, type EngineKind, type Role } from '../domain/types.js'
 import {
@@ -36,6 +27,13 @@ export const ASSIGNABLE_ROLES: Role[] = ASSIGNABLE_BY.TENANT_ADMIN ?? []
 
 async function sendInvitation(user: UserDoc, invitedBy: string): Promise<InviteResult> {
   const { token, tokenHash, expiresAt } = newInviteToken()
+  /*
+   * The invitation link is opened by somebody who has no account yet, so it carries no
+   * way to say which tenant it belongs to. Its hash is registered the same way a tracking
+   * link is — the hash, not the token, so the control plane never holds a usable secret.
+   */
+  const tenantNow = currentTenant()
+  if (tenantNow) await registerPublicToken(tokenHash, tenantNow.tenantId)
   const [tenant, inviter] = await Promise.all([
     Tenant.findById(user.tenantId).lean(),
     invitedBy ? User.findById(invitedBy).lean() : null,
@@ -132,6 +130,39 @@ async function resolveKiosk(
   return kiosk._id
 }
 
+/**
+ * The gate a member of staff covers, if their job involves one.
+ *
+ * A Mobility agent stands at a gate, so they are the one who fetches a customer's bags out of it
+ * and hands them back — the Shop & Drop counter that sold the storage is elsewhere and holds no
+ * lockers. That makes the gate a required part of hiring a Mobility agent, not an afterthought:
+ * one hired without it can serve scooters and can do nothing about the lockers beside them.
+ *
+ * It is emphatically not the same thing as their kiosk. The kiosk is the vehicle bay they work
+ * from; the gate is the locker hall they answer for. Both, and separately.
+ */
+async function resolveGate(
+  tenantId: string,
+  role: Role,
+  engines: EngineKind[],
+  stationId: string,
+  gateId?: string | null,
+): Promise<string | null> {
+  const needsGate = role === 'AGENT' && engines.includes('MOBILITY')
+  if (!needsGate) return null
+
+  if (!gateId) {
+    throw ApiError.badRequest('A mobility agent answers for one gate — choose which.', [
+      'The gate is where the lockers are, and where they retrieve a customer’s bags.',
+    ])
+  }
+
+  const gate = await Gate.findOne({ _id: gateId, tenantId, active: { $ne: false } }).lean()
+  if (!gate) throw ApiError.badRequest('That gate does not exist in this tenant.')
+  if (gate.stationId !== stationId) throw ApiError.badRequest('That gate belongs to a different station.')
+  return gate._id
+}
+
 async function resolveReportsTo(tenantId: string, role: Role, reportsTo?: string | null): Promise<string | null> {
   if (!SUB_MANAGER_ROLES.includes(role) || !reportsTo) return null
 
@@ -166,8 +197,12 @@ export async function listStaff(scope: ManagerScope) {
   ])
 
   const stationName = new Map(stations.map((s) => [s._id, s.name]))
-  const kiosks = await Kiosk.find({ tenantId: scope.tenantId }).lean()
+  const [kiosks, gates] = await Promise.all([
+    Kiosk.find({ tenantId: scope.tenantId }).lean(),
+    Gate.find({ tenantId: scope.tenantId }).lean(),
+  ])
   const kioskName = new Map(kiosks.map((k) => [k._id, k.name]))
+  const gateName = new Map(gates.map((g) => [g._id, g.name]))
   const leadName = new Map(users.map((u) => [u._id, u.fullName]))
   const openShifts = new Map(shiftAgg.map((s: { _id: string; openShifts: number }) => [s._id, s.openShifts]))
   const openShiftRows = await Shift.find(
@@ -192,6 +227,8 @@ export async function listStaff(scope: ManagerScope) {
     stationName: stationName.get(u.stationId) ?? u.stationId,
     kioskId: u.kioskId ?? null,
     kioskName: u.kioskId ? (kioskName.get(u.kioskId) ?? u.kioskId) : null,
+    gateId: u.gateId ?? null,
+    gateName: u.gateId ? (gateName.get(u.gateId) ?? u.gateId) : null,
     engineKinds: u.engineKinds ?? [],
     reportsTo: u.reportsTo ?? null,
     reportsToName: u.reportsTo ? (leadName.get(u.reportsTo) ?? u.reportsTo) : null,
@@ -225,6 +262,7 @@ export async function createStaff(scope: ManagerScope, input: StaffInput) {
     zoneId: station.zoneId || null,
     stationId: input.stationId,
     kioskId: await resolveKiosk(scope.tenantId, input.role, engines, input.stationId, input.kioskId),
+    gateId: await resolveGate(scope.tenantId, input.role, engines, input.stationId, input.gateId),
     engineKinds: engines,
     reportsTo: await resolveReportsTo(scope.tenantId, input.role, input.reportsTo),
     phone: input.phone ?? '',
@@ -319,6 +357,13 @@ export async function updateStaff(
     user.engineKinds,
     user.stationId,
     patch.kioskId !== undefined ? patch.kioskId : user.kioskId,
+  )
+  user.gateId = await resolveGate(
+    scope.tenantId,
+    user.role,
+    user.engineKinds,
+    user.stationId,
+    patch.gateId !== undefined ? patch.gateId : user.gateId,
   )
   user.reportsTo = await resolveReportsTo(
     scope.tenantId,

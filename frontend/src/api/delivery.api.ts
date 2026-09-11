@@ -58,7 +58,16 @@ export interface Delivery {
   customerId: string
   customerName: string
   customerPhone: string
-  destination: { address: string; notes: string; contactPhone: string }
+  destination: {
+    /** ADDRESS and GATE go out to a customer; GATE_LOCKER is a storage run coming in. */
+    kind?: 'ADDRESS' | 'GATE' | 'GATE_LOCKER'
+    address: string
+    notes: string
+    contactPhone: string
+    /** The gate a storage run is carrying bags to, and its name for the courier to read. */
+    gateId?: string | null
+    kioskName?: string | null
+  }
   status: DeliveryStatus
   origin: DeliveryOrigin
   verifiedBy: string | null
@@ -143,6 +152,8 @@ export interface ExitGate {
 export const deliveryApi = {
   exitGates: () => unwrap<ExitGate[]>(http.get('/deliveries/exit-gates')),
   create: (input: CreateDeliveryInput) => unwrap<Delivery>(http.post('/deliveries', input)),
+  /** Asks for a customer's bags to be carried from this counter to the gate holding their locker. */
+  requestStorageRun: (bookingId: string) => unwrap<Delivery>(http.post('/deliveries/storage-runs', { bookingId })),
   customerBags: (bookingId: string) =>
     unwrap<CustomerBagsElsewhere[]>(http.get(`/deliveries/customer-bags/${bookingId}`)),
   station: (params?: { status?: string; bookingId?: string }) =>

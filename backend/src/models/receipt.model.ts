@@ -1,4 +1,4 @@
-import mongoose, { Schema } from 'mongoose'
+import { Schema } from 'mongoose'
 import { nanoid } from 'nanoid'
 
 export interface ReceiptDoc {
@@ -28,4 +28,4 @@ const receiptSchema = new Schema<ReceiptDoc>(
   { _id: false, timestamps: true },
 )
 
-export const Receipt = mongoose.model<ReceiptDoc>('Receipt', receiptSchema)
+export const ReceiptSchema = receiptSchema

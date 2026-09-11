@@ -10,7 +10,7 @@ import { PhoneInput } from '@/components/PhoneInput'
 import { useCustomers, useCreateCustomer } from '@/hooks'
 import { formatDateTime } from '@/utils'
 import { toast } from '@/state/toastStore'
-import { customerProblems } from '@/utils'
+import { registrationProblems } from '@/utils'
 
 export function CustomersPage() {
   const { t } = useTranslation(['agent', 'ui', 'common'])
@@ -20,18 +20,25 @@ export function CustomersPage() {
   const [name, setName] = useState('')
   const [phone, setPhone] = useState('')
   const [email, setEmail] = useState('')
+  const [nationalId, setNationalId] = useState('')
   const [touched, setTouched] = useState(false)
   const { data: rows = [], isLoading } = useCustomers(q.trim() || undefined)
   const createMut = useCreateCustomer()
 
-  const problems = customerProblems({ name, phone, email })
-  const problemFor = (field: 'name' | 'phone' | 'email') => problems.find((p) => p.field === field)
+  const problems = registrationProblems({ name, phone, email, nationalId })
+  const problemFor = (field: 'name' | 'phone' | 'email' | 'nationalId') =>
+    problems.find((p) => p.field === field)
 
   const submit = async () => {
     if (problems.length > 0) { setTouched(true); return }
-    const c = await createMut.mutateAsync({ name, phone, email: email.trim() || undefined })
+    const c = await createMut.mutateAsync({
+      name,
+      phone,
+      email: email.trim() || undefined,
+      nationalId: nationalId.trim(),
+    })
     toast('success', t('customers.created'), c.name)
-    setOpen(false); setName(''); setPhone(''); setEmail(''); setTouched(false)
+    setOpen(false); setName(''); setPhone(''); setEmail(''); setNationalId(''); setTouched(false)
   }
 
   return (
@@ -56,6 +63,7 @@ export function CustomersPage() {
           columns={[
             { key: 'name', header: t('common:column.name'), sortValue: (c) => c.name, filter: { kind: 'text', value: (c) => c.name }, render: (c) => <span className="font-semibold text-navy dark:text-dk-text">{c.name}</span> },
             { key: 'phone', header: t('common:column.phone'), filter: { kind: 'text', value: (c) => c.phone }, render: (c) => c.phone },
+            { key: 'nationalId', header: t('ui:customer.nationalId'), filter: { kind: 'text', value: (c) => c.nationalId ?? '' }, render: (c) => <span className="text-muted font-mono text-xs">{c.nationalId || '—'}</span> },
             { key: 'email', header: t('common:column.email'), filter: { kind: 'text', value: (c) => c.email ?? '' }, render: (c) => <span className="text-muted">{c.email || '—'}</span> },
             { key: 'created', header: t('common:column.added'), align: 'right', sortValue: (c) => new Date(c.createdAt).getTime(), render: (c) => <span className="text-muted">{formatDateTime(new Date(c.createdAt).getTime())}</span> },
           ]}
@@ -78,6 +86,14 @@ export function CustomersPage() {
           error={touched && problemFor('phone') ? t(problemFor('phone')!.messageKey) : undefined}
         >
           <PhoneInput value={phone} onChange={(v) => { setPhone(v); setTouched(true) }} testId="cust-modal-phone" />
+        </Field>
+        <Field
+          label={t('ui:customer.nationalId')}
+          required
+          hint={t('ui:customer.nationalIdHint')}
+          error={touched && problemFor('nationalId') ? t(problemFor('nationalId')!.messageKey) : undefined}
+        >
+          <input className="lf-input" value={nationalId} onChange={(e) => setNationalId(e.target.value)} onBlur={() => setTouched(true)} data-testid="cust-modal-national-id" />
         </Field>
         <Field
           label={t('ui:customer.email')}

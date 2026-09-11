@@ -8,6 +8,8 @@ export interface JwtPayload {
   tenantId: string
   stationId: string
   kioskId: string | null
+  /** The gate this member of staff is posted to, if their job involves one. */
+  gateId?: string | null
   engineKinds: EngineKind[]
 }
 

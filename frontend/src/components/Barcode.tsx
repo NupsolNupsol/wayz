@@ -24,7 +24,13 @@ export function Barcode({ value, height = 48, className }: { value: string; heig
           })
         })()}
       </svg>
-      <div className="text-center text-[11px] tracking-[3px] font-mono text-navy dark:text-dk-text mt-1">{value}</div>
+      {/*
+        The number under the bars is read by eye, not by the scanner — an agent keying it in when a
+        label is scuffed, a customer reading it back over the phone. At eleven pixels it printed
+        smaller than anything else on the roll, so it is set to be read and the letter-spacing is
+        eased to keep a long code on one line.
+      */}
+      <div className="text-center text-[13px] tracking-[2px] font-mono text-navy dark:text-dk-text mt-1">{value}</div>
     </div>
   )
 }

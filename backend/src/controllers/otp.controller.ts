@@ -6,7 +6,7 @@ import { peekOtp, sendOtp, verifyOtp } from "../services/otp.service.js";
 import { rememberPhoneVerified } from "../services/customer.service.js";
 
 const intent = z.enum(["VERIFY_PHONE", "HANDOVER_BAG"]);
-const channel = z.enum(["WHATSAPP", "EMAIL"]).default("WHATSAPP");
+const channel = z.enum(["WHATSAPP", "SMS", "EMAIL"]).default("WHATSAPP");
 
 export const otpController = {
   send: asyncHandler(async (req, res) => {

@@ -15,7 +15,7 @@
     "lint": "eslint . --max-warnings 0",
     "seed": "tsx src/seed/run.ts",
     "seed:versions": "tsx src/seed/versions.run.ts",
-    "test": "npm run seed && npm run test:roles && npm run seed && npm run test:rules && npm run seed && npm run test:notes && npm run seed && npm run test:shift && npm run seed && npm run test:lagoon && npm run seed && npm run test:hr && npm run seed && npm run test:multikiosk && npm run seed && npm run test:map && npm run seed && npm run test:transit && npm run seed && npm run test:billing && npm run seed && npm run test:lagoonkind && npm run seed && npm run test:refundclock && npm run seed && npm run test:productplace && npm run seed && npm run test:delivery && npm run seed && npm run test:duration && npm run seed && npm run test:overtime && npm run seed && npm run test:arabic && npm run seed && npm run test:points && npm run seed && npm run test:split && npm run seed && npm run test:scoping",
+    "test": "npm run seed && npm run test:roles && npm run seed && npm run test:rules && npm run seed && npm run test:notes && npm run seed && npm run test:shift && npm run seed && npm run test:lagoon && npm run seed && npm run test:hr && npm run seed && npm run test:multikiosk && npm run seed && npm run test:map && npm run seed && npm run test:transit && npm run seed && npm run test:billing && npm run seed && npm run test:lagoonkind && npm run seed && npm run test:refundclock && npm run seed && npm run test:productplace && npm run seed && npm run test:delivery && npm run seed && npm run test:duration && npm run seed && npm run test:overtime && npm run seed && npm run test:arabic && npm run seed && npm run test:points && npm run seed && npm run test:split && npm run seed && npm run test:scoping && npm run seed && npm run test:sms && npm run seed && npm run test:catalogue && npm run seed && npm run test:replacement && npm run seed && npm run test:staticotp && npm run seed && npm run test:storage && npm run provision:isolation && npm run test:isolation",
     "test:rules": "node tests/rules.api.mjs",
     "test:notes": "node tests/clientNotes.api.mjs",
     "test:roles": "node tests/roles.api.mjs",
@@ -35,7 +35,14 @@
     "test:duration": "node tests/durationPricing.api.mjs",
     "test:delivery": "node tests/deliveryNoFees.api.mjs",
     "test:split": "node tests/splitPayers.api.mjs",
-    "test:scoping": "node tests/deskScoping.api.mjs"
+    "test:scoping": "node tests/deskScoping.api.mjs",
+    "provision:isolation": "tsx src/platform/provisionTestTenant.ts",
+    "test:isolation": "node tests/tenantIsolation.api.mjs",
+    "test:sms": "node tests/smsChannel.api.mjs",
+    "test:catalogue": "node tests/deskCatalogue.api.mjs",
+    "test:replacement": "node tests/replacementBonus.api.mjs",
+    "test:staticotp": "tsx tests/staticOtp.api.mts",
+    "test:storage": "node tests/storageRun.api.mjs"
   },
   "dependencies": {
     "@wayz/workflow": "file:../workflow",

@@ -23,9 +23,15 @@ export async function ageBooking(scope: Scope, bookingId: string, minutes: numbe
 
   const booking = await Booking.findOne({ _id: bookingId, tenantId: scope.tenantId })
   if (!booking) throw ApiError.notFound('Booking not found.')
-  if (!canWorkEngine(scope, booking.engineKind)) throw ApiError.notFound('Booking not found.')
+  // A gate agent works mobility and still handles the bag drops in their hall, so the place
+  // outranks the activity here exactly as it does everywhere else bags are concerned.
+  const atMyGate = !!scope.gateId && booking.gateId === scope.gateId
+  if (!atMyGate && !canWorkEngine(scope, booking.engineKind)) throw ApiError.notFound('Booking not found.')
+  // The same two places any booking answers to: the desk that sold it, and the gate holding its
+  // locker. The staff posted to that gate work with these bags, so the testing clock reaches them.
   const kiosk = kioskFilter(scope)
-  if (kiosk !== undefined && booking.kioskId !== kiosk) throw ApiError.notFound('Booking not found.')
+  const mine = kiosk === undefined || booking.kioskId === kiosk || (!!scope.gateId && booking.gateId === scope.gateId)
+  if (!mine) throw ApiError.notFound('Booking not found.')
 
   if (!booking.session.startedAt) throw ApiError.unprocessable('That session has not started, so it has no clock to move.')
 

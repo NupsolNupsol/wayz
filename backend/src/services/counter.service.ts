@@ -1,4 +1,4 @@
-import { Counter } from '../models/counter.model.js'
+import { Counter } from '../models/index.js'
 
 export const ID_PREFIX = {
   booking: 'bk',
@@ -14,6 +14,7 @@ export const ID_PREFIX = {
   site: 'site',
   station: 'stn',
   kiosk: 'ksk',
+  gate: 'gate',
   user: 'usr',
   product: 'prd',
   assetType: 'at',

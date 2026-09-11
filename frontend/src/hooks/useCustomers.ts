@@ -7,5 +7,5 @@ export const useCustomer = (id: string | undefined) => useQuery({ queryKey: qk.c
 
 export function useCreateCustomer() {
   const qc = useQueryClient()
-  return useMutation({ mutationFn: (data: { name: string; phone: string; email?: string }) => customerApi.create(data), onSuccess: () => qc.invalidateQueries({ queryKey: ['customers'] }) })
+  return useMutation({ mutationFn: (data: { name: string; phone: string; email?: string; nationalId: string }) => customerApi.create(data), onSuccess: () => qc.invalidateQueries({ queryKey: ['customers'] }) })
 }

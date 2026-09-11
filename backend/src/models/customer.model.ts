@@ -1,4 +1,4 @@
-import mongoose, { Schema } from 'mongoose'
+import { Schema } from 'mongoose'
 import { nanoid } from 'nanoid'
 
 export interface CustomerDoc {
@@ -7,6 +7,8 @@ export interface CustomerDoc {
   name: string
   phone: string
   email?: string
+  /** National identity / residency card number. Asked for at registration. */
+  nationalId?: string
   vatId?: string
   phoneVerifiedAt?: Date | null
   active?: boolean
@@ -21,6 +23,7 @@ const customerSchema = new Schema<CustomerDoc>(
     name: { type: String, required: true, trim: true },
     phone: { type: String, required: true, trim: true },
     email: { type: String },
+    nationalId: { type: String, trim: true },
     vatId: { type: String },
     phoneVerifiedAt: { type: Date, default: null },
     active: { type: Boolean, default: true },
@@ -30,4 +33,4 @@ const customerSchema = new Schema<CustomerDoc>(
 
 customerSchema.index({ tenantId: 1, phone: 1 })
 
-export const Customer = mongoose.model<CustomerDoc>('Customer', customerSchema)
+export const CustomerSchema = customerSchema

@@ -1,4 +1,13 @@
-import { Version } from '../models/index.js'
+import { platformDb } from '../platform/connections.js'
+
+/** The changelog is platform-wide, so it is read from the control plane. */
+const Version = new Proxy({} as ReturnType<typeof platformDb>['Version'], {
+  get: (_t, prop, recv) => {
+    const model = platformDb().Version
+    const value = Reflect.get(model as object, prop, recv)
+    return typeof value === 'function' ? value.bind(model) : value
+  },
+})
 import { ApiError } from '../utils/ApiError.js'
 import { nextId } from './counter.service.js'
 import type { VersionChange } from '../models/index.js'

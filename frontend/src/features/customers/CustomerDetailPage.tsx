@@ -1,6 +1,6 @@
 import { useNavigate, useParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { Phone, Calendar } from 'lucide-react'
+import { Phone, Calendar, Mail, IdCard } from 'lucide-react'
 import { PageHeader } from '@/components/PageHeader'
 import { Card, SectionTitle, StatusBadge, EmptyState, Spinner } from '@/components/ui'
 import { DataTable } from '@/components/DataTable'
@@ -33,6 +33,15 @@ export function CustomerDetailPage() {
         <Card>
           <SectionTitle className="mb-3">Contact</SectionTitle>
           <div className="flex items-center gap-2 text-sm mb-2"><Phone size={15} className="text-muted" /> {customer.phone}</div>
+          {customer.email && (
+            <div className="flex items-center gap-2 text-sm mb-2"><Mail size={15} className="text-muted" /> {customer.email}</div>
+          )}
+          {/* The number the desk checked when this person was put on the books. */}
+          {customer.nationalId && (
+            <div className="flex items-center gap-2 text-sm mb-2" data-testid="customer-detail-national-id">
+              <IdCard size={15} className="text-muted" /> <span className="font-mono">{customer.nationalId}</span>
+            </div>
+          )}
           <div className="flex items-center gap-2 text-sm"><Calendar size={15} className="text-muted" /> Added {formatDateTime(new Date(customer.createdAt).getTime())}</div>
         </Card>
         <Card className="lg:col-span-2">

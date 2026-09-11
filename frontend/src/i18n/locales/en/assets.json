@@ -26,7 +26,8 @@
     "noStation": "Not provisioned anywhere yet",
     "stationsMore": "{{first}} +{{count}}",
     "penalty": "Penalty",
-    "findKind": "Find a kind — name, activity or what it is"
+    "findKind": "Find a kind — name, activity or what it is",
+    "acrossStations": "across {{count}} stations"
   },
   "action": {
     "add": "Add assets",
@@ -54,7 +55,10 @@
     "kioskHint": "Only compartments belong to a kiosk.",
     "noKiosk": "No kiosk",
     "pickKiosk": "Choose a desk…",
-    "noKioskHere": "This station has no desk yet — add one on Sites & stations before putting assets here."
+    "noKioskHere": "This station has no desk yet — add one on Sites & stations before putting assets here.",
+    "gateHint": "Lockers stand at a gate, not at a counter — choose which gate these go in.",
+    "pickGate": "Choose a gate…",
+    "noGateHere": "This station has no gate yet. Add one under Sites & stations first."
   },
   "edit": {
     "title": "{{identifier}}",

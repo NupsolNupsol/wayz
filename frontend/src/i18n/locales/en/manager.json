@@ -122,7 +122,9 @@
       "body": "They can no longer sign in and drop off the team list. Their bookings, shifts and audit trail stay on the record. Their till must be closed first.",
       "done": "{{name}} removed",
       "refused": "That person was not removed"
-    }
+    },
+    "gateHint": "The locker hall they answer for — where they retrieve a customer’s bags. Not the same place as their desk.",
+    "noGateAtStation": "This station has no gate yet — add one under Organisation first."
   },
   "org": {
     "title": "Organisation",
@@ -171,7 +173,10 @@
       "kioskBody": "The desk is removed from the station. Its bookings and shifts stay on the record.",
       "siteDone": "{{name}} removed",
       "stationDone": "{{name}} removed",
-      "kioskDone": "{{name}} removed"
+      "kioskDone": "{{name}} removed",
+      "gateTitle": "Remove {{name}}?",
+      "gateBody": "The gate is closed for new storage. It must be empty of lockers and of staff posted to it first.",
+      "gateDone": "{{name}} removed"
     },
     "venueTypeHint": "Pick one, or add a venue type of your own.",
     "venueTypeAdd": "+ Add a venue type…",
@@ -179,7 +184,15 @@
     "exitGate": "Exit gate",
     "exitGateLabel": "Customers collect bags here",
     "exitGateBlurb": "A desk marked as an exit gate can be chosen when sending a customer’s bags out with a courier.",
-    "exitGateHint": "Gates are the exits people leave the venue by."
+    "exitGateHint": "Gates are the exits people leave the venue by.",
+    "gate": "Gate",
+    "gatesHeading": "Gates — where the lockers are",
+    "gateHolds": "Holds lockers",
+    "gateLine": "{{inUse}} in use · {{free}} free",
+    "gateCreated": "Gate created",
+    "gateUpdated": "Gate updated",
+    "gateLocationHint": "Where in the venue this gate is, so a courier can find it.",
+    "gateLocationPlaceholder": "Main gate, locker hall"
   },
   "pricing": {
     "title": "Products",

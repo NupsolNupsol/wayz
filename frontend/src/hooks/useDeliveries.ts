@@ -67,6 +67,24 @@ export function useCreateDelivery() {
   return useMutation({ mutationFn: (input: CreateDeliveryInput) => deliveryApi.create(input), onSuccess: () => invalidate() })
 }
 
+/**
+ * Asks for a customer's bags to be carried from the counter to the gate holding their locker.
+ *
+ * The booking changes too — it is waiting on a courier from this moment — so both are refreshed.
+ */
+export function useRequestStorageRun() {
+  const invalidate = useInvalidateDeliveries()
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (bookingId: string) => deliveryApi.requestStorageRun(bookingId),
+    onSuccess: (_d, bookingId) => {
+      invalidate()
+      qc.invalidateQueries({ queryKey: qk.booking(bookingId) })
+      qc.invalidateQueries({ queryKey: ['bookings'] })
+    },
+  })
+}
+
 export function useCourierTransition() {
   const invalidate = useInvalidateDeliveries()
   return useMutation({

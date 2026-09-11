@@ -1,4 +1,4 @@
-import mongoose, { Schema } from 'mongoose'
+import { Schema } from 'mongoose'
 import type { EngineKind } from '../domain/types.js'
 
 export const EXPENSE_CATEGORIES = [
@@ -67,8 +67,7 @@ const expenseSchema = new Schema<ExpenseDoc>(
 
 expenseSchema.index({ tenantId: 1, incurredAt: -1 })
 
-export const Expense =
-  (mongoose.models.Expense as mongoose.Model<ExpenseDoc>) ?? mongoose.model<ExpenseDoc>('Expense', expenseSchema)
+export const ExpenseSchema = expenseSchema
 
 export interface SeasonDoc {
   _id: string
@@ -93,5 +92,4 @@ const seasonSchema = new Schema<SeasonDoc>(
   { _id: false, timestamps: true },
 )
 
-export const Season =
-  (mongoose.models.Season as mongoose.Model<SeasonDoc>) ?? mongoose.model<SeasonDoc>('Season', seasonSchema)
+export const SeasonSchema = seasonSchema

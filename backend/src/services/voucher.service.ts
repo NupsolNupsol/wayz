@@ -1,8 +1,8 @@
 import { customAlphabet } from 'nanoid'
 import { ApiError } from '../utils/ApiError.js'
-import { Voucher, VoucherCampaign } from '../models/voucher.model.js'
+
 import type { VoucherCampaignDoc } from '../models/voucher.model.js'
-import { Booking } from '../models/booking.model.js'
+import { Booking, Voucher, VoucherCampaign } from '../models/index.js'
 import { recordAudit } from './audit.service.js'
 import { discountBooking } from './booking.service.js'
 import { ENGINE_KINDS } from '../domain/types.js'

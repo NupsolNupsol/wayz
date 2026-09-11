@@ -1,5 +1,5 @@
 import { nanoid } from 'nanoid'
-import { AssetType, AssetUnit, Booking, CatalogueProduct, Kiosk, Station } from '../models/index.js'
+import { AssetType, AssetUnit, Booking, CatalogueProduct, Gate, Kiosk, Station } from '../models/index.js'
 import { ApiError } from '../utils/ApiError.js'
 import { nextId } from './counter.service.js'
 import { recordAudit } from './audit.service.js'
@@ -135,16 +135,19 @@ export async function listAssetTypes(scope: AssetScope, engineKind?: EngineKind)
     if (!product.assetTypeId || productByType.has(product.assetTypeId)) continue
     productByType.set(product.assetTypeId, product)
   }
-  const [stations, listKiosks] = await Promise.all([
+  const [stations, listKiosks, listGates] = await Promise.all([
     Station.find({ tenantId: scope.tenantId }).lean(),
     Kiosk.find({ tenantId: scope.tenantId }).lean(),
+    Gate.find({ tenantId: scope.tenantId, active: { $ne: false } }).lean(),
   ])
   const stationName = new Map(stations.map((s) => [s._id, s.name]))
 
   return {
     stations: stations.map((s) => ({ _id: s._id, name: s.name, engineKinds: s.engineKinds })),
-    // Assets are added at a desk, so the pickers on this page need the desks too.
+    // Assets are added at a desk — or, if they are lockers, into a gate. The pickers on this page
+    // need both, and the kind decides which one it offers.
     kiosks: listKiosks.map((k) => ({ _id: k._id, name: k.name, stationId: k.stationId, engineKind: k.engineKind })),
+    gates: listGates.map((g) => ({ _id: g._id, name: g.name, stationId: g.stationId })),
     assetTypes: types.map((type) => {
       const statuses = byType.get(type._id) ?? {}
       const product = productByType.get(type._id)
@@ -178,15 +181,17 @@ export async function assetTypeDetail(scope: AssetScope, assetTypeId: string) {
   if (!type) throw ApiError.notFound('Asset type not found.')
   assertOwns(scope, type.engineKind)
 
-  const [units, product, stations, kiosks] = await Promise.all([
+  const [units, product, stations, kiosks, gates] = await Promise.all([
     AssetUnit.find({ tenantId: scope.tenantId, assetTypeId }).sort({ identifier: 1 }).limit(2000).lean(),
     productFor(scope.tenantId, assetTypeId),
     Station.find({ tenantId: scope.tenantId }).lean(),
     Kiosk.find({ tenantId: scope.tenantId }).lean(),
+    Gate.find({ tenantId: scope.tenantId }).lean(),
   ])
 
   const stationName = new Map(stations.map((s) => [s._id, s.name]))
   const kioskName = new Map(kiosks.map((k) => [k._id, k.name]))
+  const gateName = new Map(gates.map((g) => [g._id, g.name]))
   const statuses: Record<string, number> = {}
   for (const u of units) statuses[u.status] = (statuses[u.status] ?? 0) + 1
 
@@ -216,6 +221,8 @@ export async function assetTypeDetail(scope: AssetScope, assetTypeId: string) {
     },
     stations: stations.map((s) => ({ _id: s._id, name: s.name, engineKinds: s.engineKinds })),
     kiosks: kiosks.map((k) => ({ _id: k._id, name: k.name, stationId: k.stationId, engineKind: k.engineKind })),
+    // Lockers are provisioned into a gate, so the picker on this page needs the gates as well.
+    gates: gates.map((g) => ({ _id: g._id, name: g.name, stationId: g.stationId })),
     units: units.map((u) => ({
       _id: u._id,
       identifier: u.identifier,
@@ -224,6 +231,8 @@ export async function assetTypeDetail(scope: AssetScope, assetTypeId: string) {
       stationName: stationName.get(u.stationId) ?? u.stationId,
       kioskId: u.kioskId,
       kioskName: u.kioskId ? (kioskName.get(u.kioskId) ?? u.kioskId) : null,
+      gateId: u.gateId ?? null,
+      gateName: u.gateId ? (gateName.get(u.gateId) ?? u.gateId) : null,
       note: u.note ?? '',
       priceOverride: u.priceOverride ?? null,
       effectivePrice: u.priceOverride ?? product?.basePrice ?? null,
@@ -239,9 +248,10 @@ export async function unitReturnPosition(scope: Scope, unitId: string) {
   const unit = await AssetUnit.findOne({ _id: unitId, tenantId: scope.tenantId }).lean()
   if (!unit) throw ApiError.notFound('Asset not found.')
 
-  const [type, kiosk, rules] = await Promise.all([
+  const [type, kiosk, gate, rules] = await Promise.all([
     AssetType.findOne({ _id: unit.assetTypeId, tenantId: scope.tenantId }).lean(),
     unit.kioskId ? Kiosk.findOne({ _id: unit.kioskId, tenantId: scope.tenantId }).lean() : null,
+    unit.gateId ? Gate.findOne({ _id: unit.gateId, tenantId: scope.tenantId }).lean() : null,
     tenantRules(scope.tenantId),
   ])
 
@@ -261,6 +271,8 @@ export async function unitReturnPosition(scope: Scope, unitId: string) {
     status: unit.status,
     homeKioskId: unit.kioskId,
     homeKioskName: kiosk?.name ?? null,
+    homeGateId: unit.gateId ?? null,
+    homeGateName: gate?.name ?? null,
     belongsHere,
     booking: live && booking ? { id: booking._id, ref: booking.ref, customerName: booking.customerName, status: booking.status } : null,
     wrongDeskPenalty: belongsHere ? 0 : rules.rental.wrongStationPenalty,
@@ -273,11 +285,12 @@ export async function assetUnitDetail(scope: AssetScope, unitId: string) {
   if (!unit) throw ApiError.notFound('Asset not found.')
   await assertOwnsType(scope, unit.assetTypeId)
 
-  const [type, product, station, kiosk, booking] = await Promise.all([
+  const [type, product, station, kiosk, gate, booking] = await Promise.all([
     AssetType.findOne({ _id: unit.assetTypeId, tenantId: scope.tenantId }).lean(),
     productFor(scope.tenantId, unit.assetTypeId),
     Station.findOne({ _id: unit.stationId, tenantId: scope.tenantId }).lean(),
     unit.kioskId ? Kiosk.findOne({ _id: unit.kioskId, tenantId: scope.tenantId }).lean() : null,
+    unit.gateId ? Gate.findOne({ _id: unit.gateId, tenantId: scope.tenantId }).lean() : null,
     unit.currentBookingId ? Booking.findOne({ _id: unit.currentBookingId, tenantId: scope.tenantId }).lean() : null,
   ])
 
@@ -298,6 +311,9 @@ export async function assetUnitDetail(scope: AssetScope, unitId: string) {
     stationName: station?.name ?? unit.stationId,
     kioskId: unit.kioskId,
     kioskName: kiosk?.name ?? null,
+    // Where it physically stands. A locker names a gate and no desk; everything else the reverse.
+    gateId: unit.gateId ?? null,
+    gateName: gate?.name ?? null,
     basePrice: product?.basePrice ?? null,
     currentBookingId: unit.currentBookingId,
     currentBookingRef: booking?.ref ?? null,
@@ -327,6 +343,8 @@ export interface NewAssetKind {
   initialCount?: number
   stationId?: string
   kioskId?: string | null
+  /** Where lockers go. A compartment kind is provisioned into a gate, never onto a counter. */
+  gateId?: string | null
 }
 
 export async function createAssetKind(scope: AssetScope, input: NewAssetKind) {
@@ -416,6 +434,7 @@ export async function createAssetKind(scope: AssetScope, input: NewAssetKind) {
     const added = await addUnits(scope, assetTypeId, {
       stationId: input.stationId,
       kioskId: input.kioskId ?? null,
+      gateId: input.gateId ?? null,
       count: input.initialCount,
     })
     provisioned = added.created
@@ -494,10 +513,19 @@ export async function removeAssetKind(scope: AssetScope, assetTypeId: string) {
   return { removed: assetTypeId, name: type.name }
 }
 
+/**
+ * Where a kind of unit is allowed to stand.
+ *
+ * Lockers belong at gates and everything else belongs at a desk, and it is the kind that decides
+ * — not the person filling in the form. A compartment provisioned to a counter would be invisible
+ * to the gate that has to hold it and unreachable by the courier who has to fill it.
+ */
+const livesAtAGate = (kind: string) => kind === 'COMPARTMENT'
+
 export async function addUnits(
   scope: AssetScope,
   assetTypeId: string,
-  input: { stationId: string; kioskId?: string | null; count: number; identifierPrefix?: string },
+  input: { stationId: string; kioskId?: string | null; gateId?: string | null; count: number; identifierPrefix?: string },
 ) {
   const [type, station] = await Promise.all([
     AssetType.findOne({ _id: assetTypeId, tenantId: scope.tenantId }).lean(),
@@ -508,32 +536,64 @@ export async function addUnits(
   assertOwns(scope, type.engineKind)
   if (input.count < 1 || input.count > 200) throw ApiError.badRequest('Add between 1 and 200 assets at a time.')
 
-  const desks = await Kiosk.find({
-    tenantId: scope.tenantId,
-    stationId: input.stationId,
-    engineKind: type.engineKind,
-    active: { $ne: false },
-  }).lean()
+  let placedAtKiosk: string | null = null
+  let placedAtGate: string | null = null
 
-  if (!input.kioskId) {
-    if (desks.length === 0) {
-      throw ApiError.unprocessable(
-        `${station.name} has no ${type.engineKind.replaceAll('_', ' ').toLowerCase()} desk yet — create one before adding ${type.name}.`,
+  if (livesAtAGate(type.kind)) {
+    const gates = await Gate.find({
+      tenantId: scope.tenantId,
+      stationId: input.stationId,
+      active: { $ne: false },
+    }).lean()
+
+    if (!input.gateId) {
+      if (gates.length === 0) {
+        throw ApiError.unprocessable(
+          `${station.name} has no gate yet — create one before adding ${type.name}.`,
+          ['Lockers stand at a gate, not at a counter. Add a gate under Sites & stations first.'],
+        )
+      }
+      throw ApiError.badRequest('Choose the gate these lockers stand in.', [
+        `Gates at ${station.name}: ${gates.map((g) => g.name).join(', ')}.`,
+      ])
+    }
+
+    const gate = gates.find((g) => g._id === input.gateId)
+    if (!gate) {
+      const anywhere = await Gate.findOne({ _id: input.gateId, tenantId: scope.tenantId }).lean()
+      if (!anywhere) throw ApiError.badRequest('That gate does not exist in this tenant.')
+      throw ApiError.badRequest('That gate does not belong to the chosen station.')
+    }
+    placedAtGate = gate._id
+  } else {
+    const desks = await Kiosk.find({
+      tenantId: scope.tenantId,
+      stationId: input.stationId,
+      engineKind: type.engineKind,
+      active: { $ne: false },
+    }).lean()
+
+    if (!input.kioskId) {
+      if (desks.length === 0) {
+        throw ApiError.unprocessable(
+          `${station.name} has no ${type.engineKind.replaceAll('_', ' ').toLowerCase()} desk yet — create one before adding ${type.name}.`,
+        )
+      }
+      throw ApiError.badRequest('Choose the desk these assets live at.', [
+        `Desks at ${station.name}: ${desks.map((k) => k.name).join(', ')}.`,
+      ])
+    }
+
+    const kiosk = desks.find((k) => k._id === input.kioskId)
+    if (!kiosk) {
+      const anywhere = await Kiosk.findOne({ _id: input.kioskId, tenantId: scope.tenantId }).lean()
+      if (!anywhere) throw ApiError.badRequest('That desk does not exist in this tenant.')
+      if (anywhere.stationId !== input.stationId) throw ApiError.badRequest('That desk does not belong to the chosen station.')
+      throw ApiError.badRequest(
+        `${anywhere.name} runs ${anywhere.engineKind.replaceAll('_', ' ').toLowerCase()}, so it cannot hold ${type.name}.`,
       )
     }
-    throw ApiError.badRequest('Choose the desk these assets live at.', [
-      `Desks at ${station.name}: ${desks.map((k) => k.name).join(', ')}.`,
-    ])
-  }
-
-  const kiosk = desks.find((k) => k._id === input.kioskId)
-  if (!kiosk) {
-    const anywhere = await Kiosk.findOne({ _id: input.kioskId, tenantId: scope.tenantId }).lean()
-    if (!anywhere) throw ApiError.badRequest('That desk does not exist in this tenant.')
-    if (anywhere.stationId !== input.stationId) throw ApiError.badRequest('That desk does not belong to the chosen station.')
-    throw ApiError.badRequest(
-      `${anywhere.name} runs ${anywhere.engineKind.replaceAll('_', ' ').toLowerCase()}, so it cannot hold ${type.name}.`,
-    )
+    placedAtKiosk = kiosk._id
   }
 
   const prefix =
@@ -555,7 +615,8 @@ export async function addUnits(
       _id: `unit_${scope.tenantId}_${assetTypeId}_${nanoid(8)}`,
       tenantId: scope.tenantId,
       stationId: input.stationId,
-      kioskId: input.kioskId ?? null,
+      kioskId: placedAtKiosk,
+      gateId: placedAtGate,
       assetAreaId: `area_${scope.tenantId}_1`,
       assetTypeId,
       identifier,

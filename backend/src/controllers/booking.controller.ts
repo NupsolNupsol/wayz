@@ -156,7 +156,7 @@ export const bookingController = {
   transitions: asyncHandler(async (req, res) => {
     const s = scopeFromReq(req)
     const booking = await loadBooking(s, req.params.id)
-    res.json({ success: true, data: availableTransitions(booking, [s.role]) })
+    res.json({ success: true, data: availableTransitions(booking, [s.role], s) })
   }),
 
   discount: asyncHandler(async (req, res) => {
@@ -260,7 +260,7 @@ export const bookingController = {
   sendVerification: asyncHandler(async (req, res) => {
     const s = scopeFromReq(req)
     const { purpose, channel } = z
-      .object({ purpose: purposeSchema, channel: z.enum(['WHATSAPP', 'EMAIL']).default('WHATSAPP') })
+      .object({ purpose: purposeSchema, channel: z.enum(['WHATSAPP', 'SMS', 'EMAIL']).default('WHATSAPP') })
       .parse(req.body ?? {})
     res.json({ success: true, data: await sendVerificationChallenge(s, req.params.id, purpose, channel) })
   }),

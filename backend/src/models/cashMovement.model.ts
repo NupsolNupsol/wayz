@@ -1,4 +1,4 @@
-import mongoose, { Schema } from 'mongoose'
+import { Schema } from 'mongoose'
 
 export const CASH_MOVEMENT_KINDS = ['FLOAT_IN', 'PAY_OUT', 'DROP'] as const
 export type CashMovementKind = (typeof CASH_MOVEMENT_KINDS)[number]
@@ -46,6 +46,4 @@ const cashMovementSchema = new Schema<CashMovementDoc>(
 
 cashMovementSchema.index({ tenantId: 1, shiftId: 1, createdAt: -1 })
 
-export const CashMovement =
-  (mongoose.models.CashMovement as mongoose.Model<CashMovementDoc>) ??
-  mongoose.model<CashMovementDoc>('CashMovement', cashMovementSchema)
+export const CashMovementSchema = cashMovementSchema

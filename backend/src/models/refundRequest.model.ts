@@ -1,4 +1,4 @@
-import mongoose, { Schema } from 'mongoose'
+import { Schema } from 'mongoose'
 import type { EngineKind } from '../domain/types.js'
 
 export const REFUND_REQUEST_STATUSES = ['PENDING', 'APPROVED', 'REJECTED'] as const
@@ -55,4 +55,4 @@ const refundRequestSchema = new Schema<RefundRequestDoc>(
 
 refundRequestSchema.index({ tenantId: 1, status: 1, createdAt: -1 })
 
-export const RefundRequest = mongoose.model<RefundRequestDoc>('RefundRequest', refundRequestSchema)
+export const RefundRequestSchema = refundRequestSchema

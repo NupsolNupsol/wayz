@@ -41,6 +41,14 @@ export interface ApplyTransitionParams {
   tenantId: string
   stationId: string
   kioskId?: string | null
+  /**
+   * Where the person acting is standing.
+   *
+   * Some transitions turn on this and not on the job title: bags are stored and fetched at a
+   * gate, so the counter that sold the storage cannot do either. Omitted for the callers that
+   * are not a person at a desk — a sweep, a courier's own workflow — which are placed already.
+   */
+  at?: { kioskScoped: boolean; gateId: string | null }
   now?: Date
 }
 

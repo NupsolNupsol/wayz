@@ -1,4 +1,4 @@
-import { OPS, TILL } from '../shared/access.js'
+import { DELIVERY_AGENT, OPS, TILL } from '../shared/access.js'
 import {
   ACTIVE,
   CANCELLED,
@@ -45,11 +45,19 @@ export const shopDropWorkflow: EngineWorkflow = {
       style: { backgroundColor: '#f9b115' },
     },
     {
+      /*
+       * Storing is done by whoever actually put the bags in the locker.
+       *
+       * That is the courier who carried them from the counter to the gate — a Shop & Drop desk
+       * holds no lockers, so nobody standing at one can honestly say the bags are away. The
+       * supervisory roles keep it for the days something has to be corrected by hand; the desk is
+       * kept out of it by where it is standing, not by its job title.
+       */
       code: 'TO_STORED',
       label: 'Confirm storage (start timer)',
       source: [RESERVED],
       target: ACTIVE,
-      actors: OPS,
+      actors: [...OPS, DELIVERY_AGENT],
       style: { backgroundColor: '#1a3470' },
     },
     {

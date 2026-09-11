@@ -2,8 +2,15 @@ import { z } from 'zod'
 import { ApiError } from '../utils/ApiError.js'
 import { asyncHandler } from '../utils/asyncHandler.js'
 import { acceptInvitation, buildMe, login, readInvitation, signOut } from '../services/auth.service.js'
+import { tenantForLogin } from '../platform/loginDirectory.js'
+import { runInTenant } from '../platform/tenantContext.js'
 
-const loginSchema = z.object({ email: z.string().email(), password: z.string().min(1) })
+const loginSchema = z.object({
+  email: z.string().email(),
+  password: z.string().min(1),
+  /** A per-tenant login page posts its own slug; without one the directory decides. */
+  tenant: z.string().trim().min(1).optional(),
+})
 
 const acceptSchema = z.object({
   password: z.string().min(1),
@@ -12,8 +19,11 @@ const acceptSchema = z.object({
 
 export const authController = {
   login: asyncHandler(async (req, res) => {
-    const { email, password } = loginSchema.parse(req.body)
-    res.json({ success: true, data: await login(email, password) })
+    const { email, password, tenant } = loginSchema.parse(req.body)
+    // Sign-in is the one request with no token, so its tenant is resolved here and the
+    // whole attempt runs inside that tenant's database.
+    const { tenantId } = await tenantForLogin(email, tenant)
+    res.json({ success: true, data: await runInTenant(tenantId, () => login(email, password)) })
   }),
 
   invitation: asyncHandler(async (req, res) => {

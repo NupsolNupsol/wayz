@@ -3,7 +3,7 @@ const MIN_LOCAL_DIGITS = 7
 const MAX_LOCAL_DIGITS = 15
 
 export interface FieldProblem {
-  field: 'name' | 'phone' | 'email'
+  field: 'name' | 'phone' | 'email' | 'nationalId'
   messageKey: string
 }
 
@@ -38,3 +38,30 @@ export function customerProblems(input: { name: string; phone: string; email?: s
 
 export const isCustomerComplete = (input: { name: string; phone: string; email?: string }): boolean =>
   customerProblems(input).length === 0
+
+/**
+ * An id number long enough to be one. Nothing stricter: the desks see national ids, residency
+ * permits and passports, and every one of those is shaped differently.
+ */
+export function isCompleteNationalId(value: string): boolean {
+  return (value ?? '').trim().length >= 4
+}
+
+/**
+ * What registering a new customer asks for, as opposed to what an existing one needs in order to
+ * be sold to. The card number is required of somebody being put on the books for the first time;
+ * demanding it of the thousands already there would stop sales at the counter to ask for a number
+ * nobody recorded when they signed up.
+ */
+export function registrationProblems(input: {
+  name: string
+  phone: string
+  email?: string
+  nationalId: string
+}): FieldProblem[] {
+  const problems = customerProblems(input)
+  if (!isCompleteNationalId(input.nationalId)) {
+    problems.push({ field: 'nationalId', messageKey: 'ui:customer.nationalIdRequired' })
+  }
+  return problems
+}

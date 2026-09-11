@@ -1,4 +1,4 @@
-import { AssetType, AssetUnit, CatalogueProduct } from '../models/index.js'
+import { AssetType, AssetUnit, CatalogueProduct, Gate } from '../models/index.js'
 import type { BagItem } from '../models/index.js'
 import { packBags, bagScore } from '../domain/packing.js'
 import type { PackingSuggestion, SuggestBagInput } from '../interfaces/index.js'
@@ -6,10 +6,13 @@ import type { PackingSuggestion, SuggestBagInput } from '../interfaces/index.js'
 /**
  * What this desk can offer for these bags.
  *
- * Counted at the desk, not across the station: a compartment standing at another desk cannot be
- * reserved from here, so offering it would recommend a plan that fails after the customer has
- * paid. What is free elsewhere is reported separately, so the agent can send them next door
- * instead of guessing.
+ * Counted where the desk can actually reserve, which is its own counter plus the gates of its
+ * station — a Shop & Drop counter holds no lockers of its own, they stand at the gates and the
+ * bags are carried there. Counting only the counter would recommend nothing at all; counting the
+ * whole tenant would recommend a plan that fails after the customer has paid.
+ *
+ * What is free but out of reach is still reported separately, so an agent can say where it is
+ * rather than guess.
  */
 export async function suggestPacking(
   tenantId: string,
@@ -38,6 +41,14 @@ export async function suggestPacking(
     .sort({ basePrice: 1 })
     .lean()
 
+  // The gates of this station: where its lockers stand, and what makes them reachable from here.
+  const gates = await Gate.find({ tenantId, stationId, active: { $ne: false } }, { _id: 1 }).lean()
+  const reach = kioskId
+    ? gates.length
+      ? { $or: [{ kioskId }, { gateId: { $in: gates.map((g) => g._id) } }] }
+      : { kioskId }
+    : {}
+
   const suggestions: PackingSuggestion[] = []
   const seenTypes = new Set<string>()
 
@@ -48,16 +59,14 @@ export async function suggestPacking(
     seenTypes.add(p.assetTypeId)
 
     const packed = packBags(bagItems, at)
-    const atThisDesk = kioskId ? { kioskId } : {}
     const [available, elsewhere] = await Promise.all([
-      AssetUnit.countDocuments({ tenantId, stationId, assetTypeId: at._id, status: 'AVAILABLE', ...atThisDesk }),
+      AssetUnit.countDocuments({ tenantId, stationId, assetTypeId: at._id, status: 'AVAILABLE', ...reach }),
       kioskId
         ? AssetUnit.countDocuments({
             tenantId,
-            stationId,
             assetTypeId: at._id,
             status: 'AVAILABLE',
-            kioskId: { $ne: kioskId },
+            $nor: [{ stationId, ...reach }],
           })
         : 0,
     ])

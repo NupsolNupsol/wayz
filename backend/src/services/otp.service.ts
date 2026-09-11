@@ -1,4 +1,4 @@
-import { isWhatsAppConfigured, sendWhatsAppText } from './whatsapp.service.js'
+import { isChannelConfigured as isMessageChannelConfigured, sendText } from './vonage.service.js'
 import { isEmailConfigured, looksLikeEmail, otpEmail, sendEmail } from './email.service.js'
 import { env } from '../config/env.js'
 import { otpWhatsApp } from '../constants/messages.constants.js'
@@ -12,7 +12,7 @@ const store = new Map<string, Pending>()
 const key = (destination: string, intent: OtpIntent) => `${intent}:${destination.trim().toLowerCase()}`
 
 export function isChannelConfigured(channel: OtpChannel): boolean {
-  return channel === 'EMAIL' ? isEmailConfigured() : isWhatsAppConfigured()
+  return channel === 'EMAIL' ? isEmailConfigured() : isMessageChannelConfigured(channel === 'SMS' ? 'sms' : 'whatsapp')
 }
 
 function assertDestinationMatchesChannel(channel: OtpChannel, destination: string): string | null {
@@ -30,7 +30,8 @@ async function deliver(channel: OtpChannel, destination: string, code: string, o
       ...otpEmail(code, { brand: env.MAIL_FROM_NAME, purpose: options.purpose, customerName: options.customerName }),
     })
   }
-  return sendWhatsAppText(destination, otpWhatsApp(code, env.MAIL_FROM_NAME))
+  // WhatsApp and SMS carry the same words to the same number; only the road differs.
+  return sendText(channel === 'SMS' ? 'sms' : 'whatsapp', destination, otpWhatsApp(code, env.MAIL_FROM_NAME))
 }
 
 export async function sendOtp(
@@ -47,7 +48,7 @@ export async function sendOtp(
   store.set(key(destination, intent), { code, expiresAt: Date.now() + 5 * 60_000 })
 
   if (!isChannelConfigured(channel)) {
-    const error = `${channel === 'EMAIL' ? 'Email' : 'WhatsApp'} provider is not configured.`
+    const error = `${channel === 'EMAIL' ? 'Email' : channel === 'SMS' ? 'SMS' : 'WhatsApp'} provider is not configured.`
     return allowMockFallback ? { delivered: 'MOCK', channel, code } : { delivered: 'FAILED', channel, error }
   }
 
@@ -59,10 +60,49 @@ export function peekOtp(destination: string, intent: OtpIntent): string | null {
   return store.get(key(destination, intent))?.code ?? null
 }
 
+/**
+ * The standing code a dev deployment will always accept.
+ *
+ * Two conditions, both required, and both server-side. A deployment that forgot to set MODE has
+ * no such code; a dev deployment that set no code has none either. Read fresh on every call
+ * rather than captured at import, so the answer always reflects what the server is actually
+ * configured with.
+ */
+function standingCode(): string | null {
+  if (env.MODE !== 'dev') return null
+  const code = env.STATIC_OTP?.trim()
+  return code ? code : null
+}
+
+export function isStaticOtpActive(): boolean {
+  return standingCode() !== null
+}
+
+/**
+ * Whether this code confirms this destination.
+ *
+ * A test team cannot read the phone the code was sent to, and on a dev server that turns every
+ * scripted journey into a dead stop at the counter. So a dev deployment may hold one standing
+ * code that is always accepted — *alongside* the real one, never instead of it, so the same
+ * server still works for a person holding an actual handset.
+ *
+ * The standing code deliberately does not require a code to have been sent first: the send is
+ * exactly the step that fails when there is no provider, and a fallback that still depends on it
+ * would not unblock anything. Everything downstream is unchanged — the proof is recorded the same
+ * way, against the same destination, so a run confirmed this way is indistinguishable afterwards.
+ */
 export function verifyOtp(destination: string, intent: OtpIntent, code: string): boolean {
   const k = key(destination, intent)
+  const entered = code.trim()
+
+  const standing = standingCode()
+  if (standing && entered === standing) {
+    store.delete(k)
+    return true
+  }
+
   const p = store.get(k)
-  const ok = !!p && p.code === code.trim() && p.expiresAt > Date.now()
+  const ok = !!p && p.code === entered && p.expiresAt > Date.now()
   if (ok) store.delete(k)
   return ok
 }

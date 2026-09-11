@@ -20,6 +20,105 @@ export interface PaymentSplit {
   payerId?: string
 }
 
+
+/**
+ * A party's second way of paying their own share.
+ *
+ * Rendered under whoever it belongs to, because that is the only thing it concerns: the customer
+ * settling half on a card says nothing about how the person with them settles theirs. The amount
+ * is what this method takes; the rest of the share stays on the method picked above it.
+ */
+function AlsoPayWith({
+  on,
+  setOn,
+  share,
+  amount,
+  setAmount,
+  method,
+  setMethod,
+  scheme,
+  setScheme,
+  testId,
+}: {
+  on: boolean
+  setOn: (v: boolean) => void
+  share: number
+  amount: number
+  setAmount: (v: number) => void
+  method: PaymentMethod
+  setMethod: (v: PaymentMethod) => void
+  scheme: CardScheme
+  setScheme: (v: CardScheme) => void
+  testId: string
+}) {
+  const { t } = useTranslation(['ui', 'common'])
+  return (
+    <div className="mt-2">
+      <label className="flex items-center gap-2 text-xs text-muted cursor-pointer">
+        <input
+          type="checkbox"
+          checked={on}
+          onChange={(e) => {
+            setOn(e.target.checked)
+            // Half by default: the commonest thing an agent is asked for, and always inside range.
+            if (e.target.checked && amount <= 0) setAmount(round2(share / 2))
+          }}
+          data-testid={`${testId}-toggle`}
+        />
+        {t('payment.alsoPayWith')}
+      </label>
+
+      {on && (
+        <div className="mt-2 flex flex-wrap items-end gap-3" data-testid={testId}>
+          <div className="min-w-[130px]">
+            <p className="text-[11px] uppercase tracking-wide text-muted font-semibold mb-1">
+              {t('payment.thisMethodTakes')}
+            </p>
+            <NumberInput min={0} max={share} step={0.01} value={amount} onChange={setAmount} testId={`${testId}-amount`} />
+          </div>
+          <div>
+            <p className="text-[11px] uppercase tracking-wide text-muted font-semibold mb-1">{t('payment.onWhat')}</p>
+            <div className="flex gap-1.5">
+              {(['CASH', 'CARD'] as PaymentMethod[]).map((m) => (
+                <button
+                  key={m}
+                  type="button"
+                  onClick={() => setMethod(m)}
+                  data-testid={`${testId}-method-${m.toLowerCase()}`}
+                  className={clsx(
+                    'lf-btn !h-9 !px-3 text-xs border',
+                    method === m ? 'bg-brand text-brand-fg border-brand' : 'bg-surface border-line text-muted',
+                  )}
+                >
+                  {m === 'CASH' ? t('payment.cash') : t('payment.card')}
+                </button>
+              ))}
+            </div>
+          </div>
+          {method === 'CARD' && (
+            <div className="flex flex-wrap gap-1.5">
+              {CARD_SCHEMES.map((sc) => (
+                <button
+                  key={sc}
+                  type="button"
+                  onClick={() => setScheme(sc)}
+                  data-testid={`${testId}-scheme-${sc}`}
+                  className={clsx(
+                    'rounded-lg border px-2.5 py-1 text-xs font-medium',
+                    scheme === sc ? 'bg-brand text-brand-fg border-brand' : 'border-line text-muted',
+                  )}
+                >
+                  {schemeLabel(sc)}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  )
+}
+
 export function PaymentPanel({
   total,
   discountOff = 0,
@@ -50,6 +149,27 @@ export function PaymentPanel({
   const [secondMethod, setSecondMethod] = useState<PaymentMethod>('CASH')
   const [secondScheme, setSecondScheme] = useState<CardScheme>('MADA')
 
+  /*
+   * Two different questions, and they were being confused with each other.
+   *
+   * *Who* pays is one: a booking can be shared between the customer and somebody with them, and
+   * each owes a share. *How* each of them pays is another, and it is theirs alone — one settles a
+   * share half on a card and half in cash, and what the other does about their own share has
+   * nothing to do with it.
+   *
+   * So each party gets an optional second method of their own, with its own amount. The rest of
+   * their share goes on the method they picked first.
+   */
+  const [firstAlso, setFirstAlso] = useState(false)
+  const [firstAlsoMethod, setFirstAlsoMethod] = useState<PaymentMethod>('CASH')
+  const [firstAlsoScheme, setFirstAlsoScheme] = useState<CardScheme>('MADA')
+  const [firstAlsoAmount, setFirstAlsoAmount] = useState(0)
+
+  const [secondAlso, setSecondAlso] = useState(false)
+  const [secondAlsoMethod, setSecondAlsoMethod] = useState<PaymentMethod>('CARD')
+  const [secondAlsoScheme, setSecondAlsoScheme] = useState<CardScheme>('MADA')
+  const [secondAlsoAmount, setSecondAlsoAmount] = useState(0)
+
   /**
    * Who is covering the other half.
    *
@@ -79,12 +199,34 @@ export function PaymentPanel({
     if (!payer) setSplit(false)
   }
 
-  const firstPart = Math.min(Math.max(0, round2(firstAmount)), round2(total))
-  const secondPart = round2(total - firstPart)
+  const firstPart = split ? Math.min(Math.max(0, round2(firstAmount)), round2(total)) : round2(total)
+  const secondPart = split ? round2(total - firstPart) : 0
   const splitCoversEverything = split && secondPart <= 0
   const splitTakesNothing = split && firstPart <= 0
+
+  /*
+   * How much of each share goes on each of that party's two methods.
+   *
+   * The second method takes what the agent typed; the first takes whatever is left. Doing it that
+   * way round means the two always add up to the share exactly — there is no third box to get out
+   * of step, and no rounding left over for somebody to argue about at the counter.
+   */
+  const firstSecondary = firstAlso ? Math.min(Math.max(0, round2(firstAlsoAmount)), firstPart) : 0
+  const firstPrimary = round2(firstPart - firstSecondary)
+  const secondSecondary = secondAlso ? Math.min(Math.max(0, round2(secondAlsoAmount)), secondPart) : 0
+  const secondPrimary = round2(secondPart - secondSecondary)
+
+  /** A share split across methods needs both halves to be real money. */
+  const methodSplitOk = (on: boolean, share: number, part: number, m: PaymentMethod, sc: CardScheme) =>
+    !on || (part > 0 && part < share && (m !== 'CARD' || !!sc))
+
+  const firstMethodsOk = methodSplitOk(firstAlso, firstPart, firstSecondary, firstAlsoMethod, firstAlsoScheme)
+  const secondMethodsOk = methodSplitOk(secondAlso, secondPart, secondSecondary, secondAlsoMethod, secondAlsoScheme)
+
   const splitReady =
-    !split || (!!payer && firstPart > 0 && secondPart > 0 && (secondMethod !== 'CARD' || !!secondScheme))
+    (!split || (!!payer && firstPart > 0 && secondPart > 0 && (secondMethod !== 'CARD' || !!secondScheme))) &&
+    firstMethodsOk &&
+    secondMethodsOk
 
   /** A blocked Confirm always says why — a greyed button with no reason is a stuck agent. */
   const blockedBecause = tillShut
@@ -99,22 +241,32 @@ export function PaymentPanel({
             ? t('payment.splitNeedsPayer')
             : split && secondMethod === 'CARD' && !secondScheme
               ? t('payment.pickScheme')
-              : ''
+              : !firstMethodsOk || !secondMethodsOk
+                ? t('payment.methodPartOutOfRange')
+                : ''
 
   const confirm = () => {
-    if (!split) {
-      onConfirm([{ method, cardScheme: method === 'CARD' ? scheme : null, amount: total }])
-      return
+    /*
+     * One line per method per payer, and nothing that takes nothing.
+     *
+     * The till and the invoice both read this list, so a zero line would print a payment that
+     * never happened. A party paying one way produces one line, exactly as before.
+     */
+    const lines: PaymentSplit[] = []
+    const add = (m: PaymentMethod, sc: CardScheme, amount: number, payerId?: string) => {
+      if (amount <= 0) return
+      lines.push({ method: m, cardScheme: m === 'CARD' ? sc : null, amount, ...(payerId ? { payerId } : {}) })
     }
-    onConfirm([
-      { method, cardScheme: method === 'CARD' ? scheme : null, amount: firstPart },
-      {
-        method: secondMethod,
-        cardScheme: secondMethod === 'CARD' ? secondScheme : null,
-        amount: secondPart,
-        payerId: payer?.customer._id,
-      },
-    ])
+
+    add(method, scheme, firstPrimary)
+    if (firstAlso) add(firstAlsoMethod, firstAlsoScheme, firstSecondary)
+
+    if (split) {
+      add(secondMethod, secondScheme, secondPrimary, payer?.customer._id)
+      if (secondAlso) add(secondAlsoMethod, secondAlsoScheme, secondSecondary, payer?.customer._id)
+    }
+
+    onConfirm(lines)
   }
 
   return (
@@ -175,6 +327,19 @@ export function PaymentPanel({
           </div>
         </div>
       )}
+
+      <AlsoPayWith
+        on={firstAlso}
+        setOn={setFirstAlso}
+        share={firstPart}
+        amount={firstAlsoAmount}
+        setAmount={setFirstAlsoAmount}
+        method={firstAlsoMethod}
+        setMethod={setFirstAlsoMethod}
+        scheme={firstAlsoScheme}
+        setScheme={setFirstAlsoScheme}
+        testId="pay-first-also"
+      />
 
       <div className="mt-3">
         <label className="flex items-center gap-2 text-xs text-muted cursor-pointer">
@@ -257,6 +422,19 @@ export function PaymentPanel({
               ))}
             </div>
           )}
+
+          <AlsoPayWith
+            on={secondAlso}
+            setOn={setSecondAlso}
+            share={secondPart}
+            amount={secondAlsoAmount}
+            setAmount={setSecondAlsoAmount}
+            method={secondAlsoMethod}
+            setMethod={setSecondAlsoMethod}
+            scheme={secondAlsoScheme}
+            setScheme={setSecondAlsoScheme}
+            testId="pay-second-also"
+          />
         </div>
       )}
 

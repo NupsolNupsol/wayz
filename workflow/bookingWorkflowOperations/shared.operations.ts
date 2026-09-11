@@ -144,6 +144,8 @@ function extendForReplacement(result: OperationResult, ctx: WorkflowContext): vo
   if (Number.isNaN(end.getTime())) return
 
   result.booking.session.expectedEndAt = new Date(end.getTime() + bonusMin * 60_000).toISOString()
+  // Totalled, not replaced: a customer unlucky enough to be swapped twice is owed both.
+  result.booking.session.replacementBonusMin = (result.booking.session.replacementBonusMin ?? 0) + bonusMin
   result.audits.push({ action: 'REPLACEMENT_TIME_ADDED', detail: `+${bonusMin} min` })
 }
 

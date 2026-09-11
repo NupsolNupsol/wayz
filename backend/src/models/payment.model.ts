@@ -1,4 +1,4 @@
-import mongoose, { Schema, type HydratedDocument } from 'mongoose'
+import { Schema, type HydratedDocument } from 'mongoose'
 import { nanoid } from 'nanoid'
 import type { PaymentKind, PaymentMethod } from '../domain/types.js'
 import type { CardScheme } from '../domain/commission.js'
@@ -59,6 +59,6 @@ const paymentSchema = new Schema<PaymentDoc>(
   { _id: false, timestamps: true },
 )
 
-export const Payment = mongoose.model<PaymentDoc>('Payment', paymentSchema)
+export const PaymentSchema = paymentSchema
 
 export type PaymentHydrated = HydratedDocument<PaymentDoc>

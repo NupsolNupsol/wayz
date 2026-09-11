@@ -1,4 +1,4 @@
-import mongoose, { Schema } from 'mongoose'
+import { Schema } from 'mongoose'
 import { nanoid } from 'nanoid'
 
 export interface VerificationEvidenceDoc {
@@ -30,4 +30,4 @@ const schema = new Schema<VerificationEvidenceDoc>(
   { _id: false },
 )
 
-export const VerificationEvidence = mongoose.model<VerificationEvidenceDoc>('VerificationEvidence', schema)
+export const VerificationEvidenceSchema = schema

@@ -17,8 +17,8 @@ export interface WhatsAppResult {
 }
 
 export type OtpIntent = 'VERIFY_PHONE' | 'HANDOVER_BAG'
-export type OtpChannel = 'WHATSAPP' | 'EMAIL'
-export type OtpDelivery = 'WHATSAPP' | 'EMAIL' | 'MOCK' | 'FAILED'
+export type OtpChannel = 'WHATSAPP' | 'SMS' | 'EMAIL'
+export type OtpDelivery = 'WHATSAPP' | 'SMS' | 'EMAIL' | 'MOCK' | 'FAILED'
 
 export interface SendOtpOptions {
   channel?: OtpChannel

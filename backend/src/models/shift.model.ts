@@ -1,4 +1,4 @@
-import mongoose, { Schema } from 'mongoose'
+import { Schema } from 'mongoose'
 import { nanoid } from 'nanoid'
 
 export interface ShiftDoc {
@@ -42,4 +42,4 @@ const shiftSchema = new Schema<ShiftDoc>(
   { _id: false, timestamps: true },
 )
 
-export const Shift = mongoose.model<ShiftDoc>('Shift', shiftSchema)
+export const ShiftSchema = shiftSchema

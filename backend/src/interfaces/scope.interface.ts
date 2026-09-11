@@ -6,6 +6,14 @@ export interface Scope {
   agentId: string
   role: Role
   kioskId?: string | null
+  /**
+   * The gate this member of staff is posted to.
+   *
+   * Separate from their kiosk, and not a substitute for it: a mobility agent works a vehicle bay
+   * and answers for the locker hall beside it. It is what decides who may fetch a customer's bags
+   * back out of a gate.
+   */
+  gateId?: string | null
   engineKinds?: EngineKind[]
 }
 

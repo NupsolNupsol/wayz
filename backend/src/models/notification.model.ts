@@ -1,4 +1,4 @@
-import mongoose, { Schema } from 'mongoose'
+import { Schema } from 'mongoose'
 import { nanoid } from 'nanoid'
 import type { EngineKind, Role } from '../domain/types.js'
 
@@ -40,4 +40,4 @@ const notificationSchema = new Schema<NotificationDoc>(
 
 notificationSchema.index({ tenantId: 1, createdAt: -1 })
 
-export const Notification = mongoose.model<NotificationDoc>('Notification', notificationSchema)
+export const NotificationSchema = notificationSchema

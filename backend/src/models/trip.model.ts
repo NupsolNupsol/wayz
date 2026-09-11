@@ -1,4 +1,4 @@
-import mongoose, { Schema } from 'mongoose'
+import { Schema } from 'mongoose'
 
 export const TRIP_STATUSES = ['FILLING', 'READY', 'CLAIMED', 'RUNNING', 'COMPLETED', 'CANCELLED'] as const
 export type TripStatus = (typeof TRIP_STATUSES)[number]
@@ -99,4 +99,4 @@ const tripSchema = new Schema<TripDoc>(
   { _id: false, timestamps: true },
 )
 
-export const Trip = mongoose.model<TripDoc>('Trip', tripSchema)
+export const TripSchema = tripSchema

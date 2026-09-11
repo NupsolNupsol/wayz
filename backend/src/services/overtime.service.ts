@@ -4,7 +4,7 @@ import { env } from '../config/env.js'
 import { logger } from '../config/logger.js'
 import { expiryWarningWhatsApp } from '../constants/messages.constants.js'
 import { computeOvertime, describeOvertime, OVERTIME_BLOCK_MINUTES } from '../domain/overtime.js'
-import { sendWhatsAppText } from './whatsapp.service.js'
+import { sendTextVia } from './vonage.service.js'
 import { raise } from './notification.service.js'
 
 export function trackingUrl(trackingToken: string): string {
@@ -53,8 +53,19 @@ export async function sweepExpiryWarnings(now: Date = new Date()): Promise<numbe
     booking.session.expiryWarningSentAt = now
     await booking.save()
 
+    /*
+     * Nobody chose a channel for a reminder, so both are tried.
+     *
+     * The specification notes that a customer's WhatsApp number is often not the number
+     * they answer — and a warning that their time is nearly up is precisely the message
+     * that must not quietly fail to arrive.
+     */
     const result = booking.customerPhone
-      ? await sendWhatsAppText(booking.customerPhone, warningMessage(booking, minutesLeft, await currencyFor(booking.tenantId)))
+      ? await sendTextVia(
+          ['whatsapp', 'sms'],
+          booking.customerPhone,
+          warningMessage(booking, minutesLeft, await currencyFor(booking.tenantId)),
+        )
       : { ok: false, error: 'Booking has no customer phone.' }
 
     await raise({

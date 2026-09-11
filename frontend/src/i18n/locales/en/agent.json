@@ -194,7 +194,17 @@
     "chosenTitle": "Chosen",
     "roomFor": "Room for {{count}} bags",
     "tightFit": "Holds {{holds}} — you have {{bags}} bags",
-    "findCompartment": "Find a compartment — number, size or how much it holds"
+    "findCompartment": "Find a compartment — number, size or how much it holds",
+    "gate": "Gate",
+    "sendToGateTitle": "3 · Hand the bags over for storage",
+    "sendToGateBlurb": "This counter holds no lockers. The bags go to {{gate}}, locker {{unit}} — a courier collects them from here and puts them away.",
+    "theGate": "the gate",
+    "bagsToHandOver": "Bags to hand over ({{count}})",
+    "requestStorageRun": "Request a courier to store these bags",
+    "clockStartsAtTheGate": "The customer’s time starts when the courier shuts the locker, not now.",
+    "storageRunRaised": "A courier has been asked for",
+    "storageRunBlurb": "The bags are on the board for {{gate}}. Hand them over when the courier arrives.",
+    "storageRunFailed": "Could not ask for a courier"
   },
   "operations": {
     "title": "Active operations",
@@ -447,5 +457,25 @@
     "noMapYet": "Nobody has placed the jetties on the map yet — ask the CEO to set the station map.",
     "roadFirst": "Plan the road first — tap the jetties on the chart in the order you will sail them.",
     "saveFirst": "Save the road before casting off."
+  },
+  "gate": {
+    "title": "My gate",
+    "subtitle": "The lockers you answer for",
+    "noneTitle": "You are not posted to a gate",
+    "noneBlurb": "A gate is a locker hall. Ask a manager to post you to one under Team, and the bags stored there will appear here.",
+    "stat": {
+      "inLockers": "Bags in lockers",
+      "comingOut": "Coming out now",
+      "owed": "Owed on these"
+    },
+    "column": {
+      "bags": "Bags",
+      "since": "Stored"
+    },
+    "emptyTitle": "Nothing stored here yet",
+    "emptyBlurb": "When a courier puts a customer’s bags in one of these lockers, the booking appears here.",
+    "find": "Find a booking, a customer, a number…",
+    "notStored": "Not stored yet",
+    "openOneBlurb": "Open a booking to check the customer and hand their bags back, or to send them out by courier."
   }
 }

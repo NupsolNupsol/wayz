@@ -1,4 +1,4 @@
-import mongoose, { Schema, type HydratedDocument } from 'mongoose'
+import { Schema, type HydratedDocument } from 'mongoose'
 import { nanoid } from 'nanoid'
 import { DEFAULT_GRACE_MINUTES } from '../domain/overtime.js'
 import type {
@@ -38,6 +38,8 @@ export interface OperationalSession {
   overtimeHourlyRate: number
   expiryWarningSentAt?: Date | null
   paidAt?: Date | null
+  /** Minutes handed back after a faulty unit was swapped, totalled over every swap. */
+  replacementBonusMin?: number
 }
 
 export interface AssetReservationEmbed {
@@ -99,6 +101,14 @@ export interface BookingDoc {
   tenantId: string
   stationId: string
   kioskId: string | null
+  /**
+   * The gate holding this booking's locker.
+   *
+   * Storage happens at a gate, not at the counter that sold it, so this is what says who can act
+   * on the bags: the staff posted to that gate retrieve them, and the courier carrying them knows
+   * where they are going. Set when a locker is allocated; null for anything that uses no locker.
+   */
+  gateId: string | null
   agentId: string
   orderId: string
   customerId: string
@@ -215,6 +225,7 @@ const sessionSchema = new Schema<OperationalSession>(
     overtimeHourlyRate: { type: Number, default: 0 },
     expiryWarningSentAt: { type: Date, default: null },
     paidAt: { type: Date, default: null },
+    replacementBonusMin: { type: Number, default: 0 },
   },
   { _id: false },
 )
@@ -289,6 +300,7 @@ const bookingSchema = new Schema<BookingDoc>(
     tenantId: { type: String, required: true, index: true },
     stationId: { type: String, required: true, index: true },
     kioskId: { type: String, default: null, index: true },
+    gateId: { type: String, default: null, index: true },
     agentId: { type: String, required: true },
     orderId: { type: String, required: true },
     customerId: { type: String, required: true, index: true },
@@ -318,6 +330,31 @@ const bookingSchema = new Schema<BookingDoc>(
   { _id: false, timestamps: true },
 )
 
-export const Booking = mongoose.model<BookingDoc>('Booking', bookingSchema)
+/**
+ * A tracking token has to outlive the session that made it.
+ *
+ * The link goes to a customer over WhatsApp and may be opened days later, with no account
+ * and no token to say which tenant it belongs to. Registering it here means every booking
+ * — however it was created — leaves a way back to its own database.
+ */
+bookingSchema.post('save', function (doc) {
+  const token = (doc as { trackingToken?: string })?.trackingToken
+  if (!token) return
+  void (async () => {
+    try {
+      const [{ currentTenant }, { registerPublicToken }] = await Promise.all([
+        import('../platform/tenantContext.js'),
+        import('../platform/publicLinks.js'),
+      ])
+      const tenant = currentTenant()
+      if (tenant) await registerPublicToken(token, tenant.tenantId)
+    } catch {
+      // A public link that cannot be registered is a link that will not open; it must
+      // never be a reason the booking itself fails to save.
+    }
+  })()
+})
+
+export const BookingSchema = bookingSchema
 
 export type BookingHydrated = HydratedDocument<BookingDoc>

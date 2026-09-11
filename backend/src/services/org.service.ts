@@ -1,9 +1,9 @@
-import { AssetUnit, Booking, Kiosk, Site, Station, User } from '../models/index.js'
+import { AssetUnit, Booking, Gate, Kiosk, Site, Station, User } from '../models/index.js'
 import { ENGINE_KINDS, type EngineKind } from '../domain/types.js'
 import { ApiError } from '../utils/ApiError.js'
 import { nextId } from './counter.service.js'
 
-import type { KioskInput, SiteInput, StationInput } from '../interfaces/index.js'
+import type { GateInput, KioskInput, SiteInput, StationInput } from '../interfaces/index.js'
 import type { ManagerScope } from '../interfaces/index.js'
 
 /** What we ship with. A tenant is not limited to these: any venue type typed on a site joins the list. */
@@ -22,15 +22,16 @@ const IN_USE = ['OCCUPIED', 'RESERVED', 'RETRIEVAL_PENDING']
 const LIVE_BOOKING = ['ACTIVE', 'OVERTIME', 'RETRIEVAL_IN_PROGRESS']
 
 export async function orgTree(scope: ManagerScope) {
-  const [sites, stations, kiosks, unitAgg, bookingAgg] = await Promise.all([
+  const [sites, stations, kiosks, gates, unitAgg, bookingAgg] = await Promise.all([
     Site.find({ tenantId: scope.tenantId, active: { $ne: false } }).sort({ name: 1 }).lean(),
     Station.find({ tenantId: scope.tenantId, active: { $ne: false } }).sort({ name: 1 }).lean(),
     Kiosk.find({ tenantId: scope.tenantId, active: { $ne: false } }).sort({ name: 1 }).lean(),
+    Gate.find({ tenantId: scope.tenantId, active: { $ne: false } }).sort({ name: 1 }).lean(),
     AssetUnit.aggregate([
       { $match: { tenantId: scope.tenantId } },
       {
         $group: {
-          _id: { stationId: '$stationId', kioskId: '$kioskId' },
+          _id: { stationId: '$stationId', kioskId: '$kioskId', gateId: '$gateId' },
           total: { $sum: 1 },
           available: { $sum: { $cond: [{ $eq: ['$status', 'AVAILABLE'] }, 1, 0] } },
           inUse: { $sum: { $cond: [{ $in: ['$status', IN_USE] }, 1, 0] } },
@@ -47,7 +48,9 @@ export async function orgTree(scope: ManagerScope) {
   const byStation = new Map<string, Counts>()
   const byKiosk = new Map<string, Counts>()
 
-  type UnitRow = { _id: { stationId: string; kioskId: string | null } } & Counts
+  const byGate = new Map<string, Counts>()
+
+  type UnitRow = { _id: { stationId: string; kioskId: string | null; gateId: string | null } } & Counts
   for (const row of unitAgg as UnitRow[]) {
     const acc = byStation.get(row._id.stationId) ?? { total: 0, available: 0, inUse: 0 }
     acc.total += row.total
@@ -55,6 +58,7 @@ export async function orgTree(scope: ManagerScope) {
     acc.inUse += row.inUse
     byStation.set(row._id.stationId, acc)
     if (row._id.kioskId) byKiosk.set(row._id.kioskId, { total: row.total, available: row.available, inUse: row.inUse })
+    if (row._id.gateId) byGate.set(row._id.gateId, { total: row.total, available: row.available, inUse: row.inUse })
   }
 
   const activeByStation = new Map(bookingAgg.map((b: { _id: string; active: number }) => [b._id, b.active]))
@@ -73,6 +77,9 @@ export async function orgTree(scope: ManagerScope) {
           kiosks: kiosks
             .filter((k) => k.stationId === st._id)
             .map((k) => ({ ...k, ...(byKiosk.get(k._id) ?? zero) })),
+          gates: gates
+            .filter((g) => g.stationId === st._id)
+            .map((g) => ({ ...g, ...(byGate.get(g._id) ?? zero) })),
         })),
     })),
   }
@@ -364,4 +371,92 @@ function assertStationRuns(runs: EngineKind[], stationName: string, engineKind: 
 
 function sanitise<T extends object>(patch: T): Partial<T> {
   return Object.fromEntries(Object.entries(patch).filter(([, v]) => v !== undefined)) as Partial<T>
+}
+
+/**
+ * The gates of a station, and what each one is holding.
+ *
+ * Read by the desk that has to allocate a locker as much as by the admin who builds the estate,
+ * so it carries the counts rather than making every caller aggregate them again.
+ */
+export async function stationGates(tenantId: string, stationId?: string) {
+  const q: Record<string, unknown> = { tenantId, active: { $ne: false } }
+  if (stationId) q.stationId = stationId
+
+  const gates = await Gate.find(q).sort({ name: 1 }).lean()
+  if (gates.length === 0) return []
+
+  type GateCounts = { _id: string; total: number; available: number; inUse: number }
+  const counts = (await AssetUnit.aggregate([
+    { $match: { tenantId, gateId: { $in: gates.map((g) => g._id) } } },
+    {
+      $group: {
+        _id: '$gateId',
+        total: { $sum: 1 },
+        available: { $sum: { $cond: [{ $eq: ['$status', 'AVAILABLE'] }, 1, 0] } },
+        inUse: { $sum: { $cond: [{ $in: ['$status', IN_USE] }, 1, 0] } },
+      },
+    },
+  ])) as GateCounts[]
+  const byGate = new Map(counts.map((c) => [c._id, c]))
+
+  return gates.map((g) => ({
+    ...g,
+    total: byGate.get(g._id)?.total ?? 0,
+    available: byGate.get(g._id)?.available ?? 0,
+    inUse: byGate.get(g._id)?.inUse ?? 0,
+  }))
+}
+
+export async function createGate(scope: ManagerScope, input: GateInput) {
+  const station = await Station.findOne({ _id: input.stationId, tenantId: scope.tenantId }).lean()
+  if (!station) throw ApiError.badRequest('That station does not exist in this tenant.')
+
+  const name = input.name.trim()
+  if (name.length < 2) throw ApiError.badRequest('Give the gate a name.')
+
+  const clash = await Gate.findOne({ tenantId: scope.tenantId, stationId: input.stationId, name, active: { $ne: false } }).lean()
+  if (clash) throw ApiError.badRequest(`${station.name} already has a gate called ${name}.`)
+
+  return Gate.create({
+    _id: await nextId('gate'),
+    tenantId: scope.tenantId,
+    siteId: station.siteId,
+    stationId: input.stationId,
+    name,
+    code: input.code ?? '',
+    location: input.location ?? '',
+    active: true,
+  })
+}
+
+export async function updateGate(scope: ManagerScope, id: string, patch: Partial<GateInput> & { active?: boolean }) {
+  const gate = await Gate.findOne({ _id: id, tenantId: scope.tenantId })
+  if (!gate) throw ApiError.notFound('Gate not found.')
+
+  if (patch.active === false) {
+    const busy = await AssetUnit.countDocuments({ tenantId: scope.tenantId, gateId: id, status: { $in: IN_USE } })
+    if (busy > 0) throw ApiError.unprocessable(`${gate.name} has ${busy} locker(s) in use — empty it first.`)
+  }
+
+  Object.assign(gate, sanitise(patch))
+  await gate.save()
+  return gate
+}
+
+export async function removeGate(scope: ManagerScope, id: string) {
+  const gate = await Gate.findOne({ _id: id, tenantId: scope.tenantId })
+  if (!gate) throw ApiError.notFound('Gate not found.')
+
+  // Closing a gate with lockers in it, or staff posted to it, would strand both.
+  const [units, staff] = await Promise.all([
+    AssetUnit.countDocuments({ tenantId: scope.tenantId, gateId: id }),
+    User.countDocuments({ tenantId: scope.tenantId, gateId: id, active: true }),
+  ])
+  if (units > 0) throw ApiError.unprocessable(`${gate.name} still holds ${units} locker(s) — move them to another gate first.`)
+  if (staff > 0) throw ApiError.unprocessable(`${gate.name} still has ${staff} staff member(s) posted to it — reassign them first.`)
+
+  gate.active = false
+  await gate.save()
+  return { removed: id, name: gate.name }
 }

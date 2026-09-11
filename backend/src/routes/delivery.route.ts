@@ -12,6 +12,8 @@ router.post('/courier/:id/collect-stop', requireCourier, deliveryController.coll
 
 const requireKiosk = requireRole('AGENT')
 router.post('/', requireKiosk, deliveryController.create)
+// Bags in, rather than out: the counter asks for them to be carried to the gate and stored.
+router.post('/storage-runs', requireKiosk, deliveryController.storageRun)
 router.get('/station', requireKiosk, deliveryController.station)
 router.get('/exit-gates', requireKiosk, deliveryController.exitGates)
 router.get('/customer-bags/:bookingId', requireKiosk, deliveryController.customerBags)

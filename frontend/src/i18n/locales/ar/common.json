@@ -75,7 +75,8 @@
     "required": "مطلوب",
     "optional": "اختياري",
     "deposit": "تأمين",
-    "reasonRequired": "وضّح ما حدث."
+    "reasonRequired": "وضّح ما حدث.",
+    "gate": "البوابة"
   },
   "table": {
     "showing": "عرض",
@@ -352,7 +353,8 @@
     "activities": "الأنشطة",
     "ends": "ينتهي",
     "starts": "يبدأ",
-    "supplier": "المورد"
+    "supplier": "المورد",
+    "due": "المستحق"
   },
   "label": {
     "active": "نشط",
@@ -467,5 +469,9 @@
     "title": "تسجيل الخروج؟",
     "subtitle": "ستحتاج كلمة المرور للعودة.",
     "nothingOpen": "لم يتبقَّ شيء مفتوح على مكتبك."
+  },
+  "timer": {
+    "overtime": "تأخير",
+    "grace": "سماح"
   }
 }

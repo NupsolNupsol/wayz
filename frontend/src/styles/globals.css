@@ -195,8 +195,24 @@ body {
     padding: 0 4mm !important;
     margin: 0 auto !important;
     border: none !important;
-    font-size: 12px;
-    line-height: 1.35;
+    /*
+     * Sized for thermal paper read at arm's length, not for a monitor.
+     *
+     * The client's complaint was that the printed slip came out too small to read. 72mm of
+     * printable width still holds about 27 characters at this size, which is more than any line
+     * on the slip needs, so the gain costs nothing in wrapping.
+     */
+    font-size: 15px;
+    line-height: 1.4;
+  }
+
+  /*
+   * The slip sets its own sizes per line; this lifts the ones that would still print small.
+   * Anything the design deliberately made tiny — a tag, the terms line — comes up with it rather
+   * than staying at a size the counter has already told us it cannot read.
+   */
+  .receipt-print .text-\[12px\] {
+    font-size: 13px !important;
   }
 
   /* A slip must never be split across a tear. */

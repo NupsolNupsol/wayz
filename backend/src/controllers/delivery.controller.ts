@@ -3,7 +3,7 @@ import { asyncHandler } from '../utils/asyncHandler.js'
 import { scopeFromReq } from '../utils/scope.js'
 import { ApiError } from '../utils/ApiError.js'
 import { DELIVERY_ORIGINS } from '../domain/workflow.js'
-import { applyDeliveryTransition, availableDeliveryTransitions, collectStop, courierBoard, customerBagsElsewhere, courierScopeFrom, createDeliveryRequest, deliveryDetail, exitGates, stationDeliveries } from '../services/delivery.service.js'
+import { applyDeliveryTransition, availableDeliveryTransitions, collectStop, courierBoard, customerBagsElsewhere, courierScopeFrom, createDeliveryRequest, deliveryDetail, exitGates, requestStorageRun, stationDeliveries } from '../services/delivery.service.js'
 import type { DeliveryActor } from '../interfaces/index.js'
 
 const createSchema = z.object({
@@ -49,6 +49,13 @@ export const deliveryController = {
     const body = createSchema.parse(req.body)
     const doc = await createDeliveryRequest(s, { ...body, origin: body.origin as never })
     res.status(201).json({ success: true, data: doc })
+  }),
+
+  /** Raises the run that carries a customer's bags from the counter to the gate holding their locker. */
+  storageRun: asyncHandler(async (req, res) => {
+    const s = scopeFromReq(req)
+    const { bookingId } = z.object({ bookingId: z.string().min(1) }).parse(req.body)
+    res.status(201).json({ success: true, data: await requestStorageRun(s, bookingId) })
   }),
 
   exitGates: asyncHandler(async (req, res) => {

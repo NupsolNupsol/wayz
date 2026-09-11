@@ -1,4 +1,4 @@
-import mongoose, { Schema } from 'mongoose'
+import { Schema } from 'mongoose'
 import type { EngineKind } from '../domain/types.js'
 import type { CardScheme } from '../domain/commission.js'
 
@@ -70,9 +70,7 @@ const cardTransactionSchema = new Schema<CardTransactionDoc>(
 cardTransactionSchema.index({ tenantId: 1, externalRef: 1 }, { unique: true })
 cardTransactionSchema.index({ tenantId: 1, capturedAt: -1 })
 
-export const CardTransaction =
-  (mongoose.models.CardTransaction as mongoose.Model<CardTransactionDoc>) ??
-  mongoose.model<CardTransactionDoc>('CardTransaction', cardTransactionSchema)
+export const CardTransactionSchema = cardTransactionSchema
 
 export interface CommissionRateDoc {
   _id: string
@@ -97,6 +95,4 @@ const commissionRateSchema = new Schema<CommissionRateDoc>(
 
 commissionRateSchema.index({ tenantId: 1, scheme: 1 }, { unique: true })
 
-export const CommissionRate =
-  (mongoose.models.CommissionRate as mongoose.Model<CommissionRateDoc>) ??
-  mongoose.model<CommissionRateDoc>('CommissionRate', commissionRateSchema)
+export const CommissionRateSchema = commissionRateSchema

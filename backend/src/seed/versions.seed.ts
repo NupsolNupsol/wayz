@@ -1,4 +1,4 @@
-import { Version } from '../models/index.js'
+import { platformDb } from '../platform/connections.js'
 import { RELEASE_FIVE, RELEASE_FIVE_META } from './release5.seed.js'
 import type { VersionChange, VersionLink } from '../models/index.js'
 
@@ -371,6 +371,8 @@ const RELEASES = [
 ]
 
 export async function seedVersions() {
+  // The changelog is platform-wide, so it is seeded into the control plane.
+  const { Version } = platformDb()
   await Version.deleteMany({})
   await Version.insertMany(
     RELEASES.map((release) => ({ ...release, status: 'RELEASED' as const, changes: withVerdicts(release.changes) })),

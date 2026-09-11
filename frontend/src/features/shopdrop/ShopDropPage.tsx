@@ -15,14 +15,13 @@ import { Select } from '@/components/Select'
 import { Barcode } from '@/components/Barcode'
 import { Timer } from '@/components/Timer'
 import { Modal } from '@/components/Modal'
-import { StorageScanPanel, type StorageScanPayload } from '@/components/StorageScanPanel'
 import { DeliveryRequestModal } from '@/features/delivery/DeliveryRequestModal'
 import { InvoiceModal } from '@/features/invoice/InvoiceModal'
 import { isUnfinishedSale } from '@/features/bookings/resumeDraft'
 import { readDraft, writeDraft, type WorkspaceDraft } from '@/features/bookings/workspaceDraft'
 import { bookingApi } from '@/api/booking.api'
 import { trackingUrl } from '@/api/public.api'
-import { useUnits, useBooking, useBookingOrder, useCreateBooking, useCustomer, usePay, useReserve, useTransition } from '@/hooks'
+import { useUnits, useBooking, useBookingOrder, useCreateBooking, useCustomer, usePay, useRequestStorageRun, useReserve, useTransition } from '@/hooks'
 import { ApiError } from '@/api/client'
 import { useAuthStore } from '@/store/auth'
 import { localName, money } from '@/utils'
@@ -65,6 +64,7 @@ export function ShopDropPage() {
   const createMut = useCreateBooking()
   const payMut = usePay()
   const reserveMut = useReserve()
+  const storageRunMut = useRequestStorageRun()
   const transitionMut = useTransition()
 
   const [step, setStep] = useState(0)
@@ -75,7 +75,9 @@ export function ShopDropPage() {
   const [productId, setProductId] = useState('')
   const [unitId, setUnitId] = useState('')
   const [freeOnly, setFreeOnly] = useState(true)
-  const [durationHours, setDurationHours] = useState(2)
+  // One period, like every other counter on the platform. Starting at two quietly doubled the
+  // quote on any sale where the agent never touched the field.
+  const [durationHours, setDurationHours] = useState(1)
 
   const [booking, setBooking] = useState<Booking | null>(null)
   const [order, setOrder] = useState<Order | null>(null)
@@ -273,6 +275,14 @@ export function ShopDropPage() {
     () => [...new Set(compartments.map((u) => u.assetTypeName))].sort().map((name) => ({ label: name, value: name })),
     [compartments],
   )
+  /** The gates this counter can allocate from — every gate of its own venue. */
+  const gateOptions = useMemo(
+    () =>
+      [...new Set(compartments.map((u) => u.gateName).filter(Boolean) as string[])]
+        .sort()
+        .map((name) => ({ label: name, value: name })),
+    [compartments],
+  )
   const statusOptions = useMemo(
     () => [...new Set(compartments.map((u) => u.status))].sort().map((s) => ({ label: statusLabel(s), value: s })),
     [compartments, statusLabel],
@@ -305,6 +315,21 @@ export function ShopDropPage() {
           <span className="font-mono font-semibold text-navy dark:text-dk-texthi">{u.identifier}</span>
         </div>
       ),
+    },
+    {
+      /*
+       * Which gate the locker is in.
+       *
+       * The counter allocates lockers across every gate of its venue, so the number alone does
+       * not say where the bags are going — and the courier's task, the customer's directions and
+       * the agent posted to that gate all turn on it. Filterable, so an agent can keep a party's
+       * bags together in one hall.
+       */
+      key: 'gate',
+      header: t('shopdrop.gate'),
+      sortValue: (u) => u.gateName ?? '',
+      filter: { kind: 'select', options: gateOptions, value: (u) => u.gateName ?? '' },
+      render: (u) => <span className="text-sm">{u.gateName ?? '—'}</span>,
     },
     {
       key: 'size',
@@ -391,14 +416,23 @@ export function ShopDropPage() {
     } catch (e) { toast('danger', t('shopdrop.reserveFailed'), e instanceof ApiError ? e.message : '') }
   }
 
-  const confirmStorage = async (payload: StorageScanPayload) => {
+  /**
+   * Hands the bags over to be carried to the gate.
+   *
+   * This counter has no lockers — they stand at the gates of the venue — so an agent here cannot
+   * put the bags away and cannot honestly say they are away. What they can do is say the bags are
+   * ready, which puts a task on the courier board naming the gate, the locker and every barcode.
+   * The customer's clock starts when the courier shuts that locker, not now.
+   */
+  const requestStorageRun = async () => {
     if (!booking) return
     try {
-      const b = await transitionMut.mutateAsync({ id: booking.id, code: 'TO_STORED', payload })
-      setBooking(b)
-      toast('success', t('shopdrop.storageConfirmed'), t('shopdrop.timerStarted'))
+      await storageRunMut.mutateAsync(booking.id)
+      toast('success', t('shopdrop.storageRunRaised'), t('shopdrop.storageRunBlurb', { gate: reservedUnit?.gateName ?? '' }))
       setStep(5)
-    } catch (e) { toast('danger', t('shopdrop.cannotConfirmStorage'), e instanceof ApiError ? (e.errors?.join(' ') ?? e.message) : '') }
+    } catch (e) {
+      toast('danger', t('shopdrop.storageRunFailed'), e instanceof ApiError ? (e.errors?.join(' ') ?? e.message) : '')
+    }
   }
 
   return (
@@ -509,7 +543,7 @@ export function ShopDropPage() {
                 // Everything an agent might say out loud about a compartment: its number, its
                 // size, what it holds and whether it is free.
                 of: (u) =>
-                  `${u.identifier} ${u.assetTypeName ?? ''} ${u.maxBags ?? ''} ${statusLabel(u.status)}`,
+                  `${u.identifier} ${u.assetTypeName ?? ''} ${u.gateName ?? ''} ${u.maxBags ?? ''} ${statusLabel(u.status)}`,
                 placeholder: t('shopdrop.findCompartment'),
               }}
             />
@@ -615,18 +649,50 @@ export function ShopDropPage() {
           </Card>
 
           <Card>
-            <SectionTitle className="mb-3">3 · Scan in & confirm storage</SectionTitle>
-            {!reservedUnit ? <p className="text-sm text-muted">{t('shopdrop.reserveFirst')}</p> : (
-              <StorageScanPanel
-                bags={booking.bags}
-                unitId={reservedUnit._id}
-                unitIdentifier={reservedUnit.identifier}
-                durationMin={durationHours * 60}
-                onConfirm={confirmStorage}
-                pending={transitionMut.isPending}
-                disabled={!online}
-                testIdPrefix="sd"
-              />
+            <SectionTitle className="mb-3">{t('shopdrop.sendToGateTitle')}</SectionTitle>
+            {!reservedUnit ? (
+              <p className="text-sm text-muted">{t('shopdrop.reserveFirst')}</p>
+            ) : (
+              <div data-testid="sd-storage-run">
+                {/*
+                  No compartment to scan here, and that absence is the change.
+
+                  The locker is at a gate on the other side of the venue; this counter never has
+                  it in front of the agent, so scanning it would be theatre. The bags, on the
+                  other hand, are right here — they are what the agent counts and hands over.
+                */}
+                <p className="text-sm text-muted mb-3">
+                  {t('shopdrop.sendToGateBlurb', {
+                    gate: reservedUnit.gateName ?? t('shopdrop.theGate'),
+                    unit: reservedUnit.identifier,
+                  })}
+                </p>
+
+                <div className="lf-card p-3 mb-3">
+                  <p className="text-xs uppercase tracking-wider text-muted font-bold mb-1.5">
+                    {t('shopdrop.bagsToHandOver', { count: booking.bags.length })}
+                  </p>
+                  <ul className="text-sm" data-testid="sd-run-bags">
+                    {booking.bags.map((b) => (
+                      <li key={b.index} className="flex justify-between py-0.5">
+                        <span>{t('shopdrop.bagLine', { index: b.index, description: b.description })}</span>
+                        <span className="font-mono text-xs text-muted">{b.barcode}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+
+                <Button
+                  onClick={requestStorageRun}
+                  loading={storageRunMut.isPending}
+                  disabled={!online}
+                  data-testid="sd-request-storage"
+                  className="w-full"
+                >
+                  <Truck size={15} /> {t('shopdrop.requestStorageRun')}
+                </Button>
+                <p className="text-xs text-muted mt-2">{t('shopdrop.clockStartsAtTheGate')}</p>
+              </div>
             )}
           </Card>
         </div>
@@ -637,7 +703,7 @@ export function ShopDropPage() {
           <div className="w-16 h-16 rounded-2xl bg-success/10 text-success flex items-center justify-center mx-auto mb-4"><Check size={30} /></div>
           <h2 className="text-xl font-bold text-navy dark:text-dk-texthi">{t('shopdrop.storageActive')}</h2>
           <p className="text-muted mt-1">{booking.ref} · {reservedUnit?.identifier}</p>
-          <div className="mt-3 flex items-center justify-center gap-2"><span className="text-muted text-sm">{t('shopdrop.remaining')}</span> <Timer expectedEndAt={booking.session.expectedEndAt} /></div>
+          <div className="mt-3 flex items-center justify-center gap-2"><span className="text-muted text-sm">{t('shopdrop.remaining')}</span> <Timer expectedEndAt={booking.session.expectedEndAt} gracePeriodMin={booking.session.gracePeriodMin} /></div>
 
           {deliveryId ? (
             <div className="mt-5 lf-card p-3 mx-auto max-w-sm border-brand/40 bg-brand/5" data-testid="sd-delivery-created">

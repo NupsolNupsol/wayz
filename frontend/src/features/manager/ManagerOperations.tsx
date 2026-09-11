@@ -37,7 +37,7 @@ export function ManagerLive() {
             { key: 'customer', header: t('common:column.customer'), filter: { kind: 'text', value: (r) => r.customerName }, render: (r) => r.customerName || '—' },
             { key: 'station', header: t('common:column.station'), filter: { kind: 'text', value: (r) => r.stationName }, render: (r) => <span className="text-muted">{r.stationName}</span> },
             { key: 'status', header: t('common:column.status'), sortValue: (r) => r.status, render: (r) => <StatusBadge status={r.status} /> },
-            { key: 'remaining', header: t('common:column.remaining'), align: 'right', sortValue: (r) => r.remainingMs ?? 0, render: (r) => <Timer expectedEndAt={r.expectedEndAt} /> },
+            { key: 'remaining', header: t('common:column.remaining'), align: 'right', sortValue: (r) => r.remainingMs ?? 0, render: (r) => <Timer expectedEndAt={r.expectedEndAt} gracePeriodMin={r.gracePeriodMin} /> },
             { key: 'penalty', header: t('common:column.penalty'), align: 'right', sortValue: (r) => r.penaltyAmount, render: (r) => r.penaltyAmount > 0 ? <strong className="text-danger-strong">{money(r.penaltyAmount)}</strong> : <span className="text-muted">—</span> },
           ]}
         />

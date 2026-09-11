@@ -112,18 +112,28 @@ export function EngineWorkspace({ engineKind }: { engineKind: EngineKind }) {
 
   const customerReachable = !!customer && isCustomerComplete({ name: customer.name, phone: customer.phone })
 
-  const sellsTours = !!product?.tourPrice && product.tourPrice > 0
+  const isLagoon = engineKind === 'LAGOON'
+
+  /*
+   * A trip is sold as a trip.
+   *
+   * A captain takes the boat out and brings it back, so there is no period to meter and nothing
+   * for an agent to choose a length of: the price is per seat on the trip. The platform already
+   * says so — lagoon may only be charged PACKAGE — but the workspace asked the product what it
+   * was rather than the activity, so one mispriced kind was enough to put an hours field in front
+   * of an agent selling a boat ride. Deciding it here means no catalogue row can put it back.
+   */
+  const byDuration = !isLagoon && product?.billingModel === 'DURATION_BASED'
+  const sellsTours = !isLagoon && !!product?.tourPrice && product.tourPrice > 0
   const sellsHours = !sellsTours || !!(product?.hourlyPrice ?? product?.basePrice)
   const byTours = sellsTours && rateMode === 'TOURS'
   const quoted = product
     ? byTours
       ? (product.tourPrice ?? 0) * Math.max(1, tours)
-      : product.billingModel === 'DURATION_BASED'
+      : byDuration
         ? (product.hourlyPrice ?? product.basePrice) * Math.max(1, duration)
         : product.basePrice * Math.max(1, visitors)
     : 0
-
-  const isLagoon = engineKind === 'LAGOON'
   const { data: boats = [] } = useBoatsWithRoom(product?.assetTypeId ?? undefined, isLagoon && !!product)
   const boat = boats.find((b) => b._id === boatId) ?? null
   const seatCap = boat ? boat.free : undefined
@@ -175,8 +185,8 @@ export function EngineWorkspace({ engineKind }: { engineKind: EngineKind }) {
         customerId: customer._id, engineKind, productId: product._id,
         rateMode: byTours ? 'TOURS' : undefined,
         tours: byTours ? Math.max(1, tours) : undefined,
-        durationMin: !byTours && product.billingModel === 'DURATION_BASED' ? duration * 60 : undefined,
-        quantity: byTours || product.billingModel === 'DURATION_BASED' ? undefined : Math.max(1, visitors),
+        durationMin: !byTours && byDuration ? duration * 60 : undefined,
+        quantity: byTours || byDuration ? undefined : Math.max(1, visitors),
         unitId: isLagoon ? boatId : undefined,
         metadata: { visitors },
       })
@@ -535,7 +545,7 @@ export function EngineWorkspace({ engineKind }: { engineKind: EngineKind }) {
               <Field label={t('engine.tours')} hint={t('engine.toursHint', { minutes: product.tourMinutes ?? 60 })}>
                 <Counter min={1} value={tours} onChange={setTours} testId="engine-tours" ariaLabel={t('engine.tours')} />
               </Field>
-            ) : product.billingModel === 'DURATION_BASED' ? (
+            ) : byDuration ? (
               <Field label={t('engine.durationPeriods')}>
                 <Counter min={1} value={duration} onChange={setDuration} testId="engine-duration" ariaLabel={t('engine.durationPeriods')} />
               </Field>
@@ -651,7 +661,7 @@ export function EngineWorkspace({ engineKind }: { engineKind: EngineKind }) {
               <Card key={b.id} data-testid={`engine-active-${b.ref}`}>
                 <div className="flex items-center justify-between mb-1"><span className="font-semibold text-sm">{b.ref}</span><StatusBadge status={b.status} /></div>
                 <p className="text-sm">{localBaked(b)}</p>
-                <div className="flex items-center justify-between mt-3 pt-3 border-t border-line"><Timer expectedEndAt={b.session.expectedEndAt} endedAt={b.session.endedAt ?? b.session.chargeableEndedAt} /><Button variant="secondary" onClick={() => navigate(`/bookings/${b.id}`)}>{t('common:action.open')}</Button></div>
+                <div className="flex items-center justify-between mt-3 pt-3 border-t border-line"><Timer expectedEndAt={b.session.expectedEndAt} endedAt={b.session.endedAt ?? b.session.chargeableEndedAt} gracePeriodMin={b.session.gracePeriodMin} /><Button variant="secondary" onClick={() => navigate(`/bookings/${b.id}`)}>{t('common:action.open')}</Button></div>
               </Card>
             ))}
           </div>

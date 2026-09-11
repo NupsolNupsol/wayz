@@ -54,6 +54,7 @@ const kindSchema = z.object({
   initialCount: z.number().int().min(0).max(200).optional(),
   stationId: z.string().min(1).optional(),
   kioskId: z.string().min(1).nullish(),
+  gateId: z.string().min(1).nullish(),
 })
 
 const kindPatchSchema = z
@@ -63,6 +64,8 @@ const kindPatchSchema = z
 const addSchema = z.object({
   stationId: z.string().min(1),
   kioskId: z.string().min(1).nullish(),
+  // Lockers stand at a gate; everything else at a desk. The kind decides which is required.
+  gateId: z.string().min(1).nullish(),
   count: z.number().int().min(1).max(200),
   identifierPrefix: z.string().max(8).optional(),
 })
@@ -103,7 +106,7 @@ export const assetController = {
 
   createType: asyncHandler(async (req, res) => {
     const body = kindSchema.parse(req.body)
-    const data = await createAssetKind(assetScope(req), { ...body, kioskId: body.kioskId ?? null })
+    const data = await createAssetKind(assetScope(req), { ...body, kioskId: body.kioskId ?? null, gateId: body.gateId ?? null })
     res.status(201).json({ success: true, data })
   }),
 
@@ -122,7 +125,7 @@ export const assetController = {
 
   addUnits: asyncHandler(async (req, res) => {
     const body = addSchema.parse(req.body)
-    const data = await addUnits(assetScope(req), req.params.id, { ...body, kioskId: body.kioskId ?? null })
+    const data = await addUnits(assetScope(req), req.params.id, { ...body, kioskId: body.kioskId ?? null, gateId: body.gateId ?? null })
     res.status(201).json({ success: true, data })
   }),
 

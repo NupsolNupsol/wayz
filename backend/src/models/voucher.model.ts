@@ -1,4 +1,4 @@
-import mongoose, { Schema } from 'mongoose'
+import { Schema } from 'mongoose'
 import { nanoid } from 'nanoid'
 import type { EngineKind } from '../domain/types.js'
 
@@ -78,5 +78,5 @@ const voucherSchema = new Schema<VoucherDoc>(
 /** One customer, one code: the pair is what makes a code redeemable exactly once. */
 voucherSchema.index({ tenantId: 1, code: 1 }, { unique: true })
 
-export const VoucherCampaign = mongoose.model<VoucherCampaignDoc>('VoucherCampaign', campaignSchema)
-export const Voucher = mongoose.model<VoucherDoc>('Voucher', voucherSchema)
+export const VoucherCampaignSchema = campaignSchema
+export const VoucherSchema = voucherSchema

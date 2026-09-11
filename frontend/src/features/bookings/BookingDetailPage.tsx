@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useNavigate, useParams } from 'react-router-dom'
-import { Banknote, Hourglass, Printer, Receipt, TriangleAlert, Package, Boxes, ScanLine, Check, RefreshCw, User, Phone, ShieldCheck, ReceiptText, Truck, Undo2 } from 'lucide-react'
+import { Banknote, Hourglass, Printer, Wrench, Receipt, TriangleAlert, Package, Boxes, ScanLine, Check, RefreshCw, User, Phone, ShieldCheck, ReceiptText, Truck, Undo2 } from 'lucide-react'
 import { PageHeader } from '@/components/PageHeader'
 import { Card, SectionTitle, StatusBadge, Button, EmptyState, Field, Spinner } from '@/components/ui'
 import { Modal } from '@/components/Modal'
@@ -419,9 +419,27 @@ export function BookingDetailPage() {
               <Meta label={t('meta.expectedEnd')} value={formatDateTime(s.expectedEndAt ? new Date(s.expectedEndAt).getTime() : null)} />
             </div>
             {s.startedAt ? (
-              <div className="mt-3 flex items-center gap-2 text-sm"><span className="text-muted">{t('page.remaining')}</span> <Timer expectedEndAt={s.expectedEndAt} endedAt={s.endedAt ?? s.chargeableEndedAt} /></div>
+              <div className="mt-3 flex items-center gap-2 text-sm"><span className="text-muted">{t('page.remaining')}</span> <Timer expectedEndAt={s.expectedEndAt} endedAt={s.endedAt ?? s.chargeableEndedAt} gracePeriodMin={s.gracePeriodMin} /></div>
             ) : (
               <p className="text-xs text-amber-600 mt-3">{t('page.timerNotStarted')}</p>
+            )}
+
+            {/*
+              Why the clock says what it says.
+
+              A replacement quietly moves the expected end, and a moved clock does not explain
+              itself — an agent reading "ends 12:29" cannot tell it was 12:19 a minute ago, and
+              a customer asking "how long do I actually have" deserves an answer the desk can
+              point at. Shown only when time was actually given back.
+            */}
+            {(s.replacementBonusMin ?? 0) > 0 && (
+              <div
+                className="mt-3 flex items-center gap-2 rounded-xl2 border border-amber-300/60 bg-amber-50 dark:bg-amber-900/20 px-3 py-2 text-xs text-amber-800 dark:text-amber-200"
+                data-testid="session-replacement-bonus"
+              >
+                <Wrench size={14} />
+                <span>{t('page.replacementBonus', { minutes: s.replacementBonusMin })}</span>
+              </div>
             )}
           </Card>
 

@@ -50,3 +50,34 @@ export function secondsLeft(expiresAt: string | null, now = Date.now()): number 
 }
 
 export const mmss = (seconds: number) => `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, '0')}`
+
+/**
+ * Which way the bags are going.
+ *
+ * Two jobs share this board and they are opposites. A delivery takes bags *out* of a locker and
+ * brings them to a customer who is waiting somewhere. A storage run takes bags *in* — collected
+ * from a Shop & Drop counter, which holds no lockers of its own, and carried to the gate that
+ * does. Nothing about a customer's address is involved, and the customer is not waiting anywhere.
+ *
+ * The courier needs to know which one they have picked up before they walk anywhere, so the two
+ * never read alike: different word, different icon, different destination line.
+ */
+export const isStorageRun = (d: { origin?: string | null }): boolean => d.origin === 'KIOSK_INTAKE'
+
+/** What the courier is being asked to do, in one word. */
+export function jobKindLabel(d: { origin?: string | null }): string {
+  return isStorageRun(d) ? i18n.t('delivery:kind.storageRun') : i18n.t('delivery:kind.delivery')
+}
+
+/** Where the bags end up, said the way that job actually ends. */
+export function jobDestinationLine(d: {
+  origin?: string | null
+  destination: { address: string; kioskName?: string | null }
+  assetUnitIdentifier?: string | null
+}): string {
+  if (!isStorageRun(d)) return d.destination.address
+  return i18n.t('delivery:kind.storeAt', {
+    gate: d.destination.kioskName || d.destination.address,
+    unit: d.assetUnitIdentifier ?? '—',
+  })
+}

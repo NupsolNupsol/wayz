@@ -1,11 +1,40 @@
-import { AssetType, AssetUnit, CatalogueProduct, Tenant } from '../models/index.js'
-import { engineFilter, kioskFilter } from '../domain/access.js'
+import { AssetType, AssetUnit, CatalogueProduct, Gate, Tenant } from '../models/index.js'
+import { engineFilter, kioskFilter, reachableUnitFilter } from '../domain/access.js'
 import { ENGINE_KINDS, type EngineKind } from '../domain/types.js'
 import type { Scope } from '../interfaces/index.js'
 
-type Caller = Pick<Scope, 'role' | 'engineKinds'> & Partial<Pick<Scope, 'kioskId'>>
+type Caller = Pick<Scope, 'role' | 'engineKinds'> & Partial<Pick<Scope, 'kioskId' | 'stationId'>>
 
-export function listProducts(tenantId: string, engineKind?: EngineKind, caller?: Caller) {
+/**
+ * What this desk can actually sell.
+ *
+ * Two filters, and the second is the one that matters. A kind is stocked one desk at a time —
+ * the Mountain jetty keeps the submarine, France keeps the dragon boat — but the price list is
+ * shared, so a desk-scoped agent was offered every kind in the activity and only found out which
+ * ones it could not fulfil after choosing the customer and reaching the empty unit list. Three of
+ * the eight lagoon trips were dead ends at every jetty in the seed alone.
+ *
+ * So a kind backed by physical units is offered only where those units are. Stock, not
+ * availability: a desk whose scooters are all out still sells scooters, and says none are free at
+ * the point where that is the answer. A product with no kind behind it — a delivery, a meal —
+ * isn't stocked anywhere and stays governed by the desk named on it.
+ */
+
+/**
+ * The gates of a station, as bare ids.
+ *
+ * A desk reaches stock in two places — its own counter, and the gates of the venue it stands in —
+ * so almost every stock question needs this list first. Cached nowhere on purpose: gates are a
+ * handful of rows per station and an admin adding one must take effect at the next counter load,
+ * not at the next restart.
+ */
+async function gateIdsAt(tenantId: string, stationId?: string): Promise<string[]> {
+  if (!stationId) return []
+  const gates = await Gate.find({ tenantId, stationId, active: { $ne: false } }, { _id: 1 }).lean()
+  return gates.map((g) => g._id)
+}
+
+export async function listProducts(tenantId: string, engineKind?: EngineKind, caller?: Caller) {
   const q: Record<string, unknown> = { tenantId, active: true }
   const engines = caller ? engineFilter(caller, engineKind) : engineKind
   if (engines !== undefined) q.engineKind = engines
@@ -15,7 +44,26 @@ export function listProducts(tenantId: string, engineKind?: EngineKind, caller?:
   const kiosk = caller ? kioskFilter(caller) : undefined
   if (kiosk !== undefined) q.$or = [{ kioskId: null }, { kioskId: { $exists: false } }, { kioskId: kiosk }]
 
-  return CatalogueProduct.find(q).sort({ category: 1, name: 1 }).lean()
+  const products = await CatalogueProduct.find(q).sort({ category: 1, name: 1 }).lean()
+  if (kiosk === undefined || products.length === 0) return products
+
+  const backed = [...new Set(products.map((p) => p.assetTypeId).filter(Boolean) as string[])]
+  if (backed.length === 0) return products
+
+  // Both places a desk can reach: its own counter, and the gates of its station. A Shop & Drop
+  // counter holds no lockers at all, so without the gates it would find itself stocking nothing
+  // and offering nothing.
+  const reach = reachableUnitFilter(caller!, await gateIdsAt(tenantId, caller?.stationId))
+  const stocked = new Set(
+    await AssetUnit.distinct('assetTypeId', {
+      tenantId,
+      assetTypeId: { $in: backed },
+      ...(caller?.stationId ? { stationId: caller.stationId } : {}),
+      ...(reach ?? {}),
+    }),
+  )
+
+  return products.filter((p) => !p.assetTypeId || stocked.has(p.assetTypeId))
 }
 
 export function getProduct(tenantId: string, productId: string) {
@@ -49,8 +97,10 @@ export async function listUnits(tenantId: string, stationId: string, caller?: Ca
       const types = await AssetType.find({ tenantId, engineKind: engines }, { _id: 1 }).lean()
       q.assetTypeId = { $in: types.map((t) => t._id) }
     }
-    const kiosk = kioskFilter(caller)
-    if (kiosk !== undefined) q.kioskId = kiosk
+    // The desk's own units and the lockers standing at its station's gates. The engine filter
+    // above already keeps a scooter bay from being handed a list of compartments.
+    const reach = reachableUnitFilter(caller, await gateIdsAt(tenantId, stationId))
+    if (reach) Object.assign(q, reach)
   }
 
   const units = await AssetUnit.find(q).sort({ assetTypeId: 1, identifier: 1 }).lean()
@@ -64,6 +114,13 @@ export async function listUnits(tenantId: string, stationId: string, caller?: Ca
 
   const typeById = new Map(types.map((t) => [t._id, t]))
   const productByType = new Map(products.map((p) => [p.assetTypeId as string, p]))
+
+  // A locker's gate is part of what it is, from the counter's point of view: it decides where the
+  // bags are carried, and it is the first thing the agent tells the customer.
+  const gateIds = [...new Set(units.map((u) => u.gateId).filter(Boolean) as string[])]
+  const gateNames = gateIds.length
+    ? new Map((await Gate.find({ tenantId, _id: { $in: gateIds } }, { name: 1 }).lean()).map((g) => [g._id, g.name]))
+    : new Map<string, string>()
 
   return units.map((u) => {
     const type = typeById.get(u.assetTypeId)
@@ -82,6 +139,8 @@ export async function listUnits(tenantId: string, stationId: string, caller?: Ca
       price: u.priceOverride ?? product?.basePrice ?? null,
       saleUnit: product?.saleUnit ?? null,
       billingModel: product?.billingModel ?? null,
+      gateId: u.gateId ?? null,
+      gateName: u.gateId ? (gateNames.get(u.gateId) ?? u.gateId) : null,
     }
   })
 }

@@ -1,4 +1,4 @@
-import mongoose, { Schema } from 'mongoose'
+import { Schema } from 'mongoose'
 
 export interface CounterDoc {
   _id: string
@@ -13,4 +13,4 @@ const counterSchema = new Schema<CounterDoc>(
   { _id: false, versionKey: false },
 )
 
-export const Counter = mongoose.model<CounterDoc>('Counter', counterSchema)
+export const CounterSchema = counterSchema

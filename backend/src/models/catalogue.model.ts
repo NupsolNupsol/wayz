@@ -1,4 +1,4 @@
-import mongoose, { Schema } from 'mongoose'
+import { Schema } from 'mongoose'
 import type { BillingModel, DurationUnit, EngineKind, BagCategory, SaleType, SaleUnit } from '../domain/types.js'
 
 export interface ProposedPolicy {
@@ -73,4 +73,4 @@ const catalogueSchema = new Schema<CatalogueProductDoc>(
   { _id: false, timestamps: true },
 )
 
-export const CatalogueProduct = mongoose.model<CatalogueProductDoc>('CatalogueProduct', catalogueSchema)
+export const CatalogueProductSchema = catalogueSchema

@@ -7,13 +7,16 @@ import { Card, SectionTitle, Button, Field, Spinner, Badge, EmptyState } from '@
 import { Modal } from '@/components/Modal'
 import { Select } from '@/components/Select'
 import {
+  useCreateGate,
   useCreateKiosk,
   useCreateSite,
   useCreateStation,
   useManagerOrg,
+  useRemoveGate,
   useRemoveKiosk,
   useRemoveStation,
   useRemoveSite,
+  useUpdateGate,
   useUpdateKiosk,
   useUpdateSite,
   useUpdateStation,
@@ -28,6 +31,8 @@ type Dialog =
   | { kind: 'site'; id?: string; initial?: Partial<OrgSite> }
   | { kind: 'station'; id?: string; siteId: string; initial?: Partial<OrgStation> }
   | { kind: 'kiosk'; id?: string; stationId: string; runs: EngineKind[]; initial?: Record<string, unknown> }
+  /** A gate names no activity: it holds lockers, and any desk at the station can allocate them. */
+  | { kind: 'gate'; id?: string; stationId: string; initial?: Record<string, unknown> }
   | null
 
 /** Sentinel in the venue-type list: picking it swaps the dropdown for a free-text box. */
@@ -43,12 +48,15 @@ export function ManagerOrg() {
   const createKiosk = useCreateKiosk()
   const updateKiosk = useUpdateKiosk()
   const removeKiosk = useRemoveKiosk()
+  const createGate = useCreateGate()
+  const updateGate = useUpdateGate()
+  const removeGate = useRemoveGate()
   const removeStation = useRemoveStation()
   const removeSite = useRemoveSite()
 
   const [dialog, setDialog] = useState<Dialog>(null)
   const [form, setForm] = useState<Record<string, string>>({})
-  const [removing, setRemoving] = useState<{ kind: 'site' | 'station' | 'kiosk'; id: string; name: string } | null>(null)
+  const [removing, setRemoving] = useState<{ kind: 'site' | 'station' | 'kiosk' | 'gate'; id: string; name: string } | null>(null)
   const [engines, setEngines] = useState<EngineKind[]>([])
   const [customVenue, setCustomVenue] = useState(false)
 
@@ -94,9 +102,14 @@ export function ManagerOrg() {
       if (dialog.id) updateKiosk.mutate({ id: dialog.id, patch: payload }, { onSuccess: () => done('Kiosk updated'), onError: fail })
       else createKiosk.mutate(payload, { onSuccess: () => done('Kiosk created'), onError: fail })
     }
+    if (dialog.kind === 'gate') {
+      const payload = { stationId: dialog.stationId, name: form.name, code: form.code, location: form.location }
+      if (dialog.id) updateGate.mutate({ id: dialog.id, patch: payload }, { onSuccess: () => done(t('org.gateUpdated')), onError: fail })
+      else createGate.mutate(payload, { onSuccess: () => done(t('org.gateCreated')), onError: fail })
+    }
   }
 
-  const toggle = (kind: 'site' | 'station' | 'kiosk', id: string, active: boolean) => {
+  const toggle = (kind: 'site' | 'station' | 'kiosk' | 'gate', id: string, active: boolean) => {
     const patch = { active: !active }
     const opts = {
       onSuccess: () => toast(active ? 'warning' : 'success', active ? 'Deactivated' : 'Reactivated'),
@@ -105,6 +118,7 @@ export function ManagerOrg() {
     if (kind === 'site') updateSite.mutate({ id, patch }, opts)
     if (kind === 'station') updateStation.mutate({ id, patch }, opts)
     if (kind === 'kiosk') updateKiosk.mutate({ id, patch }, opts)
+    if (kind === 'gate') updateGate.mutate({ id, patch }, opts)
   }
 
   if (isLoading || !data) {
@@ -236,6 +250,18 @@ export function ManagerOrg() {
                           >
                             <Plus size={14} /> Kiosk
                           </Button>
+                          {/*
+                            A gate is added the same way a desk is, and deliberately not gated on
+                            the station's activities: a gate runs none. It holds the lockers a
+                            Shop & Drop counter sells and does not itself possess.
+                          */}
+                          <Button
+                            variant="ghost"
+                            onClick={() => open({ kind: 'gate', stationId: station._id })}
+                            data-testid={`org-add-gate-${station._id}`}
+                          >
+                            <Plus size={14} /> {t('org.gate')}
+                          </Button>
                         </div>
                       </div>
 
@@ -303,6 +329,67 @@ export function ManagerOrg() {
                               </p>
                             </div>
                           ))}
+                        </div>
+                      )}
+
+                      {station.gates.length > 0 && (
+                        <div className="mt-3">
+                          <p className="text-[11px] uppercase tracking-wider text-muted font-bold mb-1.5">
+                            {t('org.gatesHeading')}
+                          </p>
+                          <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-2" data-testid={`org-gates-${station._id}`}>
+                            {station.gates.map((g) => (
+                              <div
+                                key={g._id}
+                                className={clsx('rounded-lg bg-canvas dark:bg-dk-elevated p-2.5', !g.active && 'opacity-60')}
+                                data-testid={`org-gate-${g._id}`}
+                              >
+                                <div className="flex items-start justify-between gap-2">
+                                  <div className="min-w-0">
+                                    <p className="text-sm font-medium text-navy dark:text-dk-text flex items-center gap-1.5">
+                                      <DoorOpen size={13} /> {g.name}
+                                    </p>
+                                    <p className="text-[11px] text-brand mt-0.5">{t('org.gateHolds')}</p>
+                                    {g.location && <p className="text-[11px] text-muted mt-0.5 line-clamp-1">{g.location}</p>}
+                                  </div>
+                                  <div className="flex items-center gap-1 shrink-0">
+                                    <button
+                                      onClick={() =>
+                                        open(
+                                          { kind: 'gate', id: g._id, stationId: station._id },
+                                          { name: g.name, code: g.code ?? '', location: g.location ?? '' },
+                                        )
+                                      }
+                                      className="text-muted hover:text-brand"
+                                      title={t('common:action.edit')}
+                                      data-testid={`org-edit-gate-${g._id}`}
+                                    >
+                                      <Pencil size={13} />
+                                    </button>
+                                    <button
+                                      onClick={() => toggle('gate', g._id, g.active)}
+                                      className="text-muted hover:text-danger-strong"
+                                      title={g.active ? t('common:action.suspend') : t('common:action.restore')}
+                                    >
+                                      <Power size={13} />
+                                    </button>
+                                    <button
+                                      onClick={() => setRemoving({ kind: 'gate', id: g._id, name: g.name })}
+                                      className="text-muted hover:text-danger-strong"
+                                      title={t('common:action.delete')}
+                                      data-testid={`org-remove-gate-${g._id}`}
+                                    >
+                                      <Trash2 size={13} />
+                                    </button>
+                                  </div>
+                                </div>
+                                <p className="text-xs text-muted mt-1.5">
+                                  <strong className="text-navy dark:text-dk-text">{g.total}</strong>{' '}
+                                  {t('org.gateLine', { inUse: g.inUse, free: g.available })}
+                                </p>
+                              </div>
+                            ))}
+                          </div>
                         </div>
                       )}
                     </div>
@@ -435,6 +522,32 @@ export function ManagerOrg() {
             </Field>
           </>
         )}
+
+        {dialog?.kind === 'gate' && (
+          <>
+            {/*
+              No activity picker, and that absence is the point: a gate does not run one. It holds
+              lockers, and every desk at the station allocates them.
+            */}
+            <Field label={t('org.code')}>
+              <input
+                className="lf-input"
+                value={form.code ?? ''}
+                onChange={(e) => setForm({ ...form, code: e.target.value })}
+                data-testid="org-gate-code"
+              />
+            </Field>
+            <Field label={t('org.location')} hint={t('org.gateLocationHint')}>
+              <input
+                className="lf-input"
+                value={form.location ?? ''}
+                onChange={(e) => setForm({ ...form, location: e.target.value })}
+                placeholder={t('org.gateLocationPlaceholder')}
+                data-testid="org-gate-location"
+              />
+            </Field>
+          </>
+        )}
       </Modal>
 
       <Modal
@@ -448,11 +561,17 @@ export function ManagerOrg() {
             <Button variant="ghost" onClick={() => setRemoving(null)}>{t('common:action.cancel')}</Button>
             <Button
               variant="danger"
-              loading={removeKiosk.isPending || removeStation.isPending || removeSite.isPending}
+              loading={removeKiosk.isPending || removeStation.isPending || removeSite.isPending || removeGate.isPending}
               onClick={() => {
                 if (!removing) return
                 const mutation =
-                  removing.kind === 'site' ? removeSite : removing.kind === 'station' ? removeStation : removeKiosk
+                  removing.kind === 'site'
+                    ? removeSite
+                    : removing.kind === 'station'
+                      ? removeStation
+                      : removing.kind === 'gate'
+                        ? removeGate
+                        : removeKiosk
                 mutation.mutate(removing.id, {
                   onSuccess: () => {
                     toast('warning', t(`org.remove.${removing.kind}Done`, { name: removing.name }))

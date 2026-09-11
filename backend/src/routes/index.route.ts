@@ -1,3 +1,5 @@
+import { authenticate } from '../middlewares/auth.js'
+import { currentTenant } from '../platform/tenantContext.js'
 import type { Express } from 'express'
 import authRouter from './auth.route.js'
 import customerRouter from './customer.route.js'
@@ -26,6 +28,26 @@ import assetRouter from './asset.route.js'
 
 export function mountRoutes(app: Express) {
   app.get('/api/health', (_req, res) => res.json({ success: true, status: 'ok', ts: Date.now() }))
+
+  /**
+   * Which tenant, and which database, this session is actually reading.
+   *
+   * Deliberately reports the resolved database name: it is how an operator — and the
+   * isolation tests — can confirm that two tenants are two databases rather than taking
+   * it on trust.
+   */
+  app.get('/api/health/tenant', authenticate, (req, res) => {
+    const ctx = currentTenant()
+    res.json({
+      success: true,
+      data: {
+        tenantId: ctx?.tenantId ?? null,
+        slug: ctx?.slug ?? null,
+        database: ctx?.dbName ?? null,
+        role: req.auth?.role ?? null,
+      },
+    })
+  })
 
   app.use('/api/public', publicRouter)
 

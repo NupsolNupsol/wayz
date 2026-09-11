@@ -46,9 +46,17 @@ export interface AssetKiosk {
   engineKind?: EngineKind
 }
 
+/** A gate: a place at a station that holds lockers. It runs no activity, so it names none. */
+export interface AssetGate {
+  _id: string
+  name: string
+  stationId: string
+}
+
 export interface AssetEstate {
   stations: AssetStation[]
   kiosks: AssetKiosk[]
+  gates: AssetGate[]
   assetTypes: AssetTypeRow[]
 }
 
@@ -60,6 +68,9 @@ export interface AssetUnitRow {
   stationName: string
   kioskId: string | null
   kioskName: string | null
+  /** Where a locker physically stands. Set on compartments; null on anything held by a desk. */
+  gateId: string | null
+  gateName: string | null
   note: string
   priceOverride: number | null
   effectivePrice: number | null
@@ -93,6 +104,7 @@ export interface AssetTypeDetail {
   }
   stations: AssetStation[]
   kiosks: AssetKiosk[]
+  gates: AssetGate[]
   units: AssetUnitRow[]
 }
 

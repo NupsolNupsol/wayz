@@ -3,18 +3,60 @@ import { connectDB } from './config/db.js'
 import { env } from './config/env.js'
 import { logger } from './config/logger.js'
 import { seedIfEmpty } from './seed/seed.js'
+import { activeTenantIds, bootstrapPlatform } from './platform/bootstrap.js'
+import { runInTenant } from './platform/tenantContext.js'
+import { reindexTenantLogins } from './platform/loginDirectory.js'
+import { reindexPublicLinks } from './platform/publicLinks.js'
 import { startReminderWorker } from './workers/reminder.worker.js'
 import { runSessionSweeps } from './services/overtime.service.js'
-import { isPubliclyFetchable } from './services/whatsapp.service.js'
+import { isPubliclyFetchable } from './services/vonage.service.js'
+import { isStaticOtpActive } from './services/otp.service.js'
 
 async function main() {
+  // The legacy connection stays for one purpose only: adopting the pre-registry WAYZ
+  // database into its own. Everything after bootstrap goes through the tenant registry.
   await connectDB(env.MONGODB_URI)
-  if (env.AUTO_SEED) await seedIfEmpty()
+  await bootstrapPlatform()
+  for (const tenantId of await activeTenantIds()) {
+    await runInTenant(tenantId, async (ctx) => {
+      if (env.AUTO_SEED) await seedIfEmpty()
+      /*
+       * The sign-in directory is derived state, so it is reconciled on every boot rather
+       * than only when seeding runs. A tenant that exists must be signable into — whether
+       * its data arrived from a seed, a migration or a provisioning run.
+       */
+      await reindexTenantLogins(ctx.registry)
+      await reindexPublicLinks(ctx.registry)
+    })
+  }
 
   if (env.QUEUE_ENABLED) {
     await startReminderWorker()
   } else {
-    setInterval(() => void runSessionSweeps(), 60_000).unref()
+    // Sweeps are per tenant: each one runs inside its own database, never across them.
+    setInterval(() => {
+      void (async () => {
+        for (const tenantId of await activeTenantIds()) {
+          await runInTenant(tenantId, () => runSessionSweeps()).catch(() => undefined)
+        }
+      })()
+    }, 60_000).unref()
+  }
+
+  /*
+   * A standing confirmation code is a hole in identity checking, deliberately opened.
+   *
+   * It exists so a test team can get past a code they cannot read, and on a dev server that is
+   * the right trade. On a server real customers reach it is not, and the way that mistake happens
+   * is a .env copied from staging without anyone re-reading it. So it says so at every boot,
+   * loudly and by name, rather than sitting silently in a config file.
+   */
+  if (isStaticOtpActive()) {
+    logger.warn('A standing confirmation code is active: any customer can be confirmed without one being sent', {
+      mode: env.MODE,
+      whyItIsOn: 'MODE=dev and STATIC_OTP is set',
+      turnItOff: 'Set MODE=live, or unset STATIC_OTP, on any deployment customers can reach.',
+    })
   }
 
   const publicApi = env.PUBLIC_API_URL ?? ''

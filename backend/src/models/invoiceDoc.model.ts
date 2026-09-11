@@ -1,4 +1,4 @@
-import mongoose, { Schema } from 'mongoose'
+import { Schema } from 'mongoose'
 import { randomBytes } from 'node:crypto'
 
 export interface InvoiceDocDoc {
@@ -25,4 +25,28 @@ const invoiceDocSchema = new Schema<InvoiceDocDoc>(
 
 invoiceDocSchema.index({ expiresAt: 1 }, { expireAfterSeconds: 0 })
 
-export const InvoiceDoc = mongoose.model<InvoiceDocDoc>('InvoiceDoc', invoiceDocSchema)
+/**
+ * An invoice PDF is opened from a link, by somebody with no account.
+ *
+ * The document's own id is the token in that link, so it is registered the same way a
+ * booking's tracking token is — otherwise the link resolves to no tenant and the customer
+ * is told their invoice expired when it did not.
+ */
+invoiceDocSchema.post('save', function (doc) {
+  const token = (doc as { _id?: string })?._id
+  if (!token) return
+  void (async () => {
+    try {
+      const [{ currentTenant }, { registerPublicToken }] = await Promise.all([
+        import('../platform/tenantContext.js'),
+        import('../platform/publicLinks.js'),
+      ])
+      const tenant = currentTenant()
+      if (tenant) await registerPublicToken(token, tenant.tenantId)
+    } catch {
+      /* never at the cost of the invoice itself */
+    }
+  })()
+})
+
+export const InvoiceDocSchema = invoiceDocSchema

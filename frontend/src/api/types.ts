@@ -46,6 +46,13 @@ export interface Me {
   } | null
   station: { id: string; name: string; engineKinds: EngineKind[]; siteId: string; zoneId: string | null } | null
   kiosk?: { id: string; name: string; code?: string; stationId: string; siteId: string } | null
+  /**
+   * The locker hall this member of staff answers for, separate from the desk they work.
+   *
+   * A mobility agent stands at a gate: the bags in its lockers are theirs to hand back, and the
+   * customer returns there rather than to the counter that sold the storage.
+   */
+  gate?: { id: string; name: string; code?: string; stationId: string; location?: string } | null
 }
 
 export interface ProposedPolicy {
@@ -84,6 +91,8 @@ export interface Customer {
   name: string
   phone: string
   email?: string
+  /** National id, residency permit or passport number. Required of anyone registered from now on. */
+  nationalId?: string
   createdAt: string
 }
 
@@ -114,6 +123,9 @@ export interface AssetUnit {
   assetTypeId: string
   stationId: string
   kioskId?: string | null
+  /** The gate a locker stands in. Null on anything a desk hands over itself. */
+  gateId?: string | null
+  gateName?: string | null
   /** Joined from the unit's kind and its product, so a counter can list units without a second call. */
   assetTypeName: string
   assetKind: string | null
@@ -178,6 +190,8 @@ export interface Session {
   endedAt?: string | null
   gracePeriodMin: number
   overtimeHourlyRate: number
+  /** Minutes handed back after a faulty unit was swapped, totalled over every swap. */
+  replacementBonusMin?: number
   remainingMs: number | null
   isOvertime: boolean
   overtime: OvertimeState
@@ -209,7 +223,7 @@ export interface CustodyEvent {
 export type VerificationPurpose = 'RETRIEVAL' | 'DEPOSIT_REFUND' | 'DELIVERY_REQUEST'
 export type VerificationMethod = 'WHATSAPP_OTP' | 'EMAIL_OTP' | 'ID_DOCUMENT' | 'SUPERVISOR_OVERRIDE'
 export type IdDocumentType = 'NATIONAL_ID' | 'IQAMA' | 'PASSPORT' | 'DRIVING_LICENCE'
-export type OtpChannel = 'WHATSAPP' | 'EMAIL'
+export type OtpChannel = 'WHATSAPP' | 'SMS' | 'EMAIL'
 export type OtpDelivery = 'WHATSAPP' | 'EMAIL' | 'MOCK' | 'FAILED'
 
 export interface IdentityVerification {
@@ -246,6 +260,8 @@ export interface Booking {
   tenantId: string
   stationId: string
   kioskId: string | null
+  /** The gate holding this booking's locker. Null for anything that uses no locker. */
+  gateId?: string | null
   agentId: string
   orderId: string
   amountDue?: number

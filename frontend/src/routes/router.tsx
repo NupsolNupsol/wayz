@@ -40,6 +40,7 @@ import { DashboardPage } from "@/features/dashboard/DashboardPage";
 import { PosPage } from "@/features/pos/PosPage";
 import { ShopDropPage } from "@/features/shopdrop/ShopDropPage";
 import { EngineWorkspace } from "@/features/engine/EngineWorkspace";
+import { MyGatePage } from "@/features/gate/MyGatePage";
 import { OperationsPage } from "@/features/operations/OperationsPage";
 import { CustomersPage } from "@/features/customers/CustomersPage";
 import { CustomerDetailPage } from "@/features/customers/CustomerDetailPage";
@@ -296,6 +297,10 @@ export const router = createBrowserRouter([
             <EngineWorkspace engineKind="MOBILITY" />
           </EngineRoute>
         ),
+      },
+      {
+        path: "my-gate",
+        element: <MyGatePage />,
       },
       {
         path: "lagoon",

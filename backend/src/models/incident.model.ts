@@ -1,4 +1,4 @@
-import mongoose, { Schema } from 'mongoose'
+import { Schema } from 'mongoose'
 import { nanoid } from 'nanoid'
 import type { EngineKind, IncidentType } from '../domain/types.js'
 
@@ -33,4 +33,4 @@ const incidentSchema = new Schema<IncidentDoc>(
   { _id: false, timestamps: true },
 )
 
-export const Incident = mongoose.model<IncidentDoc>('Incident', incidentSchema)
+export const IncidentSchema = incidentSchema

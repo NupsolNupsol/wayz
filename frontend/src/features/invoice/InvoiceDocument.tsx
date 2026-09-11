@@ -12,26 +12,33 @@ const ROLL_WIDTH = 226.8
 const BLACK = '#000000'
 const GREY = '#555555'
 
+/*
+ * Type sized for paper.
+ *
+ * The roll is 80mm and these are points, so eight of them is about 2.8mm of letter — legible on a
+ * screen at 100% and a squint on a thermal print, which is what the counter reported. A quarter
+ * up still leaves roughly forty characters on a line, more than the longest label on the slip.
+ */
 const styles = StyleSheet.create({
-  page: { paddingTop: 14, paddingBottom: 18, paddingHorizontal: 11, fontSize: 8, color: BLACK, fontFamily: 'Helvetica' },
+  page: { paddingTop: 14, paddingBottom: 18, paddingHorizontal: 11, fontSize: 10, color: BLACK, fontFamily: 'Helvetica' },
   centre: { textAlign: 'center' },
-  legal: { fontSize: 10, fontFamily: 'Helvetica-Bold', textAlign: 'center' },
-  brand: { fontSize: 8, textAlign: 'center', color: GREY },
-  reg: { fontSize: 7, textAlign: 'center', color: GREY },
-  title: { fontSize: 9, fontFamily: 'Helvetica-Bold', textAlign: 'center', marginTop: 6, marginBottom: 4 },
+  legal: { fontSize: 12, fontFamily: 'Helvetica-Bold', textAlign: 'center' },
+  brand: { fontSize: 10, textAlign: 'center', color: GREY },
+  reg: { fontSize: 9, textAlign: 'center', color: GREY },
+  title: { fontSize: 11, fontFamily: 'Helvetica-Bold', textAlign: 'center', marginTop: 6, marginBottom: 4 },
   rule: { borderBottomWidth: 0.5, borderBottomColor: GREY, borderBottomStyle: 'dashed', marginVertical: 5 },
   row: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 2 },
   label: { color: GREY },
   bold: { fontFamily: 'Helvetica-Bold' },
   head: { flexDirection: 'row', borderBottomWidth: 0.5, borderBottomColor: BLACK, paddingBottom: 2, marginBottom: 3 },
   line: { flexDirection: 'row', marginBottom: 2 },
-  cNo: { width: 12 },
+  cNo: { width: 14 },
   cName: { flexGrow: 1, flexBasis: 0, paddingRight: 4 },
-  cQty: { width: 20, textAlign: 'right' },
-  cAmt: { width: 44, textAlign: 'right' },
+  cQty: { width: 24, textAlign: 'right' },
+  cAmt: { width: 54, textAlign: 'right' },
   total: { flexDirection: 'row', justifyContent: 'space-between', borderTopWidth: 0.5, borderTopColor: BLACK, paddingTop: 3, marginTop: 3 },
   qr: { width: 70, height: 70, alignSelf: 'center', marginTop: 6 },
-  footer: { textAlign: 'center', fontSize: 7, color: GREY, marginTop: 6 },
+  footer: { textAlign: 'center', fontSize: 9, color: GREY, marginTop: 6 },
 })
 
 export function InvoiceDocument({ data }: { data: InvoiceData }) {
