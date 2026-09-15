@@ -7,6 +7,7 @@ import {
   listUnits,
 } from "../services/catalogue.service.js";
 import { suggestPacking } from "../services/packing.service.js";
+import { accessForRequest } from "../services/authorisation.service.js";
 import type { EngineKind } from "../domain/types.js";
 
 const suggestSchema = z.object({
@@ -28,7 +29,12 @@ export const catalogueController = {
     const s = scopeFromReq(req);
     res.json({
       success: true,
-      data: await listProducts(s.tenantId, req.query.engineKind as EngineKind | undefined, s),
+      data: await listProducts(
+        s.tenantId,
+        req.query.engineKind as EngineKind | undefined,
+        s,
+        await accessForRequest(req),
+      ),
     });
   }),
 
@@ -36,13 +42,21 @@ export const catalogueController = {
     const s = scopeFromReq(req);
     res.json({
       success: true,
-      data: await listAssetTypes(s.tenantId, req.query.engineKind as EngineKind | undefined, s),
+      data: await listAssetTypes(
+        s.tenantId,
+        req.query.engineKind as EngineKind | undefined,
+        s,
+        await accessForRequest(req),
+      ),
     });
   }),
 
   units: asyncHandler(async (req, res) => {
     const s = scopeFromReq(req);
-    res.json({ success: true, data: await listUnits(s.tenantId, s.stationId, s) });
+    res.json({
+      success: true,
+      data: await listUnits(s.tenantId, s.stationId, s, await accessForRequest(req)),
+    });
   }),
 
   packingSuggestions: asyncHandler(async (req, res) => {

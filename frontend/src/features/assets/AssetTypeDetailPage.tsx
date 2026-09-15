@@ -329,7 +329,16 @@ export function AssetTypeDetailPage() {
     <div data-testid="asset-type-detail">
       <PageHeader
         title={type.name}
-        subtitle={`${engineLabel(type.engineKind)} · ${t(`kind.${type.kind}`, { defaultValue: type.kind })}`}
+        /*
+         * A kind that belongs to no built-in engine is most of them now, and rendering the
+         * absence through the label helper printed the word "null" beside the resource's name.
+         */
+        subtitle={[
+          type.engineKind ? engineLabel(type.engineKind) : null,
+          t(`kind.${type.kind}`, { defaultValue: type.kind }),
+        ]
+          .filter(Boolean)
+          .join(' · ')}
         helpId="assets"
         crumbs={[{ label: t('common:crumb.assets'), to: '/assets' }, { label: type.name }]}
         actions={

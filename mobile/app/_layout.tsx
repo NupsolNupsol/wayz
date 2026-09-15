@@ -9,7 +9,7 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler'
 import { SafeAreaProvider } from 'react-native-safe-area-context'
 
 import { queryClient } from '@/api/queryClient'
-import { ToastHost } from '@/components/ui'
+import { ToastHost } from '@/design'
 import { useSessionStore } from '@/store/session.store'
 import { COLORS } from '@/theme/tokens'
 
@@ -34,7 +34,8 @@ export default function RootLayout() {
               }}
             >
               <Stack.Screen name="sign-in" options={{ animation: 'fade' }} />
-              <Stack.Screen name="(agent)" options={{ animation: 'fade' }} />
+              <Stack.Screen name="(kiosk)" options={{ animation: 'fade' }} />
+              <Stack.Screen name="(courier)" options={{ animation: 'fade' }} />
             </Stack>
             <ToastHost />
           </View>

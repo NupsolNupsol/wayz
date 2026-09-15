@@ -1,0 +1,20 @@
+# What the test suite needs — deliberately NOT the full runtime set.
+#
+# The suite runs with the hashing embedder, the in-memory Qdrant, the in-memory document
+# catalogue and the echo LLM (see tests/conftest.py), so torch, sentence-transformers, the
+# OpenAI client and pymongo are never imported. Leaving them out takes the test image from
+# ~3 GB and several minutes to ~200 MB and about twenty seconds, which is the difference
+# between a suite that gets run on every change and one that does not.
+#
+# Anything that exercises the real embedder or a real Mongo runs against requirements.txt.
+
+fastapi==0.115.6
+pydantic==2.10.4
+pydantic-settings==2.7.0
+python-multipart==0.0.20
+PyJWT==2.10.1
+qdrant-client==1.12.2
+httpx==0.28.1
+
+pytest==8.3.4
+ruff==0.8.6

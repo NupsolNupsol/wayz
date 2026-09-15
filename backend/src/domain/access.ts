@@ -7,7 +7,20 @@ export function allowedEngines(scope: Pick<Scope, 'role' | 'engineKinds'>): Engi
   return scope.engineKinds ?? []
 }
 
-export function canWorkEngine(scope: Pick<Scope, 'role' | 'engineKinds'>, engineKind: EngineKind): boolean {
+/**
+ * Whether this person works the built-in engine a booking was sold under.
+ *
+ * `null` — a booking sold under a tenant's own activity — is not answered here and is not
+ * refused here either. Engines say nothing about it: what governs an activity booking is the
+ * activity graph, which is asked for separately by whoever needs it. Returning `false` for a
+ * booking with no engine would hide every activity sale from everybody, and returning it from
+ * a function named after engines would be the wrong place to decide it anyway.
+ */
+export function canWorkEngine(
+  scope: Pick<Scope, 'role' | 'engineKinds'>,
+  engineKind: EngineKind | null,
+): boolean {
+  if (engineKind === null) return true
   const allowed = allowedEngines(scope)
   return allowed === null || allowed.includes(engineKind)
 }

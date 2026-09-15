@@ -13,10 +13,13 @@ import { formatDateTime } from '@/utils'
 import { toast } from '@/state/toastStore'
 import type { EngineKind, IncidentType } from '@/api/types'
 import { RefText } from '@/components/RefLink'
+import { usePageContext, PAGE_KEYS } from '@/features/assistant/pageContext'
 
 const NEXT: Record<string, string | null> = { REPORTED: 'INVESTIGATING', INVESTIGATING: 'AWAITING_APPROVAL', AWAITING_APPROVAL: 'RESOLVED', RESOLVED: null, REJECTED: null }
 
 export function IncidentsPage() {
+  usePageContext({ pageKey: PAGE_KEYS.incidents, module: 'INCIDENTS', screenTitle: 'البلاغات' })
+
   const { t } = useTranslation(['agent', 'common'])
   const navigate = useNavigate()
   const { data: rows = [], isLoading } = useIncidents()

@@ -4,7 +4,15 @@ import type { AssetUnitStatus, BagCategory, EngineKind } from '../domain/types.j
 export interface AssetTypeDoc {
   _id: string
   tenantId: string
-  engineKind: EngineKind
+  /**
+   * Which built-in engine this kind belongs to, for a tenant that runs one.
+   *
+   * Null on a resource a tenant defined for itself — a horse, a camel, a photo studio. It was
+   * required, which is a fact about WAYZ (whose every asset belongs to one of three engines)
+   * written into a model every tenant shares, and it made a company that runs horse tours
+   * unable to record a horse.
+   */
+  engineKind: EngineKind | null
   name: string
   kind: 'COMPARTMENT' | 'VEHICLE' | 'TABLE' | 'BOAT' | 'ANIMAL'
   capacity: {
@@ -21,7 +29,7 @@ const assetTypeSchema = new Schema<AssetTypeDoc>(
   {
     _id: { type: String, required: true },
     tenantId: { type: String, required: true, index: true },
-    engineKind: { type: String, required: true },
+    engineKind: { type: String, default: null },
     name: { type: String, required: true },
     kind: { type: String, required: true },
     capacity: { type: Schema.Types.Mixed, default: {} },

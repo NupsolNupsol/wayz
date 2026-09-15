@@ -27,7 +27,10 @@ export interface OrderDoc {
   kioskId: string | null
   agentId: string
   customerId: string
-  engineKind: string
+  /** The built-in engine, for a tenant that runs them. Null for a tenant's own activity. */
+  engineKind: string | null
+  /** The tenant's own activity this order was raised for. */
+  activityKey: string | null
   lines: OrderLine[]
   hold: ResourceHold | null
   status: 'DRAFT' | 'AWAITING_PAYMENT' | 'PAID' | 'CANCELLED'
@@ -71,7 +74,8 @@ const orderSchema = new Schema<OrderDoc>(
     kioskId: { type: String, default: null, index: true },
     agentId: { type: String, required: true },
     customerId: { type: String, required: true },
-    engineKind: { type: String, required: true },
+    engineKind: { type: String, default: null, index: true },
+    activityKey: { type: String, default: null, index: true },
     lines: { type: [lineSchema], default: [] },
     hold: { type: holdSchema, default: null },
     status: { type: String, default: 'DRAFT', index: true },

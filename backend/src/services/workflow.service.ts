@@ -15,6 +15,13 @@ import {
 } from '../domain/workflow.js'
 import type { ApplyTransitionParams, ApplyTransitionResult, AvailableTransition } from '../interfaces/index.js'
 
+/** What a built-in workflow has to say about a booking that does not use one. */
+const ACTIVITY_ELSEWHERE = {
+  allowed: false,
+  message: 'This booking follows its own activity’s steps.',
+  transitions: [] as AvailableTransition[],
+}
+
 /**
  * Where the person acting has to be standing.
  *
@@ -34,7 +41,7 @@ const PLACED_AT_A_GATE = ['TO_STORED', 'TO_RETRIEVAL', 'TO_COMPLETED']
 
 function standingInTheRightPlace(
   code: string,
-  booking: { engineKind: string; gateId?: string | null },
+  booking: { engineKind: string | null; gateId?: string | null },
   at?: PlaceContext,
 ): boolean {
   if (!at?.kioskScoped) return true
@@ -61,6 +68,15 @@ export function getAvailableTransitions(
   roles: Role[],
   at?: PlaceContext,
 ): { allowed: boolean; message: string; transitions: AvailableTransition[] } {
+  /*
+   * A booking sold under a tenant's own activity does not belong here.
+   *
+   * Its steps are the ones its activity's published revision defines, and they are applied by
+   * the activity session service. Answering with the built-in workflow's transitions would
+   * offer an agent buttons that mean nothing for what they are actually running.
+   */
+  if (booking.engineKind === null) return ACTIVITY_ELSEWHERE
+
   const wf = getWorkflow(booking.engineKind)
   if (!wf) {
     return { allowed: false, message: `No workflow registered for ${booking.engineKind}.`, transitions: [] }
@@ -224,6 +240,12 @@ export async function applyTransition(params: ApplyTransitionParams): Promise<Ap
   const payload = params.payload ?? {}
   const now = params.now ?? new Date()
 
+  if (booking.engineKind === null) {
+    throw ApiError.unprocessable(
+      'This booking follows its own activity’s steps, which are applied through the activity session.',
+    )
+  }
+
   const wf = getWorkflow(booking.engineKind)
   if (!wf) throw ApiError.unprocessable(`No workflow registered for engine "${booking.engineKind}".`)
 
@@ -258,7 +280,7 @@ export async function applyTransition(params: ApplyTransitionParams): Promise<Ap
     now,
     assets: await gatherAssets(booking, payload, tenantId, stationId, kioskId),
     rules: {
-      timer: rules.rental.timers[booking.engineKind],
+      timer: rules.rental.timers[wf.engineKind],
       replacementBonusMin: rules.rental.replacementBonusMin,
     },
   }

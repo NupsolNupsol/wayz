@@ -16,10 +16,17 @@ import { useDashboard, useBookings, useShift } from '@/hooks'
 import { ENGINE_META } from '@/config/engineMeta'
 import { formatTime, localBaked, money } from '@/utils'
 import type { EngineKind } from '@/api/types'
+import { usePageContext, PAGE_KEYS } from '@/features/assistant/pageContext'
 
 const shortEngine = (kind: EngineKind): string => i18n.t(`common:engineShort.${kind}`, { defaultValue: kind })
 
 export function DashboardPage() {
+  usePageContext({
+    pageKey: PAGE_KEYS.dashboard,
+    module: 'GENERAL',
+    screenTitle: 'لوحة المعلومات',
+  })
+
   const { t } = useTranslation('agent')
   const navigate = useNavigate()
   const me = useAuthStore((s) => s.me)

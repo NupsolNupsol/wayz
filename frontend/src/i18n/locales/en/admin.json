@@ -133,7 +133,7 @@
       "incomplete": "Every line needs a code and a description.",
       "flat": "Flat amount",
       "byAsset": "Asset's value",
-      "byAssetNote": "Charged at whatever that particular asset is worth — a lost tuk-tuk is not a lost scooter."
+      "byAssetNote": "Charged at whatever that particular resource is actually worth, rather than one amount for everything."
     },
     "reasons": {
       "title": "Why a discount may be given",

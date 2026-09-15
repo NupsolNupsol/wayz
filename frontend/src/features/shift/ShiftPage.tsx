@@ -7,8 +7,11 @@ import { useShift, useOpenShift, useBlindCount } from '@/hooks'
 import { ApiError } from '@/api/client'
 import { money, formatDateTime } from '@/utils'
 import { toast } from '@/state/toastStore'
+import { usePageContext, PAGE_KEYS } from '@/features/assistant/pageContext'
 
 export function ShiftPage() {
+  usePageContext({ pageKey: PAGE_KEYS.shift, module: 'SHIFTS', screenTitle: 'الوردية' })
+
   const { t } = useTranslation(['agent', 'common'])
   const { data: shift, isLoading } = useShift()
   const openMut = useOpenShift()

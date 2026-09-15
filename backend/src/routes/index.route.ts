@@ -25,6 +25,10 @@ import hrRouter from './hr.route.js'
 import publicRouter from './public.route.js'
 import searchRouter from './search.route.js'
 import assetRouter from './asset.route.js'
+import activityRouter from './activity.route.js'
+import roleDefinitionRouter from './roleDefinition.route.js'
+import platformRouter from './platform.route.js'
+import learningRouter from './learning.route.js'
 
 export function mountRoutes(app: Express) {
   app.get('/api/health', (_req, res) => res.json({ success: true, status: 'ok', ts: Date.now() }))
@@ -72,6 +76,19 @@ export function mountRoutes(app: Express) {
   app.use('/api/admin', tenantAdminRouter)
   app.use('/api/accounting', accountingRouter)
   app.use('/api/hr', hrRouter)
+  /*
+   * The control plane, mounted above every tenant.
+   *
+   * Placed with the tenant routes only because they share an Express app; it shares nothing
+   * else with them — different credential, different database, no tenant context at all.
+   */
+  app.use('/api/platform', platformRouter)
   app.use('/api/assets', assetRouter)
+  // Activities a tenant defined for itself. See activity.route.ts.
+  app.use('/api/activities', activityRouter)
+  // Jobs, as each tenant defines them. See roleDefinition.route.ts.
+  app.use('/api/roles', roleDefinitionRouter)
   app.use('/api/manager', managerRouter)
+  // The employee AI assistant and guided onboarding. See learning.route.ts.
+  app.use('/api/learning', learningRouter)
 }

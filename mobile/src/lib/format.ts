@@ -52,3 +52,6 @@ export const initials = (name: string | null | undefined): string =>
 
 export const plural = (count: number, one: string, many = `${one}s`): string =>
   `${count} ${count === 1 ? one : many}`
+
+/** Money is only ever two decimals — rounding late is how a split ends up a halala short. */
+export const round2 = (value: number): number => Math.round(value * 100) / 100

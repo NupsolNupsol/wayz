@@ -12,7 +12,9 @@ import hr from './hr.json'
 import admin from './admin.json'
 import assets from './assets.json'
 import manual from './manual.json'
+import assistant from './assistant.json'
+import onboarding from './onboarding.json'
 import bookings from './bookings.json'
 import workflow from './workflow.json'
 
-export default { common, nav, status, agent, till, delivery, ui, auth, manager, admin, hr, accounting, bookings, workflow, assets, manual }
+export default { common, nav, status, agent, till, delivery, ui, auth, manager, admin, hr, accounting, bookings, workflow, assets, manual, assistant, onboarding }

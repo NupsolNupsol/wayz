@@ -15,7 +15,14 @@ export interface ProposedPolicy {
 export interface CatalogueProductDoc {
   _id: string
   tenantId: string
-  engineKind: EngineKind
+  /**
+   * Which built-in engine sells this, for a tenant that runs one.
+   *
+   * Null on a product a tenant defined for itself — a riding helmet, a bag of feed, a printed
+   * photo. It was required, which is a fact about WAYZ written into a model every tenant
+   * shares, and it made a retail shop impossible for a company that runs no built-in engine.
+   */
+  engineKind: EngineKind | null
   name: string
   nameAr?: string
   category: string
@@ -47,7 +54,7 @@ const catalogueSchema = new Schema<CatalogueProductDoc>(
   {
     _id: { type: String, required: true },
     tenantId: { type: String, required: true, index: true },
-    engineKind: { type: String, required: true, index: true },
+    engineKind: { type: String, default: null, index: true },
     name: { type: String, required: true },
     nameAr: { type: String, default: '' },
     category: { type: String, default: 'General' },

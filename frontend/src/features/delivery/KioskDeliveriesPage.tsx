@@ -14,6 +14,7 @@ import { ApiError } from '@/api/client'
 import { toast } from '@/state/toastStore'
 import { meta, relativeTime } from './deliveryMeta'
 import type { Delivery } from '@/api/delivery.api'
+import { usePageContext, PAGE_KEYS } from '@/features/assistant/pageContext'
 
 /**
  * A courier standing at the counter is ready to be handed the bags, whether or not they pressed
@@ -119,6 +120,13 @@ function ApproveModal({ id, onClose }: { id: string | null; onClose: () => void 
 }
 
 export function KioskDeliveriesPage() {
+  usePageContext({
+    pageKey: PAGE_KEYS.deliveries,
+    module: 'DELIVERY',
+    screenTitle: 'طلبات التوصيل',
+    entityType: 'DELIVERY_REQUEST',
+  })
+
   const { t } = useTranslation('delivery')
   const { data, isLoading } = useStationDeliveries()
   const [approving, setApproving] = useState<string | null>(null)

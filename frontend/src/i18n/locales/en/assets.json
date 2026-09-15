@@ -159,7 +159,7 @@
   },
   "newKind": {
     "title": "New kind of asset",
-    "subtitle": "A kind is what the counter sells — \"Compartment L\", \"Single Scooter Bay\". The assets themselves come next.",
+    "subtitle": "A kind is what the counter offers — \"Arabian Horse\", \"Compartment L\". The individual ones come next.",
     "shape": "Shape",
     "shapeHint": "What the asset physically is. It sets how the kind is priced and reserved.",
     "nameHint": "The name staff and customers see.",

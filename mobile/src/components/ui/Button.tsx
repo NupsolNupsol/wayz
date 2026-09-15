@@ -40,6 +40,7 @@ export function Button({
   disabled = false,
   icon,
   full = false,
+  className = '',
   testID,
 }: {
   label: string
@@ -50,6 +51,8 @@ export function Button({
   disabled?: boolean
   icon?: ReactNode
   full?: boolean
+  /** Layout only — spacing and width from the parent. Colour stays with the variant. */
+  className?: string
   testID?: string
 }) {
   const inert = disabled || loading
@@ -62,13 +65,17 @@ export function Button({
   return (
     <Pressable
       accessibilityRole="button"
+      // `disabled` and not only `accessibilityState`: React Native Web reads the prop to render a
+      // real disabled control. Without it the button looks greyed out but announces itself as
+      // available, and stays focusable.
+      disabled={inert}
       accessibilityState={{ disabled: inert, busy: loading }}
       accessibilityLabel={label}
       testID={testID}
       onPress={inert ? undefined : press}
       className={`flex-row items-center justify-center gap-2 ${SIZE[size]} ${BOX[variant]} ${full ? 'w-full' : ''} ${
         inert ? 'opacity-40' : ''
-      }`}
+      } ${className}`}
     >
       {loading ? (
         <ActivityIndicator color={variant === 'secondary' || variant === 'ghost' ? COLORS.navy : COLORS.white} />

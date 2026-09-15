@@ -2,8 +2,8 @@ import { CameraView, useCameraPermissions } from 'expo-camera'
 import { useState } from 'react'
 import { Platform, Pressable, View } from 'react-native'
 
-import { Icon } from '@/components/Icon'
-import { Body, Button, Input, Muted, Sheet } from '@/components/ui'
+import { Icon } from './Icon'
+import { Body, Button, Input, Muted, Sheet } from './ui'
 import { COLORS } from '@/theme/tokens'
 
 export function ScanField({

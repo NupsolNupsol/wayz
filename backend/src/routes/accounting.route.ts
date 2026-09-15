@@ -19,7 +19,7 @@ router.get('/payments/:id', accountingController.payment)
 router.post('/transactions/ingest', accountingController.ingest)
 router.get('/reconciliation', accountingController.reconciliation)
 router.get('/export', accountingController.export)
-router.get('/export/activity/:engineKind', accountingController.exportActivity)
+router.get('/export/activity/:line', accountingController.exportActivity)
 router.get('/export/all', accountingController.exportAll)
 
 export default router

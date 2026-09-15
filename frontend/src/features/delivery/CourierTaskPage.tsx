@@ -24,6 +24,7 @@ import { ApiError } from '@/api/client'
 import { toast } from '@/state/toastStore'
 import { DELIVERY_STEPS, isStorageRun, jobDestinationLine, jobKindLabel, meta, relativeTime } from './deliveryMeta'
 import type { DeliveryBag, DeliveryDetail } from '@/api/delivery.api'
+import { usePageContext, PAGE_KEYS } from '@/features/assistant/pageContext'
 
 
 
@@ -185,6 +186,23 @@ export function CourierTaskPage() {
 
   const detail = data as DeliveryDetail | undefined
   const step = useMemo(() => (detail ? meta(detail.delivery.status).step : 0), [detail])
+
+  /*
+   * What this screen tells the assistant: which delivery *stage* the courier is at, never
+   * who the customer is or where they live. The status is the dependency, so asking "what
+   * do I do now?" after a hand-over is answered about the stage they are actually on.
+   */
+  usePageContext(
+    {
+      pageKey: PAGE_KEYS.courierTask,
+      module: 'DELIVERY',
+      screenTitle: 'مهمة التوصيل',
+      entityType: 'DELIVERY_REQUEST',
+      entityStatus: detail?.delivery.status,
+      facts: { step: String(step) },
+    },
+    [detail?.delivery.status, step],
+  )
 
   if (isLoading || !detail) {
     return (

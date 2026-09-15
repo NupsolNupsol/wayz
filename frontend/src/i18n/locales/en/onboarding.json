@@ -1,0 +1,151 @@
+{
+  "progress": "Step {{current}} of {{total}}",
+  "next": "Next",
+  "finish": "Finish",
+  "skip": "Skip the tour",
+  "status": {
+    "PENDING": "Not started",
+    "IN_PROGRESS": "In progress",
+    "COMPLETED": "Completed",
+    "SKIPPED": "Skipped"
+  },
+  "tour": {
+    "agent": "Counter agent tour",
+    "courier": "Delivery agent tour",
+    "captain": "Boat captain tour",
+    "manager": "Manager tour",
+    "accountant": "Accountant tour",
+    "hr": "HR tour",
+    "admin": "Company administrator tour"
+  },
+  "training": {
+    "title": "Training & help",
+    "subtitle": "Everything you need to learn your job in LockerFlow",
+    "tour": {
+      "title": "Guided tour",
+      "body": "A short tour of the screens you will work on every day, chosen for your role.",
+      "restart": "Restart the tour"
+    },
+    "assistant": {
+      "body": "Ask the AI assistant in Arabic about any workflow and it will answer from your company's approved documentation.",
+      "disabled": "The AI assistant is not enabled on this server. Contact your system administrator.",
+      "open": "Open the AI assistant"
+    },
+    "resources": {
+      "title": "More resources",
+      "body": "Written guides you can come back to at any time.",
+      "manual": "User manual",
+      "manualHint": "A detailed walkthrough of every screen",
+      "releases": "Releases & updates",
+      "releasesHint": "What changed in the system recently"
+    }
+  },
+  "step": {
+    "welcome": {
+      "title": "Welcome to LockerFlow",
+      "body": "A short tour of the screens you will use in your work. You can skip it at any time and restart it later from the training page."
+    },
+    "assistant": {
+      "title": "The AI assistant",
+      "body": "This button is on every page. Press it and ask about any step — it answers from your company's documentation."
+    },
+    "training": {
+      "title": "The training page",
+      "body": "Restart this tour whenever you like, and find the user manual and other training resources here."
+    },
+    "done": {
+      "title": "Tour complete",
+      "body": "You are ready to start. Whenever you need help, press the AI assistant button and ask."
+    },
+    "agent": {
+      "dashboard": {
+        "title": "Dashboard",
+        "body": "Where your day starts: active bookings, what is waiting for you, and your shift status."
+      },
+      "pos": {
+        "title": "New transaction",
+        "body": "Where every sale or booking begins: pick the activity, then the customer, then take payment."
+      },
+      "operations": {
+        "title": "Active operations",
+        "body": "Everything running right now — hand-overs, retrievals and anything overdue."
+      },
+      "shift": {
+        "title": "Shift",
+        "body": "Open your shift at the start of the day and close it with a cash count at the end."
+      }
+    },
+    "courier": {
+      "board": {
+        "title": "Delivery board",
+        "body": "The delivery tasks assigned to you, in order. Every job starts here."
+      },
+      "history": {
+        "title": "Completed deliveries",
+        "body": "A record of what you have finished, to refer back to."
+      }
+    },
+    "captain": {
+      "board": {
+        "title": "Trip board",
+        "body": "The trips assigned to you today, their times, and how many passengers."
+      },
+      "voyage": {
+        "title": "Chart & sail",
+        "body": "Start the trip here and follow it through to the return."
+      }
+    },
+    "manager": {
+      "overview": {
+        "title": "Manager dashboard",
+        "body": "Revenue, operations and your team in one view."
+      },
+      "live": {
+        "title": "Live sessions",
+        "body": "What is happening across your sites right now — active and overdue."
+      },
+      "team": {
+        "title": "Team",
+        "body": "Add staff and set their roles and where they work."
+      },
+      "reports": {
+        "title": "Reports",
+        "body": "Performance and revenue reports, ready to export."
+      }
+    },
+    "accountant": {
+      "dashboard": {
+        "title": "VAT & activities",
+        "body": "Revenue and VAT summarised by activity."
+      },
+      "settlement": {
+        "title": "Reconciliation",
+        "body": "Match card payments against what the bank actually settled."
+      }
+    },
+    "hr": {
+      "costs": {
+        "title": "Costs",
+        "body": "Record and track expenses by category and season."
+      },
+      "seasons": {
+        "title": "Seasons & payroll",
+        "body": "Define seasons and attach staff costs to them."
+      }
+    },
+    "admin": {
+      "overview": {
+        "title": "Company dashboard",
+        "body": "The state of your company: sites, teams, assets and settings."
+      },
+      "company": {
+        "title": "Company & branding",
+        "body": "Trading name, CR and VAT numbers, and the colours your staff and customers see."
+      },
+      "team": {
+        "title": "Employees & roles",
+        "body": "Create staff accounts and set their permissions and locations."
+      }
+    }
+  }
+}

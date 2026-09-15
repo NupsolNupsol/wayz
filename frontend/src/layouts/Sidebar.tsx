@@ -48,9 +48,14 @@ export function Sidebar({
   engineKinds: EngineKind[]
   tenantLabel: string
 }) {
+  /* The company signed in — its own name and its own mark, not the product's. */
+  const tenantName = useAuthStore((x) => x.me?.tenant?.name ?? '')
+  const branding = useAuthStore((x) => x.me?.tenant?.branding ?? null)
+
   const { t } = useTranslation(['nav', 'common'])
   const language = useAuthStore((st) => st.language)
   const hasGate = useAuthStore((st) => !!st.me?.gate)
+  const capabilities = useAuthStore((st) => st.me?.tenant?.capabilities ?? [])
   const rtl = language === 'ar'
 
   const tree = navFor(role)
@@ -79,12 +84,34 @@ export function Sidebar({
       >
         <div className={clsx('flex items-center justify-between px-5 py-6 border-b border-white/15 min-h-[80px]', collapsed && 'justify-center px-0')}>
           <NavLink to={homeForRole(role)} className="flex items-center gap-3 overflow-hidden no-underline">
-            <div className="w-11 h-11 rounded-xl bg-white flex items-center justify-center shrink-0 shadow">
-              <PackageOpen size={24} className="text-brand" />
+            {/*
+              * Whose workspace this is.
+              *
+              * This used to print the product's own name, which meant WIQAR's staff worked all
+              * day under a sidebar that said WAYZ — one tenant's name over another tenant's
+              * colours, which is the exact mix the client reported on the sign-in page. The
+              * company signed in is the company named, and its own mark is used when it has
+              * one.
+              */}
+            <div
+              className="w-11 h-11 rounded-xl bg-white flex items-center justify-center shrink-0 shadow overflow-hidden"
+              data-testid="workspace-mark"
+            >
+              {branding?.logoUrl ? (
+                <img src={branding.logoUrl} alt="" className="w-full h-full object-contain p-1.5" />
+              ) : branding?.logoText ? (
+                <span className="text-brand font-extrabold text-[15px]">
+                  {branding.logoText.slice(0, 3).toUpperCase()}
+                </span>
+              ) : (
+                <PackageOpen size={24} className="text-brand" />
+              )}
             </div>
             {!collapsed && (
               <div className="leading-tight">
-                <div className="text-[17px] font-bold text-white">{APP.name}</div>
+                <div className="text-[17px] font-bold text-white" data-testid="workspace-name">
+                  {tenantName || APP.name}
+                </div>
                 <div className="text-[11px] text-white/60">
                   {tenantLabel} · {t(`common:workspace.${WORKSPACE_KEY(role)}`)}
                 </div>
@@ -101,6 +128,16 @@ export function Sidebar({
             const items = group.items.filter(
               (it) =>
                 (!it.permission || can(role, it.permission)) &&
+                /*
+                 * What the company may do comes first.
+                 *
+                 * A tenant that never enabled bag storage has no Shop & Drop, whoever is
+                 * looking — before this, an administrator with no activity assignment saw
+                 * every activity on the platform, including ones their company does not run.
+                 * A tenant with no capabilities recorded is one from before the control plane,
+                 * and keeps the old behaviour rather than losing its navigation.
+                 */
+                (!it.capability || !capabilities.length || capabilities.includes(it.capability)) &&
                 (!it.engineKind || !engineKinds.length || engineKinds.includes(it.engineKind)) &&
                 // A locker hall only appears for the people posted to one.
                 (!it.needsGate || !!hasGate),

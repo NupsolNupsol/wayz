@@ -28,6 +28,16 @@ export interface BagItem {
 
 export interface OperationalSession {
   kind: SessionKind
+  /**
+   * Where this booking stands.
+   *
+   * One of the platform's statuses for a booking sold under a built-in engine; the key of one
+   * of the activity's own states for a booking sold under a tenant's activity. The engines'
+   * set is closed and is kept typed as such, because their code switches over it exhaustively
+   * and should keep having to. A tenant's set is not closed and cannot be — see
+   * `activitySession.service.ts`, which is the only place a state key outside this union is
+   * written, and says so where it does it.
+   */
   status: BookingStatus
   assetUnitId?: string | null
   requestedDurationMin: number
@@ -115,7 +125,24 @@ export interface BookingDoc {
   customerName: string
   customerPhone: string
   customerEmail: string
-  engineKind: EngineKind
+  /**
+   * The built-in engine this was sold under, for a tenant that runs them.
+   *
+   * Null for anything sold under a tenant's own activity, which is most of what the platform
+   * will sell from here on. Kept because WAYZ's existing bookings and every report over them
+   * are keyed by it, and rewriting history to fit a newer model is how reconciliations stop
+   * balancing.
+   */
+  engineKind: EngineKind | null
+  /**
+   * The tenant's own activity this was sold under, frozen at the revision it was sold under.
+   *
+   * The name and the revision are copied rather than referenced, deliberately. An activity
+   * that is renamed next season must not silently rename what was sold last season, and one
+   * that is archived must leave every booking taken under it still readable — which is the
+   * whole reason activities are revisioned.
+   */
+  activity: { key: string; name: string; nameAr: string; revision: number } | null
   productName: string
   /** The same name in Arabic, so an agent working in Arabic reads the sale in Arabic. */
   productNameAr?: string
@@ -123,6 +150,7 @@ export interface BookingDoc {
   vatAmount: number
   totalAmount: number
   vatRate: number
+  /** A platform status, or the key of one of this activity's own states. See `session.status`. */
   status: BookingStatus
   bags: BagItem[]
   session: OperationalSession
@@ -307,7 +335,19 @@ const bookingSchema = new Schema<BookingDoc>(
     customerName: { type: String, default: '' },
     customerPhone: { type: String, default: '' },
     customerEmail: { type: String, default: '' },
-    engineKind: { type: String, required: true },
+    engineKind: { type: String, default: null, index: true },
+    activity: {
+      type: new Schema(
+        {
+          key: { type: String, required: true },
+          name: { type: String, required: true },
+          nameAr: { type: String, default: '' },
+          revision: { type: Number, required: true },
+        },
+        { _id: false },
+      ),
+      default: null,
+    },
     productName: { type: String, required: true },
     productNameAr: { type: String, default: '' },
     baseAmount: { type: Number, default: 0 },

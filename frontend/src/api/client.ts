@@ -27,13 +27,26 @@ http.interceptors.request.use((config) => {
   return config
 })
 
+/**
+ * The requests where a 401 is an answer, not an expired session.
+ *
+ * Signing in with the wrong password returns 401. Treating that as "your session has ended"
+ * ran the global sign-out handler on somebody who had never been signed in — which tore down
+ * the tenant's branding and turned a mistyped password on WIQAR's page into WAYZ's turquoise.
+ * A failed attempt to start a session cannot end one.
+ */
+const AUTHENTICATION_ATTEMPTS = [/\/auth\/login$/, /\/auth\/invitation\//]
+
+const isAuthenticationAttempt = (url: string | undefined): boolean =>
+  !!url && AUTHENTICATION_ATTEMPTS.some((r) => r.test(url.split('?')[0]))
+
 http.interceptors.response.use(
   (res) => res,
   (error: AxiosError<{ message?: string; errors?: string[] }>) => {
     const status = error.response?.status ?? 0
     const message = error.response?.data?.message ?? error.message ?? 'Request failed'
     const errors = error.response?.data?.errors
-    if (status === 401) onUnauthorized()
+    if (status === 401 && !isAuthenticationAttempt(error.config?.url)) onUnauthorized()
     return Promise.reject(new ApiError(message, status, errors))
   },
 )

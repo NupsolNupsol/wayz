@@ -10,9 +10,9 @@ import { useReportDiscounts, useReportOccupancy, useReportRentals, useReportReve
 import { managerApi } from '@/api/manager.api'
 import { useAuthStore } from '@/store/auth'
 import { engineLabel } from '@/config/engineMeta'
+import { bilingual } from '@/features/accounting/bilingual'
 import { formatDayLabel, money } from '@/utils'
 import { toast } from '@/state/toastStore'
-import type { EngineKind } from '@/api/types'
 
 const today = () => new Date().toISOString().slice(0, 10)
 const daysAgo = (n: number) => new Date(Date.now() - n * 86_400_000).toISOString().slice(0, 10)
@@ -105,12 +105,22 @@ export function ManagerReports() {
                   </div>
                   <div>
                     <p className="text-xs font-bold uppercase tracking-wide text-muted mb-2">{t('reports.byService')}</p>
-                    {revenue.data.byEngine.filter((e) => e.total > 0).map((e) => (
-                      <div key={e.engineKind} className="flex justify-between text-sm py-1 border-b border-line last:border-0">
-                        <span>{engineLabel(e.engineKind as EngineKind)}</span>
-                        <strong className="tabular-nums">{money(e.total)}</strong>
+                    {/*
+                      The company's own lines of business.
+
+                      This read `byEngine` and filtered to those with revenue, which for a
+                      company that runs no built-in engine is always none — so the panel was
+                      permanently empty, and their revenue by service was invisible to them.
+                    */}
+                    {revenue.data.byLine.map((line) => (
+                      <div key={line.key} className="flex justify-between text-sm py-1 border-b border-line last:border-0">
+                        <span>{bilingual(line.label)}</span>
+                        <strong className="tabular-nums">{money(line.total)}</strong>
                       </div>
                     ))}
+                    {revenue.data.byLine.length === 0 && (
+                      <p className="text-sm text-muted py-1">{t('reports.noRevenueYet', { defaultValue: 'Nothing sold in this period.' })}</p>
+                    )}
                   </div>
                 </div>
               </>
@@ -163,7 +173,14 @@ export function ManagerReports() {
                   empty={{ title: t('reports.noDiscounts') }}
                   columns={[
                     { key: 'ref', header: t('common:column.reference'), render: (r) => <span className="font-semibold">{r.ref}</span>, sortValue: (r) => r.ref },
-                    { key: 'activity', header: t('common:column.activity'), render: (r) => engineLabel(r.engineKind) },
+                    {
+                      key: 'activity',
+                      header: t('common:column.activity'),
+                      // The company's own activity where there is one, its engine where there
+                      // is not, and a dash rather than the word "null" where there is neither.
+                      render: (r) =>
+                        r.activityName ?? (r.engineKind ? engineLabel(r.engineKind) : <span className="text-muted">—</span>),
+                    },
                     { key: 'customer', header: t('common:column.customer'), render: (r) => r.customerName },
                     { key: 'reason', header: t('reports.reason'), render: (r) => r.reason, sortValue: (r) => r.reason },
                     {

@@ -9,7 +9,8 @@ import { Icon } from '@/components/Icon'
 import { useTenantOverview, useUpdateCompany } from '@/hooks'
 import { ApiError } from '@/api/client'
 import { toast } from '@/state/toastStore'
-import { ENGINE_META, VISIBLE_ENGINES, engineLabel } from '@/config/engineMeta'
+import { ENGINE_META, engineLabel } from '@/config/engineMeta'
+import { useTenantEngines } from '@/hooks/useTenantEngines'
 import type { EngineKind } from '@/api/types'
 
 const IDENTITY_FIELDS: { key: string; labelKey: string; hintKey?: string }[] = [
@@ -30,6 +31,8 @@ const CONTACT_FIELDS: { key: string; labelKey: string }[] = [
 
 export function AdminCompany() {
   const { t } = useTranslation(['admin', 'common'])
+  /* Only the activities this company runs — see useTenantEngines. */
+  const offered = useTenantEngines()
   const { data, isLoading } = useTenantOverview()
   const update = useUpdateCompany()
 
@@ -170,7 +173,7 @@ export function AdminCompany() {
               {t('company.servicesNote')}
             </p>
             <div className="flex flex-col gap-2">
-              {VISIBLE_ENGINES.map((e) => {
+              {offered.map((e) => {
                 const on = engines.includes(e)
                 const stat = data.byEngine.find((b) => b.engineKind === e)
                 return (

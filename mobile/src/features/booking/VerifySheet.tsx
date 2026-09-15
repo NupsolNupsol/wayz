@@ -2,11 +2,11 @@ import { useState } from 'react'
 import { View } from 'react-native'
 
 import { apiMessage } from '@/api/client'
-import { Icon } from '@/components/Icon'
 import {
   Body,
   Button,
   Field,
+  Icon,
   Input,
   Muted,
   Notice,
@@ -15,7 +15,7 @@ import {
   Sheet,
   TextArea,
   toast,
-} from '@/components/ui'
+} from '@/design'
 import { useConfirmVerification, useSendVerification } from '@/hooks/queries'
 import { COLORS } from '@/theme/tokens'
 import type { Booking, IdDocumentType } from '@/types'

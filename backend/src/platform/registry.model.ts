@@ -17,7 +17,7 @@ export type TenantLifecycle = (typeof TENANT_LIFECYCLE)[number]
  * Recorded individually so a run that dies halfway can be retried from where it stopped
  * instead of starting again on a half-built tenant.
  */
-export const PROVISIONING_STEPS = ['DATABASE', 'INDEXES', 'PROFILES', 'ORG', 'ADMIN_USER', 'CATALOGUE'] as const
+export const PROVISIONING_STEPS = ['DATABASE', 'INDEXES', 'PROFILES', 'DEFAULTS', 'ORG', 'ADMIN_USER', 'CATALOGUE'] as const
 export type ProvisioningStep = (typeof PROVISIONING_STEPS)[number]
 
 export interface TenantBrandingRecord {
@@ -56,6 +56,19 @@ export interface TenantRegistryDoc {
   name: string
   dbName: string
   lifecycle: TenantLifecycle
+  /**
+   * A tenant conjured by an automated test rather than by a person.
+   *
+   * The isolation suite has to create a real tenant to prove that tenants are isolated — a
+   * mocked one would prove nothing. But the tenant it leaves behind then sits in the control
+   * plane looking like a customer, and a super admin opening the platform saw "Isolation
+   * Probe" listed among the companies actually paying for the product.
+   *
+   * Marking it is better than deleting it on the way out: a test that fails half way leaves
+   * its tenant behind precisely when somebody needs to look at it. So the row stays, and every
+   * screen that lists real customers filters it out unless asked to show it.
+   */
+  isSynthetic: boolean
   branding: TenantBrandingRecord
   invoice: TenantInvoiceIdentity
   currency: string
@@ -120,6 +133,7 @@ export const tenantRegistrySchema = new Schema<TenantRegistryDoc>(
     name: { type: String, required: true },
     dbName: { type: String, required: true, unique: true },
     lifecycle: { type: String, enum: TENANT_LIFECYCLE, default: 'PROVISIONING', index: true },
+    isSynthetic: { type: Boolean, default: false, index: true },
     branding: { type: brandingSchema, default: () => ({}) },
     invoice: { type: invoiceSchema, default: () => ({}) },
     currency: { type: String, default: 'SAR' },

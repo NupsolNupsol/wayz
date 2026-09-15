@@ -13,6 +13,7 @@ import type { Booking } from '@/api/types'
 import { RefLink } from '@/components/RefLink'
 import { useAuthStore } from '@/store/auth'
 import { formatDateTime, localBaked, money, sinceLabel } from '@/utils'
+import { usePageContext, PAGE_KEYS } from '@/features/assistant/pageContext'
 
 const ACTIVE = ['ACTIVE', 'OVERTIME', 'RETRIEVAL_IN_PROGRESS', 'PREPARING', 'CONFIRMED', 'RESERVED']
 const STATUS_OPTS = ACTIVE.map((s) => ({ label: s.replaceAll('_', ' '), value: s }))
@@ -27,6 +28,13 @@ const AGE_BUCKETS: { label: string; value: string; test: (minutes: number) => bo
 ]
 
 export function OperationsPage() {
+  usePageContext({
+    pageKey: PAGE_KEYS.operations,
+    module: 'GENERAL',
+    screenTitle: 'العمليات النشطة',
+    entityType: 'BOOKING',
+  })
+
   const { t } = useTranslation(['agent', 'common'])
   const ENGINE_OPTS = engineOptionsFor(useAuthStore((s) => s.me)?.engineKinds ?? [])
   const navigate = useNavigate()

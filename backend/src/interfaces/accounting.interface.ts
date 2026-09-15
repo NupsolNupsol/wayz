@@ -4,7 +4,16 @@ import type { ZakatAssessment, ZatcaReturn } from '../domain/tax.js'
 export interface PeriodFilter {
   from?: string
   to?: string
+  /** Narrow to one built-in engine. Only meaningful for a tenant that runs them. */
   engineKind?: EngineKind
+  /**
+   * Narrow to one of the tenant's own activities.
+   *
+   * The same question as `engineKind` asked of a company that defined its own lines of
+   * business. Both exist because both kinds of company exist; a given request carries at most
+   * one of them, and a company only ever sees the one that applies to it.
+   */
+  activityKey?: string
 }
 
 export interface ReportRange {
@@ -18,7 +27,10 @@ export interface BilingualLabel {
 }
 
 export interface ActivityFigures {
-  engineKind: EngineKind
+  /** The line: an activity key for a company with its own, an engine name for one without. */
+  key: string
+  /** Set only when the line is a built-in engine, so existing engine filters keep working. */
+  engineKind: EngineKind | null
   label: BilingualLabel
   salesBase: number
   salesVat: number

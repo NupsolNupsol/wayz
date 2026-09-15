@@ -65,7 +65,11 @@ const kioskSchema = z.object({
   name: z.string().min(1),
   code: z.string().optional(),
   location: z.string().optional(),
-  engineKind,
+  /* One of the platform's own activities, or none when the desk runs the tenant's. */
+  engineKind: engineKind.nullish(),
+  activityKeys: z.array(z.string().trim().min(1).max(40)).max(40).optional(),
+  /** The job their company defined. See roleDefinition.model.ts. */
+  roleKey: z.string().trim().min(1).max(40).nullish(),
   isExitGate: z.boolean().optional(),
 })
 
@@ -78,6 +82,22 @@ const staffSchema = z.object({
   // The locker hall a mobility agent answers for. Required for that job, ignored for every other.
   gateId: z.string().nullable().optional(),
   engineKinds: z.array(z.enum(ENGINE_KINDS)).optional(),
+  /*
+   * The tenant's own activities this person works.
+   *
+   * Free-form keys rather than an enum, because they are invented by the tenant and cannot be
+   * known here. Bounded in length and count so the field cannot become a place to store
+   * arbitrary payloads, and the activity engine ignores any key with no activity behind it.
+   */
+  activityKeys: z.array(z.string().trim().min(1).max(40)).max(40).optional(),
+  /*
+   * The job their company defined.
+   *
+   * Where this person's permissions and scope actually come from; `role` above is only the
+   * platform primitive that shapes them. The service has always read it — it was missing from
+   * this schema, so a form that sent one had it stripped before it ever arrived.
+   */
+  roleKey: z.string().trim().min(1).max(40).nullish(),
   reportsTo: z.string().nullable().optional(),
   phone: z.string().optional(),
 })

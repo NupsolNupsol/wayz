@@ -53,6 +53,34 @@ export function ListGroup({ children, className = '' }: { children: ReactNode; c
 
 export const Divider = () => <View className="h-px bg-line" />
 
+/**
+ * A block of label/value facts with hairlines between them. Saves every screen from hand-rolling
+ * the same divider logic, and keeps the last row from carrying a stray line.
+ */
+export function InfoRows({ rows, testID }: { rows: { label: string; value: ReactNode }[]; testID?: string }) {
+  return (
+    <View testID={testID}>
+      {rows.map((row, i) => (
+        <View
+          key={row.label}
+          className={`flex-row items-center justify-between gap-3 py-2.5 ${
+            i === rows.length - 1 ? '' : 'border-b border-line'
+          }`}
+        >
+          <Label>{row.label}</Label>
+          {typeof row.value === 'string' ? (
+            <Body className="max-w-[60%] text-right font-semibold" numberOfLines={1}>
+              {row.value}
+            </Body>
+          ) : (
+            row.value
+          )}
+        </View>
+      ))}
+    </View>
+  )
+}
+
 export function KeyValue({ label, value, className = '' }: { label: string; value: ReactNode; className?: string }) {
   return (
     <View className={`gap-1 ${className}`}>

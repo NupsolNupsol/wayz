@@ -43,6 +43,9 @@ async function run() {
         branding: { primaryColor: '#7c3aed', secondaryColor: '#4c1d95', logoText: 'IP' },
         capabilities: [],
         enabledProfiles: [],
+        // Conjured by the isolation suite, not by a person. Every screen that lists real
+        // customers hides it; the platform's tenant list can still show it on request.
+        isSynthetic: true,
       })
 
   /*

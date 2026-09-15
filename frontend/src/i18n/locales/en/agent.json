@@ -308,7 +308,7 @@
     "log": "Log incident",
     "service": "Service",
     "type": "Type",
-    "typeHint": "Decides which categories apply — a scooter cannot have a missing bag.",
+    "typeHint": "Decides which categories apply — what can go wrong depends on what is being run.",
     "logButton": "Log",
     "logged": "Incident logged",
     "updated": "Incident updated"

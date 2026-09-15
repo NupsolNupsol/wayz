@@ -17,6 +17,20 @@ import {
   TENANT_ADMIN_ROLES,
 } from "@/permissions/permissions";
 import { LoginPage } from "@/features/auth/LoginPage";
+import { PlatformShell } from "@/platform/PlatformShell";
+import { PlatformLoginPage } from "@/platform/pages/PlatformLoginPage";
+import { PlatformTenantsPage } from "@/platform/pages/PlatformTenantsPage";
+import { PlatformTenantPage } from "@/platform/pages/PlatformTenantPage";
+import { NewTenantPage } from "@/platform/pages/NewTenantPage";
+import { PlatformAuditPage } from "@/platform/pages/PlatformAuditPage";
+import { PlatformOverviewPage } from "@/platform/pages/PlatformOverviewPage";
+import { PlatformReportsPage } from "@/platform/pages/PlatformReportsPage";
+import { PlatformHealthPage } from "@/platform/pages/PlatformHealthPage";
+import { PlatformAdminsPage } from "@/platform/pages/PlatformAdminsPage";
+import { PlatformSettingsPage } from "@/platform/pages/PlatformSettingsPage";
+import { PlatformKnowledgePage } from "@/platform/pages/PlatformKnowledgePage";
+import { PlatformLearningPage } from "@/platform/pages/PlatformLearningPage";
+import { ToastHost } from "@/platform/toast";
 import { InvitationPage } from "@/features/auth/InvitationPage";
 import { ManagerOverview } from "@/features/manager/ManagerOverview";
 import {
@@ -92,11 +106,69 @@ import {
 } from "@/features/accounting/SettlementDetail";
 import { ManualPage } from "@/features/help/ManualPage";
 import { ArchitecturePage } from "@/features/help/ArchitecturePage";
+import { TrainingPage } from "@/features/help/TrainingPage";
 import { NotFoundPage } from "@/features/misc/NotFoundPage";
 import { NoWorkspacePage } from "@/features/misc/NoWorkspacePage";
+import { ActivitiesPage } from "@/features/activities/ActivitiesPage";
+import { RolesPage } from "@/features/roles/RolesPage";
+import { ActivityBuilderPage } from "@/features/activities/ActivityBuilderPage";
+import { ActivityCounterPage } from "@/features/activities/ActivityCounterPage";
+import { WorkspaceGatewayPage } from "@/features/auth/WorkspaceGatewayPage";
+import { TenantChrome } from "./TenantChrome";
 
+/*
+ * Every route sits under one element, so the two questions that used to be answered
+ * inconsistently are answered once: whose colours these are, and whether the session on this
+ * machine belongs on this address. See `TenantChrome`.
+ */
 export const router = createBrowserRouter([
-  { path: "/login", element: <LoginPage /> },
+{
+  element: <TenantChrome />,
+  children: [
+  /*
+   * The platform's own doors. Neither belongs to a tenant.
+   *
+   * `/login` was WAYZ's — its name, its colours, its staff — which made the root of the
+   * product implicitly mean one customer. It is a workspace gateway now: it names nobody and
+   * sends you to the tenant you choose.
+   *
+   * `/` needs no entry here: signed in it is the application, and signed out `ProtectedRoute`
+   * sends it to this same gateway.
+   */
+  { path: "/login", element: <WorkspaceGatewayPage /> },
+
+  // A tenant's own front door: its colours, its name, its own accounts, and a sign-in that
+  // resolves to its database from the handle in the address rather than from the email typed.
+  { path: "/t/:slug/login", element: <LoginPage /> },
+
+  /*
+   * The control plane, above every tenant.
+   *
+   * Its own login, its own session and its own frame — nothing under /platform enters a
+   * tenant's data, and a tenant's session cannot reach it.
+   */
+  { path: "/platform/login", element: <PlatformLoginPage /> },
+  {
+    path: "/platform",
+    element: (
+      <ToastHost>
+        <PlatformShell />
+      </ToastHost>
+    ),
+    children: [
+      { index: true, element: <PlatformOverviewPage /> },
+      { path: "tenants", element: <PlatformTenantsPage /> },
+      { path: "tenants/new", element: <NewTenantPage /> },
+      { path: "tenants/:id", element: <PlatformTenantPage /> },
+      { path: "reports", element: <PlatformReportsPage /> },
+      { path: "health", element: <PlatformHealthPage /> },
+      { path: "knowledge", element: <PlatformKnowledgePage /> },
+      { path: "learning", element: <PlatformLearningPage /> },
+      { path: "audit", element: <PlatformAuditPage /> },
+      { path: "administrators", element: <PlatformAdminsPage /> },
+      { path: "settings", element: <PlatformSettingsPage /> },
+    ],
+  },
   { path: "/manager/estate", element: <Navigate to="/assets" replace /> },
   // Products moved onto the kind that sells them; an old bookmark lands on the estate rather than
   // on nothing.
@@ -131,6 +203,11 @@ export const router = createBrowserRouter([
       { path: "settings", element: <ManagerSettings /> },
       { path: "reports", element: <ManagerReports /> },
       { path: "activity", element: <ManagerActivity /> },
+      // Activities this tenant defined for itself. See features/activities.
+      { path: "activities", element: <ActivitiesPage /> },
+      // Jobs, as this company defines them. See features/roles.
+      { path: "roles", element: <RolesPage /> },
+      { path: "activities/:id", element: <ActivityBuilderPage /> },
     ],
   },
   {
@@ -268,6 +345,7 @@ export const router = createBrowserRouter([
     ),
     children: [
       { path: "manual", element: <ManualPage /> },
+      { path: "training", element: <TrainingPage /> },
       { path: "architecture", element: <ArchitecturePage /> },
     ],
   },
@@ -282,6 +360,15 @@ export const router = createBrowserRouter([
       { index: true, element: <Navigate to="/dashboard" replace /> },
       { path: "dashboard", element: <DashboardPage /> },
       { path: "pos", element: <PosPage /> },
+      /*
+       * The counter for an activity the tenant defined.
+       *
+       * No `EngineRoute` guard, deliberately — there is no engine to guard on. Whether this
+       * person may sell this activity is decided by the activity's own operator list and by
+       * what they were assigned, both of which are checked server-side on every call. A guard
+       * here could only duplicate that, and a duplicate is a thing that drifts.
+       */
+      { path: "activities/:key", element: <ActivityCounterPage /> },
       {
         path: "shop-drop",
         element: (
@@ -328,4 +415,6 @@ export const router = createBrowserRouter([
   },
   { path: "/no-workspace", element: <NoWorkspacePage /> },
   { path: "*", element: <NotFoundPage /> },
+  ],
+},
 ]);

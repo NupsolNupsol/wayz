@@ -12,6 +12,7 @@ export function Screen({
   onRefresh,
   refreshing = false,
   edges = ['top', 'left', 'right'],
+  header,
   footer,
   testID,
 }: {
@@ -21,6 +22,11 @@ export function Screen({
   onRefresh?: () => void
   refreshing?: boolean
   edges?: ('top' | 'bottom' | 'left' | 'right')[]
+  /**
+   * A bar pinned above the content — a ScreenHeader on a pushed screen. It pads for the notch
+   * itself, so the safe area stops claiming the top edge when one is given.
+   */
+  header?: ReactNode
   footer?: ReactNode
   testID?: string
 }) {
@@ -36,7 +42,9 @@ export function Screen({
   )
 
   return (
-    <SafeAreaView className="flex-1 bg-canvas" edges={edges} testID={testID}>
+    <SafeAreaView className="flex-1 bg-canvas" edges={header ? edges.filter((e) => e !== 'top') : edges} testID={testID}>
+      {header}
+
       {scroll ? (
         <ScrollView
           contentContainerStyle={{ flexGrow: 1 }}

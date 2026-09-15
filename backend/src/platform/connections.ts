@@ -144,3 +144,19 @@ export async function closeAllConnections(): Promise<void> {
 export function openTenantDatabases(): string[] {
   return [...tenantConnections.keys()]
 }
+
+/**
+ * Drops one tenant's database and forgets the connection to it.
+ *
+ * The name is validated again here even though it came from the registry. That is not
+ * paranoia about our own data: this is the one function in the system that destroys a
+ * database, and the cost of the check is nothing against the cost of it ever being handed
+ * something it should not have been.
+ */
+export async function dropTenantDatabase(dbName: string): Promise<void> {
+  const safe = assertSafeDbName(dbName)
+  const conn = await tenantConnection(safe)
+  await conn.dropDatabase()
+  await conn.close()
+  tenantConnections.delete(safe)
+}

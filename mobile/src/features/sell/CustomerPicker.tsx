@@ -2,31 +2,26 @@ import { useState } from 'react'
 import { View } from 'react-native'
 
 import { apiMessage } from '@/api/client'
-import { Icon } from '@/components/Icon'
-import {
-  Body,
-  Button,
-  Card,
-  Field,
-  Input,
-  ListGroup,
-  ListRow,
-  Muted,
-  Sheet,
-  toast,
-} from '@/components/ui'
+import { Body, Button, Card, Field, Icon, Input, ListGroup, ListRow, Muted, Sheet, toast } from '@/design'
 import { useCreateCustomer, useCustomers } from '@/hooks/queries'
 import { initials } from '@/lib/format'
 import { COLORS } from '@/theme/tokens'
 import type { Customer } from '@/types'
 
+/**
+ * Who the sale is for.
+ *
+ * Search first, add second: most people at a Riyadh Season counter have been through it before,
+ * and typing a name is faster than re-keying a phone number. Once someone is chosen the search
+ * collapses to a single row, because the agent's next question is never "who" again.
+ */
 export function CustomerPicker({
   selected,
   onSelect,
   testID,
 }: {
   selected: Customer | null
-  onSelect: (customer: Customer) => void
+  onSelect: (customer: Customer | null) => void
   testID?: string
 }) {
   const [query, setQuery] = useState('')
@@ -62,14 +57,16 @@ export function CustomerPicker({
             <Body className="font-bold text-white">{initials(selected.name)}</Body>
           </View>
           <View className="min-w-0 flex-1">
-            <Body className="font-bold">{selected.name}</Body>
+            <Body className="font-bold" numberOfLines={1}>
+              {selected.name}
+            </Body>
             <Muted numberOfLines={1}>{selected.phone}</Muted>
           </View>
           <Button
             label="Change"
             variant="ghost"
             size="sm"
-            onPress={() => onSelect(null as unknown as Customer)}
+            onPress={() => onSelect(null)}
             testID={testID ? `${testID}-change` : undefined}
           />
         </View>
@@ -108,13 +105,15 @@ export function CustomerPicker({
           ))}
         </ListGroup>
       ) : (
-        <Muted>{isFetching ? 'Searching…' : query ? 'Nobody matches — add them below.' : 'Search, or add a new customer.'}</Muted>
+        <Muted>
+          {isFetching ? 'Searching…' : query ? 'Nobody matches — add them below.' : 'Search, or add a new customer.'}
+        </Muted>
       )}
 
       <Button
         label="New customer"
         variant="secondary"
-        icon={<Icon name="Users" size={16} color={COLORS.navy} />}
+        icon={<Icon name="UserPlus" size={16} color={COLORS.navy} />}
         onPress={() => setAddOpen(true)}
         testID={testID ? `${testID}-add` : undefined}
       />
@@ -123,7 +122,7 @@ export function CustomerPicker({
         open={addOpen}
         onClose={() => setAddOpen(false)}
         title="New customer"
-        subtitle="A phone is what lets you verify them later."
+        subtitle="A phone is what lets you confirm them when the money moves."
         testID="pick-customer-sheet"
         footer={
           <Button
@@ -143,8 +142,14 @@ export function CustomerPicker({
         <Field label="Phone" required>
           <Input value={phone} onChangeText={setPhone} keyboardType="phone-pad" testID="pick-customer-phone" />
         </Field>
-        <Field label="Email" hint="Optional — adds a second verification channel.">
-          <Input value={email} onChangeText={setEmail} autoCapitalize="none" keyboardType="email-address" testID="pick-customer-email" />
+        <Field label="Email" hint="Optional — adds a second way to send their code.">
+          <Input
+            value={email}
+            onChangeText={setEmail}
+            autoCapitalize="none"
+            keyboardType="email-address"
+            testID="pick-customer-email"
+          />
         </Field>
       </Sheet>
     </View>

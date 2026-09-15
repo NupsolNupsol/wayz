@@ -137,8 +137,20 @@ export function CaptainBoardPage() {
                 <div className="flex flex-col gap-2" data-testid="captain-ready">
                   {(board?.ready ?? []).map((trip) => (
                     <div key={trip._id} className="lf-card p-3" data-testid={`captain-trip-${trip._id}`}>
-                      <p className="font-semibold text-sm">{trip.ref} · {trip.assetTypeName}</p>
-                      <p className="text-xs text-muted mb-2">{t('trips.aboard', { headcount: trip.headcount, seats: trip.seats })}</p>
+                      {/*
+                        * Which hull, not just which kind.
+                        *
+                        * A captain told "Abra · 8 of 8" with four abras moored does not know
+                        * which boat to walk to. The identifier is the one thing they need
+                        * before they can do anything with this task.
+                        */}
+                      <p className="font-semibold text-sm">
+                        {trip.ref} · {trip.assetUnitIdentifier ?? trip.assetTypeName}
+                      </p>
+                      <p className="text-xs text-muted mb-2">
+                        {trip.assetUnitIdentifier ? `${trip.assetTypeName} · ` : ''}
+                        {t('trips.aboard', { headcount: trip.headcount, seats: trip.seats })}
+                      </p>
                       <div className="flex flex-wrap gap-1.5 mb-2">
                         {trip.passengers.map((p) => (
                           <Badge key={p.bookingId} tone="neutral">{p.bookingRef} · {p.people}</Badge>

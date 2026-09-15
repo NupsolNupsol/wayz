@@ -1,6 +1,7 @@
 import mongoose from 'mongoose'
 import { recordAudit } from './audit.service.js'
 import { Gate, Kiosk, Station, Tenant, User, hashPassword, hashInviteToken } from '../models/index.js'
+import { currentTenant } from '../platform/tenantContext.js'
 import type { UserDoc } from '../models/index.js'
 import type { Role } from '../domain/types.js'
 import { resolveDiscountReasons } from '../domain/rules.js'
@@ -91,9 +92,32 @@ export async function buildMe(userId: string) {
     role: user.role,
     phone: user.phone,
     engineKinds: user.engineKinds ?? [],
+    /*
+     * The tenant's own activities this person works.
+     *
+     * Their counter reads this to know what to offer. Kept apart from `engineKinds`, which
+     * names the activities the product ships with — see the user model for why.
+     */
+    activityKeys: user.activityKeys ?? [],
+    /*
+     * The job their company defined.
+     *
+     * Their screens read this to know what they may do. `role` beside it is the platform
+     * primitive and carries no business meaning — see `roleDefinition.model.ts`.
+     */
+    roleKey: user.roleKey ?? null,
     tenant: tenant
       ? {
           id: tenant._id,
+          /*
+           * The handle this tenant is reached at, from the control-plane registry.
+           *
+           * The web app needs it to answer "whose page is this?" without guessing — that is
+           * what keeps a session on one tenant from being carried onto another tenant's
+           * address. It comes from the registry rather than from anything the client sent,
+           * for the same reason every other tenant identifier does.
+           */
+          slug: currentTenant()?.registry?.slug ?? tenant._id,
           name: tenant.name,
           legalName: tenant.legalName,
           crNumber: tenant.crNumber,
@@ -101,7 +125,17 @@ export async function buildMe(userId: string) {
           currency: tenant.currency,
           vatRate: tenant.vatRate,
           enabledEngines: tenant.enabledEngines,
-          branding: tenant.branding,
+          /*
+           * Branding comes from the registry, which is the copy a super admin edits.
+           *
+           * The tenant's own document carries one too, from before there was a control plane.
+           * Two sources of truth for the same colours is one too many, and the wrong one wins
+           * silently: an administrator changes a brand in the control plane, nothing happens
+           * inside the tenant, and there is nothing on screen to explain why. The registry is
+           * authoritative; the local copy fills in anything not set there.
+           */
+          branding: { ...tenant.branding, ...(currentTenant()?.registry?.branding ?? {}) },
+          capabilities: currentTenant()?.registry?.capabilities ?? [],
           discountReasons: resolveDiscountReasons(tenant.discountReasons),
           autoPrintReceipt: tenant.settings?.autoPrintReceipt !== false,
           phoneProofTtlMin: PHONE_PROOF_TTL_MIN,

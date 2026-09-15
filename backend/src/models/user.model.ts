@@ -17,6 +17,19 @@ export interface UserDoc {
   _id: string
   email: string
   passwordHash: string | null
+  /**
+   * For a seeded or provisioned demonstration account only: the password it was actually
+   * given, recorded by whoever created it.
+   *
+   * This exists so a sign-in screen can never advertise a credential the database does not
+   * hold. The old code guessed the password from the person's job, which was true for the
+   * tenant the guesses were written for and a lie for every tenant afterwards.
+   *
+   * Never written unless the deployment has declared itself a demonstration, never selected
+   * unless asked for by name, and never returned by any route except the demo-login list,
+   * which verifies it against the hash before publishing it.
+   */
+  demoCredential: string | null
   invite: UserInvite | null
   fullName: string
   role: Role
@@ -34,6 +47,27 @@ export interface UserDoc {
    */
   gateId: string | null
   engineKinds: EngineKind[]
+  /**
+   * The job this person holds, as their own company defines it.
+   *
+   * `role` above is the platform primitive — the *shape* of the job, which the token carries
+   * and route guards check. This is the business meaning: the permissions, the scope and the
+   * activities their company decided this job has. Two tenants may both have a job called
+   * "Accountant" and mean different things by it, and this is where the difference lives.
+   *
+   * Null on a tenant that has not defined its jobs yet, in which case the base role's
+   * historical reach applies. See `services/authorisation.service.ts`.
+   */
+  roleKey: string | null
+  /**
+   * The tenant-defined activities this person works, by key.
+   *
+   * Separate from `engineKinds` on purpose. Those are the activities the product ships with
+   * and their names are compiled in; these are activities a tenant invented for itself, and
+   * their keys exist only in that tenant's own database. Merging the two would mean a tenant
+   * could name an activity `MOBILITY` and inherit behaviour nobody granted it.
+   */
+  activityKeys: string[]
   reportsTo: string | null
   phone: string
   active: boolean
@@ -58,6 +92,7 @@ const userSchema = new Schema<UserDoc>(
     _id: { type: String, required: true },
     email: { type: String, required: true, unique: true, lowercase: true, trim: true },
     passwordHash: { type: String, default: null },
+    demoCredential: { type: String, default: null, select: false },
     invite: { type: inviteSchema, default: null },
     fullName: { type: String, required: true },
     role: { type: String, required: true },
@@ -76,6 +111,8 @@ const userSchema = new Schema<UserDoc>(
     kioskId: { type: String, default: null, index: true },
     gateId: { type: String, default: null, index: true },
     engineKinds: { type: [String], default: [], index: true },
+    roleKey: { type: String, default: null, index: true },
+    activityKeys: { type: [String], default: [], index: true },
     reportsTo: { type: String, default: null, index: true },
     phone: { type: String, default: '' },
     active: { type: Boolean, default: true },

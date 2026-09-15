@@ -5,7 +5,8 @@ import { Button, Field, FieldGroupTitle } from '@/components/ui'
 import { Select } from '@/components/Select'
 import { NumberInput } from '@/components/NumberInput'
 import { useCreateAssetKind } from '@/hooks'
-import { billingForSaleUnit, billingLabel, chargesForTime, defaultSaleUnitFor, engineLabel, saleUnitsFor, VISIBLE_ENGINES } from '@/config/engineMeta'
+import { billingForSaleUnit, billingLabel, chargesForTime, defaultSaleUnitFor, engineLabel, saleUnitsFor } from '@/config/engineMeta'
+import { useTenantEngines } from '@/hooks/useTenantEngines'
 import { ApiError } from '@/api/client'
 import { toast } from '@/state/toastStore'
 import { ASSET_KINDS, SALE_TYPES, SALE_UNITS, type AssetKind, type AssetGate, type AssetKiosk, type AssetStation, type SaleType, type SaleUnit } from '@/api/asset.api'
@@ -46,6 +47,8 @@ export function NewAssetKindModal({
   onCreated?: (id: string) => void
 }) {
   const { t } = useTranslation(['assets', 'common'])
+  /* Only the activities this company runs — see useTenantEngines. */
+  const engines = useTenantEngines()
   const create = useCreateAssetKind()
 
   const [kind, setKind] = useState<AssetKind>('COMPARTMENT')
@@ -202,7 +205,7 @@ export function NewAssetKindModal({
         <Select
           value={engineKind}
           onChange={(v) => pickEngine(v as EngineKind)}
-          options={VISIBLE_ENGINES.map((k) => ({ label: engineLabel(k), value: k }))}
+          options={engines.map((k) => ({ label: engineLabel(k), value: k }))}
           testId="asset-new-kind-engine"
         />
       </Field>

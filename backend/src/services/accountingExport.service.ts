@@ -2,6 +2,7 @@ import ExcelJS from 'exceljs'
 import { activityBreakdown, ledger, vatReturn } from './accounting.service.js'
 import { ACTIVITY_LABELS } from '../constants/labels.constants.js'
 import type { AccountingScope, PeriodFilter } from '../interfaces/index.js'
+import { ENGINE_KINDS } from '../domain/types.js'
 import type { EngineKind } from '../domain/types.js'
 import { transactionSummary } from './transactions.service.js'
 
@@ -263,8 +264,24 @@ function stamp(filter: PeriodFilter): string {
   return `${filter.from ?? 'all'}_${filter.to ?? 'all'}`
 }
 
-export async function activityWorkbook(scope: AccountingScope, filter: PeriodFilter, engineKind: EngineKind) {
-  const scoped: PeriodFilter = { ...filter, engineKind }
+/**
+ * One line of business, as a workbook.
+ *
+ * The line is named by key rather than by engine, because a company that defined its own
+ * activities has lines the platform has never heard of and is entitled to a workbook for each
+ * of them. An engine name is still a valid key — it is simply the key a company that runs the
+ * built-in engines happens to have — so WAYZ's five exports are unchanged and are produced by
+ * the same path.
+ */
+export async function activityWorkbook(scope: AccountingScope, filter: PeriodFilter, lineKey: string) {
+  const engineKind = (ENGINE_KINDS as readonly string[]).includes(lineKey)
+    ? (lineKey as EngineKind)
+    : undefined
+
+  const scoped: PeriodFilter = engineKind
+    ? { ...filter, engineKind }
+    : { ...filter, activityKey: lineKey }
+
   const [rows, breakdown, figures, cards] = await Promise.all([
     ledger(scope, scoped),
     activityBreakdown(scope, scoped),
@@ -273,17 +290,29 @@ export async function activityWorkbook(scope: AccountingScope, filter: PeriodFil
   ])
 
   const workbook = new ExcelJS.Workbook()
-  workbook.creator = 'WAYZ'
+  workbook.creator = scope.tenantId
   workbook.created = new Date()
 
-  const label = ACTIVITY_LABELS[engineKind]
-  addDetailSheet(workbook, SHEET_NAMES[engineKind], `تفاصيل مبيعات ${label.ar}`, rows)
+  /*
+   * What to call the sheet.
+   *
+   * A built-in engine has a fixed Arabic sheet name the client's accountants already know and
+   * reconcile against, so those are kept exactly. A tenant's own line is named from the
+   * breakdown it just produced, which is the company's own words for it.
+   */
+  const label = engineKind
+    ? ACTIVITY_LABELS[engineKind].ar
+    : (breakdown.activities.find((a) => a.key === lineKey)?.label.ar ?? lineKey)
+  const sheet = engineKind ? SHEET_NAMES[engineKind] : `مبيعات ${label}`.slice(0, 31)
+
+  addDetailSheet(workbook, sheet, `تفاصيل مبيعات ${label}`, rows)
   addSummarySheet(workbook, breakdown, figures)
   addCommissionSheet(workbook, cards)
 
   return {
     buffer: await toBuffer(workbook),
-    filename: `wayz-${engineKind.toLowerCase()}-${stamp(filter)}.xlsx`,
+    // Slugged, because a tenant's key may contain anything its administrator typed.
+    filename: `${lineKey.toLowerCase().replace(/[^a-z0-9]+/g, '-')}-${stamp(filter)}.xlsx`,
   }
 }
 

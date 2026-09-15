@@ -14,10 +14,7 @@ import { accountingApi } from '@/api/accounting.api'
 import { ApiError } from '@/api/client'
 import { toast } from '@/state/toastStore'
 import { ENGINE_META } from '@/config/engineMeta'
-import type { EngineKind } from '@/api/types'
 import type { ActivityFigures, LedgerRow } from '@/api/accounting.api'
-
-const REPORTED_ACTIVITIES: EngineKind[] = ['LAGOON', 'MOBILITY', 'SHOP_AND_DROP']
 
 const iso = (d: Date) => d.toISOString().slice(0, 10)
 
@@ -67,10 +64,30 @@ export function AccountingDashboard() {
 
   const [from, setFrom] = useState(daysBack(30).from)
   const [to, setTo] = useState(iso(new Date()))
-  const [engineKind, setEngineKind] = useState<'' | EngineKind>('')
+  /*
+   * Which line of business is being looked at.
+   *
+   * Held as a key rather than an engine. This screen used to render a constant — Lagoon,
+   * Scooters, Shop & Drop — so a company that runs none of them was offered a filter with
+   * three options that matched nothing and no option that matched anything. The lines now come
+   * from the statement itself, which is the only thing that knows what this company sells.
+   */
+  const [line, setLine] = useState('')
   const [busy, setBusy] = useState('')
 
-  const filter = { from, to, ...(engineKind ? { engineKind } : {}) }
+  /*
+   * Unfiltered first, so the list of lines is the company's whole list rather than whichever
+   * one happens to be selected. The narrowed figures are fetched alongside it.
+   */
+  const { data: allLines } = useAccountingSummary({ from, to })
+  const lines = allLines?.activities ?? []
+  const selected = lines.find((a) => a.key === line) ?? null
+  const filter = {
+    from,
+    to,
+    ...(selected?.engineKind ? { engineKind: selected.engineKind } : {}),
+    ...(selected && !selected.engineKind ? { activityKey: selected.key } : {}),
+  }
   const { data: summary, isLoading } = useAccountingSummary(filter)
   const { data: vat } = useVatReturn(filter)
   const { data: zakat } = useZakatReturn({ from, to })
@@ -99,7 +116,7 @@ export function AccountingDashboard() {
       toast('success', t('dashboard.exportReady'), t('dashboard.csvNote'))
     })
 
-  const downloadActivity = (kind: EngineKind) =>
+  const downloadActivity = (kind: string) =>
     run(kind, async () => {
       saveBlob(
         await accountingApi.downloadActivityWorkbook(kind, { from, to }),
@@ -193,11 +210,11 @@ export function AccountingDashboard() {
 
           <div className="ms-auto w-[200px]">
             <Select
-              value={engineKind}
-              onChange={(v) => setEngineKind(v as '' | EngineKind)}
+              value={line}
+              onChange={(v) => setLine(v)}
               options={[
                 { label: t('dashboard.allActivitiesFilter'), value: '' },
-                ...REPORTED_ACTIVITIES.map((k) => ({ label: t(`common:engine.${k}`), value: k })),
+                ...lines.map((a) => ({ label: bilingual(a.label), value: a.key })),
               ]}
               testId="accounting-activity"
             />
@@ -346,9 +363,11 @@ export function AccountingDashboard() {
       </div>
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6" data-testid="accounting-activities">
         {active.map((a: ActivityFigures) => {
-          const meta = ENGINE_META[a.engineKind]
+          // An icon only where the platform has one — a tenant's own line has none, and a
+          // missing icon is better than borrowing another company's.
+          const meta = a.engineKind ? ENGINE_META[a.engineKind] : undefined
           return (
-            <Card key={a.engineKind} className="p-4" data-testid={`acct-activity-${a.engineKind}`}>
+            <Card key={a.key} className="p-4" data-testid={`acct-activity-${a.key}`}>
               <div className="flex items-center justify-between gap-2 mb-2">
                 <p className="font-semibold text-navy dark:text-dk-texthi flex items-center gap-2">
                   {meta && <Icon name={meta.icon} size={16} className="text-brand" />}
@@ -392,15 +411,15 @@ export function AccountingDashboard() {
             <p className="font-semibold text-navy dark:text-dk-texthi text-sm">{t('dashboard.oneActivity')}</p>
             <p className="text-xs text-muted mb-2.5">{t('dashboard.oneActivityHint')}</p>
             <div className="flex flex-wrap gap-2">
-              {REPORTED_ACTIVITIES.map((kind) => (
+              {lines.map(({ key, label }) => (
                 <Button
-                  key={kind}
+                  key={key}
                   variant="secondary"
-                  onClick={() => downloadActivity(kind)}
-                  loading={busy === kind}
-                  data-testid={`accounting-export-${kind}`}
+                  onClick={() => downloadActivity(key)}
+                  loading={busy === key}
+                  data-testid={`accounting-export-${key}`}
                 >
-                  <FileSpreadsheet size={16} /> {t(`common:engine.${kind}`)}
+                  <FileSpreadsheet size={16} /> {bilingual(label)}
                 </Button>
               ))}
             </div>
@@ -462,13 +481,18 @@ export function AccountingDashboard() {
           {
             key: 'activity',
             header: t('common:column.activity'),
+            /*
+             * The ledger names its line in the company's own words, which is what the row
+             * already carries — `activity` is filled from the tenant's revenue lines server
+             * side. Filtering against a compiled-in list of engines offered a WIQAR accountant
+             * three filters that matched none of their rows.
+             */
             filter: {
               kind: 'select',
-              options: REPORTED_ACTIVITIES.map((k) => ({ label: t(`common:engine.${k}`), value: k })),
-              value: (r: LedgerRow) => r.engineKind ?? '',
+              options: lines.map((a) => ({ label: bilingual(a.label), value: bilingual(a.label) })),
+              value: (r: LedgerRow) => r.activity ?? '',
             },
-            render: (r: LedgerRow) =>
-              r.engineKind ? (t(`common:engine.${r.engineKind}`) ?? r.engineKind) : <span className="text-muted">—</span>,
+            render: (r: LedgerRow) => r.activity || <span className="text-muted">—</span>,
           },
           {
             key: 'base',

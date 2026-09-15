@@ -1,7 +1,9 @@
 import { AssetType, AssetUnit, CatalogueProduct, Gate, Tenant } from '../models/index.js'
 import { engineFilter, kioskFilter, reachableUnitFilter } from '../domain/access.js'
-import { ENGINE_KINDS, type EngineKind } from '../domain/types.js'
+import type { EngineKind } from '../domain/types.js'
 import type { Scope } from '../interfaces/index.js'
+import type { EffectiveAccess } from './authorisation.service.js'
+import { visibleResourceKindQuery, visibleResourceQuery } from './resourceScope.service.js'
 
 type Caller = Pick<Scope, 'role' | 'engineKinds'> & Partial<Pick<Scope, 'kioskId' | 'stationId'>>
 
@@ -34,14 +36,37 @@ async function gateIdsAt(tenantId: string, stationId?: string): Promise<string[]
   return gates.map((g) => g._id)
 }
 
-export async function listProducts(tenantId: string, engineKind?: EngineKind, caller?: Caller) {
+export async function listProducts(
+  tenantId: string,
+  engineKind?: EngineKind,
+  caller?: Caller,
+  access: EffectiveAccess | null = null,
+) {
   const q: Record<string, unknown> = { tenantId, active: true }
-  const engines = caller ? engineFilter(caller, engineKind) : engineKind
-  if (engines !== undefined) q.engineKind = engines
+
+  /*
+   * What a counter may sell.
+   *
+   * For a company that has defined its own jobs, nothing about engines applies: its products
+   * have no engine, and filtering by one produced an empty shop. What decides it instead is
+   * where the person stands — a product kept to one counter is sold at that counter, and one
+   * with no counter named is sold at any of them.
+   *
+   * For an installation predating role definitions the engine rule is kept exactly.
+   */
+  const byTenantJob = !!access?.roleKey
+  if (!byTenantJob) {
+    const engines = caller ? engineFilter(caller, engineKind) : engineKind
+    if (engines !== undefined) q.engineKind = engines
+  }
 
   // A product kept to one desk is offered at that desk only; one with no desk named belongs to
   // every counter running its activity.
-  const kiosk = caller ? kioskFilter(caller) : undefined
+  const kiosk = byTenantJob
+    ? (access!.scope.terminals === 'ASSIGNED' ? (access!.terminalIds[0] ?? '') : undefined)
+    : caller
+      ? kioskFilter(caller)
+      : undefined
   if (kiosk !== undefined) q.$or = [{ kioskId: null }, { kioskId: { $exists: false } }, { kioskId: kiosk }]
 
   const products = await CatalogueProduct.find(q).sort({ category: 1, name: 1 }).lean()
@@ -53,7 +78,7 @@ export async function listProducts(tenantId: string, engineKind?: EngineKind, ca
   // Both places a desk can reach: its own counter, and the gates of its station. A Shop & Drop
   // counter holds no lockers at all, so without the gates it would find itself stocking nothing
   // and offering nothing.
-  const reach = reachableUnitFilter(caller!, await gateIdsAt(tenantId, caller?.stationId))
+  const reach = caller ? reachableUnitFilter(caller, await gateIdsAt(tenantId, caller.stationId)) : null
   const stocked = new Set(
     await AssetUnit.distinct('assetTypeId', {
       tenantId,
@@ -70,7 +95,25 @@ export function getProduct(tenantId: string, productId: string) {
   return CatalogueProduct.findOne({ _id: productId, tenantId }).lean()
 }
 
-export function listAssetTypes(tenantId: string, engineKind?: EngineKind, caller?: Caller) {
+/**
+ * The kinds of resource a counter may work with.
+ *
+ * A company that has defined its own jobs is answered from its own configuration — the kinds
+ * the activities this person works are allowed to use. One that has not keeps the engine rule
+ * it has always had. Passing no access at all (an internal caller with nobody to answer for)
+ * falls through to the engine rule too, which is the conservative half.
+ */
+export async function listAssetTypes(
+  tenantId: string,
+  engineKind?: EngineKind,
+  caller?: Caller,
+  access: EffectiveAccess | null = null,
+) {
+  if (access?.roleKey) {
+    const { filter } = await visibleResourceKindQuery(access)
+    return AssetType.find(engineKind ? { ...filter, engineKind } : filter).lean()
+  }
+
   const q: Record<string, unknown> = { tenantId }
   const engines = caller ? engineFilter(caller, engineKind) : engineKind
   if (engines !== undefined) q.engineKind = engines
@@ -88,10 +131,32 @@ export function getAssetType(tenantId: string, assetTypeId: string) {
  * Joined here rather than in the browser so the counter has one source for the list and cannot
  * disagree with itself about which desk a unit belongs to.
  */
-export async function listUnits(tenantId: string, stationId: string, caller?: Caller) {
+export async function listUnits(
+  tenantId: string,
+  stationId: string,
+  caller?: Caller,
+  access: EffectiveAccess | null = null,
+) {
   const q: Record<string, unknown> = { tenantId, stationId }
 
-  if (caller) {
+  if (access?.roleKey) {
+    /*
+     * A company with its own jobs: what this person may put to work is decided by the
+     * activities they work and the location they are posted to, and by nothing else.
+     *
+     * Note what is *not* applied — the area of their own counter. A trainer stands at a
+     * reception desk and the horses stand in the stable, so requiring the resource to be in
+     * the same area as the person showed them an empty list and no way to understand why.
+     * Where the work happens is the activity's business and is already in the filter.
+     *
+     * The eligibility rule covers what the engine filter was there for — a counter that sells
+     * one thing is not handed the stock of another — and covers what it could not, which is a
+     * counter selling something the platform has never heard of.
+     */
+    const { filter } = await visibleResourceQuery(access)
+    delete q.stationId
+    Object.assign(q, filter, { tenantId })
+  } else if (caller) {
     const engines = engineFilter(caller)
     if (engines !== undefined) {
       const types = await AssetType.find({ tenantId, engineKind: engines }, { _id: 1 }).lean()
@@ -145,8 +210,18 @@ export async function listUnits(tenantId: string, stationId: string, caller?: Ca
   })
 }
 
+/**
+ * The built-in activities this company actually runs.
+ *
+ * A company with none recorded runs **none**. That was once the other way round — an empty
+ * list fell back to every engine the product ships with — and the fallback was a leak: WIQAR
+ * has no built-in engines at all, so its admin overview and its revenue report listed Shop &
+ * Drop, Mobility, Lagoon, COTE and Ana'am as though they were its own lines of business.
+ *
+ * Every tenant records its engines at provisioning. Empty means the honest answer is none,
+ * and none is what a company that runs no engines should be shown.
+ */
 export async function tenantEngines(tenantId: string): Promise<EngineKind[]> {
   const tenant = await Tenant.findById(tenantId, { enabledEngines: 1 }).lean()
-  const engines = tenant?.enabledEngines ?? []
-  return engines.length ? engines : [...ENGINE_KINDS]
+  return tenant?.enabledEngines ?? []
 }

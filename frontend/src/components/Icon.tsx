@@ -5,6 +5,7 @@ import {
   Beef, Salad, GlassWater, Bird, Timer, PackageCheck, Wallet, Receipt, Truck,
   Building2, Tag, Settings, ChartLine, ScrollText, Banknote, BookOpen, Blocks,
   Map, MapPin, PackageOpen, Bell, ClipboardCheck, CalendarRange, Percent, CreditCard, Scale,
+  GraduationCap,
   Circle, type LucideProps, type LucideIcon,
 } from 'lucide-react'
 
@@ -15,6 +16,7 @@ const REGISTRY: Record<string, LucideIcon> = {
   Beef, Salad, GlassWater, Bird, Timer, PackageCheck, Wallet, Receipt, Truck,
   Building2, Tag, Settings, ChartLine, ScrollText, Banknote, BookOpen, Blocks,
   Map, MapPin, PackageOpen, Bell, ClipboardCheck, CalendarRange, Percent, CreditCard, Scale,
+  GraduationCap,
 }
 
 export function Icon({ name, ...props }: { name: string } & LucideProps) {

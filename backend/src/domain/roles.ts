@@ -4,7 +4,19 @@ export type ScopeLevel = 'kiosk' | 'activity' | 'tenant'
 
 export const SCOPE_LEVEL: Record<Role, ScopeLevel> = {
   AGENT: 'kiosk',
-  CHIEF_CAPTAIN: 'kiosk',
+
+  /*
+   * A chief captain answers for the water, not for a counter.
+   *
+   * They were desk-scoped, which meant two things that were both wrong: hiring one required
+   * choosing a jetty for them, and everything they could see was filtered to that jetty. A
+   * station runs several lagoon desks, so a party sold at one counter raised a task the
+   * captain standing at another could not see — the boat filled and nobody was called.
+   *
+   * Activity-scoped instead: they see every boat and every trip at their station, and the
+   * desk that happened to sell the seats is irrelevant to whether they are told about them.
+   */
+  CHIEF_CAPTAIN: 'activity',
 
   SUPERVISOR: 'activity',
   MANAGER: 'activity',
@@ -18,7 +30,13 @@ export const SCOPE_LEVEL: Record<Role, ScopeLevel> = {
 
 export const ACTIVITY_SCOPED: Role[] = ['AGENT', 'SUPERVISOR', 'MANAGER', 'CHIEF_CAPTAIN']
 
-export const KIOSK_SCOPED: Role[] = ['AGENT', 'CHIEF_CAPTAIN']
+/**
+ * Jobs that answer for one counter, and must be given one when they are hired.
+ *
+ * A chief captain is deliberately not here: see SCOPE_LEVEL above. They may still be recorded
+ * against a jetty for the roster, but nothing they can see depends on it.
+ */
+export const KIOSK_SCOPED: Role[] = ['AGENT']
 
 export const LAGOON_ONLY: Role[] = ['CHIEF_CAPTAIN']
 

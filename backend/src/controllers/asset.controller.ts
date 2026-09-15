@@ -2,6 +2,7 @@ import { z } from 'zod'
 import type { Request } from 'express'
 import { asyncHandler } from '../utils/asyncHandler.js'
 import { ApiError } from '../utils/ApiError.js'
+import { accessForRequest } from '../services/authorisation.service.js'
 import { BILLING_MODELS, ENGINE_KINDS, SALE_TYPES, SALE_UNITS } from '../domain/types.js'
 import {
   addUnits,
@@ -101,7 +102,7 @@ const priceSchema = z
 export const assetController = {
   types: asyncHandler(async (req, res) => {
     const engineKind = req.query.engineKind ? z.enum(ENGINE_KINDS).parse(req.query.engineKind) : undefined
-    res.json({ success: true, data: await listAssetTypes(assetScope(req), engineKind) })
+    res.json({ success: true, data: await listAssetTypes(assetScope(req), engineKind, await accessForRequest(req)) })
   }),
 
   createType: asyncHandler(async (req, res) => {

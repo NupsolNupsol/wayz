@@ -9,6 +9,20 @@ export interface StaffInput {
   /** The locker hall they answer for. Required of a mobility agent, and of nobody else. */
   gateId?: string | null
   engineKinds?: EngineKind[]
+  /**
+   * Activities this tenant defined for itself, by key.
+   *
+   * Deliberately a separate list from `engineKinds`: those are the activities the product
+   * ships with, whose names are compiled in; these exist only in one tenant's database.
+   */
+  activityKeys?: string[]
+  /**
+   * The job their company defined.
+   *
+   * Where their permissions and their scope come from. `role` above is only the platform
+   * primitive — the shape of the job, not its meaning. See `roleDefinition.model.ts`.
+   */
+  roleKey?: string | null
   reportsTo?: string | null
   phone?: string
 }
@@ -44,7 +58,10 @@ export interface KioskInput {
   name: string
   code?: string
   location?: string
-  engineKind: EngineKind
+  /** One of the activities the platform provides. Omitted on a desk that runs a tenant's own. */
+  engineKind?: EngineKind | null
+  /** Activities this tenant defined for itself, by key. See activity.model.ts. */
+  activityKeys?: string[]
   /** Marks this desk as an exit gate customers collect their bags from. */
   isExitGate?: boolean
 }

@@ -3,6 +3,7 @@ import type {
   AssetTypeLite,
   AssetUnit,
   AvailableTransition,
+  BoatSpace,
   Booking,
   Customer,
   DashboardStats,
@@ -15,6 +16,7 @@ import type {
   Order,
   OtpChannel,
   PackingSuggestResponse,
+  Payment,
   PaymentMethod,
   Product,
   Shift,
@@ -34,6 +36,8 @@ export interface CreateBookingInput {
   productId: string
   quantity?: number
   durationMin?: number
+  /** The boat, on Lagoon: seats are counted against a named hull, not a type. */
+  unitId?: string
   bags?: BagInput[]
   metadata?: Record<string, unknown>
 }
@@ -53,6 +57,8 @@ export interface PaymentSplit {
   method: PaymentMethod
   amount: number
   cardScheme?: string
+  /** Set on the second half when somebody other than the booking's customer is paying it. */
+  payerId?: string
 }
 
 export interface VerificationChallenge {
@@ -75,6 +81,29 @@ export const catalogueApi = {
   packingSuggestions: (bags: BagInput[]) => post<PackingSuggestResponse>('/catalogue/packing-suggestions', { bags }),
 }
 
+export type OtpIntent = 'VERIFY_PHONE' | 'HANDOVER_BAG'
+
+/**
+ * Proof that the person at the counter is who the booking says they are.
+ *
+ * The server refuses to take money from anyone it has not seen a code from in the last half hour,
+ * so this is not a formality the app can skip — it is part of every sale.
+ */
+export const otpApi = {
+  send: (destination: string, intent: OtpIntent = 'VERIFY_PHONE', channel: OtpChannel = 'WHATSAPP') =>
+    post<{ delivered: string; channel: OtpChannel; code?: string; error?: string }>('/otp/send', {
+      phone: destination,
+      intent,
+      channel,
+    }),
+  verify: (destination: string, code: string, intent: OtpIntent = 'VERIFY_PHONE') =>
+    post<{ verified: boolean }>('/otp/verify', { phone: destination, intent, code }),
+}
+
+export const tripApi = {
+  boats: (assetTypeId?: string) => get<BoatSpace[]>('/lagoon/trips/boats', assetTypeId ? { assetTypeId } : undefined),
+}
+
 export const customerApi = {
   list: (q?: string) => get<Customer[]>('/customers', q ? { q } : undefined),
   get: (id: string) => get<Customer & { bookings: Booking[] }>(`/customers/${id}`),
@@ -89,6 +118,7 @@ export const bookingApi = {
     get<{ allowed: boolean; message: string; transitions: AvailableTransition[] }>(`/bookings/${id}/transitions`),
   create: (input: CreateBookingInput) => post<{ booking: Booking; order: Order }>('/bookings', input),
   pay: (id: string, splits: PaymentSplit[]) => post<{ booking: Booking; order: Order }>(`/bookings/${id}/pay`, { splits }),
+  payments: (id: string) => get<Payment[]>(`/bookings/${id}/payments`),
   reserve: (id: string, unitId?: string) => post<Booking>(`/bookings/${id}/reserve`, unitId ? { unitId } : {}),
   reassign: (id: string, unitId: string, reason: string) => post<Booking>(`/bookings/${id}/reassign`, { unitId, reason }),
   scanOut: (id: string, barcode: string) => post<Booking>(`/bookings/${id}/scan-out`, { barcode }),

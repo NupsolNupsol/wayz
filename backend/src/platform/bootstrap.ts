@@ -96,7 +96,16 @@ async function adoptLegacyTenant(): Promise<void> {
     timezone: 'Asia/Riyadh',
     locale: 'en',
     secondaryLocale: 'ar',
-    capabilities: ['pos.rental', 'pos.storage', 'pos.lagoon', 'delivery', 'assets', 'shifts', 'accounting'],
+    /*
+     * What WAYZ actually does, in the platform's one vocabulary.
+     *
+     * An earlier draft used a second set of keys here — `pos.storage`, `assets`, `shifts` —
+     * which nothing else in the system knew about. Two vocabularies for the same idea is how
+     * a capability check silently matches nothing: the navigation would ask for STORAGE, the
+     * registry would answer `pos.storage`, and a tenant would lose half its sidebar with no
+     * error anywhere. One list, defined in capabilities.ts, and this reads from it.
+     */
+    capabilities: ['POS', 'STORAGE', 'RENTALS', 'BOATS', 'DELIVERY', 'FINANCE', 'HR'],
     enabledProfiles: [],
     provisioning: {
       steps: PROVISIONING_STEPS.map((step) => ({ step, status: 'DONE' as const, at: new Date(), error: null })),
@@ -111,22 +120,37 @@ async function adoptLegacyTenant(): Promise<void> {
   await copyLegacyData(dbName)
 }
 
+/**
+ * What one run of the copy did, so a caller can report it truthfully.
+ *
+ * The distinction that matters is `copied` versus `alreadyPopulated`. Straight after a copy,
+ * the two databases should hold the same documents and comparing counts is a real check. Once
+ * the tenant has been live for a day, the tenant database has moved on and the original is a
+ * frozen snapshot — comparing them then would report a "failure" that is simply the passage
+ * of time. Saying which case happened is the difference between a verification and a guess.
+ */
+export type LegacyCopyOutcome =
+  | { state: 'COPIED'; documents: number; collections: number }
+  | { state: 'ALREADY_POPULATED'; collections: number }
+  | { state: 'NOTHING_TO_COPY' }
+  | { state: 'SAME_DATABASE' }
+
 /** Copies the old single-tenant database into the tenant's own, if the tenant's is empty. */
-async function copyLegacyData(dbName: string): Promise<void> {
+async function copyLegacyData(dbName: string): Promise<LegacyCopyOutcome> {
   const admin = mongoose.connection.getClient()
   const legacyName = mongoose.connection.name
-  if (legacyName === dbName) return
+  if (legacyName === dbName) return { state: 'SAME_DATABASE' }
 
   const target = admin.db(dbName)
   const already = await target.listCollections().toArray()
   if (already.length > 0) {
     logger.info('Tenant database already holds data; leaving it alone', { db: dbName })
-    return
+    return { state: 'ALREADY_POPULATED', collections: already.length }
   }
 
   const source = admin.db(legacyName)
   const collections = await source.listCollections().toArray()
-  if (collections.length === 0) return
+  if (collections.length === 0) return { state: 'NOTHING_TO_COPY' }
 
   let copied = 0
   for (const { name } of collections) {
@@ -142,6 +166,17 @@ async function copyLegacyData(dbName: string): Promise<void> {
     documents: copied,
     note: 'The original is left in place and untouched.',
   })
+  return { state: 'COPIED', documents: copied, collections: collections.length }
+}
+
+/**
+ * The copy, on its own, for the production migration command to drive and report.
+ *
+ * Boot calls this too, through adoption. Exposed separately so a person running a migration
+ * gets a result they can read rather than a line in a log they have to go looking for.
+ */
+export async function copyLegacyIntoTenant(dbName: string): Promise<LegacyCopyOutcome> {
+  return copyLegacyData(dbName)
 }
 
 /** Every tenant a background job should sweep. */

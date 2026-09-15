@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useNavigate } from 'react-router-dom'
 import { Boxes, Pencil, Plus, Trash2 } from 'lucide-react'
@@ -12,7 +12,9 @@ import { NumberInput } from '@/components/NumberInput'
 import { useAddAssetUnits, useAssetEstate, useManagerPricing, useRemoveAssetKind } from '@/hooks'
 import { can } from '@/permissions/permissions'
 import { useAuthStore } from '@/store/auth'
-import { engineLabel, VISIBLE_ENGINES } from '@/config/engineMeta'
+import { engineLabel } from '@/config/engineMeta'
+import { activityApi } from '@/api/activity.api'
+import { useTenantEngines } from '@/hooks/useTenantEngines'
 import { ApiError } from '@/api/client'
 import { toast } from '@/state/toastStore'
 import { money } from '@/utils'
@@ -31,9 +33,38 @@ export function AssetsPage() {
   const mayManage = can(role, 'assets.manage')
 
   const [filter, setFilter] = useState<Filter>('ALL')
+  /* Only the activities this company actually runs — see useTenantEngines. */
+  const engines = useTenantEngines()
   const { data, isLoading } = useAssetEstate()
   const addUnits = useAddAssetUnits()
   const removeKind = useRemoveAssetKind()
+
+  /*
+   * Which of this company's activities use each kind of resource.
+   *
+   * The "Activity" column used to render the resource's built-in engine. A company that runs
+   * none has `engineKind: null` on every kind, and the label helper turned that into the
+   * literal string "null" in every row — visible nonsense that the leakage tests did not catch
+   * because "null" is not one of WAYZ's words.
+   *
+   * The truthful answer is the graph: an activity names the kinds it uses, so a kind's
+   * activities are the activities that named it.
+   */
+  const [usedBy, setUsedBy] = useState<Record<string, string[]>>({})
+  useEffect(() => {
+    activityApi
+      .published()
+      .then((activities) => {
+        const by: Record<string, string[]> = {}
+        for (const activity of activities) {
+          for (const kindId of activity.assetTypeIds ?? []) {
+            by[kindId] = [...(by[kindId] ?? []), activity.name]
+          }
+        }
+        setUsedBy(by)
+      })
+      .catch(() => setUsedBy({}))
+  }, [])
 
   const [newKindOpen, setNewKindOpen] = useState(false)
   const [editing, setEditing] = useState<AssetTypeRow | null>(null)
@@ -49,6 +80,10 @@ export function AssetsPage() {
     () => (data?.assetTypes ?? []).filter((r) => filter === 'ALL' || r.engineKind === filter),
     [data, filter],
   )
+
+  /** What this kind of thing is for, in the company's own words. */
+  const activityNamesFor = (r: AssetTypeRow): string[] =>
+    r.engineKind ? [engineLabel(r.engineKind)] : (usedBy[r._id] ?? [])
 
   const totals = useMemo(
     () =>
@@ -157,9 +192,20 @@ export function AssetsPage() {
     {
       key: 'engine',
       header: t('common:column.activity'),
-      sortValue: (r) => r.engineKind,
-      filter: { kind: 'select', options: VISIBLE_ENGINES.map((k) => ({ label: engineLabel(k), value: k })), value: (r) => r.engineKind },
-      render: (r) => <span className="text-muted whitespace-nowrap">{engineLabel(r.engineKind)}</span>,
+      sortValue: (r) => activityNamesFor(r).join(', '),
+      filter: {
+        kind: 'select',
+        options: [
+          ...engines.map((k) => ({ label: engineLabel(k), value: k })),
+          ...[...new Set(Object.values(usedBy).flat())].map((name) => ({ label: name, value: name })),
+        ],
+        value: (r) => [r.engineKind, ...activityNamesFor(r)].filter(Boolean).join(','),
+      },
+      render: (r) => {
+        const names = activityNamesFor(r)
+        if (names.length === 0) return <span className="text-muted">—</span>
+        return <span className="text-muted whitespace-nowrap">{names.join(', ')}</span>
+      },
     },
     {
       key: 'total',
@@ -303,16 +349,25 @@ export function AssetsPage() {
         <StatCard label={t('table.down')} value={totals.outOfService} tone={totals.outOfService ? 'danger' : 'neutral'} testId="asset-stat-down" />
       </div>
 
-      <div className="flex flex-wrap gap-2 mb-4" data-testid="asset-engine-filters">
-        <FilterButton active={filter === 'ALL'} onClick={() => setFilter('ALL')} testId="asset-filter-ALL">
-          {t('common:table.all')}
-        </FilterButton>
-        {VISIBLE_ENGINES.map((kind) => (
-          <FilterButton key={kind} active={filter === kind} onClick={() => setFilter(kind)} testId={`asset-filter-${kind}`}>
-            {engineLabel(kind)}
+      {/*
+        * Nothing to filter by is not the same as a filter set of one.
+        *
+        * A company running only activities it defined itself holds none of the built-in ones,
+        * so this row would be a single "All" button that filters nothing — noise where the
+        * three tabs of another tenant's activities used to be.
+        */}
+      {engines.length > 0 && (
+        <div className="flex flex-wrap gap-2 mb-4" data-testid="asset-engine-filters">
+          <FilterButton active={filter === 'ALL'} onClick={() => setFilter('ALL')} testId="asset-filter-ALL">
+            {t('common:table.all')}
           </FilterButton>
-        ))}
-      </div>
+          {engines.map((kind) => (
+            <FilterButton key={kind} active={filter === kind} onClick={() => setFilter(kind)} testId={`asset-filter-${kind}`}>
+              {engineLabel(kind)}
+            </FilterButton>
+          ))}
+        </div>
+      )}
 
       {rows.length === 0 ? (
         <Card>
@@ -339,7 +394,7 @@ export function AssetsPage() {
           search={{
             // A long estate is the normal case, so the name is not the only way in: an agent looks
             // for "compartment", "boat", "lagoon" or the kind's own name and expects all of them.
-            of: (r) => `${r.name} ${r.kind} ${engineLabel(r.engineKind)} ${r.productName ?? ''}`,
+            of: (r) => `${r.name} ${r.kind} ${activityNamesFor(r).join(' ')} ${r.productName ?? ''}`,
             placeholder: t('table.findKind'),
           }}
           onRowClick={(r) => navigate(`/assets/${r._id}`)}

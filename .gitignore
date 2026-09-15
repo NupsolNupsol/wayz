@@ -144,3 +144,25 @@ chargeback-pro/
 Thumbs.db
 *.log
 npm-debug.log*
+# ---- learning-ai-service --------------------------------------------------------------
+# The rules above are deliberately broad — `*.txt`, `*.md`, `tests/`, `docs/` — because the
+# repository root is full of client documents and scratch files. Applied to a Python service
+# they would silently drop its dependency manifests and its entire test suite, which is how a
+# checkout ends up unbuildable for reasons nobody can see. Named back in, file by file.
+!learning-ai-service/requirements.txt
+!learning-ai-service/requirements-test.txt
+!learning-ai-service/README.md
+# The Arabic system prompt is the product's behaviour written down — source, not a document.
+!learning-ai-service/app/prompts/*.md
+!learning-ai-service/tests/
+!learning-ai-service/tests/**
+!learning-ai-service/knowledge-samples/
+!learning-ai-service/knowledge-samples/**
+
+# Never the local virtualenv, the caches, or a downloaded model.
+learning-ai-service/.venv/
+learning-ai-service/.scratch/
+learning-ai-service/**/__pycache__/
+learning-ai-service/.pytest_cache/
+learning-ai-service/.ruff_cache/
+learning-ai-service/models/

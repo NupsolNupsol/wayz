@@ -8,6 +8,7 @@ import {
   deliveryApi,
   incidentApi,
   shiftApi,
+  tripApi,
   type CreateBookingInput,
   type PaymentSplit,
   type TransitionPayload,
@@ -18,6 +19,7 @@ export const keys = {
   stats: ['stats'] as const,
   products: (engine?: EngineKind) => ['products', engine ?? 'all'] as const,
   units: ['units'] as const,
+  boats: (assetTypeId?: string) => ['boats', assetTypeId ?? 'all'] as const,
   customers: (q: string) => ['customers', q] as const,
   customer: (id: string) => ['customer', id] as const,
   bookings: (filter: object) => ['bookings', filter] as const,
@@ -39,6 +41,21 @@ export const useProducts = (engineKind?: EngineKind) =>
   useQuery({ queryKey: keys.products(engineKind), queryFn: () => catalogueApi.products(engineKind) })
 
 export const useUnits = () => useQuery({ queryKey: keys.units, queryFn: catalogueApi.units })
+
+/**
+ * Boats and the seats left on each.
+ *
+ * Kept live rather than cached: another desk filling a hull while this sale is being written up is
+ * exactly the case where a stale seat count sells a seat that no longer exists.
+ */
+export const useBoats = (assetTypeId?: string, enabled = true) =>
+  useQuery({
+    queryKey: keys.boats(assetTypeId),
+    queryFn: () => tripApi.boats(assetTypeId),
+    enabled,
+    refetchInterval: LIVE,
+    staleTime: 0,
+  })
 
 export const useCustomers = (q: string) =>
   useQuery({ queryKey: keys.customers(q), queryFn: () => customerApi.list(q || undefined) })

@@ -16,6 +16,14 @@ export interface PaymentDoc {
   vatRate: number
   engineKind: string | null
   /**
+   * The tenant's own activity this money was taken for.
+   *
+   * The revenue dimension for every tenant that defines its own activities. `engineKind` is
+   * the same dimension for an installation that runs the built-in engines, and accounting
+   * reads whichever is set — so one statement serves both without either being rewritten.
+   */
+  activityKey: string | null
+  /**
    * Who handed the money over.
    *
    * Usually the customer on the booking, but a sale can be split between two people — a friend
@@ -47,6 +55,7 @@ const paymentSchema = new Schema<PaymentDoc>(
     vatAmount: { type: Number, default: 0 },
     vatRate: { type: Number, default: 0 },
     engineKind: { type: String, default: null, index: true },
+    activityKey: { type: String, default: null, index: true },
     payerId: { type: String, default: null, index: true },
     payerName: { type: String, default: '' },
     method: { type: String, required: true },

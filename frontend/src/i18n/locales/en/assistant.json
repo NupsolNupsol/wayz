@@ -1,0 +1,43 @@
+{
+  "title": "AI assistant",
+  "subtitle": "Ask about any step in your work",
+  "onScreen": "You are on: {{screen}}",
+  "placeholder": "Type your question…",
+  "send": "Send",
+  "thinking": "Searching the documentation…",
+  "disclaimer": "Answers come from your company's documentation and LockerFlow's own. Always check before a sensitive action.",
+  "notGrounded": "No approved document covers this question.",
+  "sources": "Sources",
+  "watchVideo": "🎥 Watch the training video",
+  "scope": {
+    "tenant": "Company procedure",
+    "global": "LockerFlow documentation"
+  },
+  "welcome": {
+    "title": "How can I help?",
+    "body": "Ask about the screen in front of you, or about any workflow, and I will answer from the documentation approved for your company."
+  },
+  "quick": {
+    "explainPage": "Explain this page",
+    "explainPageQuestion": "Explain this page and what it is for.",
+    "whatCanIDo": "What can I do here?",
+    "whatCanIDoQuestion": "What can I do on this page? List the actions available to me.",
+    "nextStep": "What is the next step?",
+    "nextStepQuestion": "What is the next step I should take now?",
+    "howToUse": "How do I use this feature?",
+    "howToUseQuestion": "How do I use this feature, step by step?"
+  },
+  "speech": {
+    "listen": "🔊 Listen to the answer",
+    "stop": "Stop",
+    "unavailable": "Speech unavailable"
+  },
+  "feedback": {
+    "helpful": "Helpful",
+    "notHelpful": "Not helpful",
+    "thanks": "Thanks for the feedback"
+  },
+  "error": {
+    "generic": "Could not get an answer right now. Please try again shortly."
+  }
+}

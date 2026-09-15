@@ -310,6 +310,8 @@ async function giveBack(scope: Scope, original: PaymentHydrated, amount: number)
     vatAmount: tax.vatAmount,
     vatRate: tax.vatRate,
     engineKind: original.engineKind ?? null,
+    // A refund is reported against the same revenue line the sale was.
+    activityKey: original.activityKey ?? null,
     method: original.method,
     cardScheme: original.cardScheme ?? null,
     kind: 'REFUND',

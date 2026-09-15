@@ -33,11 +33,13 @@ import {
 import { Incident, VerificationEvidence, Voucher, VoucherCampaign } from "../models/index.js";
 import { seedVersions } from "./versions.seed.js";
 import { seedVouchers } from "./vouchers.seed.js";
+import { seedTradingHistory } from "./tradingHistory.seed.js";
 import type { UserDoc } from "../models/index.js";
 import type { EngineKind } from "../domain/types.js";
 import { DEFAULT_COMMISSION_RATES, type CardScheme } from "../domain/commission.js";
 import { SCHEME_LABELS } from "../constants/labels.constants.js";
 import { logger } from "../config/logger.js";
+import { env } from "../config/env.js";
 import { DEFAULT_PENALTY_SCHEDULE, DEFAULT_RENTAL_RULES } from "../domain/rules.js";
 
 const SEEDED_TENANTS = (process.env.SEED_TENANTS ?? "wayz")
@@ -74,6 +76,21 @@ function onlySeeded<T extends object>(rows: T[]): T[] {
     const tenantId = (r as { tenantId?: string }).tenantId;
     return tenantId === undefined || seeded(tenantId);
   });
+}
+
+/**
+ * A seeded demonstration account: the hash the database checks, and a record of what the
+ * password actually is.
+ *
+ * Both come from one call so they cannot drift apart. The sign-in screen reads the recorded
+ * value back and verifies it against the hash before advertising it, so a tenant can never be
+ * shown a credential that does not work — the bug this replaces, where the password was
+ * guessed from the person's job and was wrong for every tenant but the first.
+ *
+ * On a deployment that has not declared itself a demonstration, nothing is recorded at all.
+ */
+function demoAccount(password: string): { passwordHash: string; demoCredential: string | null } {
+  return { passwordHash: hashPassword(password), demoCredential: env.DEMO_LOGINS ? password : null };
 }
 
 const HOUR = 3_600_000;
@@ -855,8 +872,12 @@ const mobilityKiosks = () => MOBILITY_DESKS.map((d) => boulevardKiosk("MOBILITY"
 const lagoonKiosks = () => LAGOON_DESKS.map((d) => boulevardKiosk("LAGOON", "LG", d));
 
 // A gate posting belongs to the staff who work one; the rest of the org chart leaves it unsaid.
-type DemoUser = Omit<UserDoc, "comparePassword" | "invite" | "engineKinds" | "gateId"> & {
+type DemoUser = Omit<UserDoc, "comparePassword" | "invite" | "engineKinds" | "gateId" | "activityKeys" | "roleKey"> & {
   engineKinds?: EngineKind[];
+  /** Tenant-defined activities. WAYZ uses the built-in engines, so this stays empty. */
+  activityKeys?: string[];
+  /** The tenant-defined job. WAYZ has not defined its jobs, so the base role governs. */
+  roleKey?: string | null;
   gateId?: string | null;
 };
 
@@ -886,7 +907,7 @@ function demoUsers(): DemoUser[] {
       ...base,
       _id: "usr_admin_wayz",
       email: "admin.wayz@lockerflow.demo",
-      passwordHash: hashPassword("Admin@123"),
+      ...demoAccount("Admin@123"),
       fullName: "Nasser Al-Wayz",
       role: "TENANT_ADMIN",
       phone: "0550000010",
@@ -895,7 +916,7 @@ function demoUsers(): DemoUser[] {
       ...base,
       _id: "usr_pm_wayz",
       email: "projects.wayz@lockerflow.demo",
-      passwordHash: hashPassword("Project@123"),
+      ...demoAccount("Project@123"),
       fullName: "Rayan Al-Dosari",
       role: "PROJECT_MANAGER",
       phone: "0550000015",
@@ -904,7 +925,7 @@ function demoUsers(): DemoUser[] {
       ...base,
       _id: "usr_acct_wayz",
       email: "accountant.wayz@lockerflow.demo",
-      passwordHash: hashPassword("Account@123"),
+      ...demoAccount("Account@123"),
       fullName: "Yara Al-Ghamdi",
       role: "ACCOUNTANT",
       phone: "0550000020",
@@ -913,7 +934,7 @@ function demoUsers(): DemoUser[] {
       ...base,
       _id: "usr_hr_wayz",
       email: "hr.wayz@lockerflow.demo",
-      passwordHash: hashPassword("People@123"),
+      ...demoAccount("People@123"),
       fullName: "Mona Al-Rashid",
       role: "HR",
       phone: "0550000030",
@@ -923,7 +944,7 @@ function demoUsers(): DemoUser[] {
       ...base,
       _id: "usr_mgr_wayz",
       email: "manager.wayz@lockerflow.demo",
-      passwordHash: hashPassword("Manager@123"),
+      ...demoAccount("Manager@123"),
       fullName: "Faisal Al-Mutairi",
       role: "MANAGER",
       engineKinds: ["SHOP_AND_DROP", "MOBILITY"],
@@ -934,7 +955,7 @@ function demoUsers(): DemoUser[] {
       ...base,
       _id: "usr_mgr_lagoon_wayz",
       email: "lagoon.manager.wayz@lockerflow.demo",
-      passwordHash: hashPassword("Manager@123"),
+      ...demoAccount("Manager@123"),
       fullName: "Amal Al-Harthy",
       role: "MANAGER",
       engineKinds: ["LAGOON"],
@@ -946,7 +967,7 @@ function demoUsers(): DemoUser[] {
       ...base,
       _id: "usr_sup_wayz",
       email: "supervisor.wayz@lockerflow.demo",
-      passwordHash: hashPassword("Super@123"),
+      ...demoAccount("Super@123"),
       fullName: "Tariq Al-Anazi",
       role: "SUPERVISOR",
       engineKinds: ["SHOP_AND_DROP", "MOBILITY"],
@@ -957,7 +978,7 @@ function demoUsers(): DemoUser[] {
       ...base,
       _id: "usr_sup_lagoon_wayz",
       email: "lagoon.supervisor.wayz@lockerflow.demo",
-      passwordHash: hashPassword("Super@123"),
+      ...demoAccount("Super@123"),
       fullName: "Nouf Al-Shammari",
       role: "SUPERVISOR",
       engineKinds: ["LAGOON"],
@@ -969,7 +990,7 @@ function demoUsers(): DemoUser[] {
       ...base,
       _id: "usr_welcome_wayz",
       email: "welcome.wayz@lockerflow.demo",
-      passwordHash: hashPassword("Lagoon@123"),
+      ...demoAccount("Lagoon@123"),
       fullName: "Huda Al-Qahtani",
       role: "AGENT",
       engineKinds: ["LAGOON"],
@@ -980,7 +1001,7 @@ function demoUsers(): DemoUser[] {
       ...base,
       _id: "usr_captain_wayz",
       email: "captain.wayz@lockerflow.demo",
-      passwordHash: hashPassword("Lagoon@123"),
+      ...demoAccount("Lagoon@123"),
       fullName: "Saad Al-Balawi",
       role: "CHIEF_CAPTAIN",
       engineKinds: ["LAGOON"],
@@ -992,7 +1013,7 @@ function demoUsers(): DemoUser[] {
       ...base,
       _id: "usr_agent_wayz",
       email: "agent.wayz@lockerflow.demo",
-      passwordHash: hashPassword("Agent@123"),
+      ...demoAccount("Agent@123"),
       fullName: "Omar Al-Wayz",
       role: "AGENT",
       engineKinds: ["SHOP_AND_DROP"],
@@ -1003,7 +1024,7 @@ function demoUsers(): DemoUser[] {
       ...base,
       _id: "usr_agent_till_wayz",
       email: "agent.morocco.wayz@lockerflow.demo",
-      passwordHash: hashPassword("Agent@123"),
+      ...demoAccount("Agent@123"),
       fullName: "Reem Al-Sudairi",
       role: "AGENT",
       engineKinds: ["SHOP_AND_DROP"],
@@ -1014,7 +1035,7 @@ function demoUsers(): DemoUser[] {
       ...base,
       _id: "usr_agent_gate1_wayz",
       email: "agent.gate1.wayz@lockerflow.demo",
-      passwordHash: hashPassword("Agent@123"),
+      ...demoAccount("Agent@123"),
       fullName: "Majed Al-Subaie",
       role: "AGENT",
       engineKinds: ["MOBILITY"],
@@ -1029,7 +1050,7 @@ function demoUsers(): DemoUser[] {
       ...base,
       _id: "usr_agent_gate2_wayz",
       email: "agent.gate2.wayz@lockerflow.demo",
-      passwordHash: hashPassword("Agent@123"),
+      ...demoAccount("Agent@123"),
       fullName: "Rakan Al-Otaibi",
       role: "AGENT",
       engineKinds: ["MOBILITY"],
@@ -1043,7 +1064,7 @@ function demoUsers(): DemoUser[] {
       ...base,
       _id: "usr_agent_egypt_wayz",
       email: "agent.egypt.wayz@lockerflow.demo",
-      passwordHash: hashPassword("Agent@123"),
+      ...demoAccount("Agent@123"),
       fullName: "Lina Al-Faraj",
       role: "AGENT",
       engineKinds: ["LAGOON"],
@@ -1057,7 +1078,7 @@ function demoUsers(): DemoUser[] {
       ...base,
       _id: "usr_agent_all_wayz",
       email: "agent.all.wayz@lockerflow.demo",
-      passwordHash: hashPassword("Agent@123"),
+      ...demoAccount("Agent@123"),
       fullName: "Nasser Al-Dosari",
       role: "AGENT",
       engineKinds: ["SHOP_AND_DROP", "MOBILITY", "LAGOON"],
@@ -1069,7 +1090,7 @@ function demoUsers(): DemoUser[] {
       ...base,
       _id: "usr_courier_wayz",
       email: "courier.wayz@lockerflow.demo",
-      passwordHash: hashPassword("Courier@123"),
+      ...demoAccount("Courier@123"),
       fullName: "Bilal Al-Harbi",
       role: "DELIVERY_AGENT",
       phone: "0550000005",
@@ -1078,7 +1099,7 @@ function demoUsers(): DemoUser[] {
       ...base,
       _id: "usr_courier2_wayz",
       email: "courier2.wayz@lockerflow.demo",
-      passwordHash: hashPassword("Courier@123"),
+      ...demoAccount("Courier@123"),
       fullName: "Khalid Al-Otaibi",
       role: "DELIVERY_AGENT",
       phone: "0550000006",
@@ -1088,7 +1109,7 @@ function demoUsers(): DemoUser[] {
       ...wiqar,
       _id: "usr_admin_wiqar",
       email: "admin.wiqar@lockerflow.demo",
-      passwordHash: hashPassword("Admin@123"),
+      ...demoAccount("Admin@123"),
       fullName: "Dana Al-Wiqar",
       role: "TENANT_ADMIN",
       phone: "0550000011",
@@ -1097,7 +1118,7 @@ function demoUsers(): DemoUser[] {
       ...wiqar,
       _id: "usr_acct_wiqar",
       email: "accountant.wiqar@lockerflow.demo",
-      passwordHash: hashPassword("Account@123"),
+      ...demoAccount("Account@123"),
       fullName: "Tariq Al-Zahrani",
       role: "ACCOUNTANT",
       phone: "0550000021",
@@ -1106,7 +1127,7 @@ function demoUsers(): DemoUser[] {
       ...wiqar,
       _id: "usr_hr_wiqar",
       email: "hr.wiqar@lockerflow.demo",
-      passwordHash: hashPassword("People@123"),
+      ...demoAccount("People@123"),
       fullName: "Faris Al-Wiqar",
       role: "HR",
       phone: "0550000031",
@@ -1115,7 +1136,7 @@ function demoUsers(): DemoUser[] {
       ...wiqar,
       _id: "usr_mgr_wiqar",
       email: "manager.wiqar@lockerflow.demo",
-      passwordHash: hashPassword("Manager@123"),
+      ...demoAccount("Manager@123"),
       fullName: "Salma Al-Wiqar",
       role: "MANAGER",
       engineKinds: ["SHOP_AND_DROP", "MOBILITY", "LAGOON"],
@@ -1125,7 +1146,7 @@ function demoUsers(): DemoUser[] {
       ...wiqar,
       _id: "usr_agent_wiqar",
       email: "agent.wiqar@lockerflow.demo",
-      passwordHash: hashPassword("Agent@123"),
+      ...demoAccount("Agent@123"),
       fullName: "Layla Al-Wiqar",
       role: "AGENT",
       engineKinds: ["SHOP_AND_DROP"],
@@ -1136,7 +1157,7 @@ function demoUsers(): DemoUser[] {
       ...wiqar,
       _id: "usr_agent_till_wiqar",
       email: "agent.marina.wiqar@lockerflow.demo",
-      passwordHash: hashPassword("Agent@123"),
+      ...demoAccount("Agent@123"),
       fullName: "Rakan Al-Wiqar",
       role: "AGENT",
       engineKinds: ["LAGOON"],
@@ -1147,7 +1168,7 @@ function demoUsers(): DemoUser[] {
       ...wiqar,
       _id: "usr_kmgr_wiqar",
       email: "lagoon.wiqar@lockerflow.demo",
-      passwordHash: hashPassword("Lagoon@123"),
+      ...demoAccount("Lagoon@123"),
       fullName: "Maha Al-Wiqar",
       role: "AGENT",
       engineKinds: ["LAGOON"],
@@ -1952,6 +1973,13 @@ export async function seedFresh() {
   }
 
   await stampDesks();
+  /*
+   * A day of trading behind the demonstration data.
+   *
+   * See tradingHistory.seed.ts: the development database everybody remembered was the seed
+   * plus a Playwright run's leftovers, and this makes that depth deliberate and repeatable.
+   */
+  await seedTradingHistory();
   await seedFinancialHistory();
   await seedCostHistory();
   await seedNotifications();

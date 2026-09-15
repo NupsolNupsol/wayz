@@ -25,6 +25,9 @@ import type { CardTransactionDoc, CommissionRateDoc } from './cardTransaction.mo
 import type { CashMovementDoc } from './cashMovement.model.js'
 import type { TripDoc } from './trip.model.js'
 import type { VoucherCampaignDoc, VoucherDoc } from './voucher.model.js'
+import type { ActivityDefinitionDoc } from './activity.model.js'
+import type { RoleDefinitionDoc } from './roleDefinition.model.js'
+import type { LearningProgressDoc } from './learningProgress.model.js'
 
 /**
  * The tenant's collections, as the rest of the backend sees them.
@@ -70,6 +73,12 @@ export const CashMovement = tenantModel<CashMovementDoc>('CashMovement')
 export const Trip = tenantModel<TripDoc>('Trip')
 export const Voucher = tenantModel<VoucherDoc>('Voucher')
 export const VoucherCampaign = tenantModel<VoucherCampaignDoc>('VoucherCampaign')
+/** Activities a tenant defined for itself. See activity.model.ts. */
+export const ActivityDefinition = tenantModel<ActivityDefinitionDoc>('ActivityDefinition')
+/** Jobs, as the tenant defines them. See roleDefinition.model.ts. */
+export const RoleDefinition = tenantModel<RoleDefinitionDoc>('RoleDefinition')
+/** Which guided tour each member of staff has been through. See learningProgress.model.ts. */
+export const LearningProgress = tenantModel<LearningProgressDoc>('LearningProgress')
 
 // Helpers and constants that are plain functions/values, not collections.
 export { hashPassword, newInviteToken, hashInviteToken, INVITE_TTL_HOURS } from './user.model.js'
@@ -107,3 +116,17 @@ export type { CashMovementDoc, CashMovementKind } from './cashMovement.model.js'
 export type { TripDoc, TripStatus, TripPassenger, TripStop } from './trip.model.js'
 export type { VersionDoc, VersionChange, VersionLink, VersionCheck, VersionIssue } from './version.model.js'
 export type { VoucherDoc, VoucherCampaignDoc, VoucherStatus } from './voucher.model.js'
+export type {
+  ActivityDefinitionDoc,
+  ActivityRevisionDoc,
+  ActivityFieldDoc,
+  ActivityRuleDoc,
+  ActivityStateDoc,
+  ActivityTransitionDoc,
+  ActivityConditionDoc,
+  ActivityFieldKind,
+  ActivityOperator,
+} from './activity.model.js'
+export { ACTIVITY_FIELD_KINDS, ACTIVITY_OPERATORS } from './activity.model.js'
+export type { RoleDefinitionDoc } from './roleDefinition.model.js'
+export type { LearningProgressDoc } from './learningProgress.model.js'

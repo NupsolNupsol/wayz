@@ -88,7 +88,7 @@
     "emailHint": "This is their sign-in identity.",
     "stationHint": "Where they work — scopes everything they see.",
     "activitiesHint": "An agent only sees the activities you pick here — nothing else reaches their screen.",
-    "kioskHint": "A Shop & Drop agent answers for one kiosk — this is the one.",
+    "kioskHint": "Somebody who answers for one counter is posted to it here.",
     "onShift": "On shift",
     "createAccount": "Create account",
     "setPassword": "Set password",

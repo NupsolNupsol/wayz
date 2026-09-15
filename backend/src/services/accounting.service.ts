@@ -7,8 +7,8 @@ import {
   zakatAssessment,
   zatcaReturn,
   } from '../domain/tax.js'
-import { ENGINE_KINDS, type EngineKind } from '../domain/types.js'
-import { ACTIVITY_LABELS } from '../constants/labels.constants.js'
+import type { EngineKind } from '../domain/types.js'
+import { UNATTRIBUTED, lineKeyOf, revenueLineIndex, revenueLines } from './revenueLines.service.js'
 import type {
   AccountingScope,
   ActivityFigures,
@@ -66,6 +66,7 @@ export async function activityBreakdown(scope: AccountingScope, filter: PeriodFi
   const paymentQuery: Record<string, unknown> = { tenantId: scope.tenantId, status: { $in: ['CAPTURED', 'REFUNDED'] } }
   if (when) paymentQuery.createdAt = when
   if (filter.engineKind) paymentQuery.engineKind = filter.engineKind
+  if (filter.activityKey) paymentQuery.activityKey = filter.activityKey
 
   const movementQuery: Record<string, unknown> = { tenantId: scope.tenantId, kind: 'PAY_OUT' }
   if (when) movementQuery.createdAt = when
@@ -73,27 +74,39 @@ export async function activityBreakdown(scope: AccountingScope, filter: PeriodFi
   const expenseQuery: Record<string, unknown> = { tenantId: scope.tenantId, status: 'RECORDED' }
   if (when) expenseQuery.incurredAt = when
   if (filter.engineKind) expenseQuery.engineKind = filter.engineKind
+  if (filter.activityKey) expenseQuery.activityKey = filter.activityKey
 
   const manualQuery: Record<string, unknown> = { tenantId: scope.tenantId, status: 'APPROVED' }
   if (when) manualQuery.occurredAt = when
   if (filter.engineKind) manualQuery.engineKind = filter.engineKind
+  if (filter.activityKey) manualQuery.activityKey = filter.activityKey
 
   const [payments, movements, expenses, manualSales] = await Promise.all([
     Payment.find(paymentQuery).lean(),
-    filter.engineKind ? [] : CashMovement.find(movementQuery).lean(),
+    filter.engineKind || filter.activityKey ? [] : CashMovement.find(movementQuery).lean(),
     Expense.find(expenseQuery).lean(),
     ManualSale.find(manualQuery).lean(),
   ])
 
-  const byActivity = new Map<EngineKind, Buckets>()
-  const bucket = (k: EngineKind) => {
+  /*
+   * Reported under the company's own lines.
+   *
+   * `SHOP_AND_DROP` used to be the default for a payment that named no engine, which meant
+   * every sale a company made outside the built-in engines was reported as a bag drop. Money
+   * that names no line is now reported as unattributed, which is visible and can be chased,
+   * rather than being quietly added to somebody else's total.
+   */
+  const lines = await revenueLines(scope.tenantId)
+  const known = new Set(lines.map((l) => l.key))
+
+  const byActivity = new Map<string, Buckets>()
+  const bucket = (k: string) => {
     if (!byActivity.has(k)) byActivity.set(k, emptyBuckets())
     return byActivity.get(k)!
   }
 
   for (const p of payments) {
-    const key = (p.engineKind as EngineKind) ?? 'SHOP_AND_DROP'
-    const b = bucket(key)
+    const b = bucket(lineKeyOf(p))
     if (p.kind === 'REFUND') {
       b.returnsBase += p.baseAmount
       b.returnsVat += p.vatAmount
@@ -106,7 +119,7 @@ export async function activityBreakdown(scope: AccountingScope, filter: PeriodFi
   }
 
   for (const sale of manualSales) {
-    const b = bucket(sale.engineKind as EngineKind)
+    const b = bucket(lineKeyOf(sale))
     b.salesBase += sale.baseAmount
     b.salesVat += sale.vatAmount
     b.salesTotal += sale.amount
@@ -126,14 +139,31 @@ export async function activityBreakdown(scope: AccountingScope, filter: PeriodFi
     purchasesTotal += e.amount
   }
 
-  const activities: ActivityFigures[] = ENGINE_KINDS.filter(
-    (k) => byActivity.has(k) || !filter.engineKind || filter.engineKind === k,
-  ).map(
-    (engineKind) => {
-      const b = byActivity.get(engineKind) ?? emptyBuckets()
+  /*
+   * Every line the company has, plus any line money actually landed in.
+   *
+   * The second half matters for an activity archived mid-period and for anything unattributed:
+   * a row that exists only because money is in it must still be shown, or the statement does
+   * not add up to the till.
+   */
+  const orphans = [...byActivity.keys()].filter((k) => !known.has(k)).map((key) => ({
+    key,
+    engineKind: null,
+    label: key === UNATTRIBUTED.key ? UNATTRIBUTED.label : { en: key, ar: key },
+  }))
+
+  const activities: ActivityFigures[] = [...lines, ...orphans]
+    .filter((l) => {
+      if (filter.activityKey) return l.key === filter.activityKey
+      if (filter.engineKind) return l.engineKind === filter.engineKind
+      return true
+    })
+    .map((line) => {
+      const b = byActivity.get(line.key) ?? emptyBuckets()
       return {
-        engineKind,
-        label: ACTIVITY_LABELS[engineKind],
+        key: line.key,
+        engineKind: line.engineKind,
+        label: line.label,
         salesBase: round2(b.salesBase),
         salesVat: round2(b.salesVat),
         salesTotal: round2(b.salesTotal),
@@ -142,8 +172,7 @@ export async function activityBreakdown(scope: AccountingScope, filter: PeriodFi
         returnsTotal: round2(b.returnsTotal),
         netBase: round2(b.salesBase - b.returnsBase),
       }
-    },
-  )
+    })
 
   const totals = activities.reduce(
     (acc, a) => ({
@@ -223,6 +252,7 @@ export async function ledger(scope: AccountingScope, filter: PeriodFilter): Prom
   const paymentQuery: Record<string, unknown> = { tenantId: scope.tenantId, status: { $in: ['CAPTURED', 'REFUNDED'] } }
   if (when) paymentQuery.createdAt = when
   if (filter.engineKind) paymentQuery.engineKind = filter.engineKind
+  if (filter.activityKey) paymentQuery.activityKey = filter.activityKey
 
   const movementQuery: Record<string, unknown> = { tenantId: scope.tenantId, kind: 'PAY_OUT' }
   if (when) movementQuery.createdAt = when
@@ -230,16 +260,23 @@ export async function ledger(scope: AccountingScope, filter: PeriodFilter): Prom
   const expenseQuery: Record<string, unknown> = { tenantId: scope.tenantId, status: 'RECORDED' }
   if (when) expenseQuery.incurredAt = when
   if (filter.engineKind) expenseQuery.engineKind = filter.engineKind
+  if (filter.activityKey) expenseQuery.activityKey = filter.activityKey
 
   const [payments, movements, expenses] = await Promise.all([
     Payment.find(paymentQuery).sort({ createdAt: 1 }).limit(5000).lean(),
-    filter.engineKind ? [] : CashMovement.find(movementQuery).sort({ createdAt: 1 }).limit(5000).lean(),
+    filter.engineKind || filter.activityKey ? [] : CashMovement.find(movementQuery).sort({ createdAt: 1 }).limit(5000).lean(),
     Expense.find(expenseQuery).sort({ incurredAt: 1 }).limit(5000).lean(),
   ])
 
   const bookingIds = [...new Set(payments.map((p) => p.bookingId).filter(Boolean) as string[])]
-  const bookings = await Booking.find({ _id: { $in: bookingIds } }).lean()
+  const [bookings, byLine] = await Promise.all([
+    Booking.find({ _id: { $in: bookingIds } }).lean(),
+    // What each line is called, in the company's own words.
+    revenueLineIndex(scope.tenantId),
+  ])
   const bookingById = new Map(bookings.map((b) => [b._id, b]))
+  const lineName = (row: { activityKey?: string | null; engineKind?: string | null }) =>
+    byLine.get(lineKeyOf(row))?.label.ar ?? ''
 
   const rows: LedgerRow[] = []
 
@@ -255,7 +292,7 @@ export async function ledger(scope: AccountingScope, filter: PeriodFilter): Prom
       vatAmount: p.vatAmount,
       totalAmount: p.amount,
       engineKind,
-      activity: engineKind ? ACTIVITY_LABELS[engineKind].ar : '',
+      activity: lineName(p),
       entryType: p.kind === 'REFUND' ? 'RETURN' : 'SALE',
     })
   }
@@ -291,7 +328,7 @@ export async function ledger(scope: AccountingScope, filter: PeriodFilter): Prom
       vatAmount: e.vatAmount,
       totalAmount: e.amount,
       engineKind,
-      activity: engineKind ? ACTIVITY_LABELS[engineKind].ar : '',
+      activity: lineName(e),
       entryType: 'EXPENSE',
     })
   }

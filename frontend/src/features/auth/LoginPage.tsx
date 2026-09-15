@@ -1,98 +1,32 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useTranslation } from 'react-i18next'
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useParams } from "react-router-dom";
 import { ArrowRight, Eye, EyeOff, Lock, Mail, PackageOpen, Rocket } from "lucide-react";
-import { authApi } from "@/api/auth.api";
+import { authApi, type TenantFront } from "@/api/auth.api";
+import { tenantFront } from "@/store/tenant";
+import { applyTenantBranding } from "@/store/branding";
 import { ApiError } from "@/api/client";
 import { useAuthStore } from "@/store/auth";
 import { homeForRole } from "@/permissions/permissions";
 
-const DEMO = [
-  {
-    label: "CEO / tenant admin",
-    email: "admin.wayz@lockerflow.demo",
-    password: "Admin@123",
-  },
-  {
-    label: "Project manager",
-    email: "projects.wayz@lockerflow.demo",
-    password: "Project@123",
-  },
-  {
-    label: "Manager · Shop & Drop + Mobility",
-    email: "manager.wayz@lockerflow.demo",
-    password: "Manager@123",
-  },
-  {
-    label: "Manager · Lagoon",
-    email: "lagoon.manager.wayz@lockerflow.demo",
-    password: "Manager@123",
-  },
-  {
-    label: "Supervisor · Shop & Drop + Mobility",
-    email: "supervisor.wayz@lockerflow.demo",
-    password: "Super@123",
-  },
-  {
-    label: "Supervisor · Lagoon",
-    email: "lagoon.supervisor.wayz@lockerflow.demo",
-    password: "Super@123",
-  },
-  {
-    label: "Accountant",
-    email: "accountant.wayz@lockerflow.demo",
-    password: "Account@123",
-  },
-  {
-    label: "HR & expenses",
-    email: "hr.wayz@lockerflow.demo",
-    password: "People@123",
-  },
-  {
-    label: "Kiosk agent · Iran (Shop & Drop)",
-    email: "agent.wayz@lockerflow.demo",
-    password: "Agent@123",
-  },
-  {
-    label: "Kiosk agent · Morocco (Shop & Drop)",
-    email: "agent.morocco.wayz@lockerflow.demo",
-    password: "Agent@123",
-  },
-  {
-    label: "Kiosk agent · Gate 1 (Mobility)",
-    email: "agent.gate1.wayz@lockerflow.demo",
-    password: "Agent@123",
-  },
-  {
-    label: "Kiosk agent · Egypt (Lagoon)",
-    email: "agent.egypt.wayz@lockerflow.demo",
-    password: "Agent@123",
-  },
-  {
-    label: "Kiosk agent · Mountain jetty (Lagoon)",
-    email: "welcome.wayz@lockerflow.demo",
-    password: "Lagoon@123",
-  },
-  {
-    label: "Chief captain · France jetty",
-    email: "captain.wayz@lockerflow.demo",
-    password: "Lagoon@123",
-  },
-  {
-    label: "Courier · Bilal",
-    email: "courier.wayz@lockerflow.demo",
-    password: "Courier@123",
-  },
-  {
-    label: "Courier · Khalid",
-    email: "courier2.wayz@lockerflow.demo",
-    password: "Courier@123",
-  },
-];
+/*
+ * There is no list of accounts in this file any more, and that is the point.
+ *
+ * It used to hold WAYZ's staff — fourteen of them, with their passwords — and show them on
+ * every sign-in page the product had. A second tenant was therefore invited to sign in with a
+ * first tenant's credentials, which is as wrong as it sounds and could not work.
+ *
+ * What a tenant may advertise now comes from that tenant's own database, and only for
+ * accounts whose recorded password has been checked against the stored hash. See
+ * `platform/demoLogins.ts`. When a deployment says it is not a demonstration, the list is
+ * empty everywhere and nothing here changes to make that true.
+ */
+
 
 export function LoginPage() {
   const { t } = useTranslation(['auth', 'common'])
   const navigate = useNavigate();
+  const { slug } = useParams();
   const setSession = useAuthStore((s) => s.setSession);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -100,12 +34,81 @@ export function LoginPage() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
+  /*
+   * Whose front door this is.
+   *
+   * Reached at /t/<handle>/login it belongs to one company: it wears that company's colours,
+   * lists that company's own seeded accounts, and posts the handle so the sign-in resolves to
+   * that company's database rather than being looked up from the address typed in. Reached at
+   * /login it is the platform's own door and the directory decides, which is what every
+   * existing bookmark and every existing test does.
+   */
+  const [front, setFront] = useState<TenantFront | null>(null);
+  /*
+   * Whether the answer has come back yet — which is a different question from whether there
+   * is a tenant.
+   *
+   * Without it the page renders its branded panel in the platform's own colours for the
+   * fraction of a second before the tenant's arrive. That flash is the "WIQAR identity with
+   * WAYZ colours" the client saw: a real half-branded frame, not a CSS problem. A tenant's
+   * door shows nothing rather than the wrong thing.
+   */
+  const [resolved, setResolved] = useState(false);
+
+  /*
+   * Landing here without a handle is an address from before the platform had tenants.
+   *
+   * `/login` is the platform's own door now and belongs to no company; it cannot show a
+   * sign-in form, because there is no database to sign in to until a workspace is chosen.
+   * Old bookmarks are sent to the gateway to choose one. This is the documented redirect,
+   * and the only back-compatibility this route keeps.
+   */
+  useEffect(() => {
+    if (!slug) navigate('/login', { replace: true });
+  }, [slug, navigate]);
+
+  useEffect(() => {
+    if (!slug) {
+      setFront(null);
+      return;
+    }
+    let live = true;
+    tenantFront(slug)
+      .then((f) => {
+        if (!live) return;
+        if (!f) {
+          setResolved(true);
+          setError(t('login.unknownWorkspace', { defaultValue: 'No workspace at that address.' }));
+          return;
+        }
+        setFront(f);
+        setResolved(true);
+        /*
+         * The colours are painted by the route — see `store/tenant.ts`.
+         *
+         * This is still called so the brand lands in the same frame the name does, rather than
+         * a frame later. It is the same function with the same argument, so the two cannot
+         * disagree; what changed is that this is no longer the only thing that would paint,
+         * and no longer the thing that decides when to stop.
+         */
+        applyTenantBranding(f.branding);
+      })
+      .catch(() => {
+        if (!live) return;
+        setResolved(true);
+        setError(t('login.unknownWorkspace', { defaultValue: 'No workspace at that address.' }));
+      });
+    return () => {
+      live = false;
+    };
+  }, [slug, t]);
+
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
     setLoading(true);
     try {
-      const { token, user } = await authApi.login(email, password);
+      const { token, user } = await authApi.login(email, password, slug);
       setSession(token, user);
       navigate(homeForRole(user.role));
     } catch (err) {
@@ -114,6 +117,25 @@ export function LoginPage() {
       setLoading(false);
     }
   };
+
+  // A tenant's own accounts, verified by the API before it would name them. Never anyone else's.
+  const profiles = front?.demoLogins ?? [];
+  const title = front?.name ?? t('login.workspace', { defaultValue: 'Workspace' });
+
+  /*
+   * Nothing until we know whose door this is.
+   *
+   * Rendering the form first and the identity a moment later is what produced a frame of one
+   * tenant's name over another tenant's colours. A held frame is a fraction of a second; a
+   * wrong one is a bug somebody reports.
+   */
+  if (slug && !resolved) {
+    return (
+      <div className="min-h-screen flex items-center justify-center" data-testid="login-resolving">
+        <div className="w-9 h-9 rounded-full border-2 border-line border-t-transparent animate-spin" />
+      </div>
+    );
+  }
 
   return (
     <div
@@ -132,14 +154,33 @@ export function LoginPage() {
                 "linear-gradient(145deg, rgb(var(--brand-700)) 0%, rgb(var(--brand)) 60%, rgb(var(--secondary)) 100%)",
             }}
           >
-            <div className="w-[110px] h-[110px] rounded-full bg-white/12 border border-white/25 backdrop-blur flex items-center justify-center z-10">
-              <PackageOpen size={54} className="text-white" />
+            <div
+              className="w-[110px] h-[110px] rounded-full bg-white/12 border border-white/25 backdrop-blur flex items-center justify-center z-10 overflow-hidden"
+              data-testid="tenant-brand-mark"
+              style={front ? { backgroundColor: front.branding.primaryColor } : undefined}
+            >
+              {front?.branding.logoUrl ? (
+                <img src={front.branding.logoUrl} alt="" className="w-full h-full object-contain p-4" />
+              ) : front ? (
+                <span className="text-3xl font-extrabold text-white">
+                  {(front.branding.logoText || front.name).slice(0, 2).toUpperCase()}
+                </span>
+              ) : (
+                <PackageOpen size={54} className="text-white" />
+              )}
             </div>
-            <h1 className="text-3xl font-extrabold z-10">Wayz</h1>
-            <p className="text-sm text-white/75 text-center z-10 max-w-xs">
-              Agent-operated multi-engine Web POS — storage, mobility, lagoon,
-              dining & experiences from one workspace.
-            </p>
+            <h1 className="text-3xl font-extrabold z-10" data-testid="tenant-brand-name">{title}</h1>
+            {front?.nameAr && (
+              <p className="text-lg text-white/80 z-10" dir="rtl">
+                {front.nameAr}
+              </p>
+            )}
+            {!front && (
+              <p className="text-sm text-white/75 text-center z-10 max-w-xs">
+                Agent-operated multi-engine Web POS — storage, mobility, lagoon,
+                dining & experiences from one workspace.
+              </p>
+            )}
             <div
               className="absolute -top-16 -end-16 w-72 h-72 rounded-full"
               style={{
@@ -169,7 +210,7 @@ export function LoginPage() {
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  placeholder="agent.wayz@lockerflow.demo"
+                  placeholder="you@company.com"
                   className="lf-input !h-12 !ps-11"
                   required
                 />
@@ -238,10 +279,11 @@ export function LoginPage() {
                 <ArrowRight size={16} className="text-muted group-hover:text-brand shrink-0 rtl:rotate-180" />
               </Link>
 
-              <div className="mt-6 pt-5 border-t border-line">
+              {profiles.length > 0 && (
+              <div className="mt-6 pt-5 border-t border-line" data-testid="login-demo-accounts">
                 <p className="text-[11px] uppercase tracking-wide text-muted font-bold mb-2">{t('login.demoAccounts')}</p>
                 <div className="flex flex-col gap-1.5">
-                  {DEMO.map((d) => (
+                  {profiles.map((d) => (
                     <button
                       key={d.email}
                       type="button"
@@ -258,9 +300,10 @@ export function LoginPage() {
                   ))}
                 </div>
                 <p className="text-[11px] text-muted mt-2">
-                  Admin@123 · Project@123 · Manager@123 · Super@123 · Account@123 · People@123 · Agent@123 · Lagoon@123 · Courier@123
+                  {[...new Set(profiles.map((d) => d.password))].join(' · ')}
                 </p>
               </div>
+              )}
             </form>
           </div>
         </div>

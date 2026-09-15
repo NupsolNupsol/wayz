@@ -86,11 +86,21 @@ async function sendInvitation(user: UserDoc, invitedBy: string): Promise<InviteR
 
 const LAGOON: EngineKind = 'LAGOON'
 
-function resolveEngines(role: Role, engineKinds?: EngineKind[] | null): EngineKind[] {
+/**
+ * Which built-in activities this person works.
+ *
+ * `activityKeys` is passed in because of what it means for this check rather than for what it
+ * returns: somebody hired onto an activity their own company defined has no built-in engine
+ * kind at all, and demanding one was the last place a WAYZ-shaped assumption still refused a
+ * perfectly valid member of staff. Assigned to something — either kind of something — is the
+ * real requirement.
+ */
+function resolveEngines(role: Role, engineKinds?: EngineKind[] | null, activityKeys?: string[] | null): EngineKind[] {
   if (!ACTIVITY_SCOPED.includes(role)) return []
 
   const engines = [...new Set(engineKinds ?? [])]
   if (!engines.length) {
+    if ((activityKeys ?? []).length > 0) return []
     throw ApiError.badRequest('Choose the activity this person works — they only see the ones they are assigned to.')
   }
   for (const engine of engines) {
@@ -124,8 +134,15 @@ async function resolveKiosk(
   if (kiosk.stationId !== stationId) {
     throw ApiError.badRequest('That kiosk belongs to a different station.')
   }
-  if (!engines.includes(kiosk.engineKind)) {
-    throw ApiError.badRequest(`${kiosk.name} runs ${kiosk.engineKind.replaceAll('_', ' ').toLowerCase()}, not the activity you chose.`)
+  /*
+   * A desk that runs only activities its own tenant defined has no built-in engine to match
+   * against, and there is nothing to check here: which of those activities somebody works is
+   * recorded on the person, not inferred from the counter they stand at.
+   */
+  if (kiosk.engineKind && !engines.includes(kiosk.engineKind)) {
+    throw ApiError.badRequest(
+      `${kiosk.name} runs ${kiosk.engineKind.replaceAll('_', ' ').toLowerCase()}, not the activity you chose.`,
+    )
   }
   return kiosk._id
 }
@@ -230,6 +247,10 @@ export async function listStaff(scope: ManagerScope) {
     gateId: u.gateId ?? null,
     gateName: u.gateId ? (gateName.get(u.gateId) ?? u.gateId) : null,
     engineKinds: u.engineKinds ?? [],
+    // Activities this tenant invented for itself, by key. See activity.model.ts.
+    activityKeys: u.activityKeys ?? [],
+    /** The job they hold, as their own company defines it. See roleDefinition.model.ts. */
+    roleKey: u.roleKey ?? null,
     reportsTo: u.reportsTo ?? null,
     reportsToName: u.reportsTo ? (leadName.get(u.reportsTo) ?? u.reportsTo) : null,
     lastLoginAt: u.lastLoginAt ?? null,
@@ -248,7 +269,7 @@ export async function createStaff(scope: ManagerScope, input: StaffInput) {
   const station = await Station.findOne({ _id: input.stationId, tenantId: scope.tenantId }).lean()
   if (!station) throw ApiError.badRequest('That station does not exist in this tenant.')
 
-  const engines = resolveEngines(input.role, input.engineKinds)
+  const engines = resolveEngines(input.role, input.engineKinds, input.activityKeys)
 
   const user = await User.create({
     _id: await nextId('user'),
@@ -264,6 +285,19 @@ export async function createStaff(scope: ManagerScope, input: StaffInput) {
     kioskId: await resolveKiosk(scope.tenantId, input.role, engines, input.stationId, input.kioskId),
     gateId: await resolveGate(scope.tenantId, input.role, engines, input.stationId, input.gateId),
     engineKinds: engines,
+    /*
+     * The tenant's own activities this person works.
+     *
+     * Kept apart from `engineKinds`, which names the activities the product ships with. A
+     * tenant's key lives only in that tenant's database, so mixing the two lists would let a
+     * company call an activity `MOBILITY` and inherit behaviour nobody granted it.
+     */
+    activityKeys: [...new Set(input.activityKeys ?? [])],
+    /*
+     * The job their company defined, which is where their permissions and scope come from.
+     * `role` above is only the platform primitive — see the note on the user model.
+     */
+    roleKey: input.roleKey ?? null,
     reportsTo: await resolveReportsTo(scope.tenantId, input.role, input.reportsTo),
     phone: input.phone ?? '',
     active: true,
@@ -347,9 +381,13 @@ export async function updateStaff(
   if (patch.phone !== undefined) user.phone = patch.phone
   if (patch.active !== undefined) user.active = patch.active
 
+  if (patch.activityKeys !== undefined) user.activityKeys = [...new Set(patch.activityKeys)]
+  if (patch.roleKey !== undefined) user.roleKey = patch.roleKey
+
   user.engineKinds = resolveEngines(
     user.role,
     patch.engineKinds !== undefined ? patch.engineKinds : user.engineKinds,
+    user.activityKeys,
   )
   user.kioskId = await resolveKiosk(
     scope.tenantId,

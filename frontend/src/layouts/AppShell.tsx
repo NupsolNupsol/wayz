@@ -8,6 +8,9 @@ import { useAuthStore } from '@/store/auth'
 import { applyThemeMode } from '@/store/theme'
 import { Toaster } from '@/components/Toaster'
 import { ReceiptAutoPrint } from '@/features/invoice/ReceiptAutoPrint'
+import { AssistantProvider } from '@/features/assistant/AssistantProvider'
+import { AssistantLauncher } from '@/features/assistant/AssistantLauncher'
+import { OnboardingTour } from '@/features/onboarding/OnboardingTour'
 
 const COLLAPSE_KEY = 'wayz.sidebar.collapsed'
 
@@ -29,6 +32,12 @@ export function AppShell() {
   const sw = collapsed ? 'narrow' : 'wide'
 
   return (
+    /*
+     * The assistant wraps the whole workspace, not one page, for two reasons: the floating
+     * button has to be reachable everywhere, and pages register their own context through
+     * this provider — a page cannot introduce itself to something mounted beside it.
+     */
+    <AssistantProvider>
     <div>
       <Sidebar
         collapsed={collapsed}
@@ -56,6 +65,9 @@ export function AppShell() {
       </main>
       <Toaster />
       <ReceiptAutoPrint />
+      <AssistantLauncher />
+      <OnboardingTour />
     </div>
+    </AssistantProvider>
   )
 }

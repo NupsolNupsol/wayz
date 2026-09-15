@@ -586,6 +586,8 @@ export async function payBooking(scope: Scope, bookingId: string, splits: Paymen
         vatAmount: tax.vatAmount,
         vatRate: tax.vatRate,
         engineKind: booking.engineKind,
+        // The revenue dimension for a tenant that defines its own activities.
+        activityKey: booking.activity?.key ?? null,
         payerId: s.payerId ?? booking.customerId,
         payerName: payerById.get(s.payerId ?? booking.customerId)?.name ?? booking.customerName,
         method: s.method,
@@ -884,6 +886,7 @@ export async function settleOutstanding(scope: Scope, booking: BookingHydrated, 
         vatAmount: tax.vatAmount,
         vatRate: tax.vatRate,
         engineKind: booking.engineKind,
+        activityKey: booking.activity?.key ?? null,
         method: s.method,
         cardScheme: s.method === 'CARD' ? (s.cardScheme ?? null) : null,
         kind: 'OVERTIME',
@@ -1031,6 +1034,11 @@ const REPLACEMENT_CODES = ['TO_REASSIGNED', 'TO_REPLACED']
 
 async function replacementCode(scope: Scope, bookingId: string): Promise<string> {
   const booking = await loadBooking(scope, bookingId)
+  // Swapping a faulty unit mid-hire is a built-in engine's step. An activity that wants one
+  // defines it in its own workflow, where it is applied by the activity session service.
+  if (booking.engineKind === null) {
+    throw ApiError.unprocessable('This booking follows its own activity’s steps.')
+  }
   const wf = getWorkflow(booking.engineKind)
   const available = (wf?.transitions ?? []).filter(
     (t) => REPLACEMENT_CODES.includes(t.code) && t.source.includes(booking.status),

@@ -98,6 +98,18 @@ const schema = z.object({
       message: 'STATIC_OTP must be at least 4 characters, or left blank for none.',
     }),
 
+  /**
+   * Whether a tenant's sign-in screen lists the demo accounts that tenant seeded.
+   *
+   * A demonstration wants them — somebody trying the product should not have to be told a
+   * password. A real deployment must never publish a list of working accounts, so this is
+   * off unless a deployment says otherwise.
+   */
+  DEMO_LOGINS: z
+    .enum(['true', 'false'])
+    .default('false')
+    .transform((v) => v === 'true'),
+
   OTP_TEST_PEEK: z
     .enum(['true', 'false'])
     .default('false')
@@ -147,6 +159,34 @@ const schema = z.object({
     .optional(),
 
   EXPIRY_WARNING_MINUTES: z.coerce.number().int().positive().default(15),
+
+  /**
+   * The learning/AI service, and the credential used to reach it.
+   *
+   * Deliberately a *different* secret from JWT_SECRET. They protect different things: one
+   * proves an employee's session to this API, the other proves this API's identity to the
+   * AI service. Sharing them would mean a leaked tenant token is also the key that mints
+   * "I am a platform administrator" on the other side.
+   *
+   * Both optional. Unset, the assistant is simply off — every learning route answers that
+   * it is not configured, and nothing else in the product changes.
+   */
+  AI_SERVICE_URL: z
+    .string()
+    .trim()
+    .transform((v) => v || undefined)
+    .refine((v) => !v || /^https?:\/\/\S+$/.test(v), 'AI_SERVICE_URL must be an http(s) address.')
+    .optional(),
+  AI_SERVICE_SECRET: z
+    .string()
+    .trim()
+    .transform((v) => v || undefined)
+    .refine(
+      (v) => !v || v.length >= 32,
+      'AI_SERVICE_SECRET must be at least 32 characters, or left blank to disable the assistant.',
+    )
+    .optional(),
+  AI_SERVICE_TIMEOUT_MS: z.coerce.number().int().positive().default(60_000),
 })
 
 const parsed = schema.safeParse(process.env)

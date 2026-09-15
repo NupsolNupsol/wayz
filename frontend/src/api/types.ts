@@ -20,6 +20,8 @@ export interface Branding {
   accentColor: string
   fontFamily: string
   logoText: string
+  /** A data URI, when the tenant uploaded a mark. Held in the registry — see the control plane. */
+  logoUrl?: string | null
 }
 
 export interface Me {
@@ -29,8 +31,21 @@ export interface Me {
   role: Role
   phone: string
   engineKinds: EngineKind[]
+  /**
+   * The activities this person works, by the tenant's own keys.
+   *
+   * Kept separate from `engineKinds` all the way to the browser, for the same reason it is kept
+   * separate in the database: those are the platform's own activities, whose names are compiled
+   * in, and these exist only in one company's database. Merging the two lists would let a
+   * company name an activity `MOBILITY` and inherit behaviour nobody granted it.
+   */
+  activityKeys?: string[]
+  /** The job this person holds, as their own company defines it. See role.api.ts. */
+  roleKey?: string | null
   tenant: {
     id: string
+    /** The handle this tenant is reached at — `/t/<slug>/…`. From the control-plane registry. */
+    slug: string
     name: string
     legalName: string
     crNumber: string
@@ -38,6 +53,13 @@ export interface Me {
     currency: string
     vatRate: number
     enabledEngines: EngineKind[]
+    /**
+     * What this tenant may do, from the control plane.
+     *
+     * Navigation and screens ask about these rather than about the tenant's name, which is
+     * what keeps a company that runs horse tours from being offered a lagoon captain.
+     */
+    capabilities?: string[]
     branding: Branding
     discountReasons?: { code: string; label: string; maxPercent: number; needsApproval?: boolean }[]
     autoPrintReceipt?: boolean

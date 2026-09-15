@@ -10,8 +10,15 @@ import { engineLabel } from '@/config/engineMeta'
 import { CHART_COLORS } from '@/config/chartColors'
 import { formatDayLabel, money } from '@/utils'
 import type { EngineKind } from '@/api/types'
+import { usePageContext, PAGE_KEYS } from '@/features/assistant/pageContext'
 
 export function ManagerOverview() {
+  usePageContext({
+    pageKey: PAGE_KEYS.managerOverview,
+    module: 'MANAGER',
+    screenTitle: 'لوحة المدير',
+  })
+
   const { t } = useTranslation(['manager', 'common'])
   const navigate = useNavigate()
   const { data, isLoading } = useManagerOverview()

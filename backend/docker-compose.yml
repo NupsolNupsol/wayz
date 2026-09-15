@@ -37,6 +37,33 @@ services:
       timeout: 5s
       retries: 5
 
+  # The vector index behind the employee AI assistant. Its data is a named volume, so a
+  # rebuild does not mean re-embedding every knowledge document.
+  #
+  # The port is bound to 127.0.0.1 deliberately: Qdrant has no authentication by default and
+  # a dashboard that will happily list every collection. Nothing outside this host needs to
+  # reach it — the AI service talks to it over the Compose network by service name.
+  qdrant:
+    image: qdrant/qdrant:v1.12.4
+    container_name: lockerflow-qdrant
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:6333:6333"
+    environment:
+      # List syntax, and no default, on purpose: Qdrant switches authentication ON the moment
+      # this variable EXISTS — an empty value is still a value, and every request then gets a
+      # 401. Written this way the variable is absent unless a deployment sets one, which is
+      # the correct default for a port bound to 127.0.0.1 on an internal network.
+      - QDRANT__SERVICE__API_KEY
+    volumes:
+      - qdrant_data:/qdrant/storage
+    healthcheck:
+      # Qdrant's image has no curl or wget; its own binary answers this.
+      test: ["CMD", "/qdrant/qdrant", "--version"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
   api:
     build:
       # The platform root: the API's package.json depends on ../workflow, which is outside
@@ -50,6 +77,10 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
+      learning-ai:
+        # started, not healthy: the AI service is reachable long before BGE-M3 has finished
+        # loading, and the booking API must not wait on a model to start taking bookings.
+        condition: service_started
     environment:
       # --- Docker infrastructure: fixed, container-only. Never read from .env. ----------
       NODE_ENV: production
@@ -70,6 +101,14 @@ services:
       JWT_EXPIRES_IN: ${JWT_EXPIRES_IN:-12h}
       EXPIRY_WARNING_MINUTES: ${EXPIRY_WARNING_MINUTES:-15}
 
+      # --- The control plane's first administrator. --------------------------------------
+      # Read once at boot: if no platform administrator exists, one is created from these.
+      # There is no public signup, so this is the only way the first one comes into being.
+      # Unset, the API starts and says plainly that it has not been bootstrapped.
+      PLATFORM_ADMIN_EMAIL: ${PLATFORM_ADMIN_EMAIL:-}
+      PLATFORM_ADMIN_NAME: ${PLATFORM_ADMIN_NAME:-Platform Administrator}
+      PLATFORM_ADMIN_PASSWORD: ${PLATFORM_ADMIN_PASSWORD:-}
+
       # --- What this deployment is for. -------------------------------------------------
       # MODE says who the server is for, not how it was built: `dev` is a server a test team uses,
       # `live` is one customers reach. STATIC_OTP is a confirmation code that always works, and it
@@ -84,6 +123,8 @@ services:
       # response, DEMO_SCANNER returns parcel barcodes so the UI can fake a hardware scan.
       # They default to true here because this Compose stack is the demo environment; set them
       # to false in the host environment for any deployment that real customers can reach.
+      # Lists each tenant's own seeded accounts on its sign-in screen. Demo stacks only.
+      DEMO_LOGINS: ${DEMO_LOGINS:-true}
       OTP_TEST_PEEK: ${OTP_TEST_PEEK:-true}
       INVITE_TEST_PEEK: ${INVITE_TEST_PEEK:-true}
       DEMO_SCANNER: ${DEMO_SCANNER:-true}
@@ -98,6 +139,13 @@ services:
       # JWT_SECRET has no default on purpose — Compose refuses to start without it rather
       # than silently signing tokens with a key that is public in this repository.
       JWT_SECRET: ${JWT_SECRET:?JWT_SECRET is required — set it in backend/.env (see .env.example)}
+
+      # Where the learning/AI service is, and the separate secret used to sign the
+      # short-lived actor token sent with every call to it. Unset, the assistant is simply
+      # off: the API says so and no employee-facing feature breaks.
+      AI_SERVICE_URL: http://learning-ai:8088
+      AI_SERVICE_SECRET: ${AI_SERVICE_SECRET:-}
+      AI_SERVICE_TIMEOUT_MS: ${AI_SERVICE_TIMEOUT_MS:-60000}
 
       # Vonage WhatsApp OTP. Unset leaves OTP delivery in mock mode.
       VONAGE_API_KEY: ${VONAGE_API_KEY:-}
@@ -127,6 +175,56 @@ services:
     ports:
       - "4000:4000"
 
+  # The Python learning/AI service. Separate process, separate image, separate language —
+  # RAG, embeddings and speech have nothing to do with the booking API and would drag torch
+  # into it. The browser never reaches this; only the API above does, over the internal
+  # network, and no port is published.
+  learning-ai:
+    build:
+      context: ../learning-ai-service
+      dockerfile: Dockerfile
+      target: runtime
+    container_name: lockerflow-learning-ai
+    restart: unless-stopped
+    depends_on:
+      qdrant:
+        condition: service_healthy
+      mongo:
+        condition: service_healthy
+    environment:
+      # --- Docker infrastructure: fixed, container-only. Never read from .env. ----------
+      ENVIRONMENT: production
+      PORT: 8088
+      QDRANT_URL: http://qdrant:6333
+      MONGODB_URI: mongodb://mongo:27017
+      AI_DB_NAME: lockerflow_ai
+
+      # --- The shared secret, the same one the API signs with. -------------------------
+      # No default, like JWT_SECRET above: a service that cannot tell LockerFlow from anyone
+      # else who can reach the port should refuse to start rather than trust everybody.
+      AI_SERVICE_SECRET: ${AI_SERVICE_SECRET:?AI_SERVICE_SECRET is required — set it in backend/.env (see .env.example)}
+      QDRANT_API_KEY: ${QDRANT__SERVICE__API_KEY:-}
+
+      # --- OpenAI. Answer generation only; embeddings are local and cost nothing. -------
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      OPENAI_MODEL: ${OPENAI_MODEL:-gpt-4o}
+      OPENAI_API_STYLE: ${OPENAI_API_STYLE:-responses}
+
+      # --- Local models. ---------------------------------------------------------------
+      EMBEDDING_MODEL: ${EMBEDDING_MODEL:-BAAI/bge-m3}
+      EMBEDDING_DIM: ${EMBEDDING_DIM:-1024}
+      TTS_PROVIDER: ${TTS_PROVIDER:-piper}
+      LOG_LEVEL: ${AI_LOG_LEVEL:-INFO}
+      RETRIEVAL_MIN_SCORE: ${RETRIEVAL_MIN_SCORE:-0.30}
+    volumes:
+      # BGE-M3 is ~2.3 GB and is downloaded on first use. In a volume it survives every
+      # rebuild; in a layer it would be re-fetched whenever the image changed.
+      - ai_models:/models/hf
+      - ai_tts_cache:/var/cache/lockerflow-tts
+
 volumes:
   mongo_data:
   redis_data:
+  qdrant_data:
+  ai_models:
+  ai_tts_cache:

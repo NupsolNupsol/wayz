@@ -14,6 +14,8 @@ import {
 } from '../domain/types.js'
 import type { AssetUnitStatus, BagCategory, BillingModel, EngineKind, Role, SaleType, SaleUnit } from '../domain/types.js'
 import { canWorkEngine, engineFilter } from '../domain/access.js'
+import type { EffectiveAccess } from './authorisation.service.js'
+import { visibleResourceKindQuery } from './resourceScope.service.js'
 import { tenantRules } from './rules.service.js'
 import type { Scope } from '../interfaces/index.js'
 import { FLOOR_LEADS } from '../domain/roles.js'
@@ -26,7 +28,16 @@ export interface AssetScope {
   engineKinds?: EngineKind[]
 }
 
-function assertOwns(scope: AssetScope, engineKind: EngineKind) {
+/**
+ * Refuses somebody reaching for a built-in activity they do not work.
+ *
+ * A kind with **no** engine belongs to none of the platform's built-in activities — a horse, a
+ * camel, a photo studio — so there is nothing here to refuse. Whether that person may see it
+ * is decided by their resource scope instead: the activities they work, at the locations they
+ * are posted to. See `services/resourceScope.service.ts`.
+ */
+function assertOwns(scope: AssetScope, engineKind: EngineKind | null) {
+  if (!engineKind) return
   if (!canWorkEngine({ role: scope.role, engineKinds: scope.engineKinds }, engineKind)) {
     throw ApiError.forbidden('You are not assigned to that activity.')
   }
@@ -98,10 +109,41 @@ async function productFor(tenantId: string, assetTypeId: string) {
   return CatalogueProduct.findOne({ tenantId, assetTypeId }).sort({ basePrice: 1, _id: 1 }).lean()
 }
 
-export async function listAssetTypes(scope: AssetScope, engineKind?: EngineKind) {
+/**
+ * The kinds of resource this person may see.
+ *
+ * Two paths, and which one is taken is decided by the tenant, not by a flag:
+ *
+ *  - a company that has **defined its own jobs** is answered by its own configuration — the
+ *    kinds its activities use, at the places this person is posted;
+ *  - a company that has **not** (an installation predating role definitions) keeps the
+ *    behaviour it has always had, where visibility follows the built-in engines its people
+ *    are assigned to.
+ *
+ * The second path is the reason this is not simply replaced. The first is the reason it is no
+ * longer the only one: `engineFilter` answers `{ $in: [] }` for anybody with no engines, so
+ * under the old code a horse trainer — who has no engines and never will — was shown nothing
+ * at all, and the platform had no way to say otherwise.
+ */
+async function kindMatchFor(
+  scope: AssetScope,
+  access: EffectiveAccess | null,
+  engineKind?: EngineKind,
+): Promise<Record<string, unknown>> {
+  if (access?.roleKey) {
+    const { filter } = await visibleResourceKindQuery(access)
+    // A caller may still narrow by engine; a tenant with its own jobs simply never passes one.
+    return engineKind ? { ...filter, engineKind } : filter
+  }
+
   const match: Record<string, unknown> = { tenantId: scope.tenantId }
   const engines = engineFilter({ role: scope.role, engineKinds: scope.engineKinds }, engineKind)
   if (engines !== undefined) match.engineKind = engines
+  return match
+}
+
+export async function listAssetTypes(scope: AssetScope, engineKind?: EngineKind, access: EffectiveAccess | null = null) {
+  const match = await kindMatchFor(scope, access, engineKind)
 
   const [types, unitAgg, products, unitStations] = await Promise.all([
     AssetType.find(match).sort({ engineKind: 1, name: 1 }).lean(),
@@ -576,7 +618,7 @@ export async function addUnits(
     if (!input.kioskId) {
       if (desks.length === 0) {
         throw ApiError.unprocessable(
-          `${station.name} has no ${type.engineKind.replaceAll('_', ' ').toLowerCase()} desk yet — create one before adding ${type.name}.`,
+          `${station.name} has no desk for ${type.name} yet — create one before adding it.`,
         )
       }
       throw ApiError.badRequest('Choose the desk these assets live at.', [
@@ -590,7 +632,9 @@ export async function addUnits(
       if (!anywhere) throw ApiError.badRequest('That desk does not exist in this tenant.')
       if (anywhere.stationId !== input.stationId) throw ApiError.badRequest('That desk does not belong to the chosen station.')
       throw ApiError.badRequest(
-        `${anywhere.name} runs ${anywhere.engineKind.replaceAll('_', ' ').toLowerCase()}, so it cannot hold ${type.name}.`,
+        anywhere.engineKind
+          ? `${anywhere.name} runs ${anywhere.engineKind.replaceAll('_', ' ').toLowerCase()}, so it cannot hold ${type.name}.`
+          : `${anywhere.name} runs activities this tenant defined, so it cannot hold ${type.name}.`,
       )
     }
     placedAtKiosk = kiosk._id
@@ -707,16 +751,24 @@ export async function updateUnit(
     if (!station) throw ApiError.badRequest('That station does not exist in this tenant.')
 
     const type = await AssetType.findOne({ _id: unit.assetTypeId, tenantId: scope.tenantId }, { engineKind: 1 }).lean()
-    if (type && !station.engineKinds.includes(type.engineKind)) {
-      throw ApiError.badRequest(`${station.name} does not run ${type.engineKind.replaceAll('_', ' ').toLowerCase()}.`)
+    /*
+     * A kind with no built-in engine is not bound to a station's engine list.
+     *
+     * A tenant running only its own activities has stations that name no engine at all, and
+     * comparing the two would refuse every move it ever made.
+     */
+    if (type?.engineKind && !station.engineKinds.includes(type.engineKind)) {
+      throw ApiError.badRequest(`${station.name} does not run ${(type.engineKind ?? 'that activity').replaceAll('_', ' ').toLowerCase()}.`)
     }
 
     const kioskId = input.kioskId === undefined ? unit.kioskId : input.kioskId
     if (kioskId) {
       const kiosk = await Kiosk.findOne({ _id: kioskId, tenantId: scope.tenantId, stationId }).lean()
       if (!kiosk) throw ApiError.badRequest('That kiosk does not belong to the chosen station.')
-      if (type && kiosk.engineKind !== type.engineKind) {
-        throw ApiError.badRequest(`${kiosk.name} runs ${kiosk.engineKind.replaceAll('_', ' ').toLowerCase()}, so it cannot hold ${unit.identifier}.`)
+      if (type && kiosk.engineKind && kiosk.engineKind !== type.engineKind) {
+        throw ApiError.badRequest(
+          `${kiosk.name} runs ${kiosk.engineKind.replaceAll('_', ' ').toLowerCase()}, so it cannot hold ${unit.identifier}.`,
+        )
       }
     }
 
@@ -821,7 +873,12 @@ export async function updateTypePrice(
     // hire quietly costs the same as a one-hour one.
     const billing = billingForSaleUnit(input.saleUnit, product.billingModel)
     if (!saleUnitMatchesBilling(input.saleUnit, product.billingModel)) {
-      if (!billingAllowedFor(product.engineKind).includes(billing)) {
+      /*
+       * How a built-in activity may be charged is the platform's rule — a lagoon trip is sold
+       * as a trip. A product a tenant defined for itself has no such rule to break, so there
+       * is nothing to refuse.
+       */
+      if (product.engineKind && !billingAllowedFor(product.engineKind).includes(billing)) {
         throw ApiError.unprocessable(
           `${product.engineKind.toLowerCase().replace(/_/g, ' ')} cannot be sold by ${input.saleUnit.toLowerCase().replace(/_/g, ' ')}.`,
           [`It can be charged: ${billingAllowedFor(product.engineKind).join(', ')}.`],

@@ -9,6 +9,15 @@ export interface NavItem {
   permission?: Permission
   engineKind?: EngineKind
   /**
+   * The tenant capability this entry belongs to.
+   *
+   * Navigation is generated from what a company is allowed to do, not from what activities a
+   * person happens to be assigned. That difference is the whole point: a company that never
+   * enabled bag storage has no Shop & Drop in its sidebar, and nobody had to write that
+   * company's name down to arrange it.
+   */
+  capability?: string
+  /**
    * Only shown to staff posted to a gate.
    *
    * A gate is a locker hall, and only some people answer for one — a mobility agent does, a Shop
@@ -51,6 +60,9 @@ export const MANAGER_NAV: NavGroup[] = [
     label: 'Administration',
     items: [
       { id: 'mgr-org', label: 'Organisation', to: '/manager/organisation', icon: 'Building2', testId: 'nav-mgr-org', permission: 'manager.configure' },
+      // Activities this tenant defined for itself, as opposed to the ones the platform ships.
+      { id: 'mgr-activities', label: 'Activities', to: '/manager/activities', icon: 'Blocks', testId: 'nav-mgr-activities', permission: 'manager.configure' },
+      { id: 'mgr-roles', label: 'Roles', to: '/manager/roles', icon: 'ShieldCheck', testId: 'nav-mgr-roles', permission: 'manager.configure' },
       { id: 'mgr-estate', label: 'Assets', to: '/assets', icon: 'Grid3x3', testId: 'nav-mgr-estate' },
       { id: 'mgr-team', label: 'Team', to: '/manager/team', icon: 'UserCog', testId: 'nav-mgr-team', permission: 'manager.configure' },
       { id: 'mgr-settings', label: 'Settings', to: '/manager/settings', icon: 'Settings', testId: 'nav-mgr-settings', permission: 'manager.configure' },
@@ -70,6 +82,7 @@ export const MANAGER_NAV: NavGroup[] = [
     label: 'Help & docs',
     items: [
       { id: 'manual', label: 'User manual', to: '/help/manual', icon: 'BookOpen', testId: 'nav-manual' },
+      { id: 'training', label: 'Training & help', to: '/help/training', icon: 'GraduationCap', testId: 'nav-training' },
     ],
   },
 ]
@@ -103,6 +116,7 @@ export const ACCOUNTANT_NAV: NavGroup[] = [
     label: 'Help & docs',
     items: [
       { id: 'manual', label: 'User manual', to: '/help/manual', icon: 'BookOpen', testId: 'nav-manual' },
+      { id: 'training', label: 'Training & help', to: '/help/training', icon: 'GraduationCap', testId: 'nav-training' },
     ],
   },
 ]
@@ -127,6 +141,7 @@ export const HR_NAV: NavGroup[] = [
     label: 'Help & docs',
     items: [
       { id: 'manual', label: 'User manual', to: '/help/manual', icon: 'BookOpen', testId: 'nav-manual' },
+      { id: 'training', label: 'Training & help', to: '/help/training', icon: 'GraduationCap', testId: 'nav-training' },
     ],
   },
 ]
@@ -148,6 +163,8 @@ export const TENANT_ADMIN_NAV: NavGroup[] = [
     label: 'Estate',
     items: [
       { id: 'admin-org', label: 'Sites & stations', to: '/manager/organisation', icon: 'MapPin', testId: 'nav-admin-org' },
+      { id: 'admin-activities', label: 'Activities', to: '/manager/activities', icon: 'Blocks', testId: 'nav-admin-activities' },
+      { id: 'admin-roles', label: 'Roles & permissions', to: '/manager/roles', icon: 'ShieldCheck', testId: 'nav-admin-roles' },
       { id: 'admin-stations', label: 'Station map', to: '/admin/stations', icon: 'Map', testId: 'nav-admin-stations' },
       { id: 'admin-assets', label: 'All assets', to: '/assets', icon: 'Grid3x3', testId: 'nav-admin-assets' },
     ],
@@ -189,6 +206,7 @@ export const TENANT_ADMIN_NAV: NavGroup[] = [
     label: 'Help & docs',
     items: [
       { id: 'manual', label: 'User manual', to: '/help/manual', icon: 'BookOpen', testId: 'nav-manual' },
+      { id: 'training', label: 'Training & help', to: '/help/training', icon: 'GraduationCap', testId: 'nav-training' },
     ],
   },
 ]
@@ -212,6 +230,7 @@ export const COURIER_NAV: NavGroup[] = [
     label: 'Help & docs',
     items: [
       { id: 'manual', label: 'User manual', to: '/help/manual', icon: 'BookOpen', testId: 'nav-manual' },
+      { id: 'training', label: 'Training & help', to: '/help/training', icon: 'GraduationCap', testId: 'nav-training' },
     ],
   },
 ]
@@ -234,7 +253,10 @@ export const CAPTAIN_NAV: NavGroup[] = [
   {
     id: 'help',
     label: 'Help & docs',
-    items: [{ id: 'manual', label: 'User manual', to: '/help/manual', icon: 'BookOpen', testId: 'nav-manual' }],
+    items: [
+      { id: 'manual', label: 'User manual', to: '/help/manual', icon: 'BookOpen', testId: 'nav-manual' },
+      { id: 'training', label: 'Training & help', to: '/help/training', icon: 'GraduationCap', testId: 'nav-training' },
+    ],
   },
 ]
 
@@ -248,28 +270,28 @@ export const AGENT_NAV: NavGroup[] = [
     id: 'sell',
     label: 'Sell',
     items: [
-      { id: 'pos', label: 'New Transaction', to: '/pos', icon: 'CirclePlus', permission: 'pos.use', testId: 'nav-pos' },
+      { id: 'pos', label: 'New Transaction', to: '/pos', icon: 'CirclePlus', permission: 'pos.use', capability: 'POS', testId: 'nav-pos' },
     ],
   },
   {
     id: 'engines',
     label: 'Engines',
     items: [
-      { id: 'shopdrop', label: 'Shop & Drop', to: '/shop-drop', icon: 'ShoppingBag', engineKind: 'SHOP_AND_DROP', permission: 'pos.use', testId: 'nav-shopdrop' },
-      { id: 'mobility', label: 'Mobility Rentals', to: '/mobility', icon: 'Bike', engineKind: 'MOBILITY', permission: 'pos.use', testId: 'nav-mobility' },
-      { id: 'lagoon', label: 'Lagoon', to: '/lagoon', icon: 'Sailboat', engineKind: 'LAGOON', permission: 'pos.use', testId: 'nav-lagoon' },
-      { id: 'lagoon-trips', label: 'Boats & trips', to: '/lagoon/trips', icon: 'Ship', engineKind: 'LAGOON', permission: 'trip.plan', testId: 'nav-lagoon-trips' },
-      { id: 'lagoon-captain', label: 'My trips', to: '/lagoon/captain', icon: 'Anchor', engineKind: 'LAGOON', permission: 'trip.sail', testId: 'nav-lagoon-captain' },
-      { id: 'lagoon-voyage', label: 'Chart & sail', to: '/lagoon/voyage', icon: 'Map', engineKind: 'LAGOON', permission: 'trip.sail', testId: 'nav-lagoon-voyage' },
+      { id: 'shopdrop', label: 'Shop & Drop', to: '/shop-drop', icon: 'ShoppingBag', engineKind: 'SHOP_AND_DROP', capability: 'STORAGE', permission: 'pos.use', testId: 'nav-shopdrop' },
+      { id: 'mobility', label: 'Mobility Rentals', to: '/mobility', icon: 'Bike', engineKind: 'MOBILITY', capability: 'RENTALS', permission: 'pos.use', testId: 'nav-mobility' },
+      { id: 'lagoon', label: 'Lagoon', to: '/lagoon', icon: 'Sailboat', engineKind: 'LAGOON', capability: 'BOATS', permission: 'pos.use', testId: 'nav-lagoon' },
+      { id: 'lagoon-trips', label: 'Boats & trips', to: '/lagoon/trips', icon: 'Ship', engineKind: 'LAGOON', capability: 'BOATS', permission: 'trip.plan', testId: 'nav-lagoon-trips' },
+      { id: 'lagoon-captain', label: 'My trips', to: '/lagoon/captain', icon: 'Anchor', engineKind: 'LAGOON', capability: 'BOATS', permission: 'trip.sail', testId: 'nav-lagoon-captain' },
+      { id: 'lagoon-voyage', label: 'Chart & sail', to: '/lagoon/voyage', icon: 'Map', engineKind: 'LAGOON', capability: 'BOATS', permission: 'trip.sail', testId: 'nav-lagoon-voyage' },
     ],
   },
   {
     id: 'operations',
     label: 'Operations',
     items: [
-      { id: 'my-gate', label: 'My gate', to: '/my-gate', icon: 'DoorOpen', needsGate: true, testId: 'nav-my-gate' },
+      { id: 'my-gate', label: 'My gate', to: '/my-gate', icon: 'DoorOpen', capability: 'STORAGE', needsGate: true, testId: 'nav-my-gate' },
       { id: 'active', label: 'Active Operations', to: '/operations', icon: 'Activity', testId: 'nav-operations' },
-      { id: 'deliveries', label: 'Deliveries', to: '/deliveries', icon: 'Truck', permission: 'delivery.request', testId: 'nav-deliveries' },
+      { id: 'deliveries', label: 'Deliveries', to: '/deliveries', icon: 'Truck', capability: 'DELIVERY', permission: 'delivery.request', testId: 'nav-deliveries' },
       { id: 'assets', label: 'Assets', to: '/assets', icon: 'Grid3x3', permission: 'assets.view', testId: 'nav-assets' },
       { id: 'incidents', label: 'Incidents', to: '/incidents', icon: 'TriangleAlert', permission: 'incident.report', testId: 'nav-incidents' },
     ],
@@ -306,6 +328,7 @@ export const AGENT_NAV: NavGroup[] = [
     label: 'Help & docs',
     items: [
       { id: 'manual', label: 'User manual', to: '/help/manual', icon: 'BookOpen', testId: 'nav-manual' },
+      { id: 'training', label: 'Training & help', to: '/help/training', icon: 'GraduationCap', testId: 'nav-training' },
     ],
   },
 ]

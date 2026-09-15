@@ -29,6 +29,7 @@ import { toast } from '@/state/toastStore'
 import type { AvailableTransition, IncidentType } from '@/api/types'
 import type { TransitionPayload } from '@/api/booking.api'
 import { clsx } from 'clsx'
+import { usePageContext, PAGE_KEYS } from '@/features/assistant/pageContext'
 
 export function BookingDetailPage() {
   const { t } = useTranslation(['bookings', 'common'])
@@ -48,6 +49,19 @@ export function BookingDetailPage() {
   const role = useAuthStore((st) => st.me?.role)
   const mayArrangeDelivery = can(role, 'delivery.request')
   const { data: stationDeliveries } = useStationDeliveries({ bookingId: id }, !!id && mayArrangeDelivery)
+
+  // The booking's status and engine, and nothing about the customer on it.
+  usePageContext(
+    {
+      pageKey: PAGE_KEYS.bookingDetail,
+      module: 'BOOKINGS',
+      screenTitle: 'تفاصيل الحجز',
+      entityType: 'BOOKING',
+      entityStatus: booking?.status,
+      facts: booking?.engineKind ? { engine: booking.engineKind } : {},
+    },
+    [booking?.status, booking?.engineKind],
+  )
 
   const [labelsOpen, setLabelsOpen] = useState(false)
   const [invoiceOpen, setInvoiceOpen] = useState(false)

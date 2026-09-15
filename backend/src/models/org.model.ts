@@ -51,6 +51,16 @@ export interface StationDoc {
   name: string
   code?: string
   engineKinds: EngineKind[]
+  /**
+   * Activities this tenant defined for itself, by key.
+   *
+   * A companion to `engineKind`, not a replacement. `engineKind` names one of the activities
+   * the product ships with, and its values are compiled in; these keys exist only in one
+   * tenant's own database, and a desk that runs a tenant-defined activity has no built-in
+   * engine to name. Requiring one was the last thing standing between a tenant inventing an
+   * activity and being able to actually staff a counter for it.
+   */
+  activityKeys: string[]
   openingTime?: string
   closingTime?: string
   contactPhone?: string
@@ -67,6 +77,7 @@ const stationSchema = new Schema<StationDoc>(
     name: { type: String, required: true },
     code: { type: String, default: '' },
     engineKinds: { type: [String], default: [] },
+    activityKeys: { type: [String], default: [] },
     openingTime: { type: String, default: '08:00' },
     closingTime: { type: String, default: '22:00' },
     contactPhone: { type: String, default: '' },
@@ -86,7 +97,18 @@ export interface KioskDoc {
   name: string
   code?: string
   location?: string
-  engineKind: EngineKind
+  /** Null on a desk that runs only activities its own tenant defined. */
+  engineKind: EngineKind | null
+  /**
+   * Activities this tenant defined for itself, by key.
+   *
+   * A companion to `engineKind`, not a replacement. `engineKind` names one of the activities
+   * the product ships with, and its values are compiled in; these keys exist only in one
+   * tenant's own database, and a desk that runs a tenant-defined activity has no built-in
+   * engine to name. Requiring one was the last thing standing between a tenant inventing an
+   * activity and being able to actually staff a counter for it.
+   */
+  activityKeys: string[]
   /** An exit the customer leaves by. Shop & Drop bags are sent to one of these to be collected. */
   isExitGate: boolean
   active: boolean
@@ -105,7 +127,8 @@ const kioskSchema = new Schema<KioskDoc>(
     name: { type: String, required: true },
     code: { type: String, default: '' },
     location: { type: String, default: '' },
-    engineKind: { type: String, required: true, index: true },
+    engineKind: { type: String, default: null, index: true },
+    activityKeys: { type: [String], default: [], index: true },
     isExitGate: { type: Boolean, default: false },
     active: { type: Boolean, default: true },
     mapX: { type: Number, default: null },

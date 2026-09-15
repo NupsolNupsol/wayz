@@ -8,6 +8,7 @@ import { useTillOverview, useOpenShift, useShift } from '@/hooks'
 import { ApiError } from '@/api/client'
 import { toast } from '@/state/toastStore'
 import { money, waitedFor } from './tillFormat'
+import { usePageContext, PAGE_KEYS } from '@/features/assistant/pageContext'
 
 function DrawerLine({ label, value, sign, hint }: { label: string; value: number; sign?: '+' | '−'; hint?: string }) {
   return (
@@ -25,6 +26,8 @@ function DrawerLine({ label, value, sign, hint }: { label: string; value: number
 }
 
 export function TillPage() {
+  usePageContext({ pageKey: PAGE_KEYS.tillOverview, module: 'TILL', screenTitle: 'الصندوق' })
+
   const { t } = useTranslation('till')
   const navigate = useNavigate()
   const { data, isLoading } = useTillOverview()
