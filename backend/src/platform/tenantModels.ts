@@ -25,6 +25,7 @@ import { TripSchema } from '../models/trip.model.js'
 import { UserSchema } from '../models/user.model.js'
 import { VerificationEvidenceSchema } from '../models/verification.model.js'
 import { VoucherCampaignSchema, VoucherSchema } from '../models/voucher.model.js'
+import { InvoiceXmlSchema } from '../models/invoiceXml.model.js'
 
 /**
  * Every collection a tenant owns, in one list.
@@ -67,6 +68,7 @@ export const TENANT_SCHEMAS = {
   VerificationEvidence: VerificationEvidenceSchema,
   VoucherCampaign: VoucherCampaignSchema,
   Voucher: VoucherSchema,
+  InvoiceXml: InvoiceXmlSchema,
 } as const
 
 export type TenantModelName = keyof typeof TENANT_SCHEMAS

@@ -25,6 +25,7 @@ import type { CardTransactionDoc, CommissionRateDoc } from './cardTransaction.mo
 import type { CashMovementDoc } from './cashMovement.model.js'
 import type { TripDoc } from './trip.model.js'
 import type { VoucherCampaignDoc, VoucherDoc } from './voucher.model.js'
+import type { InvoiceXmlDoc } from './invoiceXml.model.js'
 
 /**
  * The tenant's collections, as the rest of the backend sees them.
@@ -70,6 +71,7 @@ export const CashMovement = tenantModel<CashMovementDoc>('CashMovement')
 export const Trip = tenantModel<TripDoc>('Trip')
 export const Voucher = tenantModel<VoucherDoc>('Voucher')
 export const VoucherCampaign = tenantModel<VoucherCampaignDoc>('VoucherCampaign')
+export const InvoiceXml = tenantModel<InvoiceXmlDoc>('InvoiceXml')
 
 // Helpers and constants that are plain functions/values, not collections.
 export { hashPassword, newInviteToken, hashInviteToken, INVITE_TTL_HOURS } from './user.model.js'
@@ -107,3 +109,4 @@ export type { CashMovementDoc, CashMovementKind } from './cashMovement.model.js'
 export type { TripDoc, TripStatus, TripPassenger, TripStop } from './trip.model.js'
 export type { VersionDoc, VersionChange, VersionLink, VersionCheck, VersionIssue } from './version.model.js'
 export type { VoucherDoc, VoucherCampaignDoc, VoucherStatus } from './voucher.model.js'
+export type { InvoiceXmlDoc } from './invoiceXml.model.js'

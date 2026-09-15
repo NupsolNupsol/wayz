@@ -39,4 +39,11 @@ export interface Invoice {
 
 export const invoiceApi = {
   forBooking: (bookingId: string) => unwrap<Invoice>(http.get(`/bookings/${bookingId}/invoice`)),
+  xmlForBooking: async (bookingId: string): Promise<{ xml: string; filename: string }> => {
+    const res = await http.get(`/bookings/${bookingId}/invoice/xml`, { responseType: 'text' as const })
+    const disposition = (res.headers as Record<string, string>)['content-disposition'] ?? ''
+    const match = /filename="([^"]+)"/.exec(disposition)
+    const filename = match?.[1] ?? `invoice-${bookingId}.xml`
+    return { xml: res.data as string, filename }
+  },
 }

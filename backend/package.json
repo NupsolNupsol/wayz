@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "private": true,
   "type": "module",
-  "description": "LockerFlow Agent POS \u2014 standalone Express + MongoDB backend with a config-driven multi-engine booking workflow.",
+  "description": "LockerFlow Agent POS — standalone Express + MongoDB backend with a config-driven multi-engine booking workflow.",
   "engines": {
     "node": ">=20"
   },
@@ -45,6 +45,7 @@
     "test:storage": "node tests/storageRun.api.mjs"
   },
   "dependencies": {
+    "@talha7k/zatca": "^0.13.1",
     "@wayz/workflow": "file:../workflow",
     "bcryptjs": "^2.4.3",
     "bullmq": "^5.21.2",
