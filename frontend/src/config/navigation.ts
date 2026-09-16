@@ -283,6 +283,21 @@ export const AGENT_NAV: NavGroup[] = [
       { id: 'lagoon-trips', label: 'Boats & trips', to: '/lagoon/trips', icon: 'Ship', engineKind: 'LAGOON', capability: 'BOATS', permission: 'trip.plan', testId: 'nav-lagoon-trips' },
       { id: 'lagoon-captain', label: 'My trips', to: '/lagoon/captain', icon: 'Anchor', engineKind: 'LAGOON', capability: 'BOATS', permission: 'trip.sail', testId: 'nav-lagoon-captain' },
       { id: 'lagoon-voyage', label: 'Chart & sail', to: '/lagoon/voyage', icon: 'Map', engineKind: 'LAGOON', capability: 'BOATS', permission: 'trip.sail', testId: 'nav-lagoon-voyage' },
+
+      /*
+       * WIQAR's seven experiences.
+       *
+       * No `capability` on these: adoption is what decides whether an organisation runs an
+       * activity, and the sidebar narrows by adopted-then-assigned. The three above keep their
+       * capability flags because WAYZ's registry rows still carry them.
+       */
+      { id: 'horse-riding', label: 'Arabian Horse Riding', to: '/horse-riding', icon: 'Rabbit', engineKind: 'HORSE_RIDING', permission: 'pos.use', testId: 'nav-horse-riding' },
+      { id: 'equestrian-lessons', label: 'Equestrian Lessons', to: '/equestrian-lessons', icon: 'GraduationCap', engineKind: 'EQUESTRIAN_LESSON', permission: 'pos.use', testId: 'nav-equestrian-lessons' },
+      { id: 'camel-tours', label: 'Camel Tours', to: '/camel-tours', icon: 'Footprints', engineKind: 'CAMEL_TOUR', permission: 'pos.use', testId: 'nav-camel-tours' },
+      { id: 'animal-care', label: 'Animal Care', to: '/animal-care', icon: 'Sparkles', engineKind: 'ANIMAL_CARE', permission: 'pos.use', testId: 'nav-animal-care' },
+      { id: 'animal-feeding', label: 'Animal Feeding', to: '/animal-feeding', icon: 'Wheat', engineKind: 'ANIMAL_FEEDING', permission: 'pos.use', testId: 'nav-animal-feeding' },
+      { id: 'photography', label: 'Photo Sessions', to: '/photography', icon: 'Camera', engineKind: 'PHOTOGRAPHY', permission: 'pos.use', testId: 'nav-photography' },
+      { id: 'group-package', label: 'Group Package', to: '/group-package', icon: 'Users', engineKind: 'GROUP_PACKAGE', permission: 'pos.use', testId: 'nav-group-package' },
     ],
   },
   {

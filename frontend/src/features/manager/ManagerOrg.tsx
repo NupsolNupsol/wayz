@@ -1,7 +1,5 @@
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { useAuthStore } from '@/store/auth'
-import { activityApi } from '@/api/activity.api'
 import { Building2, DoorOpen, MapPin, Pencil, Plus, Boxes, Power, ChevronRight, Server, Trash2 } from 'lucide-react'
 import { clsx } from 'clsx'
 import { PageHeader } from '@/components/PageHeader'
@@ -43,23 +41,6 @@ const ADD_VENUE = '__ADD__'
 export function ManagerOrg() {
   const { t } = useTranslation(['manager', 'common'])
   const { data, isLoading } = useManagerOrg()
-  /* Lockers are a storage business. Not every company on this platform is one. */
-  const storesThings = (useAuthStore((s) => s.me?.tenant?.capabilities) ?? []).includes('STORAGE')
-
-  /*
-   * What this company calls each of its activities.
-   *
-   * Areas and counters hold activity *keys*; a key is what an administrator typed, and no
-   * screen should show it raw.
-   */
-  const [activityNames, setActivityNames] = useState<Record<string, string>>({})
-  useEffect(() => {
-    activityApi
-      .published()
-      .then((rows) => setActivityNames(Object.fromEntries(rows.map((a) => [a.key, a.name]))))
-      .catch(() => setActivityNames({}))
-  }, [])
-  const activityLabel = (key: string) => activityNames[key] ?? key.replace(/_/g, ' ')
   const createSite = useCreateSite()
   const updateSite = useUpdateSite()
   const createStation = useCreateStation()
@@ -170,28 +151,12 @@ export function ManagerOrg() {
         <MapPin size={14} /> {t('org.station')}
         <ChevronRight size={12} />
         <Server size={14} /> Kiosk
-        {/*
-          Compartments are lockers, and lockers are a storage business. A company that does not
-          store anything has none, and showing the word in its hierarchy legend told it the
-          platform expected something it does not have.
-        */}
-        {storesThings && (
-          <>
-            <ChevronRight size={12} />
-            <Boxes size={14} />
-            {t('org.compartments')}
-          </>
-        )}
-        <span className="ms-auto">{t('org.deactivateNote')}</span>
+        <ChevronRight size={12} />
+        <Boxes size={14} />{t('org.compartments')}<span className="ms-auto">{t('org.deactivateNote')}</span>
       </div>
 
-      {/*
-        A tenant provisioned five minutes ago has no estate at all, which is deliberate: where a
-        company operates is theirs to describe. The empty state is therefore a normal first
-        screen rather than an error, and is identifiable as such.
-      */}
       {data.sites.length === 0 ? (
-        <Card data-testid="org-empty"><EmptyState icon={<Building2 size={24} />} title={t('org.noSites')} message={t('org.noSitesMessage')} /></Card>
+        <Card><EmptyState icon={<Building2 size={24} />} title={t('org.noSites')} message={t('org.noSitesMessage')} /></Card>
       ) : (
         <div className="flex flex-col gap-4" data-testid="org-tree">
           {data.sites.map((site) => (
@@ -273,21 +238,8 @@ export function ManagerOrg() {
                           </Button>
                           <Button
                             variant="ghost"
-                            {...(() => {
-                              /*
-                               * An area can take a counter once *something* happens in it.
-                               *
-                               * This gated on built-in engines alone, so every area of a
-                               * company that runs none had its "add counter" button
-                               * permanently disabled — the company could not build its own
-                               * estate through the product at all.
-                               */
-                              const runs = station.engineKinds.length + (station.activityKeys ?? []).length
-                              return {
-                                disabled: runs === 0,
-                                title: runs === 0 ? t('org.stationHasNoActivity') : undefined,
-                              }
-                            })()}
+                            disabled={station.engineKinds.length === 0}
+                            title={station.engineKinds.length === 0 ? t('org.stationHasNoActivity') : undefined}
                             onClick={() =>
                               open(
                                 { kind: 'kiosk', stationId: station._id, runs: station.engineKinds },
@@ -323,14 +275,7 @@ export function ManagerOrg() {
                                     <Server size={13} /> {k.name}
                                   </p>
                                   <p className="text-[11px] text-brand mt-0.5" data-testid={`org-kiosk-activity-${k._id}`}>
-                                    {/*
-                                      What this counter sells. Rendering `engineKind` through
-                                      the label helper printed the word "null" for every
-                                      counter of a company that runs no built-in engine.
-                                    */}
-                                    {k.engineKind
-                                      ? engineLabel(k.engineKind)
-                                      : (k.activityKeys ?? []).map(activityLabel).join(', ') || t('org.sellsNothingYet', { defaultValue: 'Nothing assigned yet' })}
+                                    {engineLabel(k.engineKind)}
                                   </p>
                                   {k.isExitGate && (
                                     <span
@@ -351,7 +296,7 @@ export function ManagerOrg() {
                                           name: k.name,
                                           code: k.code ?? '',
                                           location: k.location ?? '',
-                                          engineKind: k.engineKind ?? '',
+                                          engineKind: k.engineKind,
                                           isExitGate: k.isExitGate ? 'yes' : 'no',
                                         },
                                       )

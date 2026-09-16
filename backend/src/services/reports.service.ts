@@ -1,6 +1,5 @@
 import { Audit, AssetUnit, Booking, Customer, Payment, Station, User } from '../models/index.js'
 import { tenantEngines } from './catalogue.service.js'
-import { lineKeyOf, revenueLineIndex } from './revenueLines.service.js'
 import { computeOvertime } from '../domain/overtime.js'
 import { round2 } from '../utils/helpers.js'
 
@@ -41,50 +40,18 @@ export async function revenueReport(scope: ManagerScope, range: ReportRange) {
       { $match: match },
       { $lookup: { from: 'bookings', localField: 'bookingId', foreignField: '_id', as: 'b' } },
       { $unwind: { path: '$b', preserveNullAndEmptyArrays: true } },
-      {
-        $group: {
-          // Both dimensions, because a company has one or the other. See revenueLines.service.
-          _id: { engine: '$b.engineKind', activity: '$b.activity.key', station: '$stationId' },
-          total: { $sum: '$amount' },
-          count: { $sum: 1 },
-        },
-      },
+      { $group: { _id: { engine: '$b.engineKind', station: '$stationId' }, total: { $sum: '$amount' }, count: { $sum: 1 } } },
     ]),
     Station.find({ tenantId: scope.tenantId }).lean(),
   ])
 
   const stationName = new Map(stations.map((s) => [s._id, s.name]))
   const engineTotals = new Map<string, number>()
-  const lineTotals = new Map<string, number>()
   const stationTotals = new Map<string, number>()
-
-  type RevenueRow = { _id: { engine?: string; activity?: string; station?: string }; total: number }
-  for (const row of byEngineStation as RevenueRow[]) {
+  for (const row of byEngineStation as { _id: { engine?: string; station?: string }; total: number }[]) {
     if (row._id.engine) engineTotals.set(row._id.engine, (engineTotals.get(row._id.engine) ?? 0) + row.total)
     if (row._id.station) stationTotals.set(row._id.station, (stationTotals.get(row._id.station) ?? 0) + row.total)
-
-    const line = lineKeyOf({ activityKey: row._id.activity ?? null, engineKind: row._id.engine ?? null })
-    lineTotals.set(line, (lineTotals.get(line) ?? 0) + row.total)
   }
-
-  /*
-   * Revenue by line of business, in the company's own words.
-   *
-   * `byEngine` below is kept because WAYZ's screens and exports read it, and rewriting a
-   * working report to fit a newer model is how reconciliations stop balancing. `byLine` is
-   * what a company with its own activities needs, and is what its screens read — a WIQAR
-   * manager asking "revenue by service" was previously shown an empty panel, because their
-   * revenue is not attributed to any engine and never will be.
-   */
-  const lines = await revenueLineIndex(scope.tenantId)
-  const byLine = [...lineTotals.entries()]
-    .filter(([, total]) => total > 0)
-    .map(([key, total]) => ({
-      key,
-      label: lines.get(key)?.label ?? { en: key, ar: key },
-      total: round2(total),
-    }))
-    .sort((a, b) => b.total - a.total)
 
   const gross = daily.reduce((s: number, d: { total: number }) => s + d.total, 0)
   const overtime = (byKind as { _id: string; total: number }[]).find((k) => k._id === 'OVERTIME')?.total ?? 0
@@ -111,7 +78,6 @@ export async function revenueReport(scope: ManagerScope, range: ReportRange) {
       count: k.count,
     })),
     byEngine: engines.map((e) => ({ engineKind: e, total: round2(engineTotals.get(e) ?? 0) })),
-    byLine,
     byStation: [...stationTotals.entries()].map(([id, total]) => ({
       stationId: id,
       name: stationName.get(id) ?? id,
@@ -411,8 +377,6 @@ export async function discountsReport(scope: ManagerScope, range: ReportRange) {
     Booking.find(match, {
       ref: 1,
       engineKind: 1,
-      // What this was sold under, for a company that defines its own lines of business.
-      activity: 1,
       stationId: 1,
       kioskId: 1,
       customerName: 1,
@@ -469,14 +433,6 @@ export async function discountsReport(scope: ManagerScope, range: ReportRange) {
       bookingId: b._id,
       ref: b.ref,
       engineKind: b.engineKind,
-      /*
-       * What was discounted, in the company's own words.
-       *
-       * The screen used to render `engineKind` through the engine-label helper, which prints
-       * the word "null" for a booking that has no engine — which is every booking a company
-       * that defines its own activities ever takes.
-       */
-      activityName: b.activity?.name ?? null,
       customerName: b.customerName,
       amount: round2(b.discount?.amount ?? 0),
       percent: b.discount?.percent ?? 0,

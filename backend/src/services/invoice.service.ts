@@ -87,6 +87,26 @@ export async function buildInvoice(scope: Scope, booking: BookingHydrated): Prom
   ])
   if (!tenant) throw ApiError.notFound('Tenant not found.')
 
+  /*
+   * A tax invoice has to name who is issuing it.
+   *
+   * The registration details are not demanded when a company is created — it is set up before
+   * its paperwork exists — so this is the moment they become compulsory. Refusing here, by
+   * name, is far better than printing an invoice with a blank VAT number that nobody notices
+   * until an auditor does.
+   */
+  const missing = [
+    !tenant.legalName?.trim() && 'the registered legal name',
+    !tenant.crNumber?.trim() && 'the commercial registration number',
+    !tenant.vatNumber?.trim() && 'the VAT number',
+  ].filter(Boolean) as string[]
+
+  if (missing.length > 0) {
+    throw ApiError.unprocessable(`This company cannot issue a tax invoice yet — it is missing ${missing.join(', ')}.`, [
+      'An administrator can add them under Company details.',
+    ])
+  }
+
   const byLabel = new Map<string, InvoicePaymentLine>()
   for (const p of payments) {
     const label = paymentLabel(p.method, p.cardScheme)

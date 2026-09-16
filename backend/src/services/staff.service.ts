@@ -1,8 +1,7 @@
-import { currentTenant } from '../platform/tenantContext.js'
-import { registerPublicToken } from '../platform/publicLinks.js'
 import { Booking, Gate, INVITE_TTL_HOURS, Kiosk, Shift, Station, Tenant, User, hashPassword, newInviteToken, type UserDoc } from '../models/index.js'
 import { recordAudit } from './audit.service.js'
-import { ENGINE_KINDS, ROLES, type EngineKind, type Role } from '../domain/types.js'
+import { ROLES } from '../domain/types.js'
+import type { EngineKind, Role } from '../domain/types.js'
 import {
   ACTIVITY_SCOPED,
   ASSIGNABLE_BY,
@@ -13,6 +12,7 @@ import {
 import { ROLE_LABELS } from '../constants/labels.constants.js'
 import { ROLE_LABELS_AR } from '../constants/messages.constants.js'
 import { ApiError } from '../utils/ApiError.js'
+import { assertAdopted, isRegisteredActivity } from '../platform/activityCatalogue.js'
 import { env } from '../config/env.js'
 import { logger } from '../config/logger.js'
 import { nextId } from './counter.service.js'
@@ -28,12 +28,10 @@ export const ASSIGNABLE_ROLES: Role[] = ASSIGNABLE_BY.TENANT_ADMIN ?? []
 async function sendInvitation(user: UserDoc, invitedBy: string): Promise<InviteResult> {
   const { token, tokenHash, expiresAt } = newInviteToken()
   /*
-   * The invitation link is opened by somebody who has no account yet, so it carries no
-   * way to say which tenant it belongs to. Its hash is registered the same way a tracking
-   * link is — the hash, not the token, so the control plane never holds a usable secret.
+   * The invitation link is opened by somebody who has no account yet, so it carries no way to
+   * say which organisation it belongs to. It does not need to: the middleware that serves it
+   * finds the user holding that token hash and enters their organisation — see publicAccess.
    */
-  const tenantNow = currentTenant()
-  if (tenantNow) await registerPublicToken(tokenHash, tenantNow.tenantId)
   const [tenant, inviter] = await Promise.all([
     Tenant.findById(user.tenantId).lean(),
     invitedBy ? User.findById(invitedBy).lean() : null,
@@ -104,7 +102,7 @@ function resolveEngines(role: Role, engineKinds?: EngineKind[] | null, activityK
     throw ApiError.badRequest('Choose the activity this person works — they only see the ones they are assigned to.')
   }
   for (const engine of engines) {
-    if (!ENGINE_KINDS.includes(engine)) throw ApiError.badRequest(`Unknown activity "${engine}".`)
+    if (!isRegisteredActivity(engine)) throw ApiError.badRequest(`Unknown activity "${engine}".`)
   }
 
   if (LAGOON_ONLY.includes(role) && engines.some((e) => e !== LAGOON)) {
@@ -270,6 +268,15 @@ export async function createStaff(scope: ManagerScope, input: StaffInput) {
   if (!station) throw ApiError.badRequest('That station does not exist in this tenant.')
 
   const engines = resolveEngines(input.role, input.engineKinds, input.activityKeys)
+  /*
+   * Nobody is assigned an activity their organisation does not run.
+   *
+   * The catalogue says what exists, the organisation's adopted list says what it sells, and a
+   * person is assigned from that second list. Checking only the first would let a manager
+   * staff a counter for something the company never took up, which fails later at the counter
+   * with nothing on screen to explain it.
+   */
+  await assertAdopted(engines)
 
   const user = await User.create({
     _id: await nextId('user'),

@@ -1103,6 +1103,27 @@ export function listBookings(scope: Scope, filter?: { status?: string; engineKin
 
 export { loadBooking }
 
+/**
+ * The two letters that open a booking reference.
+ *
+ * A counter reads `HR-0042` aloud to a visitor, so these are chosen to be distinguishable when
+ * spoken rather than to be an abbreviation of the key. Exhaustive by type: adding an activity
+ * without giving it a prefix will not compile.
+ */
+const ENGINE_PREFIX: Record<EngineKind, string> = {
+  SHOP_AND_DROP: 'SD',
+  MOBILITY: 'MB',
+  LAGOON: 'LG',
+  COTE_RESTAURANT: 'CT',
+  HORSE_RIDING: 'HR',
+  EQUESTRIAN_LESSON: 'EL',
+  CAMEL_TOUR: 'CM',
+  ANIMAL_CARE: 'AC',
+  ANIMAL_FEEDING: 'AF',
+  PHOTOGRAPHY: 'PH',
+  GROUP_PACKAGE: 'GP',
+}
+
 function enginePrefix(k: EngineKind): string {
-  return { SHOP_AND_DROP: 'SD', MOBILITY: 'MB', LAGOON: 'LG', COTE_RESTAURANT: 'CT', ANAAM: 'AN' }[k]
+  return ENGINE_PREFIX[k]
 }

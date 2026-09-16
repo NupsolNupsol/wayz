@@ -7,7 +7,13 @@ export const ACTIVITY_LABELS: Record<EngineKind, BilingualLabel> = {
   MOBILITY: { en: 'Scooters', ar: 'اسكوترات' },
   SHOP_AND_DROP: { en: 'Shop & Drop', ar: 'شوب & دروب' },
   COTE_RESTAURANT: { en: 'COTE Restaurant', ar: 'مطعم كوت' },
-  ANAAM: { en: "Ana'am", ar: 'انعام' },
+  HORSE_RIDING: { en: 'Arabian Horse Riding Tour', ar: 'جولة ركوب الخيل العربي' },
+  EQUESTRIAN_LESSON: { en: 'Equestrian Lesson', ar: 'درس الفروسية' },
+  CAMEL_TOUR: { en: 'Camel Tour', ar: 'جولة الإبل' },
+  ANIMAL_CARE: { en: 'Animal Care Pack', ar: 'باقة العناية بالحيوان' },
+  ANIMAL_FEEDING: { en: 'Animal Feeding Session', ar: 'جلسة إطعام الحيوانات' },
+  PHOTOGRAPHY: { en: 'Professional Photo Session', ar: 'جلسة تصوير احترافية' },
+  GROUP_PACKAGE: { en: 'Group Package', ar: 'الباقة الجماعية' },
 }
 
 export const SCHEME_LABELS: Record<CardScheme, BilingualLabel> = {

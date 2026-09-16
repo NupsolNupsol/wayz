@@ -1,6 +1,12 @@
+import { PlatformShell } from "@/features/platform/PlatformShell"
+import { PlatformOverview } from "@/features/platform/PlatformOverview"
+import { PlatformOrganisations } from "@/features/platform/PlatformOrganisations"
+import { PlatformReports } from "@/features/platform/PlatformReports"
+import { PlatformKnowledge } from "@/features/platform/PlatformKnowledge"
 import { createBrowserRouter, Navigate } from "react-router-dom";
 import { AppShell } from "@/layouts/AppShell";
 import { ProtectedRoute } from "./ProtectedRoute";
+import { SignInPage } from "@/features/auth/SignInPage";
 import { EngineRoute } from "./EngineRoute";
 import {
   ACCOUNTANT_ROLES,
@@ -16,21 +22,6 @@ import {
   MANAGER_ROLES,
   TENANT_ADMIN_ROLES,
 } from "@/permissions/permissions";
-import { LoginPage } from "@/features/auth/LoginPage";
-import { PlatformShell } from "@/platform/PlatformShell";
-import { PlatformLoginPage } from "@/platform/pages/PlatformLoginPage";
-import { PlatformTenantsPage } from "@/platform/pages/PlatformTenantsPage";
-import { PlatformTenantPage } from "@/platform/pages/PlatformTenantPage";
-import { NewTenantPage } from "@/platform/pages/NewTenantPage";
-import { PlatformAuditPage } from "@/platform/pages/PlatformAuditPage";
-import { PlatformOverviewPage } from "@/platform/pages/PlatformOverviewPage";
-import { PlatformReportsPage } from "@/platform/pages/PlatformReportsPage";
-import { PlatformHealthPage } from "@/platform/pages/PlatformHealthPage";
-import { PlatformAdminsPage } from "@/platform/pages/PlatformAdminsPage";
-import { PlatformSettingsPage } from "@/platform/pages/PlatformSettingsPage";
-import { PlatformKnowledgePage } from "@/platform/pages/PlatformKnowledgePage";
-import { PlatformLearningPage } from "@/platform/pages/PlatformLearningPage";
-import { ToastHost } from "@/platform/toast";
 import { InvitationPage } from "@/features/auth/InvitationPage";
 import { ManagerOverview } from "@/features/manager/ManagerOverview";
 import {
@@ -109,11 +100,6 @@ import { ArchitecturePage } from "@/features/help/ArchitecturePage";
 import { TrainingPage } from "@/features/help/TrainingPage";
 import { NotFoundPage } from "@/features/misc/NotFoundPage";
 import { NoWorkspacePage } from "@/features/misc/NoWorkspacePage";
-import { ActivitiesPage } from "@/features/activities/ActivitiesPage";
-import { RolesPage } from "@/features/roles/RolesPage";
-import { ActivityBuilderPage } from "@/features/activities/ActivityBuilderPage";
-import { ActivityCounterPage } from "@/features/activities/ActivityCounterPage";
-import { WorkspaceGatewayPage } from "@/features/auth/WorkspaceGatewayPage";
 import { TenantChrome } from "./TenantChrome";
 
 /*
@@ -126,49 +112,42 @@ export const router = createBrowserRouter([
   element: <TenantChrome />,
   children: [
   /*
-   * The platform's own doors. Neither belongs to a tenant.
+   * One neutral door.
    *
-   * `/login` was WAYZ's — its name, its colours, its staff — which made the root of the
-   * product implicitly mean one customer. It is a workspace gateway now: it names nobody and
-   * sends you to the tenant you choose.
-   *
-   * `/` needs no entry here: signed in it is the application, and signed out `ProtectedRoute`
-   * sends it to this same gateway.
+   * It belongs to no organisation and wears no organisation's colours. Which company a person
+   * works for is decided by their account, and the branding follows the session rather than
+   * the address — see features/auth/SignInPage.tsx.
    */
-  { path: "/login", element: <WorkspaceGatewayPage /> },
-
-  // A tenant's own front door: its colours, its name, its own accounts, and a sign-in that
-  // resolves to its database from the handle in the address rather than from the email typed.
-  { path: "/t/:slug/login", element: <LoginPage /> },
+  { path: "/login", element: <SignInPage /> },
 
   /*
-   * The control plane, above every tenant.
+   * Where a bookmark from the per-organisation era lands.
    *
-   * Its own login, its own session and its own frame — nothing under /platform enters a
-   * tenant's data, and a tenant's session cannot reach it.
+   * Those addresses existed for months, so people have them saved and links to them have been
+   * sent. Sending them to the one door is better than a dead page, and the door works out who
+   * they are from the account anyway — which is exactly why the address stopped mattering.
    */
-  { path: "/platform/login", element: <PlatformLoginPage /> },
+  /*
+   * The platform console.
+   *
+   * Outside the tenant shell entirely, because it belongs to no tenant: no branding to apply,
+   * no station to name, no adopted-activity narrowing to do. `PlatformShell` turns away
+   * anybody without a platform session.
+   */
   {
     path: "/platform",
-    element: (
-      <ToastHost>
-        <PlatformShell />
-      </ToastHost>
-    ),
+    element: <PlatformShell />,
     children: [
-      { index: true, element: <PlatformOverviewPage /> },
-      { path: "tenants", element: <PlatformTenantsPage /> },
-      { path: "tenants/new", element: <NewTenantPage /> },
-      { path: "tenants/:id", element: <PlatformTenantPage /> },
-      { path: "reports", element: <PlatformReportsPage /> },
-      { path: "health", element: <PlatformHealthPage /> },
-      { path: "knowledge", element: <PlatformKnowledgePage /> },
-      { path: "learning", element: <PlatformLearningPage /> },
-      { path: "audit", element: <PlatformAuditPage /> },
-      { path: "administrators", element: <PlatformAdminsPage /> },
-      { path: "settings", element: <PlatformSettingsPage /> },
+      { index: true, element: <PlatformOverview /> },
+      { path: "organisations", element: <PlatformOrganisations /> },
+      { path: "reports", element: <PlatformReports /> },
+      { path: "knowledge", element: <PlatformKnowledge /> },
     ],
   },
+
+  { path: "/t/:slug/login", element: <Navigate to="/login" replace /> },
+  { path: "/t/:slug/*", element: <Navigate to="/login" replace /> },
+
   { path: "/manager/estate", element: <Navigate to="/assets" replace /> },
   // Products moved onto the kind that sells them; an old bookmark lands on the estate rather than
   // on nothing.
@@ -203,11 +182,6 @@ export const router = createBrowserRouter([
       { path: "settings", element: <ManagerSettings /> },
       { path: "reports", element: <ManagerReports /> },
       { path: "activity", element: <ManagerActivity /> },
-      // Activities this tenant defined for itself. See features/activities.
-      { path: "activities", element: <ActivitiesPage /> },
-      // Jobs, as this company defines them. See features/roles.
-      { path: "roles", element: <RolesPage /> },
-      { path: "activities/:id", element: <ActivityBuilderPage /> },
     ],
   },
   {
@@ -360,15 +334,6 @@ export const router = createBrowserRouter([
       { index: true, element: <Navigate to="/dashboard" replace /> },
       { path: "dashboard", element: <DashboardPage /> },
       { path: "pos", element: <PosPage /> },
-      /*
-       * The counter for an activity the tenant defined.
-       *
-       * No `EngineRoute` guard, deliberately — there is no engine to guard on. Whether this
-       * person may sell this activity is decided by the activity's own operator list and by
-       * what they were assigned, both of which are checked server-side on every call. A guard
-       * here could only duplicate that, and a duplicate is a thing that drifts.
-       */
-      { path: "activities/:key", element: <ActivityCounterPage /> },
       {
         path: "shop-drop",
         element: (
@@ -394,6 +359,73 @@ export const router = createBrowserRouter([
         element: (
           <EngineRoute engineKind="LAGOON">
             <EngineWorkspace engineKind="LAGOON" />
+          </EngineRoute>
+        ),
+      },
+      /*
+       * WIQAR's seven experiences.
+       *
+       * Each is a coded activity with its own workflow, and each reaches the counter through
+       * the *same* `EngineWorkspace` that Mobility and Lagoon use — one screen driven by the
+       * activity it is given. Where an experience genuinely differs, that difference lives in
+       * its workflow and in the `FULFILMENT` map, not in a page of its own.
+       *
+       * `EngineRoute` keeps them out of reach of an organisation that has not adopted them,
+       * exactly as it does for the three above.
+       */
+      {
+        path: "horse-riding",
+        element: (
+          <EngineRoute engineKind="HORSE_RIDING">
+            <EngineWorkspace engineKind="HORSE_RIDING" />
+          </EngineRoute>
+        ),
+      },
+      {
+        path: "equestrian-lessons",
+        element: (
+          <EngineRoute engineKind="EQUESTRIAN_LESSON">
+            <EngineWorkspace engineKind="EQUESTRIAN_LESSON" />
+          </EngineRoute>
+        ),
+      },
+      {
+        path: "camel-tours",
+        element: (
+          <EngineRoute engineKind="CAMEL_TOUR">
+            <EngineWorkspace engineKind="CAMEL_TOUR" />
+          </EngineRoute>
+        ),
+      },
+      {
+        path: "animal-care",
+        element: (
+          <EngineRoute engineKind="ANIMAL_CARE">
+            <EngineWorkspace engineKind="ANIMAL_CARE" />
+          </EngineRoute>
+        ),
+      },
+      {
+        path: "animal-feeding",
+        element: (
+          <EngineRoute engineKind="ANIMAL_FEEDING">
+            <EngineWorkspace engineKind="ANIMAL_FEEDING" />
+          </EngineRoute>
+        ),
+      },
+      {
+        path: "photography",
+        element: (
+          <EngineRoute engineKind="PHOTOGRAPHY">
+            <EngineWorkspace engineKind="PHOTOGRAPHY" />
+          </EngineRoute>
+        ),
+      },
+      {
+        path: "group-package",
+        element: (
+          <EngineRoute engineKind="GROUP_PACKAGE">
+            <EngineWorkspace engineKind="GROUP_PACKAGE" />
           </EngineRoute>
         ),
       },

@@ -1,5 +1,5 @@
 import { LearningProgress, Tenant, User } from '../../models/index.js'
-import { requireTenant } from '../../platform/tenantContext.js'
+import { requireOrganisation } from '../../platform/orgScope.js'
 import { ApiError } from '../../utils/ApiError.js'
 import type { Role } from '../../domain/types.js'
 import { aiClient, type EmployeeActor } from './aiClient.js'
@@ -35,27 +35,32 @@ export interface SessionIdentity {
 /**
  * The signed actor sent to the AI service, assembled from trusted sources only.
  *
- * The tenant comes from `requireTenant()` — which was established from the session token by
+ * The organisation comes from `requireOrganisation()` — established from the session token by
  * the authenticate middleware — and the role and user id come from the verified token. The
  * user is looked up to confirm they still exist and are still active, because a session that
  * outlives a dismissal should not keep answering questions as that person.
  */
 export async function actorFor(identity: SessionIdentity): Promise<EmployeeActor> {
-  const ctx = requireTenant()
+  const organizationId = requireOrganisation()
 
   const user = await User.findById(identity.sub)
     .select({ fullName: 1, role: 1, active: 1 })
     .lean<{ _id: string; fullName: string; role: Role; active: boolean } | null>()
   if (!user?.active) throw ApiError.unauthorized('That account is no longer active.')
 
-  const tenant = await Tenant.findOne().select({ name: 1 }).lean<{ name?: string } | null>()
+  /*
+   * By id: the organisation document carries no `tenantId` and so is exempt from automatic
+   * scoping. An unqualified `findOne()` returns whichever organisation is first in the
+   * collection, which would tell a WIQAR employee they work for WAYZ.
+   */
+  const tenant = await Tenant.findById(organizationId).select({ name: 1 }).lean<{ name?: string } | null>()
 
   return {
     kind: 'EMPLOYEE',
     userId: user._id,
-    tenantId: ctx.tenantId,
-    tenantSlug: ctx.slug,
-    tenantName: tenant?.name || ctx.registry?.name || ctx.slug,
+    tenantId: organizationId,
+    tenantSlug: organizationId,
+    tenantName: tenant?.name || organizationId,
     // The role on the record, not the one in the token: a demotion takes effect on the next
     // request rather than at the end of a twelve-hour session.
     role: user.role,

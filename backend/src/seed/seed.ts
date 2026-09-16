@@ -39,6 +39,7 @@ import type { EngineKind } from "../domain/types.js";
 import { DEFAULT_COMMISSION_RATES, type CardScheme } from "../domain/commission.js";
 import { SCHEME_LABELS } from "../constants/labels.constants.js";
 import { logger } from "../config/logger.js";
+import { markSeededAccountsOnboarded } from "./onboarding.seed.js";
 import { env } from "../config/env.js";
 import { DEFAULT_PENALTY_SCHEDULE, DEFAULT_RENTAL_RULES } from "../domain/rules.js";
 
@@ -100,7 +101,6 @@ const ALL_ENGINES: EngineKind[] = [
   "MOBILITY",
   "LAGOON",
   "COTE_RESTAURANT",
-  "ANAAM",
 ];
 
 function assetTypes(t: string) {
@@ -176,14 +176,6 @@ function assetTypes(t: string) {
       name: "Restaurant Table",
       kind: "TABLE",
       capacity: { capacityScore: 0, seats: 4 },
-    },
-    {
-      _id: `at_${t}_animal`,
-      tenantId: t,
-      engineKind: "ANAAM",
-      name: "Experience Animal",
-      kind: "ANIMAL",
-      capacity: { capacityScore: 0, seats: 1 },
     },
   ];
 }
@@ -476,19 +468,6 @@ function products(t: string) {
       saleType: "SALE",
       billingModel: "PACKAGE",
       emoji: "Salad",
-    }),
-    p({
-      _id: `pr_${t}_anaam_pony`,
-      name: "Pony Ride Experience",
-      nameAr: "تجربة ركوب المهر",
-      engineKind: "ANAAM",
-      basePrice: 80,
-      category: "Ana'am",
-      saleUnit: "TOUR",
-      saleType: "RENTAL",
-      billingModel: "PACKAGE",
-      assetTypeId: `at_${t}_animal`,
-      emoji: "Rabbit",
     }),
   ];
 }
@@ -1186,7 +1165,6 @@ export async function seedFresh() {
     Station.deleteMany({}),
     Kiosk.deleteMany({}),
     Gate.deleteMany({}),
-    Counter.deleteMany({}),
     DeliveryRequest.deleteMany({}),
     CashMovement.deleteMany({}),
     Expense.deleteMany({}),
@@ -1985,19 +1963,43 @@ export async function seedFresh() {
   await seedNotifications();
   await seedManualSales();
 
-  await Counter.insertMany([
-    { _id: "expense", seq: 2000 },
-    { _id: "payment", seq: 5000 },
-    { _id: "cardTransaction", seq: 4000 },
-    { _id: "season", seq: 2 },
-    { _id: "booking", seq: 5 },
-    { _id: "order", seq: 4 },
-    { _id: "delivery", seq: 2 },
-    { _id: "cashMovement", seq: 3 },
-    { _id: "manualSale", seq: 2 },
-    { _id: "incident", seq: 1 },
-    { _id: "version", seq: 5 },
-  ]);
+  /*
+   * Sequences are raised to the seed's high-water mark, never reset to it.
+   *
+   * `Counter` is shared by every organisation — two of them must never be handed the same
+   * booking reference — so it is one of the few collections not scoped per organisation. That
+   * makes resetting it during a seed actively dangerous: this seed deletes only *its own*
+   * organisation's rows, so rewinding a shared sequence points it back at ids another
+   * organisation is still holding, and the next insert collides.
+   *
+   * `$max` is the whole fix. A shared sequence only ever moves forward.
+   */
+  const highWaterMarks: Record<string, number> = {
+    expense: 2000,
+    payment: 5000,
+    cardTransaction: 4000,
+    season: 2,
+    booking: 5,
+    order: 4,
+    delivery: 2,
+    cashMovement: 3,
+    manualSale: 2,
+    incident: 1,
+    version: 5,
+    /*
+     * The seed's own users carry fixed ids (`usr_wayz_agent` and the like) and so never draw
+     * from this sequence — but anybody hired afterwards does, and must not be handed an id a
+     * previously seeded or another organisation's record already owns.
+     */
+    user: 100,
+  }
+
+  await Promise.all(
+    Object.entries(highWaterMarks).map(([name, seq]) =>
+      Counter.updateOne({ _id: name }, { $max: { seq } }, { upsert: true }),
+    ),
+  );
+  await markSeededAccountsOnboarded();
   await seedVersions();
   await seedVouchers();
 

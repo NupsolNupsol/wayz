@@ -1,43 +1,50 @@
 import { createApp } from './app.js'
-import { connectDB } from './config/db.js'
 import { env } from './config/env.js'
 import { logger } from './config/logger.js'
 import { seedIfEmpty } from './seed/seed.js'
-import { activeTenantIds, bootstrapPlatform } from './platform/bootstrap.js'
-import { runInTenant } from './platform/tenantContext.js'
-import { reindexTenantLogins } from './platform/loginDirectory.js'
-import { reindexPublicLinks } from './platform/publicLinks.js'
+import { bootstrapApp, organisationIds } from './platform/bootstrap.js'
+import { ensurePlatformAdmin } from './platform/platformAdminBootstrap.js'
+import { runInOrg } from './platform/orgScope.js'
 import { startReminderWorker } from './workers/reminder.worker.js'
 import { runSessionSweeps } from './services/overtime.service.js'
 import { isPubliclyFetchable } from './services/vonage.service.js'
 import { isStaticOtpActive } from './services/otp.service.js'
 
 async function main() {
-  // The legacy connection stays for one purpose only: adopting the pre-registry WAYZ
-  // database into its own. Everything after bootstrap goes through the tenant registry.
-  await connectDB(env.MONGODB_URI)
-  await bootstrapPlatform()
-  for (const tenantId of await activeTenantIds()) {
-    await runInTenant(tenantId, async (ctx) => {
-      if (env.AUTO_SEED) await seedIfEmpty()
-      /*
-       * The sign-in directory is derived state, so it is reconciled on every boot rather
-       * than only when seeding runs. A tenant that exists must be signable into — whether
-       * its data arrived from a seed, a migration or a provisioning run.
-       */
-      await reindexTenantLogins(ctx.registry)
-      await reindexPublicLinks(ctx.registry)
-    })
+  await bootstrapApp()
+
+  /*
+   * Before anything else, so that a deployment whose seeding fails still has somebody who can
+   * sign in and look at why. Does nothing unless the environment configures one.
+   */
+  await ensurePlatformAdmin()
+
+  /*
+   * Seeding runs once per organisation, because a seed writes rows that belong to one.
+   *
+   * There is no directory to reconcile any more: a person is found by their email and a
+   * public link by its token, both directly out of the one database they live in.
+   */
+  if (env.AUTO_SEED) {
+    for (const organizationId of await organisationIds()) {
+      await runInOrg(organizationId, () => seedIfEmpty())
+    }
   }
 
   if (env.QUEUE_ENABLED) {
     await startReminderWorker()
   } else {
-    // Sweeps are per tenant: each one runs inside its own database, never across them.
+    /*
+     * Sweeps run once per organisation rather than once over the whole collection.
+     *
+     * A sweep closes overdue sessions and charges overtime, and both read an organisation's
+     * own operating rules. Running it unscoped would apply one company's grace period to
+     * another company's bookings.
+     */
     setInterval(() => {
       void (async () => {
-        for (const tenantId of await activeTenantIds()) {
-          await runInTenant(tenantId, () => runSessionSweeps()).catch(() => undefined)
+        for (const organizationId of await organisationIds()) {
+          await runInOrg(organizationId, () => runSessionSweeps()).catch(() => undefined)
         }
       })()
     }, 60_000).unref()

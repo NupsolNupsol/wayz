@@ -11,12 +11,28 @@ export const ROLES = [
 ] as const
 export type Role = (typeof ROLES)[number]
 
+/**
+ * Every activity the platform implements, mirroring `@wayz/workflow`'s registry.
+ *
+ * Each is a coded module — its own workflow, validator and operator. An organisation adopts
+ * the ones it runs from the catalogue; nobody builds one through a screen. Adding one here and
+ * in the workflow package is the whole of "registering an activity", and the compiler then
+ * names every map that has to account for it.
+ */
 export const ENGINE_KINDS = [
+  // WAYZ
   'SHOP_AND_DROP',
   'MOBILITY',
   'LAGOON',
   'COTE_RESTAURANT',
-  'ANAAM',
+  // WIQAR's Ana'am Experience — the seven packages of §4.1.
+  'HORSE_RIDING',
+  'EQUESTRIAN_LESSON',
+  'CAMEL_TOUR',
+  'ANIMAL_CARE',
+  'ANIMAL_FEEDING',
+  'PHOTOGRAPHY',
+  'GROUP_PACKAGE',
 ] as const
 export type EngineKind = (typeof ENGINE_KINDS)[number]
 
@@ -34,7 +50,13 @@ export const BILLING_FOR: Record<EngineKind, BillingModel[]> = {
   MOBILITY: ['DURATION_BASED', 'PACKAGE'],
   LAGOON: ['PACKAGE'],
   COTE_RESTAURANT: ['PACKAGE', 'PER_BAG'],
-  ANAAM: ['PACKAGE', 'DURATION_BASED'],
+  HORSE_RIDING: ['PACKAGE', 'DURATION_BASED'],
+  EQUESTRIAN_LESSON: ['PACKAGE', 'DURATION_BASED'],
+  CAMEL_TOUR: ['PACKAGE'],
+  ANIMAL_CARE: ['PACKAGE'],
+  ANIMAL_FEEDING: ['PACKAGE'],
+  PHOTOGRAPHY: ['PACKAGE'],
+  GROUP_PACKAGE: ['PACKAGE', 'DURATION_BASED'],
 }
 
 export function billingAllowedFor(engineKind: EngineKind): BillingModel[] {
@@ -59,7 +81,13 @@ export const SALE_UNITS_FOR: Record<EngineKind, SaleUnit[]> = {
   MOBILITY: ['HOUR', 'FULL_DAY', 'TOUR', 'ITEM'],
   LAGOON: ['TOUR'],
   COTE_RESTAURANT: ['ITEM'],
-  ANAAM: ['TOUR', 'ITEM'],
+  HORSE_RIDING: ['TOUR', 'HOUR'],
+  EQUESTRIAN_LESSON: ['TOUR', 'HOUR'],
+  CAMEL_TOUR: ['TOUR'],
+  ANIMAL_CARE: ['TOUR'],
+  ANIMAL_FEEDING: ['TOUR'],
+  PHOTOGRAPHY: ['TOUR'],
+  GROUP_PACKAGE: ['TOUR', 'HOUR'],
 }
 
 export function saleUnitsFor(engineKind: EngineKind): SaleUnit[] {
@@ -128,6 +156,10 @@ export type AssetUnitStatus =
   | 'BLOCKED'
   | 'OUT_OF_SERVICE'
   | 'MAINTENANCE'
+  /** Recovering between uses; not bookable until the rest interval has elapsed. */
+  | 'RESTING'
+  /** In transit between locations — WIQAR §7.3. Out of service until receipt is confirmed. */
+  | 'TRANSFERRED'
 
 export type BagItemStatus = 'REGISTERED' | 'LABELLED' | 'STORED' | 'IN_TRANSIT' | 'RETRIEVED' | 'DELIVERED'
 export type CustodyHolder = 'CUSTOMER' | 'AGENT' | 'LOCKER' | 'PORTER'

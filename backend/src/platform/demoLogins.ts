@@ -42,7 +42,13 @@ const ENGINE_LABELS: Record<string, string> = {
   MOBILITY: 'Mobility',
   LAGOON: 'Lagoon',
   COTE_RESTAURANT: 'Dining',
-  ANAAM: 'Animals',
+  HORSE_RIDING: 'Arabian Horse Riding Tour',
+  EQUESTRIAN_LESSON: 'Equestrian Lesson',
+  CAMEL_TOUR: 'Camel Tour',
+  ANIMAL_CARE: 'Animal Care Pack',
+  ANIMAL_FEEDING: 'Animal Feeding Session',
+  PHOTOGRAPHY: 'Professional Photo Session',
+  GROUP_PACKAGE: 'Group Package',
 }
 
 /** Seeded demo accounts are the ones on the demo domain; anybody hired since is not listed. */

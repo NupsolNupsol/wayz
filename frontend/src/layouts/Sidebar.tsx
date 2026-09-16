@@ -48,6 +48,9 @@ export function Sidebar({
   engineKinds: EngineKind[]
   tenantLabel: string
 }) {
+  /* The activities this organisation has taken up from the catalogue. */
+  const adopted = useAuthStore((x) => x.me?.tenant?.enabledEngines ?? [])
+
   /* The company signed in — its own name and its own mark, not the product's. */
   const tenantName = useAuthStore((x) => x.me?.tenant?.name ?? '')
   const branding = useAuthStore((x) => x.me?.tenant?.branding ?? null)
@@ -138,6 +141,15 @@ export function Sidebar({
                  * and keeps the old behaviour rather than losing its navigation.
                  */
                 (!it.capability || !capabilities.length || capabilities.includes(it.capability)) &&
+                /*
+                 * Adopted by the organisation, then assigned to the person.
+                 *
+                 * Two narrowings, in that order. An activity the company has not taken up is
+                 * not on anybody's screen however senior they are; one it has runs is on the
+                 * screens of the people assigned it, and of anybody assigned nothing in
+                 * particular — a manager, say, who works across all of them.
+                 */
+                (!it.engineKind || !adopted.length || adopted.includes(it.engineKind)) &&
                 (!it.engineKind || !engineKinds.length || engineKinds.includes(it.engineKind)) &&
                 // A locker hall only appears for the people posted to one.
                 (!it.needsGate || !!hasGate),

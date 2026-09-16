@@ -146,37 +146,5 @@ export function hashInviteToken(token: string): string {
   return createHash('sha256').update(token).digest('hex')
 }
 
-/**
- * A new user has to be able to sign in.
- *
- * Sign-in is the one request with no token to name a tenant, so the platform keeps an
- * email → tenant directory. Hooking the schema rather than the half-dozen places that
- * create users means every path — seeding, invitations, provisioning, and whatever is
- * written next — registers itself without having to remember to.
- *
- * The import is deferred to avoid a cycle: the directory reaches back into this schema.
- */
-async function registerForLogin(email: string | undefined): Promise<void> {
-  if (!email) return
-  try {
-    const [{ currentTenant }, { rememberLogin }] = await Promise.all([
-      import('../platform/tenantContext.js'),
-      import('../platform/loginDirectory.js'),
-    ])
-    const tenant = currentTenant()
-    if (tenant) await rememberLogin(email, tenant.tenantId)
-  } catch {
-    // The directory is a convenience for signing in without naming a tenant; a failure
-    // here must never cost the user record itself.
-  }
-}
-
-userSchema.post('save', function (doc) {
-  void registerForLogin(doc?.email)
-})
-
-userSchema.post('insertMany', function (docs: unknown) {
-  for (const doc of (docs as { email?: string }[] | undefined) ?? []) void registerForLogin(doc?.email)
-})
 
 export const UserSchema = userSchema

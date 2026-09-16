@@ -1,8 +1,8 @@
 import { Booking, Incident, Payment } from '../models/index.js'
 
-import { ENGINE_KINDS } from '../domain/types.js'
 
 import type { Scope } from '../interfaces/index.js'
+import { adoptedActivities } from '../platform/activityCatalogue.js'
 import { allowedEngines, engineFilter } from '../domain/access.js'
 
 function startOfToday(): Date {
@@ -52,6 +52,8 @@ export async function dashboardStats(scope: Scope) {
   ])
 
   const byEngineMap = new Map<string, number>(byEngineAgg.map((e: { _id: string; count: number }) => [e._id, e.count]))
+  const adopted = await adoptedActivities()
+
   return {
     todaysTransactions,
     todaysRevenue: Math.round((revenueAgg[0]?.total ?? 0) * 100) / 100,
@@ -61,7 +63,17 @@ export async function dashboardStats(scope: Scope) {
     overdue,
     pendingRetrievals,
     openIncidents,
-    byEngine: allowedEngines(scope)?.map((k) => ({ engineKind: k, count: byEngineMap.get(k) ?? 0 }))
-      ?? ENGINE_KINDS.map((k) => ({ engineKind: k, count: byEngineMap.get(k) ?? 0 })),
+    /*
+     * The activities this person works, or failing that the ones their organisation runs.
+     *
+     * The fallback used to be the platform's whole catalogue, which was harmless while there
+     * was one organisation and became wrong the moment there were two: an administrator whose
+     * role is not activity-scoped would see every registered activity on their dashboard,
+     * including seven belonging to a company they have never heard of, each reading zero.
+     */
+    byEngine: (allowedEngines(scope) ?? adopted).map((k) => ({
+      engineKind: k,
+      count: byEngineMap.get(k) ?? 0,
+    })),
   }
 }

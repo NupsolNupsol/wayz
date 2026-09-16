@@ -370,30 +370,6 @@ const bookingSchema = new Schema<BookingDoc>(
   { _id: false, timestamps: true },
 )
 
-/**
- * A tracking token has to outlive the session that made it.
- *
- * The link goes to a customer over WhatsApp and may be opened days later, with no account
- * and no token to say which tenant it belongs to. Registering it here means every booking
- * — however it was created — leaves a way back to its own database.
- */
-bookingSchema.post('save', function (doc) {
-  const token = (doc as { trackingToken?: string })?.trackingToken
-  if (!token) return
-  void (async () => {
-    try {
-      const [{ currentTenant }, { registerPublicToken }] = await Promise.all([
-        import('../platform/tenantContext.js'),
-        import('../platform/publicLinks.js'),
-      ])
-      const tenant = currentTenant()
-      if (tenant) await registerPublicToken(token, tenant.tenantId)
-    } catch {
-      // A public link that cannot be registered is a link that will not open; it must
-      // never be a reason the booking itself fails to save.
-    }
-  })()
-})
 
 export const BookingSchema = bookingSchema
 

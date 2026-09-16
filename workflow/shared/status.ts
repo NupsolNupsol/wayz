@@ -35,6 +35,18 @@ export const UNIT_INSPECTION_REQUIRED = 'INSPECTION_REQUIRED'
 export const UNIT_BLOCKED = 'BLOCKED'
 export const UNIT_OUT_OF_SERVICE = 'OUT_OF_SERVICE'
 export const UNIT_MAINTENANCE = 'MAINTENANCE'
+/**
+ * Recovering between uses, and not bookable until it has.
+ *
+ * Generic on purpose: a resource that must not be put straight back to work is not peculiar to
+ * animals — a boat needs refuelling, a machine needs cooling. It earns a status of its own
+ * rather than borrowing MAINTENANCE, which means "something is wrong with it", or BLOCKED,
+ * which means "somebody stopped it". This one means "it is fine, it just needs a moment", and
+ * conflating the three would make the animal welfare reporting the client asked for impossible.
+ */
+export const UNIT_RESTING = 'RESTING'
+/** In transit between locations. Not bookable anywhere until receipt is confirmed. */
+export const UNIT_TRANSFERRED = 'TRANSFERRED'
 
 export const ASSET_UNIT_STATUSES = [
   UNIT_AVAILABLE,
@@ -46,6 +58,8 @@ export const ASSET_UNIT_STATUSES = [
   UNIT_BLOCKED,
   UNIT_OUT_OF_SERVICE,
   UNIT_MAINTENANCE,
+  UNIT_RESTING,
+  UNIT_TRANSFERRED,
 ] as const
 
 export type AssetUnitStatus = (typeof ASSET_UNIT_STATUSES)[number]

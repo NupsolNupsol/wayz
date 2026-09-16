@@ -16,7 +16,13 @@ export type EngineKind =
   | 'MOBILITY'
   | 'LAGOON'
   | 'COTE_RESTAURANT'
-  | 'ANAAM'
+  | 'HORSE_RIDING'
+  | 'EQUESTRIAN_LESSON'
+  | 'CAMEL_TOUR'
+  | 'ANIMAL_CARE'
+  | 'ANIMAL_FEEDING'
+  | 'PHOTOGRAPHY'
+  | 'GROUP_PACKAGE'
 
 export interface BusinessEngine {
   id: ID

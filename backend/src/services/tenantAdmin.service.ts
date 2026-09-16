@@ -27,6 +27,12 @@ import {
   DEFAULT_DISCOUNT_REASONS,
   resolveDiscountReasons,
   type DiscountReason,
+  DEFAULT_TRANSFER_RULES,
+  DEFAULT_PROCUREMENT_RULES,
+  resolveTransferRules,
+  resolveProcurementRules,
+  type TransferRules,
+  type ProcurementRules,
 } from '../domain/rules.js'
 import { round2 } from '../utils/helpers.js'
 import { computeOvertime } from '../domain/overtime.js'
@@ -292,18 +298,39 @@ export async function readRules(scope: ManagerScope) {
     rental: rules.rental,
     penalties: rules.penalties,
     discountReasons: rules.discountReasons,
+
+    /*
+     * Approval policies, published alongside the rest.
+     *
+     * These two are here rather than hardcoded because the WIQAR specification contradicts
+     * itself about transfers (§7.4 and §11.2 name four roles with no overlap) and never says
+     * where §8.2's high-value boundary sits. Both are the client's to settle, so both are
+     * readable and writable here, and the services enforce whatever is set.
+     */
+    transfers: rules.transfers,
+    procurement: rules.procurement,
+
     engineKinds: [...ENGINE_KINDS],
+    roles: [...ROLES],
     defaults: {
       rental: DEFAULT_RENTAL_RULES,
       penalties: DEFAULT_PENALTY_SCHEDULE,
       discountReasons: DEFAULT_DISCOUNT_REASONS,
+      transfers: DEFAULT_TRANSFER_RULES,
+      procurement: DEFAULT_PROCUREMENT_RULES,
     },
   }
 }
 
 export async function updateRules(
   scope: ManagerScope,
-  patch: { rental?: RentalRulesPatch; penalties?: PenaltyRule[]; discountReasons?: DiscountReason[] },
+  patch: {
+    rental?: RentalRulesPatch
+    penalties?: PenaltyRule[]
+    discountReasons?: DiscountReason[]
+    transfers?: Partial<TransferRules>
+    procurement?: Partial<ProcurementRules>
+  },
 ) {
   const tenant = await Tenant.findById(scope.tenantId)
   if (!tenant) throw ApiError.notFound('Tenant not found.')
@@ -361,6 +388,34 @@ export async function updateRules(
     tenant.discountReasons = resolveDiscountReasons(patch.discountReasons)
     tenant.markModified('discountReasons')
     changes.push(`${patch.discountReasons.length} discount reason(s)`)
+  }
+
+  /*
+   * The two approval policies.
+   *
+   * A policy that names nobody would lock the flow out entirely, so an empty approver list is
+   * refused rather than stored — the client may choose who approves, not whether anybody does.
+   */
+  if (patch.transfers) {
+    const merged = resolveTransferRules({ ...tenant.transferRules, ...patch.transfers })
+    if (merged.requesters.length === 0) throw ApiError.badRequest('Somebody has to be able to raise a transfer.')
+    if (merged.approvers.length === 0) throw ApiError.badRequest('Somebody has to be able to approve a transfer.')
+    tenant.transferRules = merged
+    tenant.markModified('transferRules')
+    changes.push(`transfer approval (${merged.approvers.join(', ')})`)
+  }
+
+  if (patch.procurement) {
+    const merged = resolveProcurementRules({ ...tenant.procurementRules, ...patch.procurement })
+    if (merged.standardApprovers.length === 0 || merged.highValueApprovers.length === 0) {
+      throw ApiError.badRequest('Both the standard and the high-value approver lists need somebody in them.')
+    }
+    if (!(merged.highValueThreshold > 0)) {
+      throw ApiError.badRequest('The high-value threshold has to be a positive amount.')
+    }
+    tenant.procurementRules = merged
+    tenant.markModified('procurementRules')
+    changes.push(`procurement approval (above ${merged.highValueThreshold})`)
   }
 
   await tenant.save()

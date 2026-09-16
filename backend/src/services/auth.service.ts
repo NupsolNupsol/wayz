@@ -1,7 +1,7 @@
 import mongoose from 'mongoose'
 import { recordAudit } from './audit.service.js'
 import { Gate, Kiosk, Station, Tenant, User, hashPassword, hashInviteToken } from '../models/index.js'
-import { currentTenant } from '../platform/tenantContext.js'
+import { runAcrossOrganisations } from '../platform/orgScope.js'
 import type { UserDoc } from '../models/index.js'
 import type { Role } from '../domain/types.js'
 import { resolveDiscountReasons } from '../domain/rules.js'
@@ -22,6 +22,34 @@ export async function signOut(tenantId: string, userId: string) {
     detail: 'Signed out',
   })
   return { ok: true }
+}
+
+/**
+ * Which organisation a sign-in belongs to.
+ *
+ * The one query in the application that deliberately looks across every organisation, because
+ * nobody has said who they are yet — that is what a single neutral login page means.
+ *
+ * `preferred` settles the rare case of one address belonging to two organisations, which a
+ * login page only asks about once it has to.
+ */
+export async function organisationForLogin(email: string, preferred?: string): Promise<string> {
+  const candidates = await runAcrossOrganisations(() =>
+    User.find({ email: email.trim().toLowerCase() }, { tenantId: 1 }).lean(),
+  )
+
+  if (candidates.length === 0) {
+    // Deliberately the same refusal a wrong password gets: whether an address is registered
+    // is not something an unauthenticated caller should be able to discover.
+    throw ApiError.unauthorized('Invalid email or password.')
+  }
+
+  if (preferred) {
+    const match = candidates.find((u) => u.tenantId === preferred)
+    if (match) return match.tenantId
+  }
+
+  return candidates[0].tenantId
 }
 
 export async function login(email: string, password: string) {
@@ -110,14 +138,13 @@ export async function buildMe(userId: string) {
       ? {
           id: tenant._id,
           /*
-           * The handle this tenant is reached at, from the control-plane registry.
+           * The handle this organisation is known by.
            *
-           * The web app needs it to answer "whose page is this?" without guessing — that is
-           * what keeps a session on one tenant from being carried onto another tenant's
-           * address. It comes from the registry rather than from anything the client sent,
-           * for the same reason every other tenant identifier does.
+           * There is one neutral login page now, so this is no longer how anybody *reaches*
+           * the application — it is how the web app answers "whose session is this?" once
+           * somebody is inside, which is what decides the branding it wears.
            */
-          slug: currentTenant()?.registry?.slug ?? tenant._id,
+          slug: tenant._id,
           name: tenant.name,
           legalName: tenant.legalName,
           crNumber: tenant.crNumber,
@@ -126,16 +153,15 @@ export async function buildMe(userId: string) {
           vatRate: tenant.vatRate,
           enabledEngines: tenant.enabledEngines,
           /*
-           * Branding comes from the registry, which is the copy a super admin edits.
+           * Branding, applied after signing in rather than before.
            *
-           * The tenant's own document carries one too, from before there was a control plane.
-           * Two sources of truth for the same colours is one too many, and the wrong one wins
-           * silently: an administrator changes a brand in the control plane, nothing happens
-           * inside the tenant, and there is nothing on screen to explain why. The registry is
-           * authoritative; the local copy fills in anything not set there.
+           * The login page is deliberately neutral — it belongs to nobody — so the first time
+           * the product wears a company's colours is the moment it knows whose employee just
+           * arrived. One source of truth for them now that the control-plane copy is gone.
            */
-          branding: { ...tenant.branding, ...(currentTenant()?.registry?.branding ?? {}) },
-          capabilities: currentTenant()?.registry?.capabilities ?? [],
+          branding: tenant.branding,
+          /** The activities this organisation has adopted from the catalogue. */
+          activities: tenant.enabledEngines,
           discountReasons: resolveDiscountReasons(tenant.discountReasons),
           autoPrintReceipt: tenant.settings?.autoPrintReceipt !== false,
           phoneProofTtlMin: PHONE_PROOF_TTL_MIN,

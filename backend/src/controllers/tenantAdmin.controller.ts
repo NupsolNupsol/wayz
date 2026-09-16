@@ -2,7 +2,8 @@ import { z } from 'zod'
 import type { Request } from 'express'
 import { asyncHandler } from '../utils/asyncHandler.js'
 import { ApiError } from '../utils/ApiError.js'
-import { ENGINE_KINDS } from '../domain/types.js'
+import { ENGINE_KINDS, ROLES } from '../domain/types.js'
+import { adoptActivities, adoptedActivities, listCatalogue } from '../platform/activityCatalogue.js'
 
 import {
   tenantAudit,
@@ -64,6 +65,29 @@ const rulesSchema = z.object({
       }),
     )
     .max(40)
+    .optional(),
+
+  /*
+   * The two approval policies the WIQAR specification leaves unsettled.
+   *
+   * Roles are validated against the real role list rather than accepted as free text, so a
+   * typo cannot quietly produce a policy nobody satisfies.
+   */
+  transfers: z
+    .object({
+      requesters: z.array(z.enum(ROLES)).min(1).optional(),
+      approvers: z.array(z.enum(ROLES)).min(1).optional(),
+      selfApproval: z.boolean().optional(),
+    })
+    .optional(),
+  procurement: z
+    .object({
+      standardApprovers: z.array(z.enum(ROLES)).min(1).optional(),
+      highValueApprovers: z.array(z.enum(ROLES)).min(1).optional(),
+      highValueThreshold: z.coerce.number().positive().optional(),
+      reorderPointPct: z.coerce.number().min(0).max(100).optional(),
+      selfApproval: z.boolean().optional(),
+    })
     .optional(),
 })
 
@@ -129,5 +153,35 @@ export const tenantAdminController = {
   updateRules: asyncHandler(async (req, res) => {
     const body = rulesSchema.parse(req.body)
     res.json({ success: true, data: await updateRules(adminScope(req), body) })
+  }),
+}
+
+/* ------------------------------------------------------------------------------------- */
+/* The activity catalogue                                                                  */
+/* ------------------------------------------------------------------------------------- */
+
+const adoptSchema = z.object({
+  activities: z.array(z.string().trim().min(1).max(40)).max(40),
+})
+
+/**
+ * What this organisation runs, chosen from what the platform implements.
+ *
+ * The catalogue half is identical for every organisation — it is the code. The adopted half is
+ * theirs. Returned together because the screen showing them is one screen: a list of every
+ * activity, with the ones this company has taken up already ticked.
+ */
+export const activityCatalogueController = {
+  list: asyncHandler(async (_req, res) => {
+    const [catalogue, adopted] = await Promise.all([
+      Promise.resolve(listCatalogue()),
+      adoptedActivities(),
+    ])
+    res.json({ success: true, data: { catalogue, adopted } })
+  }),
+
+  adopt: asyncHandler(async (req, res) => {
+    const { activities } = adoptSchema.parse(req.body)
+    res.json({ success: true, data: { adopted: await adoptActivities(activities) } })
   }),
 }

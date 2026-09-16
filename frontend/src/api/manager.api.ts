@@ -88,10 +88,7 @@ export interface OrgKiosk {
   code?: string
   location?: string
   stationId: string
-  /** The built-in activity this counter runs, for a tenant that runs them. Null otherwise. */
-  engineKind: EngineKind | null
-  /** The tenant's own activities this counter sells. */
-  activityKeys?: string[]
+  engineKind: EngineKind
   /** Desks customers collect bags from, offered as a destination when sending bags out. */
   isExitGate?: boolean
   active: boolean
@@ -122,8 +119,6 @@ export interface OrgStation {
   code?: string
   siteId: string
   engineKinds: EngineKind[]
-  /** The tenant's own activities that take place in this area. */
-  activityKeys?: string[]
   openingTime?: string
   closingTime?: string
   contactPhone?: string
@@ -177,10 +172,6 @@ export interface ManagerStaff {
   gateId: string | null
   gateName: string | null
   engineKinds: EngineKind[]
-  /** Activities this tenant defined for itself, by key. See activity.api.ts. */
-  activityKeys?: string[]
-  /** The job this person holds, as their own company defines it. See role.api.ts. */
-  roleKey?: string | null
   reportsTo: string | null
   reportsToName: string | null
   lastLoginAt: string | null
@@ -284,9 +275,7 @@ export interface DiscountsReport {
   rows: {
     bookingId: string
     ref: string
-    engineKind: EngineKind | null
-    /** What was sold, in the company's own words. Null for a booking sold under an engine. */
-    activityName: string | null
+    engineKind: EngineKind
     customerName: string
     amount: number
     percent: number
@@ -310,13 +299,6 @@ export interface RevenueReport {
   byMethod: { method: string; total: number; count: number }[]
   byKind: { kind: string; total: number; count: number }[]
   byEngine: { engineKind: EngineKind; total: number }[]
-  /**
-   * Revenue by the company's own lines of business.
-   *
-   * `byEngine` answers the same question for a company that runs the built-in engines and is
-   * kept for it. This answers it for everybody, and is what the screen reads.
-   */
-  byLine: { key: string; label: { en: string; ar: string }; total: number }[]
   byStation: { stationId: string; name: string; total: number }[]
 }
 export interface OccupancyReport {

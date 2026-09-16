@@ -71,6 +71,21 @@ body {
 
 /* The sidebar sits on the start edge, which is the right-hand side in Arabic. */
 @media (min-width: 1024px) {
+  /*
+   * Room at the bottom for the assistant's launcher.
+   *
+   * It is a fixed button in the corner, above everything, so without this the last row of any
+   * page sits underneath it — a button there cannot be clicked at all, because the launcher
+   * takes the press. It showed up as click timeouts on the till queue and the voucher field,
+   * and it is not a test problem: the same press fails for a person.
+   *
+   * Reserved as space rather than by lowering the launcher, because the launcher is meant to
+   * stay reachable; what must not happen is content hiding beneath it.
+   */
+  .lf-shell-main {
+    padding-bottom: 6rem;
+  }
+
   .lf-shell-main[data-sw='wide'] {
     margin-inline-start: 290px;
   }

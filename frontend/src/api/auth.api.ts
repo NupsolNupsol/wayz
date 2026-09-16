@@ -41,20 +41,51 @@ export interface TenantFront {
   demoLogins: { label: string; email: string; password: string; role: Role }[]
 }
 
+/** A demonstration account offered on the neutral sign-in page. */
+export interface DemoProfile {
+  label: string
+  email: string
+  password: string
+  role: Role
+}
+
+/** One organisation's demonstration accounts, as the sign-in page groups them. */
+export interface DemoOrganisation {
+  id: string
+  name: string
+  branding: { primaryColor?: string; secondaryColor?: string; logoText?: string; logoUrl?: string }
+  activities: string[]
+  logins: DemoProfile[]
+}
+
+/**
+ * What signing in produces.
+ *
+ * Two shapes, because there are two kinds of person: somebody who works at one of the
+ * companies gets a `user`, and whoever runs the platform gets a `platform`. Exactly one is
+ * present, and which one decides where the door leads.
+ */
+export type SignInResult =
+  | { token: string; user: Me; platform?: undefined }
+  | { token: string; platform: { id: string; email: string; name: string }; user?: undefined }
+
 export const authApi = {
   logout: () => unwrap<{ ok: boolean }>(http.post('/auth/logout', {})),
-  /** `tenant` is the handle the per-tenant page was reached at; without one the directory decides. */
-  login: (email: string, password: string, tenant?: string) =>
-    unwrap<{ token: string; user: Me }>(http.post('/auth/login', { email, password, ...(tenant ? { tenant } : {}) })),
-  tenantFront: (slug: string) => unwrap<TenantFront>(http.get(`/public/tenants/${slug}`)),
   /**
-   * The workspaces to choose between at the platform's own front door.
+   * Signs in at the neutral door.
    *
-   * Empty on a real deployment: being able to ask a server for a list of every company using
-   * it is enumeration, which the per-handle endpoint already refuses. A demonstration says so
-   * in its configuration and gets a list to click.
+   * `tenant` is normally absent: the account decides which organisation the session belongs
+   * to. It exists for the one case where an address belongs to two organisations and somebody
+   * has to say which.
    */
-  workspaces: () => unwrap<WorkspaceSummary[]>(http.get('/public/workspaces')),
+  login: (email: string, password: string, tenant?: string) =>
+    unwrap<SignInResult>(http.post('/auth/login', { email, password, ...(tenant ? { tenant } : {}) })),
+  /**
+   * The demonstration accounts to offer, grouped by organisation.
+   *
+   * Empty on a real deployment — being able to ask a server who works where is enumeration.
+   */
+  demoLogins: () => unwrap<{ organisations: DemoOrganisation[] }>(http.get('/public/demo-logins')),
   me: () => unwrap<Me>(http.get('/auth/me')),
   invitation: (token: string) => unwrap<Invitation>(http.get(`/auth/invitation/${token}`)),
   acceptInvitation: (token: string, password: string, confirmPassword: string) =>

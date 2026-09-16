@@ -32,8 +32,24 @@ const FULFILMENT: Record<EngineKind, { code: string; label: string; flag?: 'insp
   SHOP_AND_DROP: null,
   MOBILITY: { code: 'TO_HANDOVER', label: 'Confirm handover & start rental', flag: 'inspectionDone', promptKey: 'agent:engine.prompt.inspectionDone' },
   LAGOON: null,
-  ANAAM: { code: 'TO_STARTED', label: 'Confirm safety & start experience', flag: 'safetyAck', promptKey: 'agent:engine.prompt.safetyAck' },
   COTE_RESTAURANT: null,
+
+  /*
+   * WIQAR's experiences, and where they genuinely differ.
+   *
+   * A rider is mounted on a moving animal, so riding and lessons take a safety brief before
+   * the session starts. A camel walk is led on foot, a grooming session is stationary, and a
+   * photo session has the animal standing still — none of them puts a visitor somewhere a
+   * brief would help, and asking for one anyway is the sort of ceremony that gets clicked
+   * through without being read.
+   */
+  HORSE_RIDING: { code: 'TO_STARTED', label: 'Confirm safety & start ride', flag: 'safetyAck', promptKey: 'agent:engine.prompt.safetyAck' },
+  EQUESTRIAN_LESSON: { code: 'TO_STARTED', label: 'Confirm safety & start lesson', flag: 'safetyAck', promptKey: 'agent:engine.prompt.safetyAck' },
+  CAMEL_TOUR: { code: 'TO_STARTED', label: 'Start tour' },
+  ANIMAL_CARE: { code: 'TO_STARTED', label: 'Start care session' },
+  ANIMAL_FEEDING: { code: 'TO_STARTED', label: 'Start feeding' },
+  PHOTOGRAPHY: { code: 'TO_STARTED', label: 'Start photo session' },
+  GROUP_PACKAGE: { code: 'TO_STARTED', label: 'Start group package', flag: 'safetyAck', promptKey: 'agent:engine.prompt.safetyAck' },
 }
 
 const STEPS: Step[] = [

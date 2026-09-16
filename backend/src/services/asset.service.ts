@@ -14,8 +14,6 @@ import {
 } from '../domain/types.js'
 import type { AssetUnitStatus, BagCategory, BillingModel, EngineKind, Role, SaleType, SaleUnit } from '../domain/types.js'
 import { canWorkEngine, engineFilter } from '../domain/access.js'
-import type { EffectiveAccess } from './authorisation.service.js'
-import { visibleResourceKindQuery } from './resourceScope.service.js'
 import { tenantRules } from './rules.service.js'
 import type { Scope } from '../interfaces/index.js'
 import { FLOOR_LEADS } from '../domain/roles.js'
@@ -109,41 +107,10 @@ async function productFor(tenantId: string, assetTypeId: string) {
   return CatalogueProduct.findOne({ tenantId, assetTypeId }).sort({ basePrice: 1, _id: 1 }).lean()
 }
 
-/**
- * The kinds of resource this person may see.
- *
- * Two paths, and which one is taken is decided by the tenant, not by a flag:
- *
- *  - a company that has **defined its own jobs** is answered by its own configuration — the
- *    kinds its activities use, at the places this person is posted;
- *  - a company that has **not** (an installation predating role definitions) keeps the
- *    behaviour it has always had, where visibility follows the built-in engines its people
- *    are assigned to.
- *
- * The second path is the reason this is not simply replaced. The first is the reason it is no
- * longer the only one: `engineFilter` answers `{ $in: [] }` for anybody with no engines, so
- * under the old code a horse trainer — who has no engines and never will — was shown nothing
- * at all, and the platform had no way to say otherwise.
- */
-async function kindMatchFor(
-  scope: AssetScope,
-  access: EffectiveAccess | null,
-  engineKind?: EngineKind,
-): Promise<Record<string, unknown>> {
-  if (access?.roleKey) {
-    const { filter } = await visibleResourceKindQuery(access)
-    // A caller may still narrow by engine; a tenant with its own jobs simply never passes one.
-    return engineKind ? { ...filter, engineKind } : filter
-  }
-
+export async function listAssetTypes(scope: AssetScope, engineKind?: EngineKind) {
   const match: Record<string, unknown> = { tenantId: scope.tenantId }
   const engines = engineFilter({ role: scope.role, engineKinds: scope.engineKinds }, engineKind)
   if (engines !== undefined) match.engineKind = engines
-  return match
-}
-
-export async function listAssetTypes(scope: AssetScope, engineKind?: EngineKind, access: EffectiveAccess | null = null) {
-  const match = await kindMatchFor(scope, access, engineKind)
 
   const [types, unitAgg, products, unitStations] = await Promise.all([
     AssetType.find(match).sort({ engineKind: 1, name: 1 }).lean(),

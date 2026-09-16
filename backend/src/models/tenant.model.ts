@@ -1,6 +1,6 @@
 import { Schema } from 'mongoose'
 import type { EngineKind, TenantBranding } from '../domain/types.js'
-import type { PenaltyRule, RentalRulesPatch } from '../domain/rules.js'
+import type { PenaltyRule, RentalRulesPatch, TransferRules, ProcurementRules } from '../domain/rules.js'
 
 export interface TenantDoc {
   _id: string
@@ -32,6 +32,10 @@ export interface TenantDoc {
     autoPrintReceipt: boolean
   }
   rentalRules: RentalRulesPatch
+  /** Who raises and who approves an animal transfer. See TransferRules — the spec conflicts. */
+  transferRules?: Partial<TransferRules>
+  /** Who approves a purchase order, and where "high-value" starts. See ProcurementRules. */
+  procurementRules?: Partial<ProcurementRules>
   shiftWindow?: { startsAt?: string; endsAt?: string }
   discountReasons?: { code: string; label: string; labelAr?: string; maxPercent?: number; needsApproval?: boolean }[]
   penaltySchedule: PenaltyRule[]
@@ -90,9 +94,20 @@ const tenantSchema = new Schema<TenantDoc>(
   {
     _id: { type: String, required: true },
     name: { type: String, required: true },
-    legalName: { type: String, required: true },
-    crNumber: { type: String, required: true },
-    vatNumber: { type: String, required: true },
+    /*
+     * The registration details an invoice must carry.
+     *
+     * Not required *here*, because a company is set up before its paperwork exists — a
+     * commercial registration and a VAT number arrive weeks after somebody decides to open.
+     * Requiring them at creation meant the only way to add a company was to already have them.
+     *
+     * The requirement has moved to where it actually bites: `invoice.service.ts` refuses to
+     * issue a tax invoice for a company that has not filled them in. That is the moment the
+     * law cares about, and the refusal there says what is missing.
+     */
+    legalName: { type: String, default: '' },
+    crNumber: { type: String, default: '' },
+    vatNumber: { type: String, default: '' },
     enabledEngines: { type: [String], default: [] },
     branding: { type: brandingSchema, default: () => ({}) },
     vatRate: { type: Number, default: 0.15 },
@@ -101,6 +116,8 @@ const tenantSchema = new Schema<TenantDoc>(
     company: { type: companySchema, default: () => ({}) },
     settings: { type: settingsSchema, default: () => ({}) },
     rentalRules: { type: Schema.Types.Mixed, default: () => ({}) },
+    transferRules: { type: Schema.Types.Mixed, default: () => ({}) },
+    procurementRules: { type: Schema.Types.Mixed, default: () => ({}) },
     shiftWindow: { type: Schema.Types.Mixed, default: () => ({}) },
     discountReasons: { type: Schema.Types.Mixed, default: () => [] },
     penaltySchedule: { type: [penaltyRuleSchema], default: () => [] },

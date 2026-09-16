@@ -8,7 +8,27 @@ export type Role =
   | 'HR'
   | 'ACCOUNTANT'
   | 'TENANT_ADMIN'
-export type EngineKind = 'SHOP_AND_DROP' | 'MOBILITY' | 'LAGOON' | 'COTE_RESTAURANT' | 'ANAAM'
+/**
+ * Every activity the platform implements, mirroring the backend's registry.
+ *
+ * Each is a coded module with its own workflow and its own screens where it needs them. An
+ * organisation adopts the ones it runs — see `useTenantEngines`.
+ */
+export type EngineKind =
+  | 'SHOP_AND_DROP'
+ 
+  | 'MOBILITY'
+  | 'LAGOON'
+  | 'COTE_RESTAURANT'
+ 
+  | 'HORSE_RIDING'
+  | 'EQUESTRIAN_LESSON'
+  | 'CAMEL_TOUR'
+  | 'ANIMAL_CARE'
+ 
+  | 'ANIMAL_FEEDING'
+  | 'PHOTOGRAPHY'
+  | 'GROUP_PACKAGE'
 export type BillingModel = 'PER_BAG' | 'PER_COMPARTMENT' | 'PACKAGE' | 'DURATION_BASED'
 export type BookingStatus = 'DRAFT' | 'CONFIRMED' | 'RESERVED' | 'ACTIVE' | 'OVERTIME' | 'RETRIEVAL_IN_PROGRESS' | 'PREPARING' | 'SERVED' | 'COMPLETED' | 'CANCELLED'
 export type PaymentMethod = 'CASH' | 'CARD'

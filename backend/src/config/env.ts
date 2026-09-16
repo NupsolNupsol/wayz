@@ -14,10 +14,15 @@ const schema = z.object({
    * deliberately a separate database from every tenant: the plane that decides which
    * database a request may touch must not sit inside one of them.
    */
-  PLATFORM_DB_NAME: z.string().default('lockerflow_platform'),
+  /**
+   * The one database every organisation shares.
+   *
+   * Defaults to the database WAYZ's records already live in, so collapsing the old
+   * database-per-organisation design moved no data and needed no migration.
+   */
+  APP_DB_NAME: z.string().default('lockerflow_t_wayz'),
 
   /** Every tenant database is this prefix plus the tenant's slug. */
-  TENANT_DB_PREFIX: z.string().default('lockerflow_t_'),
 
   /**
    * First super admin, created on boot when the control plane has none.

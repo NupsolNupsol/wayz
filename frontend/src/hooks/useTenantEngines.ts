@@ -1,28 +1,42 @@
 import { useMemo } from 'react'
 
 import { useAuthStore } from '@/store/auth'
-import { engineLabel, visibleEngines } from '@/config/engineMeta'
+import { ENGINE_META, VISIBLE_ENGINES, engineLabel } from '@/config/engineMeta'
 import type { EngineKind } from '@/api/types'
 
 /**
- * The built-in activities *this* company runs.
+ * The activities this organisation has adopted.
  *
- * Every screen that offers a list of activities — the asset filters, the kind picker, the
- * company settings — used to render a constant holding WAYZ's three. A company that runs horse
- * rides was therefore offered "Shop & Drop", "Mobility Rentals" and "Lagoon": three activities
- * it does not have, cannot staff and will never sell. The navigation had been fixed to ask
- * about capabilities; these screens had not, so they kept the old assumption alive.
+ * Every activity is a coded module registered once in the platform's catalogue — Shop & Drop,
+ * Mobility, Lagoon, and whatever is added next. An organisation adopts the ones it runs, and
+ * that list is what every screen offering "which activity?" is built from.
  *
- * Capabilities come from the control-plane registry by way of the session, which is the same
- * source the sidebar uses — one answer to "what does this company do", not two.
+ * This is the reason no screen needs to ask which company it is serving. A filter tab, a kind
+ * picker, a counter tile and a settings page all render the same thing — the adopted list —
+ * and differ between organisations only because the list differs. There is no `if WAYZ`
+ * anywhere, and adding an organisation that runs two of the three requires no change here.
+ *
+ * Falls back to the whole catalogue when the session carries nothing, which happens only
+ * before the first `/me` resolves; an empty list would flash an empty picker on every reload.
  */
 export function useTenantEngines(): EngineKind[] {
-  const capabilities = useAuthStore((s) => s.me?.tenant?.capabilities)
-  return useMemo(() => visibleEngines(capabilities), [capabilities])
+  const adopted = useAuthStore((s) => s.me?.tenant?.enabledEngines)
+
+  return useMemo(() => {
+    const held = adopted ?? []
+    if (held.length === 0) return VISIBLE_ENGINES
+    return VISIBLE_ENGINES.filter((kind) => held.includes(kind))
+  }, [adopted])
 }
 
 /** The same list, shaped for a `<Select>`. */
 export function useTenantEngineOptions(): { label: string; value: EngineKind }[] {
   const engines = useTenantEngines()
   return useMemo(() => engines.map((k) => ({ label: engineLabel(k), value: k })), [engines])
+}
+
+/** The catalogue entry for each adopted activity — label, icon, route. */
+export function useTenantEngineMeta() {
+  const engines = useTenantEngines()
+  return useMemo(() => engines.map((kind) => ({ kind, ...ENGINE_META[kind] })), [engines])
 }

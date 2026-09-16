@@ -8,10 +8,7 @@ export interface ActivityLabel {
 }
 
 export interface ActivityFigures {
-  /** The line: one of the tenant's own activity keys, or a built-in engine name. */
-  key: string
-  /** Set only when the line is a built-in engine. Null for a tenant's own activity. */
-  engineKind: EngineKind | null
+  engineKind: EngineKind
   label: ActivityLabel
   salesBase: number
   salesVat: number
@@ -296,8 +293,6 @@ export interface PeriodFilter {
   from?: string
   to?: string
   engineKind?: EngineKind
-  /** One of the tenant's own activities. Carried instead of `engineKind`, never alongside it. */
-  activityKey?: string
 }
 
 export const accountingApi = {
@@ -324,16 +319,14 @@ export const accountingApi = {
     if (params.from) q.set('from', params.from)
     if (params.to) q.set('to', params.to)
     if (params.engineKind) q.set('engineKind', params.engineKind)
-    if (params.activityKey) q.set('activityKey', params.activityKey)
     return `/accounting/export?${q.toString()}`
   },
   download: async (params: PeriodFilter) => {
     const res = await http.get(accountingApi.exportUrl(params), { responseType: 'blob' })
     return res.data as Blob
   },
-  /** One line of business, by key — an activity the tenant defined, or a built-in engine. */
-  downloadActivityWorkbook: async (line: string, params: PeriodFilter) => {
-    const res = await http.get(`/accounting/export/activity/${encodeURIComponent(line)}`, {
+  downloadActivityWorkbook: async (engineKind: EngineKind, params: PeriodFilter) => {
+    const res = await http.get(`/accounting/export/activity/${engineKind}`, {
       params: { from: params.from, to: params.to },
       responseType: 'blob',
     })

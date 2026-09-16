@@ -9,7 +9,28 @@ import type {
   ReservationStatus,
 } from './status.js'
 
-export const ENGINE_KINDS = ['SHOP_AND_DROP', 'MOBILITY', 'LAGOON', 'COTE_RESTAURANT', 'ANAAM'] as const
+/**
+ * Every activity the platform implements.
+ *
+ * Each is a coded module — a workflow, a validator and an operator — not a configuration. An
+ * organisation adopts the ones it runs; it does not invent them. Adding one here is the first
+ * step of building it, and TypeScript will then name every map that has to account for it.
+ */
+export const ENGINE_KINDS = [
+  // WAYZ
+  'SHOP_AND_DROP',
+  'MOBILITY',
+  'LAGOON',
+  'COTE_RESTAURANT',
+  // WIQAR's Ana'am Experience — the seven packages of §4.1.
+  'HORSE_RIDING',
+  'EQUESTRIAN_LESSON',
+  'CAMEL_TOUR',
+  'ANIMAL_CARE',
+  'ANIMAL_FEEDING',
+  'PHOTOGRAPHY',
+  'GROUP_PACKAGE',
+] as const
 export type EngineKind = (typeof ENGINE_KINDS)[number]
 
 export const ASSET_KINDS = ['COMPARTMENT', 'VEHICLE', 'BOAT', 'TABLE', 'ANIMAL'] as const
@@ -20,13 +41,31 @@ export const ASSET_KIND_BY_ENGINE: Record<EngineKind, AssetKind> = {
   MOBILITY: 'VEHICLE',
   LAGOON: 'BOAT',
   COTE_RESTAURANT: 'TABLE',
-  ANAAM: 'ANIMAL',
+  /*
+   * Seven activities, one kind of resource.
+   *
+   * This map is deliberately many-to-one: a riding tour, a camel walk and a photo session all
+   * work animals, and they are still three different activities with three different
+   * workflows. Which is why there is no map back the other way — see below.
+   */
+  HORSE_RIDING: 'ANIMAL',
+  EQUESTRIAN_LESSON: 'ANIMAL',
+  CAMEL_TOUR: 'ANIMAL',
+  ANIMAL_CARE: 'ANIMAL',
+  ANIMAL_FEEDING: 'ANIMAL',
+  PHOTOGRAPHY: 'ANIMAL',
+  GROUP_PACKAGE: 'ANIMAL',
 }
 
-export const ENGINE_BY_ASSET_KIND: Record<AssetKind, EngineKind> = Object.entries(ASSET_KIND_BY_ENGINE).reduce(
-  (acc, [engine, kind]) => ({ ...acc, [kind]: engine as EngineKind }),
-  {} as Record<AssetKind, EngineKind>,
-)
+/*
+ * There is deliberately no `ENGINE_BY_ASSET_KIND`.
+ *
+ * There used to be, built by inverting the map above, and it worked only while every activity
+ * owned a distinct kind of resource. Seven WIQAR experiences share `ANIMAL`, so "which
+ * activity does an animal belong to?" has seven answers and inverting the map would silently
+ * return whichever happened to be last. Nothing consumed it; a question with no single answer
+ * should not have a function that pretends otherwise.
+ */
 
 export type SessionKind = 'STORAGE' | 'RENTAL' | 'ACTIVITY' | 'EXPERIENCE' | 'DINING'
 

@@ -1,5 +1,6 @@
 import { authenticate } from '../middlewares/auth.js'
-import { currentTenant } from '../platform/tenantContext.js'
+import { currentOrganisation } from '../platform/orgScope.js'
+import { appDbName } from '../platform/connections.js'
 import type { Express } from 'express'
 import authRouter from './auth.route.js'
 import customerRouter from './customer.route.js'
@@ -24,10 +25,10 @@ import accountingRouter from './accounting.route.js'
 import hrRouter from './hr.route.js'
 import publicRouter from './public.route.js'
 import searchRouter from './search.route.js'
-import assetRouter from './asset.route.js'
-import activityRouter from './activity.route.js'
-import roleDefinitionRouter from './roleDefinition.route.js'
+import animalTransferRouter from './animalTransfer.route.js'
+import procurementRouter from './procurement.route.js'
 import platformRouter from './platform.route.js'
+import assetRouter from './asset.route.js'
 import learningRouter from './learning.route.js'
 
 export function mountRoutes(app: Express) {
@@ -41,13 +42,11 @@ export function mountRoutes(app: Express) {
    * it on trust.
    */
   app.get('/api/health/tenant', authenticate, (req, res) => {
-    const ctx = currentTenant()
     res.json({
       success: true,
       data: {
-        tenantId: ctx?.tenantId ?? null,
-        slug: ctx?.slug ?? null,
-        database: ctx?.dbName ?? null,
+        organizationId: currentOrganisation() ?? null,
+        database: appDbName(),
         role: req.auth?.role ?? null,
       },
     })
@@ -82,12 +81,12 @@ export function mountRoutes(app: Express) {
    * Placed with the tenant routes only because they share an Express app; it shares nothing
    * else with them — different credential, different database, no tenant context at all.
    */
+  /* The platform console — unscoped by design; see platform.route.ts. */
   app.use('/api/platform', platformRouter)
+
+  app.use('/api/animal-transfers', animalTransferRouter)
+  app.use('/api/purchase-orders', procurementRouter)
   app.use('/api/assets', assetRouter)
-  // Activities a tenant defined for itself. See activity.route.ts.
-  app.use('/api/activities', activityRouter)
-  // Jobs, as each tenant defines them. See roleDefinition.route.ts.
-  app.use('/api/roles', roleDefinitionRouter)
   app.use('/api/manager', managerRouter)
   // The employee AI assistant and guided onboarding. See learning.route.ts.
   app.use('/api/learning', learningRouter)

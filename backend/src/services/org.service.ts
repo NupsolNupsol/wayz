@@ -1,7 +1,6 @@
 import { AssetUnit, Booking, Gate, Kiosk, Site, Station, User } from '../models/index.js'
 import { ENGINE_KINDS, type EngineKind } from '../domain/types.js'
 import { ApiError } from '../utils/ApiError.js'
-import { ActivityDefinition } from '../models/index.js'
 import { nextId } from './counter.service.js'
 
 import type { GateInput, KioskInput, SiteInput, StationInput } from '../interfaces/index.js'
@@ -269,12 +268,11 @@ export async function createKiosk(scope: ManagerScope, input: KioskInput) {
   if (!station) throw ApiError.badRequest('That station does not exist in this tenant.')
 
   /*
-   * A desk serves one of the activities the product ships with, or one its own tenant invented.
+   * A desk serves one of the activities its organisation has adopted.
    *
-   * Naming a built-in engine is checked against what the station runs, as it always was.
-   * Naming a tenant's own activity is checked against that tenant's published activities
-   * instead — which is the only place those keys exist. A desk must name one or the other;
-   * a counter that serves nothing is not a counter.
+   * Every activity is a coded module registered in the platform's catalogue; an organisation
+   * adopts the ones it runs, and a counter names one of those. Checking against what the
+   * *station* runs is the same rule it always was.
    */
   const activityKeys = [...new Set(input.activityKeys ?? [])]
 
@@ -282,19 +280,8 @@ export async function createKiosk(scope: ManagerScope, input: KioskInput) {
     assertStationRuns(station.engineKinds, station.name, input.engineKind)
   } else if (activityKeys.length === 0) {
     throw ApiError.badRequest('Choose what this desk sells.', [
-      'Either one of the activities the platform provides, or one this tenant has defined and published.',
+      'One of the activities this organisation has adopted.',
     ])
-  }
-
-  if (activityKeys.length) {
-    const known = await ActivityDefinition.find(
-      { tenantId: scope.tenantId, key: { $in: activityKeys } },
-      { key: 1 },
-    ).lean()
-    const missing = activityKeys.filter((k) => !known.some((a) => a.key === k))
-    if (missing.length) {
-      throw ApiError.badRequest(`This tenant has no activity called "${missing[0]}".`)
-    }
   }
 
   return Kiosk.create({

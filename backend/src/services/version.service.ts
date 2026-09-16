@@ -1,13 +1,13 @@
-import { platformDb } from '../platform/connections.js'
+import { appModel } from '../platform/connections.js'
+import type { VersionDoc } from '../models/version.model.js'
 
-/** The changelog is platform-wide, so it is read from the control plane. */
-const Version = new Proxy({} as ReturnType<typeof platformDb>['Version'], {
-  get: (_t, prop, recv) => {
-    const model = platformDb().Version
-    const value = Reflect.get(model as object, prop, recv)
-    return typeof value === 'function' ? value.bind(model) : value
-  },
-})
+/**
+ * The changelog describes the product, not any one organisation.
+ *
+ * So it is one of the two collections deliberately left out of organisation scoping — see
+ * `sharedModels.ts`. Everyone reads the same release notes.
+ */
+const Version = appModel<VersionDoc>('Version')
 import { ApiError } from '../utils/ApiError.js'
 import { nextId } from './counter.service.js'
 import type { VersionChange } from '../models/index.js'

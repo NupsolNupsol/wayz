@@ -170,17 +170,6 @@ export function AdminOverview() {
         </Card>
       </div>
 
-      {/*
-        The built-in services this company runs.
-
-        Hidden entirely when it runs none. This used to render whatever the API returned, and
-        the API used to fall back to *every* engine the product ships with for a company with
-        none recorded — so a company that runs horse tours was shown a panel headed "services
-        you run" listing Shop & Drop, Mobility and Lagoon. Its own lines of business are on
-        the Activities screen, which is where they belong.
-      */}
-      {data.byEngine.length > 0 && (
-        <>
       <SectionTitle className="mb-2 flex items-center gap-2">
         <Truck size={16} />{t('overview.servicesYouRun')}</SectionTitle>
       <Card className="p-4 mb-6" data-testid="admin-engines">
@@ -211,8 +200,6 @@ export function AdminOverview() {
           })}
         </div>
       </Card>
-        </>
-      )}
 
       <SectionTitle className="mb-2 flex items-center gap-2">
         <MapPin size={16} />{t('overview.sites')}</SectionTitle>

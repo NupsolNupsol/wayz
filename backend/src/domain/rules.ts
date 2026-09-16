@@ -67,7 +67,15 @@ export const DEFAULT_RENTAL_RULES: RentalRules = {
     MOBILITY: FROM_PAYMENT,
     LAGOON: FROM_PAYMENT,
     COTE_RESTAURANT: FULFILMENT,
-    ANAAM: FROM_PAYMENT,
+    // Every animal experience is timed from the moment it is paid for, as the lagoon is: the
+    // visitor is with the animal from then, whatever the package.
+    HORSE_RIDING: FROM_PAYMENT,
+    EQUESTRIAN_LESSON: FROM_PAYMENT,
+    CAMEL_TOUR: FROM_PAYMENT,
+    ANIMAL_CARE: FROM_PAYMENT,
+    ANIMAL_FEEDING: FROM_PAYMENT,
+    PHOTOGRAPHY: FROM_PAYMENT,
+    GROUP_PACKAGE: FROM_PAYMENT,
   },
 }
 
@@ -146,3 +154,141 @@ export function resolveDiscountReasons(stored?: Partial<DiscountReason>[] | null
     }))
   return clean.length ? clean : DEFAULT_DISCOUNT_REASONS
 }
+
+/* ------------------------------------------------------------------------------------- */
+/* Animal transfers — an unresolved requirement, kept in configuration                      */
+/* ------------------------------------------------------------------------------------- */
+
+/**
+ * Who may approve an inter-location animal transfer.
+ *
+ * **The requirements contradict themselves here, and this is not a judgement call we should
+ * make on the client's behalf.** Two sections of the WIQAR specification name four different
+ * roles with no overlap:
+ *
+ * | Section | Says |
+ * |---|---|
+ * | §7.4 | *"Transfer must be approved by **Chief Accountant or Administrative Manager** before execution (for liability tracking)"* |
+ * | §11.2 | *"Animal inter-location transfers require **Project Manager or CEO** approval; transport driver executes only after approval confirmed"* |
+ *
+ * So the approver list is configuration, not code. An organisation sets it; the workflow reads
+ * it. Whichever way the client resolves it — either list, both, or something else — is a
+ * settings change rather than a release.
+ *
+ * The default below follows **§7.4**, for two reasons worth stating so the choice can be
+ * argued with: §7.4 is the section *about* transfers rather than a summary table, and it gives
+ * a rationale ("for liability tracking") that §11.2 does not. That is a tie-break, not an
+ * answer. See `docs/platform/11-WIQAR-ASSUMPTIONS.md`.
+ */
+export interface TransferRules {
+  /** Roles that may raise a transfer order. §7.4: Project Manager or Supervisor. */
+  requesters: string[]
+  /** Roles that may approve one. See the note above — the specification contradicts itself. */
+  approvers: string[]
+  /**
+   * Whether the person who raised a transfer may also approve it.
+   *
+   * Off by default. §7.4 approves transfers *"for liability tracking"*, which is defeated if
+   * one person can do both — and under the §11.2 reading the Project Manager both raises and
+   * approves, so without this the separation disappears the moment that list is chosen.
+   *
+   * Not stated either way in the specification: **ASSUMPTION**, and one switch to change.
+   */
+  selfApproval: boolean
+}
+
+export const DEFAULT_TRANSFER_RULES: TransferRules = {
+  requesters: ['PROJECT_MANAGER', 'SUPERVISOR'],
+  // §7.4. The §11.2 reading is ['PROJECT_MANAGER', 'TENANT_ADMIN'].
+  approvers: ['ACCOUNTANT', 'HR'],
+  selfApproval: false,
+}
+
+/** The transfer policy in force, falling back to the documented default. */
+export function resolveTransferRules(stored?: Partial<TransferRules> | null): TransferRules {
+  return {
+    requesters: stored?.requesters?.length ? stored.requesters : DEFAULT_TRANSFER_RULES.requesters,
+    approvers: stored?.approvers?.length ? stored.approvers : DEFAULT_TRANSFER_RULES.approvers,
+    selfApproval: stored?.selfApproval ?? DEFAULT_TRANSFER_RULES.selfApproval,
+  }
+}
+
+/* ------------------------------------------------------------------------------------- */
+/* Procurement — §8.2                                                                       */
+/* ------------------------------------------------------------------------------------- */
+
+/**
+ * Who approves a purchase order, and at what point it stops being routine.
+ *
+ * §8.2: *"PO requires approval by **Administrative Manager** for standard items; **CEO or
+ * Project Manager** for high-value purchases."*
+ *
+ * That much is clear. What is **not** stated anywhere in the specification is what makes a
+ * purchase "high-value" — no figure is given, and §4.1's prices are themselves TBD. Rather
+ * than invent a number and bury it, the threshold is configuration with a documented default,
+ * exactly as the transfer approvers are.
+ *
+ * `highValueThreshold` below is an **ASSUMPTION**: 5,000 SAR is a plausible line for a
+ * seasonal operation of this size and has no authority beyond that. One setting to change.
+ */
+export interface ProcurementRules {
+  /** §8.2 — Administrative Manager, which is the `HR` base role on this platform. */
+  standardApprovers: string[]
+  /** §8.2 — CEO or Project Manager. */
+  highValueApprovers: string[]
+  /** ASSUMPTION: the specification says "high-value" and never says what that is. */
+  highValueThreshold: number
+  /**
+   * §8.2: *"Alert generated when any item falls below a configurable reorder point."*
+   *
+   * The specification says configurable and gives no default; §6.5 mentions 20% of par level
+   * for visitor feed, which is the only figure offered anywhere and is used here.
+   */
+  reorderPointPct: number
+  /**
+   * Whether the person who raised a purchase order may also approve it.
+   *
+   * Off by default, and not stated in the specification — **ASSUMPTION**. §8.2 separates the
+   * raiser (Purchasing Agent) from the approvers (Administrative Manager, CEO, Project
+   * Manager) in every reading, so self-approval would only arise if somebody held both roles.
+   */
+  selfApproval: boolean
+}
+
+export const DEFAULT_PROCUREMENT_RULES: ProcurementRules = {
+  standardApprovers: ['HR'],
+  highValueApprovers: ['TENANT_ADMIN', 'PROJECT_MANAGER'],
+  highValueThreshold: 5000,
+  reorderPointPct: 20,
+  selfApproval: false,
+}
+
+export function resolveProcurementRules(stored?: Partial<ProcurementRules> | null): ProcurementRules {
+  return {
+    standardApprovers: stored?.standardApprovers?.length
+      ? stored.standardApprovers
+      : DEFAULT_PROCUREMENT_RULES.standardApprovers,
+    highValueApprovers: stored?.highValueApprovers?.length
+      ? stored.highValueApprovers
+      : DEFAULT_PROCUREMENT_RULES.highValueApprovers,
+    highValueThreshold: stored?.highValueThreshold ?? DEFAULT_PROCUREMENT_RULES.highValueThreshold,
+    reorderPointPct: stored?.reorderPointPct ?? DEFAULT_PROCUREMENT_RULES.reorderPointPct,
+    selfApproval: stored?.selfApproval ?? DEFAULT_PROCUREMENT_RULES.selfApproval,
+  }
+}
+
+/**
+ * The categories §8.1 tracks stock in.
+ *
+ * Kept as a list rather than a free string so a purchase order can be reported on by category,
+ * and so the veterinary rule in §8.2 has something reliable to key off.
+ */
+export const INVENTORY_CATEGORIES = [
+  'ANIMAL_FEED',
+  'VETERINARY_SUPPLIES',
+  'RIDING_EQUIPMENT',
+  'RETAIL_MERCHANDISE',
+  'PHOTOGRAPHY_CONSUMABLES',
+  'OPERATIONAL_SUPPLIES',
+] as const
+export type InventoryCategory = (typeof INVENTORY_CATEGORIES)[number]

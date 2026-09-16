@@ -12,12 +12,19 @@ import { toast } from '@/state/toastStore'
 import { ASSET_KINDS, SALE_TYPES, SALE_UNITS, type AssetKind, type AssetGate, type AssetKiosk, type AssetStation, type SaleType, type SaleUnit } from '@/api/asset.api'
 import type { EngineKind } from '@/api/types'
 
-const KIND_ENGINE: Record<AssetKind, EngineKind> = {
+/**
+ * The activity a kind of resource belongs to, where exactly one claims it.
+ *
+ * Deliberately partial. `ANIMAL` is missing because seven WIQAR experiences work animals and
+ * an animal does not belong to any one of them — a horse is ridden, groomed, fed and
+ * photographed. A resource kind whose activity is ambiguous is chosen explicitly rather than
+ * inferred, which is why `VISIBLE_KINDS` below does not offer it here.
+ */
+const KIND_ENGINE: Partial<Record<AssetKind, EngineKind>> = {
   COMPARTMENT: 'SHOP_AND_DROP',
   VEHICLE: 'MOBILITY',
   BOAT: 'LAGOON',
   TABLE: 'COTE_RESTAURANT',
-  ANIMAL: 'ANAAM',
 }
 
 const VISIBLE_KINDS: AssetKind[] = ['COMPARTMENT', 'VEHICLE', 'BOAT']
@@ -78,7 +85,12 @@ export function NewAssetKindModal({
       ? ((ASSET_KINDS.find((k) => KIND_ENGINE[k] === defaultEngine) as AssetKind | undefined) ?? 'COMPARTMENT')
       : 'COMPARTMENT'
     setKind(startingKind)
-    setEngineKind(defaultEngine ?? KIND_ENGINE[startingKind])
+    /*
+     * `VISIBLE_KINDS` only offers kinds one activity claims, so the lookup always answers for
+     * anything reachable here. The fallback covers the unreachable case honestly rather than
+     * asserting it away.
+     */
+    setEngineKind(defaultEngine ?? KIND_ENGINE[startingKind] ?? 'SHOP_AND_DROP')
     setName('')
     setBasePrice(25)
     setDeposit(0)
@@ -90,7 +102,8 @@ export function NewAssetKindModal({
 
   const pickKind = (next: AssetKind) => {
     setKind(next)
-    setEngineKind(KIND_ENGINE[next])
+    const claimed = KIND_ENGINE[next]
+    if (claimed) setEngineKind(claimed)
     setKioskId('')
   }
 

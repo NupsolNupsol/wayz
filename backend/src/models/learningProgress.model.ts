@@ -15,6 +15,8 @@ import { Schema } from 'mongoose'
 export interface LearningProgressDoc {
   /** The user id. One row per person, so the row is found without an index scan. */
   _id: string
+  /** The organisation this person belongs to. */
+  tenantId: string
   /**
    * The tour that was assigned, by key.
    *
@@ -39,6 +41,16 @@ export interface LearningProgressDoc {
 export const LearningProgressSchema = new Schema<LearningProgressDoc>(
   {
     _id: { type: String, required: true },
+    /**
+     * The organisation this person belongs to.
+     *
+     * Every shared collection carries one — it is what separates organisations now that they
+     * share a database. This schema was missing it, which meant Mongoose silently stripped the
+     * value the scoping plugin set, every row was written unstamped, and every scoped read
+     * therefore found nothing: each person read as somebody who had never signed in and got
+     * the onboarding tour thrown over their screen on every page.
+     */
+    tenantId: { type: String, required: true, index: true },
     tourKey: { type: String, required: true, index: true },
     role: { type: String, required: true },
     status: {

@@ -10,7 +10,6 @@ export { shopDropWorkflow, LaunchShopDropControl, LaunchShopDropOperation } from
 export { mobilityWorkflow, LaunchMobilityControl, LaunchMobilityOperation } from './workflow/booking.mobility.workflow.js'
 export { lagoonWorkflow, LaunchLagoonControl, LaunchLagoonOperation } from './workflow/booking.lagoon.workflow.js'
 export { coteWorkflow, LaunchCoteControl, LaunchCoteOperation } from './workflow/booking.cote.workflow.js'
-export { anaamWorkflow, LaunchAnaamControl, LaunchAnaamOperation } from './workflow/booking.anaam.workflow.js'
 
 export {
   allDeliveryWorkflow,

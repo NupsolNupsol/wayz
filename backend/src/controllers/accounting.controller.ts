@@ -30,10 +30,6 @@ const filterSchema = z.object({
   from: z.string().optional(),
   to: z.string().optional(),
   engineKind: z.enum(ENGINE_KINDS).optional(),
-  // Free-form, because a tenant's activity keys are invented by the tenant and cannot be
-  // enumerated here. Bounded, and matched against rows that exist — an unknown key reports
-  // zero rather than everything.
-  activityKey: z.string().trim().min(1).max(60).optional(),
 })
 
 const transactionFilterSchema = filterSchema.extend({
@@ -103,9 +99,8 @@ export const accountingController = {
 
   exportActivity: asyncHandler(async (req, res) => {
     const filter = filterSchema.parse(req.query)
-    // An engine name or one of the tenant's own activity keys — the export path takes either.
-    const line = z.string().trim().min(1).max(60).parse(req.params.line)
-    const { buffer, filename } = await activityWorkbook(accountingScope(req), filter, line)
+    const engineKind = z.enum(ENGINE_KINDS).parse(req.params.engineKind)
+    const { buffer, filename } = await activityWorkbook(accountingScope(req), filter, engineKind)
     res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
     res.setHeader('Content-Disposition', `attachment; filename="${filename}"`)
     res.send(buffer)
