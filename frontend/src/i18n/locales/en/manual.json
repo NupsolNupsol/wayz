@@ -159,9 +159,7 @@
           "detail": "Opens the booking console, where all the actions live."
         }
       ],
-      "tips": [
-        "This is the screen to keep open during a busy period."
-      ]
+      "tips": ["This is the screen to keep open during a busy period."]
     },
     "overtime": {
       "title": "Overtime, grace period and penalties",

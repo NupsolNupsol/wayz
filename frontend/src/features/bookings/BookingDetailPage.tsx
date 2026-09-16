@@ -124,26 +124,30 @@ export function BookingDetailPage() {
   const [xmlLoading, setXmlLoading] = useState(false);
 
   const handleGenerateXml = async () => {
-    if (!id || !booking) return
-    setXmlLoading(true)
+    if (!id || !booking) return;
+    setXmlLoading(true);
     try {
-      const { xml, filename } = await invoiceApi.xmlForBooking(id)
-      const blob = new Blob([xml], { type: 'application/xml;charset=utf-8' })
-      const url = URL.createObjectURL(blob)
-      const a = document.createElement('a')
-      a.href = url
-      a.download = filename
-      document.body.appendChild(a)
-      a.click()
-      a.remove()
-      URL.revokeObjectURL(url)
-      toast('success', t('invoice.xmlReady', { defaultValue: 'XML invoice downloaded' }), filename)
+      const { xml, filename } = await invoiceApi.xmlForBooking(id);
+      const blob = new Blob([xml], { type: 'application/xml;charset=utf-8' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+      toast('success', t('invoice.xmlReady', { defaultValue: 'XML invoice downloaded' }), filename);
     } catch (e) {
-      toast('danger', t('invoice.xmlFailed', { defaultValue: 'Could not generate XML invoice' }), e instanceof ApiError ? (e.errors?.join(' ') ?? e.message) : String(e))
+      toast(
+        'danger',
+        t('invoice.xmlFailed', { defaultValue: 'Could not generate XML invoice' }),
+        e instanceof ApiError ? (e.errors?.join(' ') ?? e.message) : String(e)
+      );
     } finally {
-      setXmlLoading(false)
+      setXmlLoading(false);
     }
-  }
+  };
 
   const unfinished = !!booking && !!order && isUnfinishedSale(booking, order);
   const outstanding = Math.max(
@@ -447,7 +451,13 @@ export function BookingDetailPage() {
             <Button variant="danger" onClick={openIncident} data-testid="booking-incident">
               <TriangleAlert size={16} /> {t('page.incident')}
             </Button>
-            <Button variant="primary" data-testid="create-invoice-xml" onClick={handleGenerateXml} loading={xmlLoading} disabled={!order || xmlLoading}>
+            <Button
+              variant="primary"
+              data-testid="create-invoice-xml"
+              onClick={handleGenerateXml}
+              loading={xmlLoading}
+              disabled={!order || xmlLoading}
+            >
               Generate XML Invoice
             </Button>
           </>

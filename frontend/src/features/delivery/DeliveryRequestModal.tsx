@@ -1,19 +1,19 @@
-import { useEffect, useState } from 'react'
-import { useTranslation } from 'react-i18next'
-import { MapPin, ShieldCheck, Truck, Phone, CircleCheck, PackageSearch } from 'lucide-react'
-import { clsx } from 'clsx'
-import { Modal } from '@/components/Modal'
-import { Button, Field, Badge } from '@/components/ui'
-import { IdentityVerificationModal } from '@/components/IdentityVerification'
-import { useCreateDelivery, useCustomerBagsElsewhere, useExitGates } from '@/hooks'
-import { ApiError } from '@/api/client'
-import { toast } from '@/state/toastStore'
-import type { DeliveryOrigin } from '@/api/delivery.api'
-import { PhoneInput } from '@/components/PhoneInput'
-import { Select } from '@/components/Select'
+import { useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
+import { MapPin, ShieldCheck, Truck, Phone, CircleCheck, PackageSearch } from 'lucide-react';
+import { clsx } from 'clsx';
+import { Modal } from '@/components/Modal';
+import { Button, Field, Badge } from '@/components/ui';
+import { IdentityVerificationModal } from '@/components/IdentityVerification';
+import { useCreateDelivery, useCustomerBagsElsewhere, useExitGates } from '@/hooks';
+import { ApiError } from '@/api/client';
+import { toast } from '@/state/toastStore';
+import type { DeliveryOrigin } from '@/api/delivery.api';
+import { PhoneInput } from '@/components/PhoneInput';
+import { Select } from '@/components/Select';
 
 /** Bags either go to an exit gate the customer walks to, or to an address the courier finds. */
-type Destination = 'GATE' | 'ADDRESS'
+type Destination = 'GATE' | 'ADDRESS';
 
 /**
  * How the request reached the desk, which decides whether the customer has to prove who they are.
@@ -25,7 +25,7 @@ type Destination = 'GATE' | 'ADDRESS'
 const ORIGINS: { value: DeliveryOrigin; key: string; icon: typeof MapPin }[] = [
   { value: 'AT_STORAGE', key: 'here', icon: CircleCheck },
   { value: 'CUSTOMER_CONTACT', key: 'remote', icon: Phone },
-]
+];
 
 export function DeliveryRequestModal({
   open,
@@ -36,53 +36,61 @@ export function DeliveryRequestModal({
   customerEmail,
   onCreated,
 }: {
-  open: boolean
-  onClose: () => void
-  bookingId: string
-  customerName: string
-  customerPhone?: string
-  customerEmail?: string
-  onCreated?: (deliveryId: string) => void
+  open: boolean;
+  onClose: () => void;
+  bookingId: string;
+  customerName: string;
+  customerPhone?: string;
+  customerEmail?: string;
+  onCreated?: (deliveryId: string) => void;
 }) {
-  const { t } = useTranslation('delivery')
-  const create = useCreateDelivery()
-  const elsewhere = useCustomerBagsElsewhere(bookingId, open)
-  const otherKiosks = elsewhere.data ?? []
+  const { t } = useTranslation('delivery');
+  const create = useCreateDelivery();
+  const elsewhere = useCustomerBagsElsewhere(bookingId, open);
+  const otherKiosks = elsewhere.data ?? [];
 
-  const { data: gates = [], isLoading: gatesLoading, isError: gatesFailed } = useExitGates(open)
-  const hasGates = gates.length > 0
+  const { data: gates = [], isLoading: gatesLoading, isError: gatesFailed } = useExitGates(open);
+  const hasGates = gates.length > 0;
 
-  const [origin, setOrigin] = useState<DeliveryOrigin>('AT_STORAGE')
-  const [address, setAddress] = useState('')
-  const [gateId, setGateId] = useState('')
-  const [picked, setPicked] = useState<Destination>('GATE')
-  const [notes, setNotes] = useState('')
-  const [contactPhone, setContactPhone] = useState(customerPhone ?? '')
-  const [verifyOpen, setVerifyOpen] = useState(false)
-  const [verified, setVerified] = useState(false)
-  const [alsoBookingIds, setAlsoBookingIds] = useState<string[]>([])
+  const [origin, setOrigin] = useState<DeliveryOrigin>('AT_STORAGE');
+  const [address, setAddress] = useState('');
+  const [gateId, setGateId] = useState('');
+  const [picked, setPicked] = useState<Destination>('GATE');
+  const [notes, setNotes] = useState('');
+  const [contactPhone, setContactPhone] = useState(customerPhone ?? '');
+  const [verifyOpen, setVerifyOpen] = useState(false);
+  const [verified, setVerified] = useState(false);
+  const [alsoBookingIds, setAlsoBookingIds] = useState<string[]>([]);
 
   const reset = () => {
-    setOrigin('AT_STORAGE'); setAddress(''); setNotes(''); setContactPhone(customerPhone ?? ''); setVerified(false)
-    setAlsoBookingIds([])
+    setOrigin('AT_STORAGE');
+    setAddress('');
+    setNotes('');
+    setContactPhone(customerPhone ?? '');
+    setVerified(false);
+    setAlsoBookingIds([]);
     // The modal is kept mounted, so without these the next request opens on the last one's choices.
-    setPicked('GATE'); setGateId('')
-  }
+    setPicked('GATE');
+    setGateId('');
+  };
 
   const toggleKiosk = (id: string) =>
-    setAlsoBookingIds((ids) => (ids.includes(id) ? ids.filter((x) => x !== id) : [...ids, id]))
-  const allPicked = otherKiosks.length > 0 && alsoBookingIds.length === otherKiosks.length
-  const toggleAll = () => setAlsoBookingIds(allPicked ? [] : otherKiosks.map((k) => k.bookingId))
+    setAlsoBookingIds((ids) => (ids.includes(id) ? ids.filter((x) => x !== id) : [...ids, id]));
+  const allPicked = otherKiosks.length > 0 && alsoBookingIds.length === otherKiosks.length;
+  const toggleAll = () => setAlsoBookingIds(allPicked ? [] : otherKiosks.map((k) => k.bookingId));
   const extraBags = otherKiosks
     .filter((k) => alsoBookingIds.includes(k.bookingId))
-    .reduce((sum, k) => sum + k.bagCount, 0)
+    .reduce((sum, k) => sum + k.bagCount, 0);
 
   useEffect(() => {
-    if (open) setContactPhone(customerPhone ?? '')
-  }, [open, customerPhone])
-  const close = () => { reset(); onClose() }
+    if (open) setContactPhone(customerPhone ?? '');
+  }, [open, customerPhone]);
+  const close = () => {
+    reset();
+    onClose();
+  };
 
-  const needsProof = origin === 'CUSTOMER_CONTACT' && !verified
+  const needsProof = origin === 'CUSTOMER_CONTACT' && !verified;
 
   /**
    * Where the bags are going, and the single thing that decides both the field on show and whether
@@ -94,9 +102,9 @@ export function DeliveryRequestModal({
    */
   // While the list is still coming, hold the choice the desk made rather than flashing the address
   // field and snapping back to the gate a moment later.
-  const destination: Destination = hasGates || gatesLoading ? picked : 'ADDRESS'
-  const saidWhere = destination === 'GATE' ? !!gateId : address.trim().length >= 3
-  const ready = saidWhere && !needsProof
+  const destination: Destination = hasGates || gatesLoading ? picked : 'ADDRESS';
+  const saidWhere = destination === 'GATE' ? !!gateId : address.trim().length >= 3;
+  const ready = saidWhere && !needsProof;
 
   const submit = () => {
     create.mutate(
@@ -110,14 +118,19 @@ export function DeliveryRequestModal({
       },
       {
         onSuccess: (d) => {
-          toast('success', `Delivery ${d._id} created`, 'Couriers at this site can see it now.')
-          onCreated?.(d._id)
-          close()
+          toast('success', `Delivery ${d._id} created`, 'Couriers at this site can see it now.');
+          onCreated?.(d._id);
+          close();
         },
-        onError: (e) => toast('danger', t('request.couldNotCreate'), e instanceof ApiError ? (e.errors?.join(' ') ?? e.message) : ''),
-      },
-    )
-  }
+        onError: (e) =>
+          toast(
+            'danger',
+            t('request.couldNotCreate'),
+            e instanceof ApiError ? (e.errors?.join(' ') ?? e.message) : ''
+          ),
+      }
+    );
+  };
 
   return (
     <>
@@ -130,34 +143,49 @@ export function DeliveryRequestModal({
         testId="delivery-request-modal"
         footer={
           <>
-            <Button variant="ghost" onClick={close}>Cancel</Button>
-            <Button onClick={submit} loading={create.isPending} disabled={!ready} data-testid="delivery-request-submit">
-              <Truck size={16} />{t('request.create')}</Button>
+            <Button variant="ghost" onClick={close}>
+              Cancel
+            </Button>
+            <Button
+              onClick={submit}
+              loading={create.isPending}
+              disabled={!ready}
+              data-testid="delivery-request-submit"
+            >
+              <Truck size={16} />
+              {t('request.create')}
+            </Button>
           </>
         }
       >
-        <p className="text-xs uppercase tracking-wider text-muted font-bold mb-2">{t('request.howAsked')}</p>
+        <p className="text-xs uppercase tracking-wider text-muted font-bold mb-2">
+          {t('request.howAsked')}
+        </p>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mb-5">
           {ORIGINS.map((o) => {
-            const active = origin === o.value
-            const Ico = o.icon
+            const active = origin === o.value;
+            const Ico = o.icon;
             return (
               <button
                 key={o.value}
                 type="button"
-                onClick={() => { setOrigin(o.value); setVerified(false) }}
+                onClick={() => {
+                  setOrigin(o.value);
+                  setVerified(false);
+                }}
                 data-testid={`delivery-origin-${o.value}`}
                 className={clsx(
                   'lf-card p-3 text-left transition-colors',
-                  active ? 'border-brand ring-1 ring-brand/30 bg-brand/5' : 'hover:border-brand',
+                  active ? 'border-brand ring-1 ring-brand/30 bg-brand/5' : 'hover:border-brand'
                 )}
               >
                 <p className="font-semibold text-navy dark:text-dk-texthi flex items-center gap-2 text-sm">
-                  <Ico size={16} className={active ? 'text-brand' : 'text-muted'} /> {t(`request.origin.${o.key}.title`)}
+                  <Ico size={16} className={active ? 'text-brand' : 'text-muted'} />{' '}
+                  {t(`request.origin.${o.key}.title`)}
                 </p>
                 <p className="text-xs text-muted mt-1">{t(`request.origin.${o.key}.blurb`)}</p>
               </button>
-            )
+            );
           })}
         </div>
 
@@ -165,11 +193,19 @@ export function DeliveryRequestModal({
           <div
             className={clsx(
               'lf-card p-3 mb-5 flex items-start gap-3',
-              verified ? 'border-success bg-emerald-50 dark:bg-emerald-900/20' : 'border-amber-300 bg-amber-50 dark:bg-amber-900/20',
+              verified
+                ? 'border-success bg-emerald-50 dark:bg-emerald-900/20'
+                : 'border-amber-300 bg-amber-50 dark:bg-amber-900/20'
             )}
             data-testid="delivery-verify-gate"
           >
-            <ShieldCheck size={18} className={clsx('shrink-0 mt-0.5', verified ? 'text-success' : 'text-amber-600 dark:text-amber-300')} />
+            <ShieldCheck
+              size={18}
+              className={clsx(
+                'shrink-0 mt-0.5',
+                verified ? 'text-success' : 'text-amber-600 dark:text-amber-300'
+              )}
+            />
             <div className="flex-1 min-w-0">
               {verified ? (
                 <>
@@ -178,10 +214,18 @@ export function DeliveryRequestModal({
                 </>
               ) : (
                 <>
-                  <p className="text-sm font-semibold text-navy dark:text-dk-texthi">{t('request.verifyFirst')}</p>
+                  <p className="text-sm font-semibold text-navy dark:text-dk-texthi">
+                    {t('request.verifyFirst')}
+                  </p>
                   <p className="text-xs text-muted mb-2">{t('request.codeGoesTo')}</p>
-                  <Button variant="secondary" onClick={() => setVerifyOpen(true)} data-testid="delivery-verify-open">
-                    <ShieldCheck size={16} />{t('request.verifyIdentity')}</Button>
+                  <Button
+                    variant="secondary"
+                    onClick={() => setVerifyOpen(true)}
+                    data-testid="delivery-verify-open"
+                  >
+                    <ShieldCheck size={16} />
+                    {t('request.verifyIdentity')}
+                  </Button>
                 </>
               )}
             </div>
@@ -208,13 +252,13 @@ export function DeliveryRequestModal({
             <p className="text-xs text-muted mb-3">{t('request.alsoHoldingHint')}</p>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
               {otherKiosks.map((k) => {
-                const picked = alsoBookingIds.includes(k.bookingId)
+                const picked = alsoBookingIds.includes(k.bookingId);
                 return (
                   <label
                     key={k.bookingId}
                     className={clsx(
                       'lf-card p-3 flex items-start gap-3 cursor-pointer transition-colors',
-                      picked ? 'border-brand ring-1 ring-brand/30 bg-brand/5' : 'hover:border-brand',
+                      picked ? 'border-brand ring-1 ring-brand/30 bg-brand/5' : 'hover:border-brand'
                     )}
                     data-testid={`delivery-kiosk-${k.kioskId ?? k.bookingId}`}
                   >
@@ -226,13 +270,16 @@ export function DeliveryRequestModal({
                       data-testid={`delivery-kiosk-check-${k.bookingId}`}
                     />
                     <span className="min-w-0">
-                      <span className="block font-semibold text-sm text-navy dark:text-dk-texthi truncate">{k.kioskName}</span>
+                      <span className="block font-semibold text-sm text-navy dark:text-dk-texthi truncate">
+                        {k.kioskName}
+                      </span>
                       <span className="block text-xs text-muted truncate">
-                        {k.assetUnitIdentifier ?? '—'} · {t('request.bagCount', { count: k.bagCount })} · {k.bookingRef}
+                        {k.assetUnitIdentifier ?? '—'} ·{' '}
+                        {t('request.bagCount', { count: k.bagCount })} · {k.bookingRef}
                       </span>
                     </span>
                   </label>
-                )
+                );
               })}
             </div>
             {alsoBookingIds.length > 0 && (
@@ -254,7 +301,7 @@ export function DeliveryRequestModal({
                   'lf-btn !h-9 !px-3 text-xs border',
                   destination === 'GATE'
                     ? 'bg-brand text-brand-fg border-brand'
-                    : 'bg-surface border-line text-muted hover:text-brand',
+                    : 'bg-surface border-line text-muted hover:text-brand'
                 )}
               >
                 {t('request.toExitGate')}
@@ -267,7 +314,7 @@ export function DeliveryRequestModal({
                   'lf-btn !h-9 !px-3 text-xs border',
                   destination === 'ADDRESS'
                     ? 'bg-brand text-brand-fg border-brand'
-                    : 'bg-surface border-line text-muted hover:text-brand',
+                    : 'bg-surface border-line text-muted hover:text-brand'
                 )}
               >
                 {t('request.toAddress')}
@@ -283,7 +330,10 @@ export function DeliveryRequestModal({
               onChange={setGateId}
               options={[
                 { label: t('request.pickGate'), value: '' },
-                ...gates.map((g) => ({ label: g.location ? `${g.name} — ${g.location}` : g.name, value: g._id })),
+                ...gates.map((g) => ({
+                  label: g.location ? `${g.name} — ${g.location}` : g.name,
+                  value: g._id,
+                })),
               ]}
               testId="delivery-gate"
             />
@@ -292,7 +342,13 @@ export function DeliveryRequestModal({
           <Field
             label={t('request.deliverTo')}
             required
-            hint={gatesFailed ? t('request.gatesUnavailable') : hasGates ? t('request.addressHint') : t('request.noGatesHint')}
+            hint={
+              gatesFailed
+                ? t('request.gatesUnavailable')
+                : hasGates
+                  ? t('request.addressHint')
+                  : t('request.noGatesHint')
+            }
           >
             <input
               className="lf-input"
@@ -303,7 +359,6 @@ export function DeliveryRequestModal({
             />
           </Field>
         )}
-
 
         <Field label={t('request.notes')} hint={t('request.notesHint')}>
           <textarea
@@ -323,7 +378,9 @@ export function DeliveryRequestModal({
 
         {needsProof && saidWhere && (
           <Badge tone="warning" className="mt-1">
-            <MapPin size={12} className="me-1 inline" />{t('request.verifyToEnable')}</Badge>
+            <MapPin size={12} className="me-1 inline" />
+            {t('request.verifyToEnable')}
+          </Badge>
         )}
       </Modal>
 
@@ -334,8 +391,11 @@ export function DeliveryRequestModal({
         customerName={customerName}
         customerEmail={customerEmail}
         purpose="DELIVERY_REQUEST"
-        onVerified={() => { setVerified(true); setVerifyOpen(false) }}
+        onVerified={() => {
+          setVerified(true);
+          setVerifyOpen(false);
+        }}
       />
     </>
-  )
+  );
 }

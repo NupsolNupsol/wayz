@@ -1,12 +1,12 @@
-import { create } from 'zustand'
+import { create } from 'zustand';
 
-type Theme = 'light' | 'dark'
+type Theme = 'light' | 'dark';
 
 interface UiState {
-  theme: Theme
-  compact: boolean
-  toggleTheme: () => void
-  setCompact: (compact: boolean) => void
+  theme: Theme;
+  compact: boolean;
+  toggleTheme: () => void;
+  setCompact: (compact: boolean) => void;
 }
 
 export const useUiStore = create<UiState>((set) => ({
@@ -14,4 +14,4 @@ export const useUiStore = create<UiState>((set) => ({
   compact: false,
   toggleTheme: () => set((s) => ({ theme: s.theme === 'light' ? 'dark' : 'light' })),
   setCompact: (compact) => set({ compact }),
-}))
+}));

@@ -1,13 +1,13 @@
-import { useMemo, useState } from 'react'
-import { View } from 'react-native'
+import { useMemo, useState } from 'react';
+import { View } from 'react-native';
 
-import { apiMessage } from '@/api/client'
-import { Icon } from '@/components/Icon'
-import { ScanField } from '@/components/ScanField'
-import { Body, Button, Field, Meter, Muted, Notice, Ref, Sheet, toast } from '@/components/ui'
-import { useTransition } from '@/hooks/queries'
-import { COLORS } from '@/theme/tokens'
-import type { Booking } from '@/types'
+import { apiMessage } from '@/api/client';
+import { Icon } from '@/components/Icon';
+import { ScanField } from '@/components/ScanField';
+import { Body, Button, Field, Meter, Muted, Notice, Ref, Sheet, toast } from '@/components/ui';
+import { useTransition } from '@/hooks/queries';
+import { COLORS } from '@/theme/tokens';
+import type { Booking } from '@/types';
 
 export function StoreSheet({
   open,
@@ -15,39 +15,40 @@ export function StoreSheet({
   booking,
   unitIdentifier,
 }: {
-  open: boolean
-  onClose: () => void
-  booking: Booking
-  unitIdentifier: string | null
+  open: boolean;
+  onClose: () => void;
+  booking: Booking;
+  unitIdentifier: string | null;
 }) {
-  const transition = useTransition()
-  const [unitScan, setUnitScan] = useState('')
-  const [entry, setEntry] = useState('')
-  const [scanned, setScanned] = useState<string[]>([])
+  const transition = useTransition();
+  const [unitScan, setUnitScan] = useState('');
+  const [entry, setEntry] = useState('');
+  const [scanned, setScanned] = useState<string[]>([]);
 
-  const expected = useMemo(() => booking.bags.map((b) => b.barcode), [booking.bags])
-  const unitDone = !!unitIdentifier && unitScan.trim().toUpperCase() === unitIdentifier.toUpperCase()
-  const allBags = expected.length > 0 && expected.every((code) => scanned.includes(code))
-  const ready = unitDone && allBags
+  const expected = useMemo(() => booking.bags.map((b) => b.barcode), [booking.bags]);
+  const unitDone =
+    !!unitIdentifier && unitScan.trim().toUpperCase() === unitIdentifier.toUpperCase();
+  const allBags = expected.length > 0 && expected.every((code) => scanned.includes(code));
+  const ready = unitDone && allBags;
 
   const takeBag = (code: string) => {
-    const clean = code.trim()
-    if (!clean) return
-    setEntry('')
+    const clean = code.trim();
+    if (!clean) return;
+    setEntry('');
 
     if (!expected.includes(clean)) {
-      toast('danger', 'Not a bag on this booking', `${clean} belongs somewhere else.`)
-      return
+      toast('danger', 'Not a bag on this booking', `${clean} belongs somewhere else.`);
+      return;
     }
     if (scanned.includes(clean)) {
-      toast('warn', 'Already scanned', 'Each bag counts once.')
-      return
+      toast('warn', 'Already scanned', 'Each bag counts once.');
+      return;
     }
-    setScanned((prev) => [...prev, clean])
-  }
+    setScanned((prev) => [...prev, clean]);
+  };
 
   const confirm = () => {
-    if (!booking.reservation?.assetUnitId) return
+    if (!booking.reservation?.assetUnitId) return;
     transition.mutate(
       {
         id: booking.id,
@@ -60,15 +61,15 @@ export function StoreSheet({
       },
       {
         onSuccess: () => {
-          toast('success', 'Storage confirmed', 'The timer is running now.')
-          setUnitScan('')
-          setScanned([])
-          onClose()
+          toast('success', 'Storage confirmed', 'The timer is running now.');
+          setUnitScan('');
+          setScanned([]);
+          onClose();
         },
         onError: (e) => toast('danger', 'Cannot confirm storage', apiMessage(e)),
-      },
-    )
-  }
+      }
+    );
+  };
 
   return (
     <Sheet
@@ -79,7 +80,9 @@ export function StoreSheet({
       testID="store-sheet"
       footer={
         <Button
-          label={ready ? 'Confirm storage' : `Scan ${unitDone ? '' : 'the compartment and '}every bag`}
+          label={
+            ready ? 'Confirm storage' : `Scan ${unitDone ? '' : 'the compartment and '}every bag`
+          }
           size="lg"
           full
           disabled={!ready}
@@ -89,7 +92,10 @@ export function StoreSheet({
         />
       }
     >
-      <Field label="Compartment" hint={unitIdentifier ? `Reserved: ${unitIdentifier}` : 'No compartment reserved yet'}>
+      <Field
+        label="Compartment"
+        hint={unitIdentifier ? `Reserved: ${unitIdentifier}` : 'No compartment reserved yet'}
+      >
         <ScanField
           value={unitScan}
           onChangeText={setUnitScan}
@@ -115,7 +121,12 @@ export function StoreSheet({
           </Body>
           <Muted>{allBags ? 'All in' : 'Scan each one'}</Muted>
         </View>
-        <Meter value={scanned.length} max={expected.length} tone={allBags ? 'success' : 'brand'} testID="store-progress" />
+        <Meter
+          value={scanned.length}
+          max={expected.length}
+          tone={allBags ? 'success' : 'brand'}
+          testID="store-progress"
+        />
       </View>
 
       <ScanField
@@ -128,7 +139,7 @@ export function StoreSheet({
 
       <View className="gap-2">
         {booking.bags.map((bag) => {
-          const done = scanned.includes(bag.barcode)
+          const done = scanned.includes(bag.barcode);
           return (
             <View
               key={bag.barcode}
@@ -162,9 +173,9 @@ export function StoreSheet({
                 </Body>
               ) : null}
             </View>
-          )
+          );
         })}
       </View>
     </Sheet>
-  )
+  );
 }

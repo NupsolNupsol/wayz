@@ -7,10 +7,10 @@ export const APP = {
   storageKey: 'wayz.agent.pos.v1',
   demoDefaultStorageMinutes: 120,
   serviceLatencyMs: 260,
-} as const
+} as const;
 
 export const FEATURE_FLAGS = {
   deliveryToCarEnabled: false,
-} as const
+} as const;
 
-export type FeatureFlag = keyof typeof FEATURE_FLAGS
+export type FeatureFlag = keyof typeof FEATURE_FLAGS;

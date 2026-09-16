@@ -1,9 +1,9 @@
-import type { ReactNode } from 'react'
-import { KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, View } from 'react-native'
-import { useSafeAreaInsets } from 'react-native-safe-area-context'
+import type { ReactNode } from 'react';
+import { KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { useDeviceClass } from '@/hooks/useDeviceClass'
-import { Heading, Muted } from './Text'
+import { useDeviceClass } from '@/hooks/useDeviceClass';
+import { Heading, Muted } from './Text';
 
 export function Sheet({
   open,
@@ -14,20 +14,27 @@ export function Sheet({
   footer,
   testID,
 }: {
-  open: boolean
-  onClose: () => void
-  title: string
-  subtitle?: string
-  children: ReactNode
-  footer?: ReactNode
-  testID?: string
+  open: boolean;
+  onClose: () => void;
+  title: string;
+  subtitle?: string;
+  children: ReactNode;
+  footer?: ReactNode;
+  testID?: string;
 }) {
-  const insets = useSafeAreaInsets()
-  const { isTablet } = useDeviceClass()
+  const insets = useSafeAreaInsets();
+  const { isTablet } = useDeviceClass();
 
   return (
-    <Modal visible={open} transparent animationType={isTablet ? 'fade' : 'slide'} onRequestClose={onClose}>
-      <View className={`flex-1 bg-black/40 ${isTablet ? 'items-center justify-center p-6' : 'justify-end'}`}>
+    <Modal
+      visible={open}
+      transparent
+      animationType={isTablet ? 'fade' : 'slide'}
+      onRequestClose={onClose}
+    >
+      <View
+        className={`flex-1 bg-black/40 ${isTablet ? 'items-center justify-center p-6' : 'justify-end'}`}
+      >
         <Pressable
           accessibilityRole="button"
           accessibilityLabel="Close"
@@ -36,7 +43,10 @@ export function Sheet({
           testID={testID ? `${testID}-backdrop` : undefined}
         />
 
-        <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} className={isTablet ? 'w-full max-w-xl' : ''}>
+        <KeyboardAvoidingView
+          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+          className={isTablet ? 'w-full max-w-xl' : ''}
+        >
           <View
             testID={testID}
             className={`bg-surface ${isTablet ? 'rounded-xl2 border border-line' : 'rounded-t-3xl'}`}
@@ -49,7 +59,11 @@ export function Sheet({
               {subtitle ? <Muted>{subtitle}</Muted> : null}
             </View>
 
-            <ScrollView className="px-5" keyboardShouldPersistTaps="handled" contentContainerClassName="pb-4 gap-4">
+            <ScrollView
+              className="px-5"
+              keyboardShouldPersistTaps="handled"
+              contentContainerClassName="pb-4 gap-4"
+            >
               {children}
             </ScrollView>
 
@@ -58,5 +72,5 @@ export function Sheet({
         </KeyboardAvoidingView>
       </View>
     </Modal>
-  )
+  );
 }

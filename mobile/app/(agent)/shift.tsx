@@ -1,9 +1,9 @@
-import { useState } from "react";
-import { View } from "react-native";
+import { useState } from 'react';
+import { View } from 'react-native';
 
-import { apiMessage } from "@/api/client";
-import { AppHeader } from "@/components/AppHeader";
-import { Icon } from "@/components/Icon";
+import { apiMessage } from '@/api/client';
+import { AppHeader } from '@/components/AppHeader';
+import { Icon } from '@/components/Icon';
 import {
   Amount,
   Body,
@@ -20,17 +20,17 @@ import {
   Section,
   StatusPill,
   toast,
-} from "@/components/ui";
-import { useBlindCount, useOpenShift, useShift } from "@/hooks/queries";
-import { formatDateTime, money } from "@/lib/format";
-import { COLORS } from "@/theme/tokens";
+} from '@/components/ui';
+import { useBlindCount, useOpenShift, useShift } from '@/hooks/queries';
+import { formatDateTime, money } from '@/lib/format';
+import { COLORS } from '@/theme/tokens';
 
 export default function ShiftScreen() {
   const shift = useShift();
   const open = useOpenShift();
   const count = useBlindCount();
 
-  const [counted, setCounted] = useState("");
+  const [counted, setCounted] = useState('');
 
   if (shift.isLoading) {
     return (
@@ -42,14 +42,10 @@ export default function ShiftScreen() {
 
   const s = shift.data;
 
-  if (!s || s.status === "CLOSED") {
+  if (!s || s.status === 'CLOSED') {
     return (
       <Screen scroll testID="shift">
-        <AppHeader
-          back
-          title="Shift & cash"
-          subtitle="Open a till before taking cash"
-        />
+        <AppHeader back title="Shift & cash" subtitle="Open a till before taking cash" />
         <EmptyState
           icon={<Icon name="Wallet" size={24} color={COLORS.faint} />}
           title="No open till"
@@ -61,13 +57,8 @@ export default function ShiftScreen() {
               onPress={() =>
                 open.mutate(undefined, {
                   onSuccess: () =>
-                    toast(
-                      "success",
-                      "Till open",
-                      "Cash you take is now counted against it.",
-                    ),
-                  onError: (e) =>
-                    toast("danger", "Could not open the till", apiMessage(e)),
+                    toast('success', 'Till open', 'Cash you take is now counted against it.'),
+                  onError: (e) => toast('danger', 'Could not open the till', apiMessage(e)),
                 })
               }
               testID="shift-open"
@@ -79,7 +70,7 @@ export default function ShiftScreen() {
     );
   }
 
-  const awaiting = s.status === "AWAITING_APPROVAL";
+  const awaiting = s.status === 'AWAITING_APPROVAL';
   const counted_ = s.countedCash !== null;
 
   return (
@@ -99,14 +90,10 @@ export default function ShiftScreen() {
       <Section title="This till" className="mb-4">
         <Card>
           <View className="flex-row flex-wrap gap-4">
-            <KeyValue
-              label="Opened"
-              value={formatDateTime(s.openedAt)}
-              className="min-w-[45%]"
-            />
+            <KeyValue label="Opened" value={formatDateTime(s.openedAt)} className="min-w-[45%]" />
             <KeyValue
               label="Status"
-              value={s.status.replaceAll("_", " ").toLowerCase()}
+              value={s.status.replaceAll('_', ' ').toLowerCase()}
               className="min-w-[45%]"
             />
             {counted_ ? (
@@ -116,11 +103,7 @@ export default function ShiftScreen() {
                   value={money(s.countedCash)}
                   className="min-w-[45%]"
                 />
-                <KeyValue
-                  label="Expected"
-                  value={money(s.expectedCash)}
-                  className="min-w-[45%]"
-                />
+                <KeyValue label="Expected" value={money(s.expectedCash)} className="min-w-[45%]" />
               </>
             ) : null}
           </View>
@@ -129,7 +112,7 @@ export default function ShiftScreen() {
             <View className="mt-4 rounded-2xl border border-line p-3">
               <Muted>Variance</Muted>
               <Amount
-                className={`text-2xl ${Math.abs(s.variance) > 0.009 ? "text-danger" : "text-success"}`}
+                className={`text-2xl ${Math.abs(s.variance) > 0.009 ? 'text-danger' : 'text-success'}`}
               >
                 {money(s.variance)}
               </Amount>
@@ -144,9 +127,8 @@ export default function ShiftScreen() {
             <View className="gap-4">
               <Notice tone="info">
                 <Body>
-                  Count what is physically in the drawer and enter it. You are
-                  not shown the expected figure first — that is what makes it a
-                  blind count.
+                  Count what is physically in the drawer and enter it. You are not shown the
+                  expected figure first — that is what makes it a blind count.
                 </Body>
               </Notice>
 
@@ -171,23 +153,16 @@ export default function ShiftScreen() {
                     { id: s._id, countedCash: Number(counted) },
                     {
                       onSuccess: (result) => {
-                        setCounted("");
+                        setCounted('');
                         const off = Math.abs(result.variance ?? 0) > 0.009;
                         toast(
-                          off ? "warn" : "success",
-                          off
-                            ? "Counted — there is a variance"
-                            : "Counted — it balances",
-                          off ? "Your manager signs this off." : undefined,
+                          off ? 'warn' : 'success',
+                          off ? 'Counted — there is a variance' : 'Counted — it balances',
+                          off ? 'Your manager signs this off.' : undefined
                         );
                       },
-                      onError: (e) =>
-                        toast(
-                          "danger",
-                          "Could not submit the count",
-                          apiMessage(e),
-                        ),
-                    },
+                      onError: (e) => toast('danger', 'Could not submit the count', apiMessage(e)),
+                    }
                   )
                 }
                 testID="shift-count-submit"
@@ -198,15 +173,13 @@ export default function ShiftScreen() {
       ) : awaiting ? (
         <Notice tone="warn" testID="shift-awaiting">
           <Body>
-            This till is waiting for your manager. You cannot sign off your own
-            variance, and it cannot take more cash until they do.
+            This till is waiting for your manager. You cannot sign off your own variance, and it
+            cannot take more cash until they do.
           </Body>
         </Notice>
       ) : (
         <Notice tone="success" testID="shift-done">
-          <Body>
-            The count is in and it balanced. Nothing further is needed from you.
-          </Body>
+          <Body>The count is in and it balanced. Nothing further is needed from you.</Body>
         </Notice>
       )}
     </Screen>

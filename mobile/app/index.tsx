@@ -1,8 +1,8 @@
-import { Redirect } from "expo-router";
-import { View } from "react-native";
+import { Redirect } from 'expo-router';
+import { View } from 'react-native';
 
-import { Loading } from "@/components/ui";
-import { useSessionStore } from "@/store/session.store";
+import { Loading } from '@/components/ui';
+import { useSessionStore } from '@/store/session.store';
 
 export default function Index() {
   const ready = useSessionStore((s) => s.ready);
@@ -16,5 +16,5 @@ export default function Index() {
     );
   }
 
-  return <Redirect href={token ? "/today" : "/sign-in"} />;
+  return <Redirect href={token ? '/today' : '/sign-in'} />;
 }

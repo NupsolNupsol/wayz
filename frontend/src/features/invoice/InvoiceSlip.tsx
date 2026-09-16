@@ -1,16 +1,16 @@
-import { useTranslation } from 'react-i18next'
-import { QRCodeSVG } from 'qrcode.react'
-import { Barcode } from '@/components/Barcode'
-import type { Invoice } from '@/api/invoice.api'
+import { useTranslation } from 'react-i18next';
+import { QRCodeSVG } from 'qrcode.react';
+import { Barcode } from '@/components/Barcode';
+import type { Invoice } from '@/api/invoice.api';
 
 export function InvoiceSlip({ invoice, trackingUrl }: { invoice: Invoice; trackingUrl?: string }) {
-  const { i18n } = useTranslation(['bookings', 'common'])
+  const { i18n } = useTranslation(['bookings', 'common']);
   // The slip is the customer's document, not the agent's screen: it always comes out of the
   // printer in Arabic, whichever language the agent happens to be working in.
-  const t = i18n.getFixedT('ar', ['bookings', 'common'])
-  const currency = t('common:money.currency')
-  const money = (n: number) => `${n.toFixed(2)} ${currency}`
-  const label = (pair: { en: string; ar: string }) => pair.ar
+  const t = i18n.getFixedT('ar', ['bookings', 'common']);
+  const currency = t('common:money.currency');
+  const money = (n: number) => `${n.toFixed(2)} ${currency}`;
+  const label = (pair: { en: string; ar: string }) => pair.ar;
 
   return (
     <div
@@ -20,8 +20,12 @@ export function InvoiceSlip({ invoice, trackingUrl }: { invoice: Invoice; tracki
       data-testid="invoice-document"
     >
       <header className="text-center border-b border-dashed border-black/40 pb-3">
-        <p className="font-bold text-[18px]" dir="auto">{invoice.seller.legalName}</p>
-        <p className="text-[14px]" dir="auto">{invoice.seller.name}</p>
+        <p className="font-bold text-[18px]" dir="auto">
+          {invoice.seller.legalName}
+        </p>
+        <p className="text-[14px]" dir="auto">
+          {invoice.seller.name}
+        </p>
         <p className="text-[13px] mt-1">
           {t('invoice.cr')}: <span dir="ltr">{invoice.seller.crNumber}</span>
         </p>
@@ -33,29 +37,43 @@ export function InvoiceSlip({ invoice, trackingUrl }: { invoice: Invoice; tracki
 
       <dl className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 py-3 border-b border-dashed border-black/40 text-[14px]">
         <dt className="text-black/60">{t('invoice.number')}</dt>
-        <dd className="text-end font-semibold" dir="ltr" data-testid="invoice-number">{invoice.number}</dd>
+        <dd className="text-end font-semibold" dir="ltr" data-testid="invoice-number">
+          {invoice.number}
+        </dd>
 
         <dt className="text-black/60">{t('invoice.date')}</dt>
-        <dd className="text-end" dir="ltr">{invoice.issuedAt.slice(0, 10)}</dd>
+        <dd className="text-end" dir="ltr">
+          {invoice.issuedAt.slice(0, 10)}
+        </dd>
 
         <dt className="text-black/60">{t('invoice.branch')}</dt>
-        <dd className="text-end" dir="auto">{invoice.branch}</dd>
+        <dd className="text-end" dir="auto">
+          {invoice.branch}
+        </dd>
 
         {invoice.desk && (
           <>
             <dt className="text-black/60">{t('invoice.desk')}</dt>
-            <dd className="text-end" dir="auto">{invoice.desk}</dd>
+            <dd className="text-end" dir="auto">
+              {invoice.desk}
+            </dd>
           </>
         )}
 
         <dt className="text-black/60">{t('invoice.servedBy')}</dt>
-        <dd className="text-end" dir="auto" data-testid="invoice-served-by">{invoice.servedBy}</dd>
+        <dd className="text-end" dir="auto" data-testid="invoice-served-by">
+          {invoice.servedBy}
+        </dd>
 
         <dt className="text-black/60">{t('invoice.customerName')}</dt>
-        <dd className="text-end" dir="auto">{invoice.customer.name || '—'}</dd>
+        <dd className="text-end" dir="auto">
+          {invoice.customer.name || '—'}
+        </dd>
 
         <dt className="text-black/60">{t('invoice.customerPhone')}</dt>
-        <dd className="text-end" dir="ltr">{invoice.customer.phone || '—'}</dd>
+        <dd className="text-end" dir="ltr">
+          {invoice.customer.phone || '—'}
+        </dd>
       </dl>
 
       <section className="py-3 border-b border-dashed border-black/40">
@@ -75,9 +93,14 @@ export function InvoiceSlip({ invoice, trackingUrl }: { invoice: Invoice; tracki
                 <td className="py-1 tabular-nums">{line.index}</td>
                 <td className="py-1" dir="auto">
                   {line.nameAr}
-                  {line.isDeposit && <span className="text-[12px] text-black/60"> · {t('invoice.deposit')}</span>}
+                  {line.isDeposit && (
+                    <span className="text-[12px] text-black/60"> · {t('invoice.deposit')}</span>
+                  )}
                   {(line.kind === 'PENALTY' || line.kind === 'OVERTIME') && (
-                    <span className="ms-1 text-[12px] font-bold border border-black/50 rounded px-1 py-px" data-testid={`invoice-penalty-${line.index}`}>
+                    <span
+                      className="ms-1 text-[12px] font-bold border border-black/50 rounded px-1 py-px"
+                      data-testid={`invoice-penalty-${line.index}`}
+                    >
                       {t(line.kind === 'OVERTIME' ? 'invoice.overtimeTag' : 'invoice.penaltyTag')}
                     </span>
                   )}
@@ -86,7 +109,9 @@ export function InvoiceSlip({ invoice, trackingUrl }: { invoice: Invoice; tracki
                   )}
                 </td>
                 <td className="py-1 text-end tabular-nums">{line.quantity}</td>
-                <td className="py-1 text-end tabular-nums" dir="ltr">{line.total.toFixed(2)}</td>
+                <td className="py-1 text-end tabular-nums" dir="ltr">
+                  {line.total.toFixed(2)}
+                </td>
               </tr>
             ))}
           </tbody>
@@ -102,7 +127,9 @@ export function InvoiceSlip({ invoice, trackingUrl }: { invoice: Invoice; tracki
             {invoice.payments.map((p) => (
               <li key={p.label.en} className="flex justify-between py-0.5">
                 <span>{label(p.label)}</span>
-                <span className="tabular-nums" dir="ltr">{money(p.amount)}</span>
+                <span className="tabular-nums" dir="ltr">
+                  {money(p.amount)}
+                </span>
               </li>
             ))}
           </ul>
@@ -112,28 +139,42 @@ export function InvoiceSlip({ invoice, trackingUrl }: { invoice: Invoice; tracki
       <section className="py-3 text-[14px]">
         <div className="flex justify-between py-0.5">
           <span>{t('invoice.beforeVat')}</span>
-          <span className="tabular-nums" dir="ltr">{money(invoice.totals.base)}</span>
+          <span className="tabular-nums" dir="ltr">
+            {money(invoice.totals.base)}
+          </span>
         </div>
         <div className="flex justify-between py-0.5">
           <span>{t('invoice.vatLine', { percent: Math.round(invoice.totals.vatRate * 100) })}</span>
-          <span className="tabular-nums" dir="ltr">{money(invoice.totals.vat)}</span>
+          <span className="tabular-nums" dir="ltr">
+            {money(invoice.totals.vat)}
+          </span>
         </div>
         {invoice.totals.deposit > 0 && (
           <div className="flex justify-between py-0.5">
             <span>{t('invoice.depositHeld')}</span>
-            <span className="tabular-nums" dir="ltr">{money(invoice.totals.deposit)}</span>
+            <span className="tabular-nums" dir="ltr">
+              {money(invoice.totals.deposit)}
+            </span>
           </div>
         )}
         <div className="flex justify-between py-1 mt-1 border-t border-black/40 font-bold text-[17px]">
           <span>{t('invoice.total')}</span>
-          <span className="tabular-nums" dir="ltr" data-testid="invoice-total">{money(invoice.totals.total)}</span>
+          <span className="tabular-nums" dir="ltr" data-testid="invoice-total">
+            {money(invoice.totals.total)}
+          </span>
         </div>
       </section>
 
       <footer className="text-center pt-2 border-t border-dashed border-black/40">
         {trackingUrl && (
           <div className="flex flex-col items-center pt-1 pb-2">
-            <QRCodeSVG value={trackingUrl} size={104} level="M" bgColor="#ffffff" fgColor="#000000" />
+            <QRCodeSVG
+              value={trackingUrl}
+              size={104}
+              level="M"
+              bgColor="#ffffff"
+              fgColor="#000000"
+            />
             <p className="text-[13px] mt-1">{t('invoice.scanToTrack')}</p>
           </div>
         )}
@@ -144,5 +185,5 @@ export function InvoiceSlip({ invoice, trackingUrl }: { invoice: Invoice; tracki
         <p className="text-[12px] text-black/60 mt-1">{t('invoice.terms')}</p>
       </footer>
     </div>
-  )
+  );
 }

@@ -1,36 +1,42 @@
-import { useEffect, useState } from 'react'
-import { useTranslation } from 'react-i18next'
-import { Plus, RotateCcw, Save, Timer, Trash2, TriangleAlert } from 'lucide-react'
-import { PageHeader } from '@/components/PageHeader'
-import { Button, Card, Field, FieldGroupTitle, SectionTitle, Spinner } from '@/components/ui'
-import { Select } from '@/components/Select'
-import { NumberInput } from '@/components/NumberInput'
-import { PenaltyAmount } from './PenaltyAmount'
-import { useTenantRules, useUpdateRules } from '@/hooks'
-import { engineLabel, visibleEngineOptions } from '@/config/engineMeta'
-import { ApiError } from '@/api/client'
-import { toast } from '@/state/toastStore'
-import type { EngineKind } from '@/api/types'
-import type { DiscountReason, PenaltyRule, RentalRules, TimerRule } from '@/api/rules.api'
+import { useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
+import { Plus, RotateCcw, Save, Timer, Trash2, TriangleAlert } from 'lucide-react';
+import { PageHeader } from '@/components/PageHeader';
+import { Button, Card, Field, FieldGroupTitle, SectionTitle, Spinner } from '@/components/ui';
+import { Select } from '@/components/Select';
+import { NumberInput } from '@/components/NumberInput';
+import { PenaltyAmount } from './PenaltyAmount';
+import { useTenantRules, useUpdateRules } from '@/hooks';
+import { engineLabel, visibleEngineOptions } from '@/config/engineMeta';
+import { ApiError } from '@/api/client';
+import { toast } from '@/state/toastStore';
+import type { EngineKind } from '@/api/types';
+import type { DiscountReason, PenaltyRule, RentalRules, TimerRule } from '@/api/rules.api';
 
-const emptyPenalty = (): PenaltyRule => ({ code: '', label: '', amount: 0, engineKind: null })
-const emptyReason = (): DiscountReason => ({ code: '', label: '', labelAr: '', maxPercent: 100, needsApproval: false })
+const emptyPenalty = (): PenaltyRule => ({ code: '', label: '', amount: 0, engineKind: null });
+const emptyReason = (): DiscountReason => ({
+  code: '',
+  label: '',
+  labelAr: '',
+  maxPercent: 100,
+  needsApproval: false,
+});
 
 export function AdminRules() {
-  const { t } = useTranslation(['admin', 'common'])
-  const { data, isLoading } = useTenantRules()
-  const update = useUpdateRules()
+  const { t } = useTranslation(['admin', 'common']);
+  const { data, isLoading } = useTenantRules();
+  const update = useUpdateRules();
 
-  const [rental, setRental] = useState<RentalRules | null>(null)
-  const [penalties, setPenalties] = useState<PenaltyRule[]>([])
-  const [reasons, setReasons] = useState<DiscountReason[]>([])
+  const [rental, setRental] = useState<RentalRules | null>(null);
+  const [penalties, setPenalties] = useState<PenaltyRule[]>([]);
+  const [reasons, setReasons] = useState<DiscountReason[]>([]);
 
   useEffect(() => {
-    if (!data) return
-    setRental(structuredClone(data.rental))
-    setPenalties(structuredClone(data.penalties))
-    setReasons(structuredClone(data.discountReasons ?? []))
-  }, [data])
+    if (!data) return;
+    setRental(structuredClone(data.rental));
+    setPenalties(structuredClone(data.penalties));
+    setReasons(structuredClone(data.discountReasons ?? []));
+  }, [data]);
 
   if (isLoading || !data || !rental) {
     return (
@@ -38,23 +44,26 @@ export function AdminRules() {
         <PageHeader title={t('rules.title')} subtitle={t('common:state.loading')} />
         <Spinner />
       </div>
-    )
+    );
   }
 
   const setTimer = (engine: EngineKind, patch: Partial<TimerRule>) =>
     setRental((prev) =>
-      prev ? { ...prev, timers: { ...prev.timers, [engine]: { ...prev.timers[engine], ...patch } } } : prev,
-    )
+      prev
+        ? { ...prev, timers: { ...prev.timers, [engine]: { ...prev.timers[engine], ...patch } } }
+        : prev
+    );
 
   const setPenalty = (index: number, patch: Partial<PenaltyRule>) =>
-    setPenalties((prev) => prev.map((row, i) => (i === index ? { ...row, ...patch } : row)))
+    setPenalties((prev) => prev.map((row, i) => (i === index ? { ...row, ...patch } : row)));
 
   const setReason = (index: number, patch: Partial<DiscountReason>) =>
-    setReasons((prev) => prev.map((row, i) => (i === index ? { ...row, ...patch } : row)))
+    setReasons((prev) => prev.map((row, i) => (i === index ? { ...row, ...patch } : row)));
 
-  const graceMismatch = rental.statedGraceMin > rental.graceMin
+  const graceMismatch = rental.statedGraceMin > rental.graceMin;
   const incomplete =
-    penalties.some((p) => !p.code.trim() || !p.label.trim()) || reasons.some((r) => !r.code.trim() || !r.label.trim())
+    penalties.some((p) => !p.code.trim() || !p.label.trim()) ||
+    reasons.some((r) => !r.code.trim() || !r.label.trim());
 
   const save = () => {
     update.mutate(
@@ -62,19 +71,23 @@ export function AdminRules() {
       {
         onSuccess: () => toast('success', t('rules.saved'), t('rules.savedDetail')),
         onError: (e) =>
-          toast('danger', t('common:error.couldNotSave'), e instanceof ApiError ? (e.errors?.join(' ') ?? e.message) : ''),
-      },
-    )
-  }
+          toast(
+            'danger',
+            t('common:error.couldNotSave'),
+            e instanceof ApiError ? (e.errors?.join(' ') ?? e.message) : ''
+          ),
+      }
+    );
+  };
 
   const reset = () => {
-    setRental(structuredClone(data.defaults.rental))
-    setPenalties(structuredClone(data.defaults.penalties))
-    setReasons(structuredClone(data.defaults.discountReasons ?? []))
-    toast('info', t('rules.reset'), t('rules.resetDetail'))
-  }
+    setRental(structuredClone(data.defaults.rental));
+    setPenalties(structuredClone(data.defaults.penalties));
+    setReasons(structuredClone(data.defaults.discountReasons ?? []));
+    toast('info', t('rules.reset'), t('rules.resetDetail'));
+  };
 
-  const activities = visibleEngineOptions().filter((o) => data.engineKinds.includes(o.value))
+  const activities = visibleEngineOptions().filter((o) => data.engineKinds.includes(o.value));
 
   return (
     <div data-testid="admin-rules">
@@ -127,7 +140,10 @@ export function AdminRules() {
                 testId="rules-stated-grace"
               />
             </Field>
-            <Field label={t('rules.clock.overtimeBlockMin')} hint={t('rules.clock.overtimeBlockHint')}>
+            <Field
+              label={t('rules.clock.overtimeBlockMin')}
+              hint={t('rules.clock.overtimeBlockHint')}
+            >
               <NumberInput
                 value={rental.overtimeBlockMin}
                 onChange={(v) => setRental({ ...rental, overtimeBlockMin: v })}
@@ -135,7 +151,10 @@ export function AdminRules() {
                 testId="rules-block"
               />
             </Field>
-            <Field label={t('rules.clock.replacementBonusMin')} hint={t('rules.clock.replacementHint')}>
+            <Field
+              label={t('rules.clock.replacementBonusMin')}
+              hint={t('rules.clock.replacementHint')}
+            >
               <NumberInput
                 value={rental.replacementBonusMin}
                 onChange={(v) => setRental({ ...rental, replacementBonusMin: v })}
@@ -145,7 +164,10 @@ export function AdminRules() {
             </Field>
           </div>
 
-          <Field label={t('rules.clock.wrongStationPenalty')} hint={t('rules.clock.wrongStationHint')}>
+          <Field
+            label={t('rules.clock.wrongStationPenalty')}
+            hint={t('rules.clock.wrongStationHint')}
+          >
             <NumberInput
               value={rental.wrongStationPenalty}
               onChange={(v) => setRental({ ...rental, wrongStationPenalty: v })}
@@ -161,7 +183,7 @@ export function AdminRules() {
 
           <div className="flex flex-col gap-3" data-testid="rules-timers">
             {activities.map((activity) => {
-              const timer = rental.timers[activity.value]
+              const timer = rental.timers[activity.value];
               return (
                 <div
                   key={activity.value}
@@ -176,7 +198,9 @@ export function AdminRules() {
                     <Field label={t('rules.timers.startsOn')}>
                       <Select
                         value={timer.startsOn}
-                        onChange={(v) => setTimer(activity.value, { startsOn: v as TimerRule['startsOn'] })}
+                        onChange={(v) =>
+                          setTimer(activity.value, { startsOn: v as TimerRule['startsOn'] })
+                        }
                         options={[
                           { label: t('rules.timers.onFulfilment'), value: 'FULFILMENT' },
                           { label: t('rules.timers.onPayment'), value: 'PAYMENT' },
@@ -184,7 +208,10 @@ export function AdminRules() {
                         testId={`rules-timer-start-${activity.value}`}
                       />
                     </Field>
-                    <Field label={t('rules.timers.startDelayMin')} hint={t('rules.timers.startDelayHint')}>
+                    <Field
+                      label={t('rules.timers.startDelayMin')}
+                      hint={t('rules.timers.startDelayHint')}
+                    >
                       <NumberInput
                         value={timer.startDelayMin}
                         onChange={(v) => setTimer(activity.value, { startDelayMin: v })}
@@ -199,7 +226,7 @@ export function AdminRules() {
                       : t('rules.timers.explainFulfilment')}
                   </p>
                 </div>
-              )
+              );
             })}
           </div>
         </Card>
@@ -211,7 +238,11 @@ export function AdminRules() {
             <SectionTitle>{t('rules.penalties.title')}</SectionTitle>
             <p className="text-sm text-muted">{t('rules.penalties.blurb')}</p>
           </div>
-          <Button variant="secondary" onClick={() => setPenalties([emptyPenalty(), ...penalties])} data-testid="rules-penalty-add">
+          <Button
+            variant="secondary"
+            onClick={() => setPenalties([emptyPenalty(), ...penalties])}
+            data-testid="rules-penalty-add"
+          >
             <Plus size={16} />
             {t('rules.penalties.add')}
           </Button>
@@ -250,8 +281,13 @@ export function AdminRules() {
                   <td className="py-2 pe-3 min-w-[10rem]">
                     <Select
                       value={row.engineKind ?? ''}
-                      onChange={(v) => setPenalty(index, { engineKind: (v || null) as EngineKind | null })}
-                      options={[{ label: t('rules.penalties.everyActivity'), value: '' }, ...activities]}
+                      onChange={(v) =>
+                        setPenalty(index, { engineKind: (v || null) as EngineKind | null })
+                      }
+                      options={[
+                        { label: t('rules.penalties.everyActivity'), value: '' },
+                        ...activities,
+                      ]}
                       testId={`rules-penalty-activity-${index}`}
                     />
                   </td>
@@ -292,7 +328,11 @@ export function AdminRules() {
             <SectionTitle>{t('rules.reasons.title')}</SectionTitle>
             <p className="text-sm text-muted">{t('rules.reasons.blurb')}</p>
           </div>
-          <Button variant="secondary" onClick={() => setReasons([emptyReason(), ...reasons])} data-testid="rules-reason-add">
+          <Button
+            variant="secondary"
+            onClick={() => setReasons([emptyReason(), ...reasons])}
+            data-testid="rules-reason-add"
+          >
             <Plus size={16} />
             {t('rules.reasons.add')}
           </Button>
@@ -316,7 +356,11 @@ export function AdminRules() {
                     <input
                       className="lf-input font-mono text-xs"
                       value={row.code}
-                      onChange={(e) => setReason(index, { code: e.target.value.toUpperCase().replace(/\s+/g, '_') })}
+                      onChange={(e) =>
+                        setReason(index, {
+                          code: e.target.value.toUpperCase().replace(/\s+/g, '_'),
+                        })
+                      }
                       data-testid={`rules-reason-code-${index}`}
                     />
                   </td>
@@ -364,7 +408,6 @@ export function AdminRules() {
         </div>
         <p className="text-xs text-muted mt-3">{t('rules.reasons.reported')}</p>
       </Card>
-
     </div>
-  )
+  );
 }

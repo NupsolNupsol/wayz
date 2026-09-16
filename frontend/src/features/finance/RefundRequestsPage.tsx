@@ -1,52 +1,59 @@
-import { useState } from 'react'
-import { useTranslation } from 'react-i18next'
-import { clsx } from 'clsx'
-import { CircleCheck, CircleX, Undo2 } from 'lucide-react'
-import { PageHeader } from '@/components/PageHeader'
-import { Badge, Button, Field, Spinner, StatCard } from '@/components/ui'
-import { DataTable } from '@/components/DataTable'
-import { Modal } from '@/components/Modal'
-import { RefLink } from '@/components/RefLink'
-import { useRefundRequests, useReviewRefundRequest } from '@/hooks'
-import { engineLabel, visibleEngineOptions } from '@/config/engineMeta'
-import { ApiError } from '@/api/client'
-import { formatDateTime, money } from '@/utils'
-import { toast } from '@/state/toastStore'
-import type { RefundRequest, RefundRequestStatus } from '@/api/refundRequest.api'
+import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
+import { clsx } from 'clsx';
+import { CircleCheck, CircleX, Undo2 } from 'lucide-react';
+import { PageHeader } from '@/components/PageHeader';
+import { Badge, Button, Field, Spinner, StatCard } from '@/components/ui';
+import { DataTable } from '@/components/DataTable';
+import { Modal } from '@/components/Modal';
+import { RefLink } from '@/components/RefLink';
+import { useRefundRequests, useReviewRefundRequest } from '@/hooks';
+import { engineLabel, visibleEngineOptions } from '@/config/engineMeta';
+import { ApiError } from '@/api/client';
+import { formatDateTime, money } from '@/utils';
+import { toast } from '@/state/toastStore';
+import type { RefundRequest, RefundRequestStatus } from '@/api/refundRequest.api';
 
 const TONE: Record<RefundRequestStatus, 'info' | 'success' | 'danger'> = {
   PENDING: 'info',
   APPROVED: 'success',
   REJECTED: 'danger',
-}
+};
 
 export function RefundRequestsPage() {
-  const { t } = useTranslation(['accounting', 'common'])
-  const [status, setStatus] = useState<RefundRequestStatus | ''>('')
-  const { data, isLoading } = useRefundRequests(status ? { status } : undefined)
-  const review = useReviewRefundRequest()
+  const { t } = useTranslation(['accounting', 'common']);
+  const [status, setStatus] = useState<RefundRequestStatus | ''>('');
+  const { data, isLoading } = useRefundRequests(status ? { status } : undefined);
+  const review = useReviewRefundRequest();
 
-  const [reviewing, setReviewing] = useState<RefundRequest | null>(null)
-  const [note, setNote] = useState('')
+  const [reviewing, setReviewing] = useState<RefundRequest | null>(null);
+  const [note, setNote] = useState('');
 
-  const rows = data?.rows ?? []
-  const pending = rows.filter((r) => r.status === 'PENDING')
+  const rows = data?.rows ?? [];
+  const pending = rows.filter((r) => r.status === 'PENDING');
 
   const decide = (approve: boolean) => {
-    if (!reviewing) return
+    if (!reviewing) return;
     review.mutate(
       { id: reviewing._id, approve, note: note.trim() || undefined },
       {
         onSuccess: () => {
-          toast(approve ? 'success' : 'warning', approve ? t('refunds.released') : t('refunds.refused'))
-          setReviewing(null)
-          setNote('')
+          toast(
+            approve ? 'success' : 'warning',
+            approve ? t('refunds.released') : t('refunds.refused')
+          );
+          setReviewing(null);
+          setNote('');
         },
         onError: (e) =>
-          toast('danger', t('common:error.couldNotSave'), e instanceof ApiError ? (e.errors?.join(' ') ?? e.message) : ''),
-      },
-    )
-  }
+          toast(
+            'danger',
+            t('common:error.couldNotSave'),
+            e instanceof ApiError ? (e.errors?.join(' ') ?? e.message) : ''
+          ),
+      }
+    );
+  };
 
   return (
     <div data-testid="refund-requests">
@@ -61,22 +68,27 @@ export function RefundRequestsPage() {
             aria-label={t('common:column.status')}
             data-testid="refund-requests-status-filter"
           >
-            {([['', 'common:table.all'], ['PENDING', 'refunds.status.PENDING'], ['APPROVED', 'refunds.status.APPROVED'], ['REJECTED', 'refunds.status.REJECTED']] as const).map(
-              ([value, label]) => (
-                <button
-                  key={value || 'all'}
-                  type="button"
-                  onClick={() => setStatus(value as RefundRequestStatus | '')}
-                  data-testid={`refund-status-${value || 'ALL'}`}
-                  className={clsx(
-                    'h-8 px-3 rounded-lg text-xs font-semibold whitespace-nowrap transition-colors',
-                    status === value ? 'bg-brand text-brand-fg' : 'text-muted hover:text-brand',
-                  )}
-                >
-                  {t(label)}
-                </button>
-              ),
-            )}
+            {(
+              [
+                ['', 'common:table.all'],
+                ['PENDING', 'refunds.status.PENDING'],
+                ['APPROVED', 'refunds.status.APPROVED'],
+                ['REJECTED', 'refunds.status.REJECTED'],
+              ] as const
+            ).map(([value, label]) => (
+              <button
+                key={value || 'all'}
+                type="button"
+                onClick={() => setStatus(value as RefundRequestStatus | '')}
+                data-testid={`refund-status-${value || 'ALL'}`}
+                className={clsx(
+                  'h-8 px-3 rounded-lg text-xs font-semibold whitespace-nowrap transition-colors',
+                  status === value ? 'bg-brand text-brand-fg' : 'text-muted hover:text-brand'
+                )}
+              >
+                {t(label)}
+              </button>
+            ))}
           </div>
         }
       />
@@ -118,11 +130,19 @@ export function RefundRequestsPage() {
                 </div>
               ),
             },
-            { key: 'customer', header: t('common:column.customer'), render: (r) => r.customerName || '—' },
+            {
+              key: 'customer',
+              header: t('common:column.customer'),
+              render: (r) => r.customerName || '—',
+            },
             {
               key: 'activity',
               header: t('common:column.activity'),
-              filter: { kind: 'select', options: visibleEngineOptions(), value: (r) => r.engineKind },
+              filter: {
+                kind: 'select',
+                options: visibleEngineOptions(),
+                value: (r) => r.engineKind,
+              },
               render: (r) => <Badge tone="info">{engineLabel(r.engineKind)}</Badge>,
             },
             {
@@ -132,13 +152,25 @@ export function RefundRequestsPage() {
               sortValue: (r) => r.amount,
               render: (r) => <span className="tabular-nums font-semibold">{money(r.amount)}</span>,
             },
-            { key: 'reason', header: t('common:column.reason'), render: (r) => <span className="text-muted text-xs">{r.reason}</span> },
-            { key: 'by', header: t('refunds.askedBy'), render: (r) => <span className="text-muted text-xs">{r.requestedByName}</span> },
+            {
+              key: 'reason',
+              header: t('common:column.reason'),
+              render: (r) => <span className="text-muted text-xs">{r.reason}</span>,
+            },
+            {
+              key: 'by',
+              header: t('refunds.askedBy'),
+              render: (r) => <span className="text-muted text-xs">{r.requestedByName}</span>,
+            },
             {
               key: 'when',
               header: t('common:column.when'),
               sortValue: (r) => new Date(r.createdAt).getTime(),
-              render: (r) => <span className="text-muted text-xs tabular-nums">{formatDateTime(new Date(r.createdAt).getTime())}</span>,
+              render: (r) => (
+                <span className="text-muted text-xs tabular-nums">
+                  {formatDateTime(new Date(r.createdAt).getTime())}
+                </span>
+              ),
             },
             {
               key: 'status',
@@ -146,7 +178,9 @@ export function RefundRequestsPage() {
               render: (r) => (
                 <div>
                   <Badge tone={TONE[r.status]}>{t(`refunds.status.${r.status}`)}</Badge>
-                  {r.reviewedByName && <p className="text-[11px] text-muted mt-0.5">{r.reviewedByName}</p>}
+                  {r.reviewedByName && (
+                    <p className="text-[11px] text-muted mt-0.5">{r.reviewedByName}</p>
+                  )}
                 </div>
               ),
             },
@@ -159,9 +193,9 @@ export function RefundRequestsPage() {
                   <Button
                     variant="secondary"
                     onClick={(e) => {
-                      e.stopPropagation()
-                      setReviewing(r)
-                      setNote('')
+                      e.stopPropagation();
+                      setReviewing(r);
+                      setNote('');
                     }}
                     data-testid={`refund-review-${r._id}`}
                   >
@@ -181,7 +215,9 @@ export function RefundRequestsPage() {
         testId="refund-review-modal"
         footer={
           <>
-            <Button variant="ghost" onClick={() => setReviewing(null)}>{t('common:action.cancel')}</Button>
+            <Button variant="ghost" onClick={() => setReviewing(null)}>
+              {t('common:action.cancel')}
+            </Button>
             <Button
               variant="danger"
               onClick={() => decide(false)}
@@ -191,20 +227,30 @@ export function RefundRequestsPage() {
             >
               <CircleX size={16} /> {t('refunds.refuse')}
             </Button>
-            <Button onClick={() => decide(true)} loading={review.isPending} data-testid="refund-approve">
+            <Button
+              onClick={() => decide(true)}
+              loading={review.isPending}
+              data-testid="refund-approve"
+            >
               <CircleCheck size={16} /> {t('refunds.release')}
             </Button>
           </>
         }
       >
         <p className="text-sm mb-1">
-          <span className="font-semibold">{money(reviewing?.amount ?? 0)}</span> · {reviewing?.bookingRef}
+          <span className="font-semibold">{money(reviewing?.amount ?? 0)}</span> ·{' '}
+          {reviewing?.bookingRef}
         </p>
         <p className="text-sm text-muted mb-3">{reviewing?.reason}</p>
         <Field label={t('refunds.note')} hint={t('refunds.noteHint')}>
-          <input className="lf-input" value={note} onChange={(e) => setNote(e.target.value)} data-testid="refund-note" />
+          <input
+            className="lf-input"
+            value={note}
+            onChange={(e) => setNote(e.target.value)}
+            data-testid="refund-note"
+          />
         </Field>
       </Modal>
     </div>
-  )
+  );
 }

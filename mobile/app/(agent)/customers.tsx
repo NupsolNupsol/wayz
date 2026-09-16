@@ -1,10 +1,10 @@
-import { router } from 'expo-router'
-import { useState } from 'react'
-import { FlatList, View } from 'react-native'
+import { router } from 'expo-router';
+import { useState } from 'react';
+import { FlatList, View } from 'react-native';
 
-import { apiMessage } from '@/api/client'
-import { AppHeader } from '@/components/AppHeader'
-import { Icon } from '@/components/Icon'
+import { apiMessage } from '@/api/client';
+import { AppHeader } from '@/components/AppHeader';
+import { Icon } from '@/components/Icon';
 import {
   Body,
   Button,
@@ -18,35 +18,35 @@ import {
   Screen,
   Sheet,
   toast,
-} from '@/components/ui'
-import { useCreateCustomer, useCustomers } from '@/hooks/queries'
-import { initials, relativeTime } from '@/lib/format'
-import { COLORS } from '@/theme/tokens'
+} from '@/components/ui';
+import { useCreateCustomer, useCustomers } from '@/hooks/queries';
+import { initials, relativeTime } from '@/lib/format';
+import { COLORS } from '@/theme/tokens';
 
 export default function Customers() {
-  const [query, setQuery] = useState('')
-  const [addOpen, setAddOpen] = useState(false)
-  const [name, setName] = useState('')
-  const [phone, setPhone] = useState('')
-  const [email, setEmail] = useState('')
+  const [query, setQuery] = useState('');
+  const [addOpen, setAddOpen] = useState(false);
+  const [name, setName] = useState('');
+  const [phone, setPhone] = useState('');
+  const [email, setEmail] = useState('');
 
-  const { data = [], isLoading, isFetching, refetch } = useCustomers(query)
-  const create = useCreateCustomer()
+  const { data = [], isLoading, isFetching, refetch } = useCustomers(query);
+  const create = useCreateCustomer();
 
   const submit = () =>
     create.mutate(
       { name: name.trim(), phone: phone.trim(), email: email.trim() || undefined },
       {
         onSuccess: (customer) => {
-          toast('success', 'Customer added', customer.name)
-          setAddOpen(false)
-          setName('')
-          setPhone('')
-          setEmail('')
+          toast('success', 'Customer added', customer.name);
+          setAddOpen(false);
+          setName('');
+          setPhone('');
+          setEmail('');
         },
         onError: (e) => toast('danger', 'Could not add the customer', apiMessage(e)),
-      },
-    )
+      }
+    );
 
   return (
     <Screen padded={false} testID="customers">
@@ -55,7 +55,9 @@ export default function Customers() {
           back
           title="Customers"
           subtitle="Find someone, or add them"
-          actions={<Button label="Add" size="sm" onPress={() => setAddOpen(true)} testID="customers-add" />}
+          actions={
+            <Button label="Add" size="sm" onPress={() => setAddOpen(true)} testID="customers-add" />
+          }
         />
         <Input
           value={query}
@@ -81,7 +83,11 @@ export default function Customers() {
             <EmptyState
               icon={<Icon name="Users" size={24} color={COLORS.faint} />}
               title={query ? 'Nobody matches' : 'No customers yet'}
-              message={query ? 'Try a shorter search, or add them.' : 'They appear here after their first booking.'}
+              message={
+                query
+                  ? 'Try a shorter search, or add them.'
+                  : 'They appear here after their first booking.'
+              }
               testID="customers-empty"
             />
           }
@@ -89,7 +95,9 @@ export default function Customers() {
             <ListGroup className={index === 0 ? '' : 'mt-2'}>
               <ListRow
                 testID={`customer-${item._id}`}
-                onPress={() => router.push({ pathname: '/customer/[id]', params: { id: item._id } })}
+                onPress={() =>
+                  router.push({ pathname: '/customer/[id]', params: { id: item._id } })
+                }
                 leading={
                   <View className="h-10 w-10 items-center justify-center rounded-2xl bg-canvas">
                     <Body className="text-[13px] font-bold text-muted">{initials(item.name)}</Body>
@@ -97,7 +105,11 @@ export default function Customers() {
                 }
                 title={item.name}
                 subtitle={item.phone}
-                trailing={item.lastSeenAt ? <Muted className="text-[11px]">{relativeTime(item.lastSeenAt)}</Muted> : undefined}
+                trailing={
+                  item.lastSeenAt ? (
+                    <Muted className="text-[11px]">{relativeTime(item.lastSeenAt)}</Muted>
+                  ) : undefined
+                }
               />
             </ListGroup>
           )}
@@ -123,10 +135,21 @@ export default function Customers() {
         }
       >
         <Field label="Full name" required>
-          <Input value={name} onChangeText={setName} placeholder="Ahmed Saleh" testID="customer-name" />
+          <Input
+            value={name}
+            onChangeText={setName}
+            placeholder="Ahmed Saleh"
+            testID="customer-name"
+          />
         </Field>
         <Field label="Phone" required>
-          <Input value={phone} onChangeText={setPhone} placeholder="05xxxxxxxx" keyboardType="phone-pad" testID="customer-phone" />
+          <Input
+            value={phone}
+            onChangeText={setPhone}
+            placeholder="05xxxxxxxx"
+            keyboardType="phone-pad"
+            testID="customer-phone"
+          />
         </Field>
         <Field label="Email" hint="Optional, but it adds a second way to verify them.">
           <Input
@@ -140,5 +163,5 @@ export default function Customers() {
         </Field>
       </Sheet>
     </Screen>
-  )
+  );
 }

@@ -1,8 +1,8 @@
-import type { ReactNode } from 'react'
-import { TextInput, View, type TextInputProps } from 'react-native'
+import type { ReactNode } from 'react';
+import { TextInput, View, type TextInputProps } from 'react-native';
 
-import { COLORS } from '@/theme/tokens'
-import { Label, Muted } from './Text'
+import { COLORS } from '@/theme/tokens';
+import { Label, Muted } from './Text';
 
 export function Field({
   label,
@@ -12,12 +12,12 @@ export function Field({
   children,
   className = '',
 }: {
-  label: string
-  hint?: string
-  error?: string
-  required?: boolean
-  children: ReactNode
-  className?: string
+  label: string;
+  hint?: string;
+  error?: string;
+  required?: boolean;
+  children: ReactNode;
+  className?: string;
 }) {
   return (
     <View className={`gap-1.5 ${className}`}>
@@ -28,7 +28,7 @@ export function Field({
       {children}
       {error ? <Muted className="text-danger">{error}</Muted> : hint ? <Muted>{hint}</Muted> : null}
     </View>
-  )
+  );
 }
 
 export function Input({
@@ -44,7 +44,7 @@ export function Input({
       } ${className}`}
       {...rest}
     />
-  )
+  );
 }
 
 export function TextArea({ className = '', ...rest }: TextInputProps & { className?: string }) {
@@ -56,5 +56,5 @@ export function TextArea({ className = '', ...rest }: TextInputProps & { classNa
       className={`min-h-[88px] rounded-2xl border border-line bg-surface px-4 py-3 text-[15px] text-navy ${className}`}
       {...rest}
     />
-  )
+  );
 }

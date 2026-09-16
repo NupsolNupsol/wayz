@@ -1,42 +1,47 @@
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { adminApi } from '../api/admin.api'
-import { qk } from './queryKeys'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { adminApi } from '../api/admin.api';
+import { qk } from './queryKeys';
 
 export function useTenantOverview(enabled = true) {
-  return useQuery({ queryKey: qk.admin.overview, queryFn: adminApi.overview, enabled, refetchInterval: 30_000 })
+  return useQuery({
+    queryKey: qk.admin.overview,
+    queryFn: adminApi.overview,
+    enabled,
+    refetchInterval: 30_000,
+  });
 }
 
 export function useTenantAudit(enabled = true) {
-  return useQuery({ queryKey: qk.admin.audit, queryFn: adminApi.audit, enabled })
+  return useQuery({ queryKey: qk.admin.audit, queryFn: adminApi.audit, enabled });
 }
 
 export function useTenantIsolation(enabled = true) {
-  return useQuery({ queryKey: qk.admin.isolation, queryFn: adminApi.isolation, enabled })
+  return useQuery({ queryKey: qk.admin.isolation, queryFn: adminApi.isolation, enabled });
 }
 
 export function useStationMap(enabled = true) {
-  return useQuery({ queryKey: qk.admin.stationMap, queryFn: adminApi.stationMap, enabled })
+  return useQuery({ queryKey: qk.admin.stationMap, queryFn: adminApi.stationMap, enabled });
 }
 
 export function useSaveStationMap() {
-  const qc = useQueryClient()
+  const qc = useQueryClient();
   return useMutation({
     mutationFn: adminApi.saveStationMap,
     onSuccess: (data) => {
-      qc.setQueryData(qk.admin.stationMap, data)
-      qc.invalidateQueries({ queryKey: ['trip'] })
+      qc.setQueryData(qk.admin.stationMap, data);
+      qc.invalidateQueries({ queryKey: ['trip'] });
     },
-  })
+  });
 }
 
 export function useUpdateCompany() {
-  const qc = useQueryClient()
+  const qc = useQueryClient();
   return useMutation({
     mutationFn: adminApi.updateCompany,
     onSuccess: async () => {
-      await qc.refetchQueries({ queryKey: qk.admin.overview })
-      qc.invalidateQueries({ queryKey: qk.manager.settings })
-      qc.invalidateQueries({ queryKey: qk.me })
+      await qc.refetchQueries({ queryKey: qk.admin.overview });
+      qc.invalidateQueries({ queryKey: qk.manager.settings });
+      qc.invalidateQueries({ queryKey: qk.me });
     },
-  })
+  });
 }

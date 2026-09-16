@@ -1,13 +1,13 @@
-export const DRAFT = 'DRAFT'
-export const CONFIRMED = 'CONFIRMED'
-export const RESERVED = 'RESERVED'
-export const ACTIVE = 'ACTIVE'
-export const OVERTIME = 'OVERTIME'
-export const RETRIEVAL_IN_PROGRESS = 'RETRIEVAL_IN_PROGRESS'
-export const PREPARING = 'PREPARING'
-export const SERVED = 'SERVED'
-export const COMPLETED = 'COMPLETED'
-export const CANCELLED = 'CANCELLED'
+export const DRAFT = 'DRAFT';
+export const CONFIRMED = 'CONFIRMED';
+export const RESERVED = 'RESERVED';
+export const ACTIVE = 'ACTIVE';
+export const OVERTIME = 'OVERTIME';
+export const RETRIEVAL_IN_PROGRESS = 'RETRIEVAL_IN_PROGRESS';
+export const PREPARING = 'PREPARING';
+export const SERVED = 'SERVED';
+export const COMPLETED = 'COMPLETED';
+export const CANCELLED = 'CANCELLED';
 
 export const BOOKING_STATUSES = [
   DRAFT,
@@ -20,21 +20,21 @@ export const BOOKING_STATUSES = [
   SERVED,
   COMPLETED,
   CANCELLED,
-] as const
+] as const;
 
-export type BookingStatus = (typeof BOOKING_STATUSES)[number]
+export type BookingStatus = (typeof BOOKING_STATUSES)[number];
 
-export const TERMINAL_STATUSES: BookingStatus[] = [COMPLETED, CANCELLED]
+export const TERMINAL_STATUSES: BookingStatus[] = [COMPLETED, CANCELLED];
 
-export const UNIT_AVAILABLE = 'AVAILABLE'
-export const UNIT_HELD = 'HELD'
-export const UNIT_RESERVED = 'RESERVED'
-export const UNIT_OCCUPIED = 'OCCUPIED'
-export const UNIT_RETRIEVAL_PENDING = 'RETRIEVAL_PENDING'
-export const UNIT_INSPECTION_REQUIRED = 'INSPECTION_REQUIRED'
-export const UNIT_BLOCKED = 'BLOCKED'
-export const UNIT_OUT_OF_SERVICE = 'OUT_OF_SERVICE'
-export const UNIT_MAINTENANCE = 'MAINTENANCE'
+export const UNIT_AVAILABLE = 'AVAILABLE';
+export const UNIT_HELD = 'HELD';
+export const UNIT_RESERVED = 'RESERVED';
+export const UNIT_OCCUPIED = 'OCCUPIED';
+export const UNIT_RETRIEVAL_PENDING = 'RETRIEVAL_PENDING';
+export const UNIT_INSPECTION_REQUIRED = 'INSPECTION_REQUIRED';
+export const UNIT_BLOCKED = 'BLOCKED';
+export const UNIT_OUT_OF_SERVICE = 'OUT_OF_SERVICE';
+export const UNIT_MAINTENANCE = 'MAINTENANCE';
 
 export const ASSET_UNIT_STATUSES = [
   UNIT_AVAILABLE,
@@ -46,16 +46,16 @@ export const ASSET_UNIT_STATUSES = [
   UNIT_BLOCKED,
   UNIT_OUT_OF_SERVICE,
   UNIT_MAINTENANCE,
-] as const
+] as const;
 
-export type AssetUnitStatus = (typeof ASSET_UNIT_STATUSES)[number]
+export type AssetUnitStatus = (typeof ASSET_UNIT_STATUSES)[number];
 
-export const BAG_REGISTERED = 'REGISTERED'
-export const BAG_LABELLED = 'LABELLED'
-export const BAG_STORED = 'STORED'
-export const BAG_IN_TRANSIT = 'IN_TRANSIT'
-export const BAG_RETRIEVED = 'RETRIEVED'
-export const BAG_DELIVERED = 'DELIVERED'
+export const BAG_REGISTERED = 'REGISTERED';
+export const BAG_LABELLED = 'LABELLED';
+export const BAG_STORED = 'STORED';
+export const BAG_IN_TRANSIT = 'IN_TRANSIT';
+export const BAG_RETRIEVED = 'RETRIEVED';
+export const BAG_DELIVERED = 'DELIVERED';
 
 export const BAG_STATUSES = [
   BAG_REGISTERED,
@@ -64,36 +64,36 @@ export const BAG_STATUSES = [
   BAG_IN_TRANSIT,
   BAG_RETRIEVED,
   BAG_DELIVERED,
-] as const
+] as const;
 
-export type BagItemStatus = (typeof BAG_STATUSES)[number]
+export type BagItemStatus = (typeof BAG_STATUSES)[number];
 
-export const RESERVATION_ACTIVE = 'ACTIVE'
-export const RESERVATION_CONSUMED = 'CONSUMED'
-export const RESERVATION_RELEASED = 'RELEASED'
-export const RESERVATION_EXPIRED = 'EXPIRED'
+export const RESERVATION_ACTIVE = 'ACTIVE';
+export const RESERVATION_CONSUMED = 'CONSUMED';
+export const RESERVATION_RELEASED = 'RELEASED';
+export const RESERVATION_EXPIRED = 'EXPIRED';
 
 export type ReservationStatus =
   | typeof RESERVATION_ACTIVE
   | typeof RESERVATION_CONSUMED
   | typeof RESERVATION_RELEASED
-  | typeof RESERVATION_EXPIRED
+  | typeof RESERVATION_EXPIRED;
 
-export const CUSTOMER = 'CUSTOMER'
-export const AGENT_HOLDER = 'AGENT'
-export const LOCKER = 'LOCKER'
-export const PORTER = 'PORTER'
+export const CUSTOMER = 'CUSTOMER';
+export const AGENT_HOLDER = 'AGENT';
+export const LOCKER = 'LOCKER';
+export const PORTER = 'PORTER';
 
-export type CustodyHolder = typeof CUSTOMER | typeof AGENT_HOLDER | typeof LOCKER | typeof PORTER
+export type CustodyHolder = typeof CUSTOMER | typeof AGENT_HOLDER | typeof LOCKER | typeof PORTER;
 
-export const DLV_REQUESTED = 'REQUESTED'
-export const DLV_ASSIGNED = 'ASSIGNED'
-export const DLV_RELEASE_REQUESTED = 'RELEASE_REQUESTED'
-export const DLV_RELEASE_APPROVED = 'RELEASE_APPROVED'
-export const DLV_PICKED_UP = 'PICKED_UP'
-export const DLV_DELIVERED = 'DELIVERED'
-export const DLV_CANCELLED = 'CANCELLED'
-export const DLV_FAILED = 'FAILED'
+export const DLV_REQUESTED = 'REQUESTED';
+export const DLV_ASSIGNED = 'ASSIGNED';
+export const DLV_RELEASE_REQUESTED = 'RELEASE_REQUESTED';
+export const DLV_RELEASE_APPROVED = 'RELEASE_APPROVED';
+export const DLV_PICKED_UP = 'PICKED_UP';
+export const DLV_DELIVERED = 'DELIVERED';
+export const DLV_CANCELLED = 'CANCELLED';
+export const DLV_FAILED = 'FAILED';
 
 export const DELIVERY_STATUSES = [
   DLV_REQUESTED,
@@ -104,14 +104,14 @@ export const DELIVERY_STATUSES = [
   DLV_DELIVERED,
   DLV_CANCELLED,
   DLV_FAILED,
-] as const
+] as const;
 
-export type DeliveryStatus = (typeof DELIVERY_STATUSES)[number]
+export type DeliveryStatus = (typeof DELIVERY_STATUSES)[number];
 
-export const DELIVERY_TERMINAL: DeliveryStatus[] = [DLV_DELIVERED, DLV_CANCELLED, DLV_FAILED]
+export const DELIVERY_TERMINAL: DeliveryStatus[] = [DLV_DELIVERED, DLV_CANCELLED, DLV_FAILED];
 
-export const DLV_ORIGIN_AT_STORAGE = 'AT_STORAGE'
-export const DLV_ORIGIN_CUSTOMER_CONTACT = 'CUSTOMER_CONTACT'
+export const DLV_ORIGIN_AT_STORAGE = 'AT_STORAGE';
+export const DLV_ORIGIN_CUSTOMER_CONTACT = 'CUSTOMER_CONTACT';
 
 /**
  * A run that carries bags *in*, rather than out.
@@ -122,11 +122,11 @@ export const DLV_ORIGIN_CUSTOMER_CONTACT = 'CUSTOMER_CONTACT'
  * the same handover. What makes it different is only its direction, and that the customer's clock
  * does not start until it finishes.
  */
-export const DLV_ORIGIN_KIOSK_INTAKE = 'KIOSK_INTAKE'
+export const DLV_ORIGIN_KIOSK_INTAKE = 'KIOSK_INTAKE';
 
 export const DELIVERY_ORIGINS = [
   DLV_ORIGIN_AT_STORAGE,
   DLV_ORIGIN_CUSTOMER_CONTACT,
   DLV_ORIGIN_KIOSK_INTAKE,
-] as const
-export type DeliveryOrigin = (typeof DELIVERY_ORIGINS)[number]
+] as const;
+export type DeliveryOrigin = (typeof DELIVERY_ORIGINS)[number];

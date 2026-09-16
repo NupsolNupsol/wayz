@@ -1,43 +1,55 @@
-import * as Haptics from 'expo-haptics'
-import { Tabs } from 'expo-router'
-import type { ComponentProps } from 'react'
-import { Platform, Pressable, Text, View } from 'react-native'
-import { useSafeAreaInsets } from 'react-native-safe-area-context'
+import * as Haptics from 'expo-haptics';
+import { Tabs } from 'expo-router';
+import type { ComponentProps } from 'react';
+import { Platform, Pressable, Text, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { Icon, type IconName } from '@/components/Icon'
-import { useDeviceClass } from '@/hooks/useDeviceClass'
-import { COLORS } from '@/theme/tokens'
+import { Icon, type IconName } from '@/components/Icon';
+import { useDeviceClass } from '@/hooks/useDeviceClass';
+import { COLORS } from '@/theme/tokens';
 
-type TabBarProps = Parameters<NonNullable<ComponentProps<typeof Tabs>['tabBar']>>[0]
+type TabBarProps = Parameters<NonNullable<ComponentProps<typeof Tabs>['tabBar']>>[0];
 
 export function AdaptiveTabBar({ state, descriptors, navigation }: TabBarProps) {
-  const insets = useSafeAreaInsets()
-  const { navPosition, isDesk } = useDeviceClass()
-  const rail = navPosition === 'left'
+  const insets = useSafeAreaInsets();
+  const { navPosition, isDesk } = useDeviceClass();
+  const rail = navPosition === 'left';
 
   const press = (index: number, routeKey: string, name: string) => {
-    const focused = state.index === index
-    const event = navigation.emit({ type: 'tabPress', target: routeKey, canPreventDefault: true })
-    if (focused || event.defaultPrevented) return
-    if (Platform.OS !== 'web') void Haptics.selectionAsync()
-    navigation.navigate(name)
-  }
+    const focused = state.index === index;
+    const event = navigation.emit({ type: 'tabPress', target: routeKey, canPreventDefault: true });
+    if (focused || event.defaultPrevented) return;
+    if (Platform.OS !== 'web') void Haptics.selectionAsync();
+    navigation.navigate(name);
+  };
 
   const items = state.routes.map((route, index) => {
-    const options = descriptors[route.key]?.options ?? {}
-    const focused = state.index === index
-    const label = (options.title ?? route.name) as string
-    const iconName = ((options as { tabBarIcon?: unknown }).tabBarIcon as unknown as IconName) ?? 'Home'
-    const badge = options.tabBarBadge
+    const options = descriptors[route.key]?.options ?? {};
+    const focused = state.index === index;
+    const label = (options.title ?? route.name) as string;
+    const iconName =
+      ((options as { tabBarIcon?: unknown }).tabBarIcon as unknown as IconName) ?? 'Home';
+    const badge = options.tabBarBadge;
 
-    return { route, index, focused, label, iconName: (options.tabBarAccessibilityLabel as IconName) ?? iconName, badge }
-  })
+    return {
+      route,
+      index,
+      focused,
+      label,
+      iconName: (options.tabBarAccessibilityLabel as IconName) ?? iconName,
+      badge,
+    };
+  });
 
   if (rail) {
     return (
       <View
         className="border-e border-line bg-surface py-3"
-        style={{ width: isDesk ? 208 : 88, paddingTop: insets.top + 12, paddingBottom: insets.bottom + 12 }}
+        style={{
+          width: isDesk ? 208 : 88,
+          paddingTop: insets.top + 12,
+          paddingBottom: insets.bottom + 12,
+        }}
         testID="tab-rail"
       >
         {items.map((item) => (
@@ -66,14 +78,16 @@ export function AdaptiveTabBar({ state, descriptors, navigation }: TabBarProps) 
               ) : null}
             </View>
             {isDesk ? (
-              <Text className={`text-[14px] font-semibold ${item.focused ? 'text-brand-ink' : 'text-muted'}`}>
+              <Text
+                className={`text-[14px] font-semibold ${item.focused ? 'text-brand-ink' : 'text-muted'}`}
+              >
                 {item.label}
               </Text>
             ) : null}
           </Pressable>
         ))}
       </View>
-    )
+    );
   }
 
   return (
@@ -114,5 +128,5 @@ export function AdaptiveTabBar({ state, descriptors, navigation }: TabBarProps) 
         </Pressable>
       ))}
     </View>
-  )
+  );
 }

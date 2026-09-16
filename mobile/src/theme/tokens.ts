@@ -14,18 +14,34 @@ export const COLORS = {
   danger: '#dc2626',
   info: '#2563eb',
   white: '#ffffff',
-} as const
+} as const;
 
-export type Tone = 'brand' | 'success' | 'warn' | 'danger' | 'info' | 'neutral'
+export type Tone = 'brand' | 'success' | 'warn' | 'danger' | 'info' | 'neutral';
 
-export const TONE_CLASS: Record<Tone, { box: string; border: string; text: string; dot: string }> = {
-  brand: { box: 'bg-brand-soft', border: 'border-brand/30', text: 'text-brand-ink', dot: 'bg-brand' },
-  success: { box: 'bg-success-soft', border: 'border-success/30', text: 'text-success', dot: 'bg-success' },
-  warn: { box: 'bg-warn-soft', border: 'border-warn/30', text: 'text-warn', dot: 'bg-warn' },
-  danger: { box: 'bg-danger-soft', border: 'border-danger/30', text: 'text-danger', dot: 'bg-danger' },
-  info: { box: 'bg-info-soft', border: 'border-info/30', text: 'text-info', dot: 'bg-info' },
-  neutral: { box: 'bg-canvas', border: 'border-line', text: 'text-muted', dot: 'bg-faint' },
-}
+export const TONE_CLASS: Record<Tone, { box: string; border: string; text: string; dot: string }> =
+  {
+    brand: {
+      box: 'bg-brand-soft',
+      border: 'border-brand/30',
+      text: 'text-brand-ink',
+      dot: 'bg-brand',
+    },
+    success: {
+      box: 'bg-success-soft',
+      border: 'border-success/30',
+      text: 'text-success',
+      dot: 'bg-success',
+    },
+    warn: { box: 'bg-warn-soft', border: 'border-warn/30', text: 'text-warn', dot: 'bg-warn' },
+    danger: {
+      box: 'bg-danger-soft',
+      border: 'border-danger/30',
+      text: 'text-danger',
+      dot: 'bg-danger',
+    },
+    info: { box: 'bg-info-soft', border: 'border-info/30', text: 'text-info', dot: 'bg-info' },
+    neutral: { box: 'bg-canvas', border: 'border-line', text: 'text-muted', dot: 'bg-faint' },
+  };
 
 const STATUS_TONE: Record<string, Tone> = {
   DRAFT: 'neutral',
@@ -69,13 +85,13 @@ const STATUS_TONE: Record<string, Tone> = {
   INVESTIGATING: 'info',
   RESOLVED: 'success',
   REJECTED: 'neutral',
-}
+};
 
 export const toneFor = (status: string | null | undefined): Tone =>
-  (status && STATUS_TONE[status.toUpperCase()]) || 'neutral'
+  (status && STATUS_TONE[status.toUpperCase()]) || 'neutral';
 
 export const humanise = (code: string | null | undefined): string => {
-  if (!code) return '—'
-  const words = code.replaceAll('_', ' ').toLowerCase()
-  return words.charAt(0).toUpperCase() + words.slice(1)
-}
+  if (!code) return '—';
+  const words = code.replaceAll('_', ' ').toLowerCase();
+  return words.charAt(0).toUpperCase() + words.slice(1);
+};

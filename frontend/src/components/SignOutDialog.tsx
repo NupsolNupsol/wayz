@@ -1,35 +1,35 @@
-import { useTranslation } from 'react-i18next'
-import { useNavigate } from 'react-router-dom'
-import { LogOut, TriangleAlert } from 'lucide-react'
-import { Modal } from '@/components/Modal'
-import { Badge, Button } from '@/components/ui'
-import { useBookings, useShift } from '@/hooks'
-import { authApi } from '@/api/auth.api'
-import { useAuthStore } from '@/store/auth'
-import { isAgentRole } from '@/permissions/permissions'
-import { money } from '@/utils'
+import { useTranslation } from 'react-i18next';
+import { useNavigate } from 'react-router-dom';
+import { LogOut, TriangleAlert } from 'lucide-react';
+import { Modal } from '@/components/Modal';
+import { Badge, Button } from '@/components/ui';
+import { useBookings, useShift } from '@/hooks';
+import { authApi } from '@/api/auth.api';
+import { useAuthStore } from '@/store/auth';
+import { isAgentRole } from '@/permissions/permissions';
+import { money } from '@/utils';
 
-const LIVE = ['ACTIVE', 'OVERTIME', 'RETRIEVAL_IN_PROGRESS', 'PREPARING', 'CONFIRMED', 'RESERVED']
+const LIVE = ['ACTIVE', 'OVERTIME', 'RETRIEVAL_IN_PROGRESS', 'PREPARING', 'CONFIRMED', 'RESERVED'];
 
 export function SignOutDialog({ open, onClose }: { open: boolean; onClose: () => void }) {
-  const { t } = useTranslation(['common', 'agent'])
-  const navigate = useNavigate()
-  const role = useAuthStore((s) => s.me?.role)
-  const logout = useAuthStore((s) => s.logout)
-  const isDesk = isAgentRole(role)
+  const { t } = useTranslation(['common', 'agent']);
+  const navigate = useNavigate();
+  const role = useAuthStore((s) => s.me?.role);
+  const logout = useAuthStore((s) => s.logout);
+  const isDesk = isAgentRole(role);
 
-  const { data: bookings = [] } = useBookings(undefined, { enabled: open && isDesk })
-  const { data: shift } = useShift(open && isDesk)
+  const { data: bookings = [] } = useBookings(undefined, { enabled: open && isDesk });
+  const { data: shift } = useShift(open && isDesk);
 
-  const live = bookings.filter((b) => LIVE.includes(b.status))
-  const owed = live.reduce((sum, b) => sum + (b.amountDue ?? 0), 0)
-  const tillOpen = !!shift && shift.status !== 'CLOSED'
+  const live = bookings.filter((b) => LIVE.includes(b.status));
+  const owed = live.reduce((sum, b) => sum + (b.amountDue ?? 0), 0);
+  const tillOpen = !!shift && shift.status !== 'CLOSED';
 
   const signOut = async () => {
-    await authApi.logout().catch(() => undefined)
-    logout()
-    navigate('/login')
-  }
+    await authApi.logout().catch(() => undefined);
+    logout();
+    navigate('/login');
+  };
 
   return (
     <Modal
@@ -40,7 +40,9 @@ export function SignOutDialog({ open, onClose }: { open: boolean; onClose: () =>
       testId="signout-modal"
       footer={
         <>
-          <Button variant="ghost" onClick={onClose} data-testid="signout-cancel">{t('common:action.cancel')}</Button>
+          <Button variant="ghost" onClick={onClose} data-testid="signout-cancel">
+            {t('common:action.cancel')}
+          </Button>
           <Button variant="danger" onClick={() => void signOut()} data-testid="signout-confirm">
             <LogOut size={15} /> {t('common:action.signOut')}
           </Button>
@@ -63,13 +65,20 @@ export function SignOutDialog({ open, onClose }: { open: boolean; onClose: () =>
                   <li key={b.id} className="flex items-center justify-between gap-2">
                     <span className="font-mono">{b.ref}</span>
                     <span className="truncate">{b.customerName}</span>
-                    {(b.amountDue ?? 0) > 0 && <Badge tone="warning">{money(b.amountDue ?? 0)}</Badge>}
+                    {(b.amountDue ?? 0) > 0 && (
+                      <Badge tone="warning">{money(b.amountDue ?? 0)}</Badge>
+                    )}
                   </li>
                 ))}
-                {live.length > 5 && <li>{t('agent:signOut.andMore', { count: live.length - 5 })}</li>}
+                {live.length > 5 && (
+                  <li>{t('agent:signOut.andMore', { count: live.length - 5 })}</li>
+                )}
               </ul>
               {owed > 0 && (
-                <p className="text-xs text-amber-700 dark:text-amber-300 mt-2" data-testid="signout-owed">
+                <p
+                  className="text-xs text-amber-700 dark:text-amber-300 mt-2"
+                  data-testid="signout-owed"
+                >
                   {t('agent:signOut.owed', { amount: money(owed) })}
                 </p>
               )}
@@ -84,8 +93,8 @@ export function SignOutDialog({ open, onClose }: { open: boolean; onClose: () =>
                 variant="secondary"
                 className="mt-2"
                 onClick={() => {
-                  onClose()
-                  navigate('/till/shift')
+                  onClose();
+                  navigate('/till/shift');
                 }}
                 data-testid="signout-go-shift"
               >
@@ -95,8 +104,10 @@ export function SignOutDialog({ open, onClose }: { open: boolean; onClose: () =>
           )}
         </div>
       ) : (
-        <p className="text-sm text-muted" data-testid="signout-clean">{t('common:signOut.nothingOpen')}</p>
+        <p className="text-sm text-muted" data-testid="signout-clean">
+          {t('common:signOut.nothingOpen')}
+        </p>
       )}
     </Modal>
-  )
+  );
 }

@@ -1,9 +1,9 @@
-import { router } from "expo-router";
-import { useMemo, useState } from "react";
-import { FlatList, View } from "react-native";
+import { router } from 'expo-router';
+import { useMemo, useState } from 'react';
+import { FlatList, View } from 'react-native';
 
-import { AppHeader } from "@/components/AppHeader";
-import { Icon } from "@/components/Icon";
+import { AppHeader } from '@/components/AppHeader';
+import { Icon } from '@/components/Icon';
 import {
   Amount,
   Body,
@@ -15,53 +15,50 @@ import {
   Screen,
   Segmented,
   StatusPill,
-} from "@/components/ui";
-import { engineLabel } from "@/config/engines";
-import { useBookings } from "@/hooks/queries";
-import { formatTime, humanizeMs } from "@/lib/format";
-import { COLORS } from "@/theme/tokens";
-import type { Booking } from "@/types";
+} from '@/components/ui';
+import { engineLabel } from '@/config/engines';
+import { useBookings } from '@/hooks/queries';
+import { formatTime, humanizeMs } from '@/lib/format';
+import { COLORS } from '@/theme/tokens';
+import type { Booking } from '@/types';
 
-type Filter = "running" | "late" | "retrieval" | "all";
+type Filter = 'running' | 'late' | 'retrieval' | 'all';
 
 export default function Operations() {
-  const [filter, setFilter] = useState<Filter>("all");
-  const [query, setQuery] = useState("");
+  const [filter, setFilter] = useState<Filter>('all');
+  const [query, setQuery] = useState('');
   const { data = [], isLoading, isFetching, refetch } = useBookings();
 
   const live = useMemo(
     () =>
       data.filter((b) =>
         [
-          "ACTIVE",
-          "OVERTIME",
-          "RESERVED",
-          "CONFIRMED",
-          "RETRIEVAL_IN_PROGRESS",
-          "PREPARING",
-        ].includes(b.status),
+          'ACTIVE',
+          'OVERTIME',
+          'RESERVED',
+          'CONFIRMED',
+          'RETRIEVAL_IN_PROGRESS',
+          'PREPARING',
+        ].includes(b.status)
       ),
-    [data],
+    [data]
   );
 
   const counts = useMemo(
     () => ({
-      running: live.filter((b) => b.status === "ACTIVE").length,
-      late: live.filter((b) => b.status === "OVERTIME" || b.session.isOvertime)
-        .length,
-      retrieval: live.filter((b) => b.status === "RETRIEVAL_IN_PROGRESS")
-        .length,
+      running: live.filter((b) => b.status === 'ACTIVE').length,
+      late: live.filter((b) => b.status === 'OVERTIME' || b.session.isOvertime).length,
+      retrieval: live.filter((b) => b.status === 'RETRIEVAL_IN_PROGRESS').length,
       all: live.length,
     }),
-    [live],
+    [live]
   );
 
   const rows = useMemo(() => {
     const byFilter = live.filter((b) => {
-      if (filter === "running") return b.status === "ACTIVE";
-      if (filter === "late")
-        return b.status === "OVERTIME" || b.session.isOvertime;
-      if (filter === "retrieval") return b.status === "RETRIEVAL_IN_PROGRESS";
+      if (filter === 'running') return b.status === 'ACTIVE';
+      if (filter === 'late') return b.status === 'OVERTIME' || b.session.isOvertime;
+      if (filter === 'retrieval') return b.status === 'RETRIEVAL_IN_PROGRESS';
       return true;
     });
 
@@ -70,16 +67,14 @@ export default function Operations() {
       ? byFilter.filter((b) =>
           [b.ref, b.customerName, b.customerPhone, b.productName]
             .filter(Boolean)
-            .join(" ")
+            .join(' ')
             .toLowerCase()
-            .includes(term),
+            .includes(term)
         )
       : byFilter;
 
     return [...searched].sort(
-      (a, b) =>
-        (a.session.remainingMs ?? Infinity) -
-        (b.session.remainingMs ?? Infinity),
+      (a, b) => (a.session.remainingMs ?? Infinity) - (b.session.remainingMs ?? Infinity)
     );
   }, [live, filter, query]);
 
@@ -94,10 +89,7 @@ export default function Operations() {
   return (
     <Screen padded={false} testID="operations">
       <View className="gap-3 px-4 pb-3 pt-2">
-        <AppHeader
-          title="Running"
-          subtitle="Every live session at this counter"
-        />
+        <AppHeader title="Running" subtitle="Every live session at this counter" />
 
         <Input
           value={query}
@@ -113,10 +105,10 @@ export default function Operations() {
           onChange={setFilter}
           testID="operations-filter"
           options={[
-            { value: "running", label: "Running", count: counts.running },
-            { value: "late", label: "Late", count: counts.late },
-            { value: "retrieval", label: "Return", count: counts.retrieval },
-            { value: "all", label: "All", count: counts.all },
+            { value: 'running', label: 'Running', count: counts.running },
+            { value: 'late', label: 'Late', count: counts.late },
+            { value: 'retrieval', label: 'Return', count: counts.retrieval },
+            { value: 'all', label: 'All', count: counts.all },
           ]}
         />
       </View>
@@ -131,11 +123,9 @@ export default function Operations() {
         ListEmptyComponent={
           <EmptyState
             icon={<Icon name="Activity" size={24} color={COLORS.faint} />}
-            title={query ? "Nothing matches" : "Nothing here"}
+            title={query ? 'Nothing matches' : 'Nothing here'}
             message={
-              query
-                ? "Try a shorter search."
-                : "Sessions appear here as soon as they start."
+              query ? 'Try a shorter search.' : 'Sessions appear here as soon as they start.'
             }
             testID="operations-empty"
           />
@@ -148,12 +138,12 @@ export default function Operations() {
 
 function OperationCard({ booking }: { booking: Booking }) {
   const remaining = booking.session.remainingMs;
-  const late = booking.session.isOvertime || booking.status === "OVERTIME";
+  const late = booking.session.isOvertime || booking.status === 'OVERTIME';
   const soon = !late && remaining !== null && remaining < 15 * 60_000;
 
   return (
     <View
-      className={`rounded-xl2 border bg-surface p-4 ${late ? "border-danger/40" : soon ? "border-warn/40" : "border-line"}`}
+      className={`rounded-xl2 border bg-surface p-4 ${late ? 'border-danger/40' : soon ? 'border-warn/40' : 'border-line'}`}
       testID={`operation-${booking.id}`}
     >
       <View className="flex-row items-start justify-between gap-3">
@@ -163,7 +153,7 @@ function OperationCard({ booking }: { booking: Booking }) {
             <StatusPill status={booking.status} size="sm" />
           </View>
           <Body className="font-semibold" numberOfLines={1}>
-            {booking.customerName || "Walk-in"}
+            {booking.customerName || 'Walk-in'}
           </Body>
           <Muted numberOfLines={1}>
             {engineLabel(booking.engineKind)} · {booking.productName}
@@ -171,18 +161,10 @@ function OperationCard({ booking }: { booking: Booking }) {
         </View>
 
         <View className="items-end gap-0.5">
-          <Amount
-            className={late ? "text-danger" : soon ? "text-warn" : "text-navy"}
-          >
-            {remaining === null
-              ? "—"
-              : late
-                ? "Overdue"
-                : humanizeMs(remaining)}
+          <Amount className={late ? 'text-danger' : soon ? 'text-warn' : 'text-navy'}>
+            {remaining === null ? '—' : late ? 'Overdue' : humanizeMs(remaining)}
           </Amount>
-          <Muted className="text-[11px]">
-            ends {formatTime(booking.session.expectedEndAt)}
-          </Muted>
+          <Muted className="text-[11px]">ends {formatTime(booking.session.expectedEndAt)}</Muted>
         </View>
       </View>
 
@@ -191,7 +173,7 @@ function OperationCard({ booking }: { booking: Booking }) {
           label="Open"
           onPress={() =>
             router.push({
-              pathname: "/booking/[id]",
+              pathname: '/booking/[id]',
               params: { id: booking.id },
             })
           }
@@ -216,11 +198,7 @@ function ActionLink({
 }) {
   return (
     <View className="flex-row">
-      <Body
-        className="font-semibold text-brand-ink"
-        onPress={onPress}
-        testID={testID}
-      >
+      <Body className="font-semibold text-brand-ink" onPress={onPress} testID={testID}>
         {label} →
       </Body>
     </View>

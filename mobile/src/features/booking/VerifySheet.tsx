@@ -1,8 +1,8 @@
-import { useState } from 'react'
-import { View } from 'react-native'
+import { useState } from 'react';
+import { View } from 'react-native';
 
-import { apiMessage } from '@/api/client'
-import { Icon } from '@/components/Icon'
+import { apiMessage } from '@/api/client';
+import { Icon } from '@/components/Icon';
 import {
   Body,
   Button,
@@ -15,19 +15,19 @@ import {
   Sheet,
   TextArea,
   toast,
-} from '@/components/ui'
-import { useConfirmVerification, useSendVerification } from '@/hooks/queries'
-import { COLORS } from '@/theme/tokens'
-import type { Booking, IdDocumentType } from '@/types'
+} from '@/components/ui';
+import { useConfirmVerification, useSendVerification } from '@/hooks/queries';
+import { COLORS } from '@/theme/tokens';
+import type { Booking, IdDocumentType } from '@/types';
 
-type Tab = 'code' | 'document'
+type Tab = 'code' | 'document';
 
 const DOC_TYPES: { value: IdDocumentType; label: string }[] = [
   { value: 'NATIONAL_ID', label: 'National ID' },
   { value: 'IQAMA', label: 'Iqama' },
   { value: 'PASSPORT', label: 'Passport' },
   { value: 'DRIVING_LICENCE', label: 'Driving licence' },
-]
+];
 
 export function VerifySheet({
   open,
@@ -35,50 +35,54 @@ export function VerifySheet({
   booking,
   onVerified,
 }: {
-  open: boolean
-  onClose: () => void
-  booking: Booking
-  onVerified: () => void
+  open: boolean;
+  onClose: () => void;
+  booking: Booking;
+  onVerified: () => void;
 }) {
-  const send = useSendVerification()
-  const confirm = useConfirmVerification()
+  const send = useSendVerification();
+  const confirm = useConfirmVerification();
 
-  const [tab, setTab] = useState<Tab>('code')
-  const [channel, setChannel] = useState<'WHATSAPP' | 'EMAIL'>('WHATSAPP')
-  const [sentTo, setSentTo] = useState<string | null>(null)
-  const [code, setCode] = useState('')
+  const [tab, setTab] = useState<Tab>('code');
+  const [channel, setChannel] = useState<'WHATSAPP' | 'EMAIL'>('WHATSAPP');
+  const [sentTo, setSentTo] = useState<string | null>(null);
+  const [code, setCode] = useState('');
 
-  const [docType, setDocType] = useState<IdDocumentType>('NATIONAL_ID')
-  const [docNumber, setDocNumber] = useState('')
-  const [holder, setHolder] = useState(booking.customerName ?? '')
-  const [reason, setReason] = useState('')
+  const [docType, setDocType] = useState<IdDocumentType>('NATIONAL_ID');
+  const [docNumber, setDocNumber] = useState('');
+  const [holder, setHolder] = useState(booking.customerName ?? '');
+  const [reason, setReason] = useState('');
 
   const done = () => {
-    toast('success', 'Customer verified', 'Retrieval is authorised.')
-    setCode('')
-    setSentTo(null)
-    onVerified()
-    onClose()
-  }
+    toast('success', 'Customer verified', 'Retrieval is authorised.');
+    setCode('');
+    setSentTo(null);
+    onVerified();
+    onClose();
+  };
 
   const sendCode = () =>
     send.mutate(
       { id: booking.id, channel },
       {
         onSuccess: (challenge) => {
-          setSentTo(challenge.destinationMasked)
-          if (challenge.error) toast('warn', 'The provider did not confirm delivery', challenge.error)
-          else toast('success', 'Code sent', challenge.destinationMasked)
+          setSentTo(challenge.destinationMasked);
+          if (challenge.error)
+            toast('warn', 'The provider did not confirm delivery', challenge.error);
+          else toast('success', 'Code sent', challenge.destinationMasked);
         },
         onError: (e) => toast('danger', 'Could not send the code', apiMessage(e)),
-      },
-    )
+      }
+    );
 
   const confirmCode = () =>
     confirm.mutate(
-      { id: booking.id, input: { method: channel === 'WHATSAPP' ? 'WHATSAPP_OTP' : 'EMAIL_OTP', code: code.trim() } },
-      { onSuccess: done, onError: (e) => toast('danger', 'Not verified', apiMessage(e)) },
-    )
+      {
+        id: booking.id,
+        input: { method: channel === 'WHATSAPP' ? 'WHATSAPP_OTP' : 'EMAIL_OTP', code: code.trim() },
+      },
+      { onSuccess: done, onError: (e) => toast('danger', 'Not verified', apiMessage(e)) }
+    );
 
   const confirmDocument = () =>
     confirm.mutate(
@@ -87,13 +91,18 @@ export function VerifySheet({
         input: {
           method: 'ID_DOCUMENT',
           reason: reason.trim(),
-          document: { documentType: docType, documentNumber: docNumber.trim(), holderName: holder.trim() },
+          document: {
+            documentType: docType,
+            documentNumber: docNumber.trim(),
+            holderName: holder.trim(),
+          },
         },
       },
-      { onSuccess: done, onError: (e) => toast('danger', 'Not verified', apiMessage(e)) },
-    )
+      { onSuccess: done, onError: (e) => toast('danger', 'Not verified', apiMessage(e)) }
+    );
 
-  const docReady = docNumber.trim().length >= 4 && holder.trim().length >= 2 && reason.trim().length >= 3
+  const docReady =
+    docNumber.trim().length >= 4 && holder.trim().length >= 2 && reason.trim().length >= 3;
 
   return (
     <Sheet
@@ -149,8 +158,8 @@ export function VerifySheet({
           />
 
           <Muted>
-            The code goes to the {channel === 'WHATSAPP' ? 'phone' : 'email'} recorded when the booking was made. You
-            cannot type in a new one.
+            The code goes to the {channel === 'WHATSAPP' ? 'phone' : 'email'} recorded when the
+            booking was made. You cannot type in a new one.
           </Muted>
 
           <Button
@@ -184,7 +193,9 @@ export function VerifySheet({
       ) : (
         <>
           <Notice tone="warn">
-            <Body>A fallback is recorded in the audit trail under your name, with the reason you give.</Body>
+            <Body>
+              A fallback is recorded in the audit trail under your name, with the reason you give.
+            </Body>
           </Notice>
 
           <Field label="Document type">
@@ -202,7 +213,12 @@ export function VerifySheet({
           </Field>
 
           <Field label="Document number" hint="Only the last 4 digits are stored.">
-            <Input value={docNumber} onChangeText={setDocNumber} autoCapitalize="characters" testID="verify-doc-number" />
+            <Input
+              value={docNumber}
+              onChangeText={setDocNumber}
+              autoCapitalize="characters"
+              testID="verify-doc-number"
+            />
           </Field>
 
           <Field label="Name on the document">
@@ -220,5 +236,5 @@ export function VerifySheet({
         </>
       )}
     </Sheet>
-  )
+  );
 }

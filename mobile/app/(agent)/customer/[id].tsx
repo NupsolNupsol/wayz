@@ -1,8 +1,8 @@
-import { router, useLocalSearchParams } from "expo-router";
-import { View } from "react-native";
+import { router, useLocalSearchParams } from 'expo-router';
+import { View } from 'react-native';
 
-import { AppHeader } from "@/components/AppHeader";
-import { Icon } from "@/components/Icon";
+import { AppHeader } from '@/components/AppHeader';
+import { Icon } from '@/components/Icon';
 import {
   Card,
   EmptyState,
@@ -14,11 +14,11 @@ import {
   Screen,
   Section,
   StatusPill,
-} from "@/components/ui";
-import { useCustomer } from "@/hooks/queries";
-import { engineLabel } from "@/config/engines";
-import { formatDateTime } from "@/lib/format";
-import { COLORS } from "@/theme/tokens";
+} from '@/components/ui';
+import { useCustomer } from '@/hooks/queries';
+import { engineLabel } from '@/config/engines';
+import { formatDateTime } from '@/lib/format';
+import { COLORS } from '@/theme/tokens';
 
 export default function CustomerDetail() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -44,31 +44,14 @@ export default function CustomerDetail() {
   const bookings = data.bookings ?? [];
 
   return (
-    <Screen
-      scroll
-      onRefresh={() => void refetch()}
-      refreshing={isFetching}
-      testID="customer"
-    >
+    <Screen scroll onRefresh={() => void refetch()} refreshing={isFetching} testID="customer">
       <AppHeader back title={data.name} subtitle={data.phone} />
 
       <Card className="mb-4">
         <View className="flex-row flex-wrap gap-4">
-          <KeyValue
-            label="Phone"
-            value={data.phone || "—"}
-            className="min-w-[45%]"
-          />
-          <KeyValue
-            label="Email"
-            value={data.email || "—"}
-            className="min-w-[45%]"
-          />
-          <KeyValue
-            label="Bookings"
-            value={String(bookings.length)}
-            className="min-w-[45%]"
-          />
+          <KeyValue label="Phone" value={data.phone || '—'} className="min-w-[45%]" />
+          <KeyValue label="Email" value={data.email || '—'} className="min-w-[45%]" />
+          <KeyValue label="Bookings" value={String(bookings.length)} className="min-w-[45%]" />
         </View>
       </Card>
 
@@ -89,7 +72,7 @@ export default function CustomerDetail() {
                   testID={`customer-booking-${booking.id}`}
                   onPress={() =>
                     router.push({
-                      pathname: "/booking/[id]",
+                      pathname: '/booking/[id]',
                       params: { id: booking.id },
                     })
                   }

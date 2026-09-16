@@ -1,20 +1,13 @@
-import { router } from "expo-router";
-import { Pressable, View } from "react-native";
+import { router } from 'expo-router';
+import { Pressable, View } from 'react-native';
 
-import { AppHeader } from "@/components/AppHeader";
-import { Icon } from "@/components/Icon";
-import {
-  Body,
-  EmptyState,
-  Muted,
-  Notice,
-  Screen,
-  Section,
-} from "@/components/ui";
-import { ENGINE_META, enginesFor } from "@/config/engines";
-import { useShift } from "@/hooks/queries";
-import { useSessionStore } from "@/store/session.store";
-import { COLORS } from "@/theme/tokens";
+import { AppHeader } from '@/components/AppHeader';
+import { Icon } from '@/components/Icon';
+import { Body, EmptyState, Muted, Notice, Screen, Section } from '@/components/ui';
+import { ENGINE_META, enginesFor } from '@/config/engines';
+import { useShift } from '@/hooks/queries';
+import { useSessionStore } from '@/store/session.store';
+import { COLORS } from '@/theme/tokens';
 
 export default function Sell() {
   const me = useSessionStore((s) => s.me);
@@ -23,20 +16,17 @@ export default function Sell() {
 
   return (
     <Screen scroll testID="sell">
-      <AppHeader
-        title="New transaction"
-        subtitle="Pick what the customer is here for"
-      />
+      <AppHeader title="New transaction" subtitle="Pick what the customer is here for" />
 
-      {shift.data?.status !== "OPEN" ? (
+      {shift.data?.status !== 'OPEN' ? (
         <Notice tone="warn" testID="sell-till-warning">
           <View className="flex-row items-center gap-3">
             <Icon name="Wallet" size={18} color={COLORS.warn} />
             <View className="flex-1">
               <Body className="font-semibold">Your till is not open</Body>
               <Muted>
-                Nothing can be sold, extended or settled until you open it. Open
-                it from the Shift screen.
+                Nothing can be sold, extended or settled until you open it. Open it from the Shift
+                screen.
               </Muted>
             </View>
           </View>
@@ -89,14 +79,14 @@ export default function Sell() {
             icon="Users"
             title="Customers"
             subtitle="Find someone, or add a new one"
-            onPress={() => router.push("/customers")}
+            onPress={() => router.push('/customers')}
             testID="sell-customers"
           />
           <Shortcut
             icon="Package"
             title="Bookings"
             subtitle="Everything this station has taken"
-            onPress={() => router.push("/bookings")}
+            onPress={() => router.push('/bookings')}
             testID="sell-bookings"
           />
         </View>
@@ -112,7 +102,7 @@ function Shortcut({
   onPress,
   testID,
 }: {
-  icon: "Users" | "Package";
+  icon: 'Users' | 'Package';
   title: string;
   subtitle: string;
   onPress: () => void;

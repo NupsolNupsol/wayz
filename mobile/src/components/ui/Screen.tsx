@@ -1,9 +1,9 @@
-import type { ReactNode } from 'react'
-import { RefreshControl, ScrollView, View } from 'react-native'
-import { SafeAreaView } from 'react-native-safe-area-context'
+import type { ReactNode } from 'react';
+import { RefreshControl, ScrollView, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { useDeviceClass } from '@/hooks/useDeviceClass'
-import { COLORS } from '@/theme/tokens'
+import { useDeviceClass } from '@/hooks/useDeviceClass';
+import { COLORS } from '@/theme/tokens';
 
 export function Screen({
   children,
@@ -15,16 +15,16 @@ export function Screen({
   footer,
   testID,
 }: {
-  children: ReactNode
-  scroll?: boolean
-  padded?: boolean
-  onRefresh?: () => void
-  refreshing?: boolean
-  edges?: ('top' | 'bottom' | 'left' | 'right')[]
-  footer?: ReactNode
-  testID?: string
+  children: ReactNode;
+  scroll?: boolean;
+  padded?: boolean;
+  onRefresh?: () => void;
+  refreshing?: boolean;
+  edges?: ('top' | 'bottom' | 'left' | 'right')[];
+  footer?: ReactNode;
+  testID?: string;
 }) {
-  const { contentMaxWidth } = useDeviceClass()
+  const { contentMaxWidth } = useDeviceClass();
 
   const body = (
     <View
@@ -33,7 +33,7 @@ export function Screen({
     >
       {children}
     </View>
-  )
+  );
 
   return (
     <SafeAreaView className="flex-1 bg-canvas" edges={edges} testID={testID}>
@@ -44,7 +44,12 @@ export function Screen({
           showsVerticalScrollIndicator={false}
           refreshControl={
             onRefresh ? (
-              <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={COLORS.brand} colors={[COLORS.brand]} />
+              <RefreshControl
+                refreshing={refreshing}
+                onRefresh={onRefresh}
+                tintColor={COLORS.brand}
+                colors={[COLORS.brand]}
+              />
             ) : undefined
           }
         >
@@ -63,5 +68,5 @@ export function Screen({
         </View>
       ) : null}
     </SafeAreaView>
-  )
+  );
 }

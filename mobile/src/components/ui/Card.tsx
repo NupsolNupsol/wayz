@@ -1,7 +1,7 @@
-import type { ReactNode } from 'react'
-import { Pressable, View } from 'react-native'
+import type { ReactNode } from 'react';
+import { Pressable, View } from 'react-native';
 
-import { Heading, Label } from './Text'
+import { Heading, Label } from './Text';
 
 export function Card({
   title,
@@ -11,12 +11,12 @@ export function Card({
   onPress,
   testID,
 }: {
-  title?: string
-  action?: ReactNode
-  children?: ReactNode
-  className?: string
-  onPress?: () => void
-  testID?: string
+  title?: string;
+  action?: ReactNode;
+  children?: ReactNode;
+  className?: string;
+  onPress?: () => void;
+  testID?: string;
 }) {
   const inner = (
     <>
@@ -28,23 +28,28 @@ export function Card({
       ) : null}
       {children}
     </>
-  )
+  );
 
-  const box = `rounded-xl2 border border-line bg-surface p-4 ${className}`
+  const box = `rounded-xl2 border border-line bg-surface p-4 ${className}`;
 
   if (onPress) {
     return (
-      <Pressable accessibilityRole="button" testID={testID} onPress={onPress} className={`${box} active:bg-canvas`}>
+      <Pressable
+        accessibilityRole="button"
+        testID={testID}
+        onPress={onPress}
+        className={`${box} active:bg-canvas`}
+      >
         {inner}
       </Pressable>
-    )
+    );
   }
 
   return (
     <View className={box} testID={testID}>
       {inner}
     </View>
-  )
+  );
 }
 
 export function Section({
@@ -53,10 +58,10 @@ export function Section({
   children,
   className = '',
 }: {
-  title: string
-  action?: ReactNode
-  children: ReactNode
-  className?: string
+  title: string;
+  action?: ReactNode;
+  children: ReactNode;
+  className?: string;
 }) {
   return (
     <View className={`gap-2 ${className}`}>
@@ -66,5 +71,5 @@ export function Section({
       </View>
       {children}
     </View>
-  )
+  );
 }

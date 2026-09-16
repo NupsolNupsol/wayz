@@ -1,8 +1,8 @@
-import { useState } from 'react'
-import { View } from 'react-native'
+import { useState } from 'react';
+import { View } from 'react-native';
 
-import { apiMessage } from '@/api/client'
-import { Icon } from '@/components/Icon'
+import { apiMessage } from '@/api/client';
+import { Icon } from '@/components/Icon';
 import {
   Body,
   Button,
@@ -14,45 +14,45 @@ import {
   Muted,
   Sheet,
   toast,
-} from '@/components/ui'
-import { useCreateCustomer, useCustomers } from '@/hooks/queries'
-import { initials } from '@/lib/format'
-import { COLORS } from '@/theme/tokens'
-import type { Customer } from '@/types'
+} from '@/components/ui';
+import { useCreateCustomer, useCustomers } from '@/hooks/queries';
+import { initials } from '@/lib/format';
+import { COLORS } from '@/theme/tokens';
+import type { Customer } from '@/types';
 
 export function CustomerPicker({
   selected,
   onSelect,
   testID,
 }: {
-  selected: Customer | null
-  onSelect: (customer: Customer) => void
-  testID?: string
+  selected: Customer | null;
+  onSelect: (customer: Customer) => void;
+  testID?: string;
 }) {
-  const [query, setQuery] = useState('')
-  const [addOpen, setAddOpen] = useState(false)
-  const [name, setName] = useState('')
-  const [phone, setPhone] = useState('')
-  const [email, setEmail] = useState('')
+  const [query, setQuery] = useState('');
+  const [addOpen, setAddOpen] = useState(false);
+  const [name, setName] = useState('');
+  const [phone, setPhone] = useState('');
+  const [email, setEmail] = useState('');
 
-  const { data = [], isFetching } = useCustomers(query)
-  const create = useCreateCustomer()
+  const { data = [], isFetching } = useCustomers(query);
+  const create = useCreateCustomer();
 
   const add = () =>
     create.mutate(
       { name: name.trim(), phone: phone.trim(), email: email.trim() || undefined },
       {
         onSuccess: (customer) => {
-          toast('success', 'Customer added', customer.name)
-          onSelect(customer)
-          setAddOpen(false)
-          setName('')
-          setPhone('')
-          setEmail('')
+          toast('success', 'Customer added', customer.name);
+          onSelect(customer);
+          setAddOpen(false);
+          setName('');
+          setPhone('');
+          setEmail('');
         },
         onError: (e) => toast('danger', 'Could not add the customer', apiMessage(e)),
-      },
-    )
+      }
+    );
 
   if (selected) {
     return (
@@ -74,7 +74,7 @@ export function CustomerPicker({
           />
         </View>
       </Card>
-    )
+    );
   }
 
   return (
@@ -98,7 +98,9 @@ export function CustomerPicker({
                 onPress={() => onSelect(customer)}
                 leading={
                   <View className="h-10 w-10 items-center justify-center rounded-2xl bg-canvas">
-                    <Body className="text-[13px] font-bold text-muted">{initials(customer.name)}</Body>
+                    <Body className="text-[13px] font-bold text-muted">
+                      {initials(customer.name)}
+                    </Body>
                   </View>
                 }
                 title={customer.name}
@@ -108,7 +110,13 @@ export function CustomerPicker({
           ))}
         </ListGroup>
       ) : (
-        <Muted>{isFetching ? 'Searching…' : query ? 'Nobody matches — add them below.' : 'Search, or add a new customer.'}</Muted>
+        <Muted>
+          {isFetching
+            ? 'Searching…'
+            : query
+              ? 'Nobody matches — add them below.'
+              : 'Search, or add a new customer.'}
+        </Muted>
       )}
 
       <Button
@@ -141,12 +149,23 @@ export function CustomerPicker({
           <Input value={name} onChangeText={setName} testID="pick-customer-name" />
         </Field>
         <Field label="Phone" required>
-          <Input value={phone} onChangeText={setPhone} keyboardType="phone-pad" testID="pick-customer-phone" />
+          <Input
+            value={phone}
+            onChangeText={setPhone}
+            keyboardType="phone-pad"
+            testID="pick-customer-phone"
+          />
         </Field>
         <Field label="Email" hint="Optional — adds a second verification channel.">
-          <Input value={email} onChangeText={setEmail} autoCapitalize="none" keyboardType="email-address" testID="pick-customer-email" />
+          <Input
+            value={email}
+            onChangeText={setEmail}
+            autoCapitalize="none"
+            keyboardType="email-address"
+            testID="pick-customer-email"
+          />
         </Field>
       </Sheet>
     </View>
-  )
+  );
 }

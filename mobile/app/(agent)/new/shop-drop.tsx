@@ -1,11 +1,11 @@
-import { router } from "expo-router";
-import { useMemo, useState } from "react";
-import { View } from "react-native";
+import { router } from 'expo-router';
+import { useMemo, useState } from 'react';
+import { View } from 'react-native';
 
-import { apiMessage } from "@/api/client";
-import { catalogueApi, type BagInput } from "@/api/endpoints";
-import { AppHeader } from "@/components/AppHeader";
-import { Icon } from "@/components/Icon";
+import { apiMessage } from '@/api/client';
+import { catalogueApi, type BagInput } from '@/api/endpoints';
+import { AppHeader } from '@/components/AppHeader';
+import { Icon } from '@/components/Icon';
 import {
   Amount,
   Body,
@@ -24,10 +24,10 @@ import {
   Stepper,
   toast,
   type WizardStep,
-} from "@/components/ui";
-import { StoreSheet } from "@/features/booking/StoreSheet";
-import { CustomerPicker } from "@/features/sell/CustomerPicker";
-import { PaymentPanel, usePaymentSplits } from "@/features/sell/PaymentPanel";
+} from '@/components/ui';
+import { StoreSheet } from '@/features/booking/StoreSheet';
+import { CustomerPicker } from '@/features/sell/CustomerPicker';
+import { PaymentPanel, usePaymentSplits } from '@/features/sell/PaymentPanel';
 import {
   useCreateBooking,
   useOrder,
@@ -35,17 +35,17 @@ import {
   useProducts,
   useReserve,
   useUnits,
-} from "@/hooks/queries";
-import { money } from "@/lib/format";
-import { COLORS } from "@/theme/tokens";
-import type { Booking, Customer, PackingSuggestion } from "@/types";
+} from '@/hooks/queries';
+import { money } from '@/lib/format';
+import { COLORS } from '@/theme/tokens';
+import type { Booking, Customer, PackingSuggestion } from '@/types';
 
 const STEPS: WizardStep[] = [
-  { key: "customer", label: "Customer" },
-  { key: "bags", label: "Bags" },
-  { key: "plan", label: "Plan" },
-  { key: "payment", label: "Payment" },
-  { key: "store", label: "Store" },
+  { key: 'customer', label: 'Customer' },
+  { key: 'bags', label: 'Bags' },
+  { key: 'plan', label: 'Plan' },
+  { key: 'payment', label: 'Payment' },
+  { key: 'store', label: 'Store' },
 ];
 
 interface BagRow {
@@ -57,14 +57,14 @@ export default function ShopDrop() {
   const [step, setStep] = useState(0);
 
   const [customer, setCustomer] = useState<Customer | null>(null);
-  const [bags, setBags] = useState<BagRow[]>([{ description: "", weight: 8 }]);
+  const [bags, setBags] = useState<BagRow[]>([{ description: '', weight: 8 }]);
   const [duration, setDuration] = useState(2);
   const [suggestions, setSuggestions] = useState<PackingSuggestion[]>([]);
   const [chosen, setChosen] = useState<PackingSuggestion | null>(null);
   const [booking, setBooking] = useState<Booking | null>(null);
   const [storeOpen, setStoreOpen] = useState(false);
 
-  const products = useProducts("SHOP_AND_DROP");
+  const products = useProducts('SHOP_AND_DROP');
   const units = useUnits();
   const create = useCreateBooking();
   const pay = usePay();
@@ -78,21 +78,17 @@ export default function ShopDrop() {
         description: bag.description.trim() || `Bag ${index + 1}`,
         weight: bag.weight,
       })),
-    [bags],
+    [bags]
   );
 
   const suggest = async () => {
     try {
       const result = await catalogueApi.packingSuggestions(bagInputs);
       setSuggestions(result.suggestions);
-      setChosen(
-        result.suggestions.find((s) => s.recommended) ??
-          result.suggestions[0] ??
-          null,
-      );
+      setChosen(result.suggestions.find((s) => s.recommended) ?? result.suggestions[0] ?? null);
       setStep(2);
     } catch (e) {
-      toast("danger", "Could not work out a plan", apiMessage(e));
+      toast('danger', 'Could not work out a plan', apiMessage(e));
     }
   };
 
@@ -100,21 +96,16 @@ export default function ShopDrop() {
     if (!customer || !chosen) return;
 
     const product =
-      products.data?.find((p) => p.assetTypeId === chosen.assetTypeId) ??
-      products.data?.[0];
+      products.data?.find((p) => p.assetTypeId === chosen.assetTypeId) ?? products.data?.[0];
     if (!product) {
-      toast(
-        "danger",
-        "No product to sell",
-        "This station has no Shop & Drop pricing set up.",
-      );
+      toast('danger', 'No product to sell', 'This station has no Shop & Drop pricing set up.');
       return;
     }
 
     create.mutate(
       {
         customerId: customer._id,
-        engineKind: "SHOP_AND_DROP",
+        engineKind: 'SHOP_AND_DROP',
         productId: product._id,
         durationMin: duration * 60,
         bags: bagInputs,
@@ -125,9 +116,8 @@ export default function ShopDrop() {
           setBooking(result.booking);
           setStep(3);
         },
-        onError: (e) =>
-          toast("danger", "Could not create the booking", apiMessage(e)),
-      },
+        onError: (e) => toast('danger', 'Could not create the booking', apiMessage(e)),
+      }
     );
   };
 
@@ -138,9 +128,9 @@ export default function ShopDrop() {
       {
         onSuccess: () => {
           toast(
-            "success",
-            "Payment taken",
-            "The timer does not start until the bags are scanned in.",
+            'success',
+            'Payment taken',
+            'The timer does not start until the bags are scanned in.'
           );
           reserve.mutate(
             { id: booking.id },
@@ -149,32 +139,22 @@ export default function ShopDrop() {
                 setBooking(reserved);
                 setStep(4);
               },
-              onError: (e) =>
-                toast(
-                  "danger",
-                  "Could not reserve a compartment",
-                  apiMessage(e),
-                ),
-            },
+              onError: (e) => toast('danger', 'Could not reserve a compartment', apiMessage(e)),
+            }
           );
         },
-        onError: (e) => toast("danger", "Payment refused", apiMessage(e)),
-      },
+        onError: (e) => toast('danger', 'Payment refused', apiMessage(e)),
+      }
     );
   };
 
   const reservedUnit = units.data?.find(
-    (u) =>
-      u._id === (booking?.reservation?.assetUnitId ?? booking?.assetUnitId),
+    (u) => u._id === (booking?.reservation?.assetUnitId ?? booking?.assetUnitId)
   );
 
   return (
     <Screen scroll testID="shop-drop" footer={<Footer />}>
-      <AppHeader
-        back
-        title="Shop & Drop"
-        subtitle="Bag storage, start to finish"
-      />
+      <AppHeader back title="Shop & Drop" subtitle="Bag storage, start to finish" />
 
       <View className="mb-4">
         <StepBar
@@ -187,11 +167,7 @@ export default function ShopDrop() {
 
       {step === 0 ? (
         <Section title="Who is the customer">
-          <CustomerPicker
-            selected={customer}
-            onSelect={setCustomer}
-            testID="sd-customer"
-          />
+          <CustomerPicker selected={customer} onSelect={setCustomer} testID="sd-customer" />
         </Section>
       ) : null}
 
@@ -199,8 +175,8 @@ export default function ShopDrop() {
         <Section title="What are they leaving">
           <View className="gap-3">
             <Muted>
-              The weight and count decide which compartment fits. Each bag gets
-              one unique barcode; several bags can share a compartment.
+              The weight and count decide which compartment fits. Each bag gets one unique barcode;
+              several bags can share a compartment.
             </Muted>
 
             {bags.map((bag, index) => (
@@ -211,9 +187,7 @@ export default function ShopDrop() {
                     {bags.length > 1 ? (
                       <Body
                         className="font-semibold text-danger"
-                        onPress={() =>
-                          setBags((prev) => prev.filter((_, i) => i !== index))
-                        }
+                        onPress={() => setBags((prev) => prev.filter((_, i) => i !== index))}
                         testID={`sd-bag-remove-${index + 1}`}
                       >
                         Remove
@@ -225,9 +199,7 @@ export default function ShopDrop() {
                     value={bag.description}
                     onChangeText={(value) =>
                       setBags((prev) =>
-                        prev.map((b, i) =>
-                          i === index ? { ...b, description: value } : b,
-                        ),
+                        prev.map((b, i) => (i === index ? { ...b, description: value } : b))
                       )
                     }
                     placeholder={`Bag ${index + 1} — e.g. Black cabin case`}
@@ -240,9 +212,7 @@ export default function ShopDrop() {
                       value={bag.weight}
                       onChange={(value) =>
                         setBags((prev) =>
-                          prev.map((b, i) =>
-                            i === index ? { ...b, weight: value } : b,
-                          ),
+                          prev.map((b, i) => (i === index ? { ...b, weight: value } : b))
                         )
                       }
                       min={1}
@@ -257,9 +227,7 @@ export default function ShopDrop() {
             <Button
               label="Add another bag"
               variant="secondary"
-              onPress={() =>
-                setBags((prev) => [...prev, { description: "", weight: 8 }])
-              }
+              onPress={() => setBags((prev) => [...prev, { description: '', weight: 8 }])}
               testID="sd-add-bag"
             />
           </View>
@@ -294,7 +262,7 @@ export default function ShopDrop() {
                   key={suggestion.assetTypeId}
                   selected={chosen?.assetTypeId === suggestion.assetTypeId}
                   onPress={() => setChosen(suggestion)}
-                  title={`${suggestion.assetTypeName}${suggestion.recommended ? " · best fit" : ""}`}
+                  title={`${suggestion.assetTypeName}${suggestion.recommended ? ' · best fit' : ''}`}
                   subtitle={suggestion.priceCalculationSummary}
                   testID={`sd-plan-${suggestion.assetTypeId}`}
                 />
@@ -309,11 +277,7 @@ export default function ShopDrop() {
           {order.isLoading ? (
             <Loading />
           ) : (
-            <PaymentPanel
-              order={order.data ?? null}
-              state={payment}
-              testID="sd-payment"
-            />
+            <PaymentPanel order={order.data ?? null} state={payment} testID="sd-payment" />
           )}
         </Section>
       ) : null}
@@ -323,17 +287,15 @@ export default function ShopDrop() {
           <View className="gap-3">
             <Notice tone="info">
               <Body>
-                Paying confirmed the booking. The clock starts only when you
-                scan the compartment and every bag.
+                Paying confirmed the booking. The clock starts only when you scan the compartment
+                and every bag.
               </Body>
             </Notice>
 
             <Card>
               <View className="gap-2">
                 <Label>Reserved compartment</Label>
-                <Ref className="text-lg">
-                  {reservedUnit?.identifier ?? "Reserving…"}
-                </Ref>
+                <Ref className="text-lg">{reservedUnit?.identifier ?? 'Reserving…'}</Ref>
                 <Muted>{booking.packingPlan?.priceCalculationSummary}</Muted>
               </View>
             </Card>
@@ -342,10 +304,7 @@ export default function ShopDrop() {
               <View className="gap-2">
                 <Label>Bag labels</Label>
                 {booking.bags.map((bag) => (
-                  <View
-                    key={bag.barcode}
-                    className="flex-row items-center justify-between gap-3"
-                  >
+                  <View key={bag.barcode} className="flex-row items-center justify-between gap-3">
                     <Body className="flex-1" numberOfLines={1}>
                       {bag.description}
                     </Body>
@@ -402,11 +361,7 @@ export default function ShopDrop() {
           {chosen ? (
             <View className="flex-row items-center justify-between">
               <Muted>{chosen.assetTypeName}</Muted>
-              <Amount>
-                {chosen.totalPrice !== undefined
-                  ? money(chosen.totalPrice)
-                  : ""}
-              </Amount>
+              <Amount>{chosen.totalPrice !== undefined ? money(chosen.totalPrice) : ''}</Amount>
             </View>
           ) : null}
           <Button
@@ -453,7 +408,7 @@ export default function ShopDrop() {
           onPress={() =>
             booking &&
             router.replace({
-              pathname: "/booking/[id]",
+              pathname: '/booking/[id]',
               params: { id: booking.id },
             })
           }

@@ -1,15 +1,15 @@
 export interface ManualSection {
-  id: string
-  route?: string
-  icon: string
-  steps?: number
-  rules?: number
-  tips?: number
+  id: string;
+  route?: string;
+  icon: string;
+  steps?: number;
+  rules?: number;
+  tips?: number;
 }
 
 export interface ManualGroup {
-  id: string
-  sections: ManualSection[]
+  id: string;
+  sections: ManualSection[];
 }
 
 export const MANUAL_GROUPS: ManualGroup[] = [
@@ -93,17 +93,49 @@ export const MANUAL_GROUPS: ManualGroup[] = [
   {
     id: 'accounting',
     sections: [
-      { id: 'accounting-dashboard', route: '/accounting', icon: 'ChartLine', steps: 4, rules: 4, tips: 2 },
-      { id: 'accounting-commissions', route: '/accounting/commissions', icon: 'Percent', steps: 3, rules: 4 },
-      { id: 'accounting-reconciliation', route: '/accounting/settlement', icon: 'Scale', steps: 3, rules: 3 },
-      { id: 'accounting-payments', route: '/accounting/settlement/payments', icon: 'Banknote', steps: 2, rules: 2 },
-      { id: 'accounting-transactions', route: '/accounting/settlement/transactions', icon: 'CreditCard', steps: 3, rules: 4, tips: 1 },
+      {
+        id: 'accounting-dashboard',
+        route: '/accounting',
+        icon: 'ChartLine',
+        steps: 4,
+        rules: 4,
+        tips: 2,
+      },
+      {
+        id: 'accounting-commissions',
+        route: '/accounting/commissions',
+        icon: 'Percent',
+        steps: 3,
+        rules: 4,
+      },
+      {
+        id: 'accounting-reconciliation',
+        route: '/accounting/settlement',
+        icon: 'Scale',
+        steps: 3,
+        rules: 3,
+      },
+      {
+        id: 'accounting-payments',
+        route: '/accounting/settlement/payments',
+        icon: 'Banknote',
+        steps: 2,
+        rules: 2,
+      },
+      {
+        id: 'accounting-transactions',
+        route: '/accounting/settlement/transactions',
+        icon: 'CreditCard',
+        steps: 3,
+        rules: 4,
+        tips: 1,
+      },
     ],
   },
-]
+];
 
-const SECTION_IDS = new Set(MANUAL_GROUPS.flatMap((g) => g.sections.map((s) => s.id)))
+const SECTION_IDS = new Set(MANUAL_GROUPS.flatMap((g) => g.sections.map((s) => s.id)));
 
 export function hasManualSection(id: string): boolean {
-  return SECTION_IDS.has(id)
+  return SECTION_IDS.has(id);
 }

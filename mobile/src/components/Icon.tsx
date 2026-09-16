@@ -32,9 +32,9 @@ import {
   UtensilsCrossed,
   Wallet,
   X,
-} from 'lucide-react-native'
+} from 'lucide-react-native';
 
-import { COLORS } from '@/theme/tokens'
+import { COLORS } from '@/theme/tokens';
 
 const REGISTRY = {
   Activity,
@@ -70,9 +70,9 @@ const REGISTRY = {
   UtensilsCrossed,
   Wallet,
   X,
-} as const
+} as const;
 
-export type IconName = keyof typeof REGISTRY
+export type IconName = keyof typeof REGISTRY;
 
 export function Icon({
   name,
@@ -80,11 +80,11 @@ export function Icon({
   color = COLORS.navy,
   strokeWidth = 2,
 }: {
-  name: IconName | string
-  size?: number
-  color?: string
-  strokeWidth?: number
+  name: IconName | string;
+  size?: number;
+  color?: string;
+  strokeWidth?: number;
 }) {
-  const Glyph = REGISTRY[name as IconName] ?? Package
-  return <Glyph size={size} color={color} strokeWidth={strokeWidth} />
+  const Glyph = REGISTRY[name as IconName] ?? Package;
+  return <Glyph size={size} color={color} strokeWidth={strokeWidth} />;
 }

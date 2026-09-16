@@ -1,8 +1,13 @@
-import { OPS, TILL } from '../shared/access.js'
-import { ACTIVE, CANCELLED, COMPLETED, CONFIRMED, DRAFT, OVERTIME } from '../shared/status.js'
-import type { EngineWorkflow, OperationResult, ValidationResult, WorkflowContext } from '../shared/types.js'
-import { useAnaamValidator } from '../bookingWorkflowValidators/controller.anaam.validator.controller.js'
-import { useAnaamOperation } from '../bookingWorkflowOperations/controller.anaam.operation.controller.js'
+import { OPS, TILL } from '../shared/access.js';
+import { ACTIVE, CANCELLED, COMPLETED, CONFIRMED, DRAFT, OVERTIME } from '../shared/status.js';
+import type {
+  EngineWorkflow,
+  OperationResult,
+  ValidationResult,
+  WorkflowContext,
+} from '../shared/types.js';
+import { useAnaamValidator } from '../bookingWorkflowValidators/controller.anaam.validator.controller.js';
+import { useAnaamOperation } from '../bookingWorkflowOperations/controller.anaam.operation.controller.js';
 
 export const anaamWorkflow: EngineWorkflow = {
   engineKind: 'ANAAM',
@@ -44,14 +49,14 @@ export const anaamWorkflow: EngineWorkflow = {
       style: { backgroundColor: '#db5d5d' },
     },
   ],
-}
+};
 
 export const LaunchAnaamControl = async (
   transitionCode: string,
-  ctx: WorkflowContext,
-): Promise<ValidationResult> => useAnaamValidator(transitionCode, ctx)
+  ctx: WorkflowContext
+): Promise<ValidationResult> => useAnaamValidator(transitionCode, ctx);
 
 export const LaunchAnaamOperation = async (
   transitionCode: string,
-  ctx: WorkflowContext,
-): Promise<OperationResult> => useAnaamOperation(transitionCode, ctx)
+  ctx: WorkflowContext
+): Promise<OperationResult> => useAnaamOperation(transitionCode, ctx);

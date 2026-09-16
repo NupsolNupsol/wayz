@@ -1,4 +1,4 @@
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   accountingApi,
   type PaymentLedgerFilter,
@@ -6,11 +6,14 @@ import {
   type RawTransaction,
   type TransactionFilter,
   type TransactionSource,
-} from '../api/accounting.api'
-import { qk } from './queryKeys'
+} from '../api/accounting.api';
+import { qk } from './queryKeys';
 
 export function useCommissionRates() {
-  return useQuery({ queryKey: qk.accounting.commissionRates, queryFn: accountingApi.commissionRates })
+  return useQuery({
+    queryKey: qk.accounting.commissionRates,
+    queryFn: accountingApi.commissionRates,
+  });
 }
 
 export function useCardTransactions(filter: TransactionFilter) {
@@ -18,7 +21,7 @@ export function useCardTransactions(filter: TransactionFilter) {
     queryKey: qk.accounting.transactions(filter),
     queryFn: () => accountingApi.transactions(filter),
     placeholderData: (previous) => previous,
-  })
+  });
 }
 
 export function useTransactionSummary(filter: TransactionFilter) {
@@ -26,7 +29,7 @@ export function useTransactionSummary(filter: TransactionFilter) {
     queryKey: qk.accounting.transactionSummary(filter),
     queryFn: () => accountingApi.transactionSummary(filter),
     placeholderData: (previous) => previous,
-  })
+  });
 }
 
 export function useReconciliation(filter: TransactionFilter) {
@@ -34,36 +37,50 @@ export function useReconciliation(filter: TransactionFilter) {
     queryKey: qk.accounting.reconciliation(filter),
     queryFn: () => accountingApi.reconciliation(filter),
     placeholderData: (previous) => previous,
-  })
+  });
 }
 
 function useAccountingRefresh() {
-  const qc = useQueryClient()
+  const qc = useQueryClient();
   return async () => {
-    await qc.refetchQueries({ queryKey: ['accounting'] })
-  }
+    await qc.refetchQueries({ queryKey: ['accounting'] });
+  };
 }
 
 export function useUpdateCommissionRates() {
-  const refresh = useAccountingRefresh()
+  const refresh = useAccountingRefresh();
   return useMutation({
-    mutationFn: ({ rates, repriceUnsettled }: { rates: Partial<Record<CardScheme, number>>; repriceUnsettled?: boolean }) =>
-      accountingApi.updateCommissionRates(rates, repriceUnsettled ?? false),
+    mutationFn: ({
+      rates,
+      repriceUnsettled,
+    }: {
+      rates: Partial<Record<CardScheme, number>>;
+      repriceUnsettled?: boolean;
+    }) => accountingApi.updateCommissionRates(rates, repriceUnsettled ?? false),
     onSuccess: refresh,
-  })
+  });
 }
 
 export function useIngestTransactions() {
-  const refresh = useAccountingRefresh()
+  const refresh = useAccountingRefresh();
   return useMutation({
-    mutationFn: ({ transactions, source }: { transactions: RawTransaction[]; source?: TransactionSource }) =>
-      accountingApi.ingest(transactions, source ?? 'ETL'),
+    mutationFn: ({
+      transactions,
+      source,
+    }: {
+      transactions: RawTransaction[];
+      source?: TransactionSource;
+    }) => accountingApi.ingest(transactions, source ?? 'ETL'),
     onSuccess: refresh,
-  })
+  });
 }
 
 export function useCardTransaction(id: string) {
-  return useQuery({ queryKey: qk.accounting.transaction(id), queryFn: () => accountingApi.transaction(id), enabled: !!id })
+  return useQuery({
+    queryKey: qk.accounting.transaction(id),
+    queryFn: () => accountingApi.transaction(id),
+    enabled: !!id,
+  });
 }
 
 export function usePaymentLedger(filter: PaymentLedgerFilter) {
@@ -71,9 +88,13 @@ export function usePaymentLedger(filter: PaymentLedgerFilter) {
     queryKey: qk.accounting.payments(filter),
     queryFn: () => accountingApi.payments(filter),
     placeholderData: (previous) => previous,
-  })
+  });
 }
 
 export function useLedgerPayment(id: string) {
-  return useQuery({ queryKey: qk.accounting.payment(id), queryFn: () => accountingApi.payment(id), enabled: !!id })
+  return useQuery({
+    queryKey: qk.accounting.payment(id),
+    queryFn: () => accountingApi.payment(id),
+    enabled: !!id,
+  });
 }

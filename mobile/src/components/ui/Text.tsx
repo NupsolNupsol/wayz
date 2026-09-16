@@ -1,46 +1,56 @@
-import type { ReactNode } from 'react'
-import { Text as RNText, type TextProps } from 'react-native'
+import type { ReactNode } from 'react';
+import { Text as RNText, type TextProps } from 'react-native';
 
-type Props = TextProps & { children: ReactNode; className?: string }
+type Props = TextProps & { children: ReactNode; className?: string };
 
 export const Title = ({ children, className = '', ...rest }: Props) => (
   <RNText className={`text-2xl font-extrabold tracking-tight text-navy ${className}`} {...rest}>
     {children}
   </RNText>
-)
+);
 
 export const Heading = ({ children, className = '', ...rest }: Props) => (
   <RNText className={`text-lg font-bold text-navy ${className}`} {...rest}>
     {children}
   </RNText>
-)
+);
 
 export const Body = ({ children, className = '', ...rest }: Props) => (
   <RNText className={`text-[15px] leading-5 text-navy ${className}`} {...rest}>
     {children}
   </RNText>
-)
+);
 
 export const Muted = ({ children, className = '', ...rest }: Props) => (
   <RNText className={`text-[13px] leading-5 text-muted ${className}`} {...rest}>
     {children}
   </RNText>
-)
+);
 
 export const Label = ({ children, className = '', ...rest }: Props) => (
-  <RNText className={`text-[11px] font-bold uppercase tracking-wider text-faint ${className}`} {...rest}>
+  <RNText
+    className={`text-[11px] font-bold uppercase tracking-wider text-faint ${className}`}
+    {...rest}
+  >
     {children}
   </RNText>
-)
+);
 
 export const Ref = ({ children, className = '', ...rest }: Props) => (
-  <RNText className={`font-mono text-[15px] font-semibold tracking-wide text-navy ${className}`} {...rest}>
+  <RNText
+    className={`font-mono text-[15px] font-semibold tracking-wide text-navy ${className}`}
+    {...rest}
+  >
     {children}
   </RNText>
-)
+);
 
 export const Amount = ({ children, className = '', ...rest }: Props) => (
-  <RNText className={`text-base font-bold text-navy ${className}`} style={{ fontVariant: ['tabular-nums'] }} {...rest}>
+  <RNText
+    className={`text-base font-bold text-navy ${className}`}
+    style={{ fontVariant: ['tabular-nums'] }}
+    {...rest}
+  >
     {children}
   </RNText>
-)
+);

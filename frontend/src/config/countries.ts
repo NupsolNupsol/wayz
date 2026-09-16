@@ -1,7 +1,7 @@
 export interface Country {
-  name: string
-  iso2: string
-  dial: string
+  name: string;
+  iso2: string;
+  dial: string;
 }
 
 export const COUNTRIES: Country[] = [
@@ -53,6 +53,6 @@ export const COUNTRIES: Country[] = [
   { name: 'Mexico', iso2: 'MX', dial: '+52' },
   { name: 'Argentina', iso2: 'AR', dial: '+54' },
   { name: 'Russia', iso2: 'RU', dial: '+7' },
-]
+];
 
-export const DEFAULT_COUNTRY = COUNTRIES[0]
+export const DEFAULT_COUNTRY = COUNTRIES[0];

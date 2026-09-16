@@ -1,12 +1,20 @@
-import type { ValidationResult, WorkflowContext } from '../shared/types.js'
-import { requireAvailableUnit, requireFlag, requirePaid, requirePositiveDuration } from './shared.validators.js'
+import type { ValidationResult, WorkflowContext } from '../shared/types.js';
+import {
+  requireAvailableUnit,
+  requireFlag,
+  requirePaid,
+  requirePositiveDuration,
+} from './shared.validators.js';
 
-export const useAnaamValidator = (transitionCode: string, ctx: WorkflowContext): ValidationResult => {
-  const errors: string[] = []
+export const useAnaamValidator = (
+  transitionCode: string,
+  ctx: WorkflowContext
+): ValidationResult => {
+  const errors: string[] = [];
 
   switch (transitionCode) {
     case 'TO_CONFIRMED': {
-      break
+      break;
     }
 
     case 'TO_STARTED': {
@@ -14,24 +22,24 @@ export const useAnaamValidator = (transitionCode: string, ctx: WorkflowContext):
         ...requirePaid(ctx),
         ...requireFlag(ctx, 'safetyAck', 'Safety acknowledgement is required.'),
         ...requireAvailableUnit(ctx),
-        ...requirePositiveDuration(ctx),
-      )
-      break
+        ...requirePositiveDuration(ctx)
+      );
+      break;
     }
 
     case 'TO_COMPLETED': {
-      break
+      break;
     }
 
     case 'TO_CANCELLED': {
-      break
+      break;
     }
 
     default: {
-      errors.push(`Unknown transition code: ${transitionCode}`)
-      break
+      errors.push(`Unknown transition code: ${transitionCode}`);
+      break;
     }
   }
 
-  return { errors }
-}
+  return { errors };
+};

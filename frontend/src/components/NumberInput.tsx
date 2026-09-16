@@ -1,5 +1,5 @@
-import { useEffect, useRef, useState } from 'react'
-import { clsx } from 'clsx'
+import { useEffect, useRef, useState } from 'react';
+import { clsx } from 'clsx';
 
 export function NumberInput({
   value,
@@ -13,31 +13,31 @@ export function NumberInput({
   ariaLabel,
   disabled,
 }: {
-  value: number
-  onChange: (value: number) => void
-  min?: number
-  max?: number
-  step?: number
-  fallback?: number
-  className?: string
-  testId?: string
-  ariaLabel?: string
-  disabled?: boolean
+  value: number;
+  onChange: (value: number) => void;
+  min?: number;
+  max?: number;
+  step?: number;
+  fallback?: number;
+  className?: string;
+  testId?: string;
+  ariaLabel?: string;
+  disabled?: boolean;
 }) {
-  const [raw, setRaw] = useState(String(value))
-  const emitted = useRef(value)
+  const [raw, setRaw] = useState(String(value));
+  const emitted = useRef(value);
 
   useEffect(() => {
     if (value !== emitted.current) {
-      emitted.current = value
-      setRaw(String(value))
+      emitted.current = value;
+      setRaw(String(value));
     }
-  }, [value])
+  }, [value]);
 
   /** A comma is what many keyboards give for a decimal point; treat it as one rather than as NaN. */
-  const asNumber = (text: string) => Number(text.replace(',', '.'))
+  const asNumber = (text: string) => Number(text.replace(',', '.'));
 
-  const signed = min === undefined || min < 0
+  const signed = min === undefined || min < 0;
 
   /**
    * Keep the box to the shape of a number as it is typed.
@@ -48,21 +48,21 @@ export function NumberInput({
    * front and only where negatives are meaningful, and only the first separator is kept.
    */
   const shape = (text: string) => {
-    const negative = signed && text.trimStart().startsWith('-')
-    const body = text.replace(/[^0-9.,]/g, '')
-    const at = body.search(/[.,]/)
-    const once = at === -1 ? body : body.slice(0, at + 1) + body.slice(at + 1).replace(/[.,]/g, '')
-    return (negative ? '-' : '') + once
-  }
+    const negative = signed && text.trimStart().startsWith('-');
+    const body = text.replace(/[^0-9.,]/g, '');
+    const at = body.search(/[.,]/);
+    const once = at === -1 ? body : body.slice(0, at + 1) + body.slice(at + 1).replace(/[.,]/g, '');
+    return (negative ? '-' : '') + once;
+  };
 
   const settle = (text: string): number => {
-    const parsed = asNumber(text)
-    const floor = fallback ?? min ?? 0
-    if (text.trim() === '' || Number.isNaN(parsed)) return floor
-    if (min !== undefined && parsed < min) return min
-    if (max !== undefined && parsed > max) return max
-    return parsed
-  }
+    const parsed = asNumber(text);
+    const floor = fallback ?? min ?? 0;
+    if (text.trim() === '' || Number.isNaN(parsed)) return floor;
+    if (min !== undefined && parsed < min) return min;
+    if (max !== undefined && parsed > max) return max;
+    return parsed;
+  };
 
   return (
     <input
@@ -83,28 +83,28 @@ export function NumberInput({
       aria-label={ariaLabel}
       data-testid={testId}
       onChange={(e) => {
-        const text = shape(e.target.value)
-        const parsed = asNumber(text)
+        const text = shape(e.target.value);
+        const parsed = asNumber(text);
         // "", "-" and "12." are a number half typed; they are shown but nothing is emitted yet.
         if (text.trim() === '' || Number.isNaN(parsed)) {
-          setRaw(text)
-          return
+          setRaw(text);
+          return;
         }
         // A typed number never escapes its bounds — waiting for blur lets an impossible
         // figure reach the till, and a price is quoted off it in the meantime.
-        const bounded = settle(text)
-        setRaw(bounded === parsed ? text : String(bounded))
-        emitted.current = bounded
-        onChange(bounded)
+        const bounded = settle(text);
+        setRaw(bounded === parsed ? text : String(bounded));
+        emitted.current = bounded;
+        onChange(bounded);
       }}
       onBlur={() => {
-        const settled = settle(raw)
-        setRaw(String(settled))
+        const settled = settle(raw);
+        setRaw(String(settled));
         if (settled !== emitted.current) {
-          emitted.current = settled
-          onChange(settled)
+          emitted.current = settled;
+          onChange(settled);
         }
       }}
     />
-  )
+  );
 }

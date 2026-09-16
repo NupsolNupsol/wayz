@@ -1,4 +1,4 @@
-import i18n from '@/i18n'
+import i18n from '@/i18n';
 
 /**
  * The name to put on screen for something that has been given an Arabic one.
@@ -13,12 +13,12 @@ import i18n from '@/i18n'
  */
 export function localName(
   record: { name?: string | null; nameAr?: string | null } | null | undefined,
-  language: string = i18n.language,
+  language: string = i18n.language
 ): string {
-  if (!record) return ''
-  const arabic = language.startsWith('ar')
-  const preferred = arabic ? record.nameAr : record.name
-  return (preferred || record.name || record.nameAr || '').trim()
+  if (!record) return '';
+  const arabic = language.startsWith('ar');
+  const preferred = arabic ? record.nameAr : record.name;
+  return (preferred || record.name || record.nameAr || '').trim();
 }
 
 /**
@@ -27,10 +27,10 @@ export function localName(
  */
 export function localBaked(
   record: { productName?: string | null; productNameAr?: string | null } | null | undefined,
-  language: string = i18n.language,
+  language: string = i18n.language
 ): string {
-  if (!record) return ''
-  const arabic = language.startsWith('ar')
-  const preferred = arabic ? record.productNameAr : record.productName
-  return (preferred || record.productName || record.productNameAr || '').trim()
+  if (!record) return '';
+  const arabic = language.startsWith('ar');
+  const preferred = arabic ? record.productNameAr : record.productName;
+  return (preferred || record.productName || record.productNameAr || '').trim();
 }

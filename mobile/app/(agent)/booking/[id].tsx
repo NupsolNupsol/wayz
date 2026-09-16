@@ -1,11 +1,11 @@
-import { useLocalSearchParams } from "expo-router";
-import { useState } from "react";
-import { Pressable, View } from "react-native";
+import { useLocalSearchParams } from 'expo-router';
+import { useState } from 'react';
+import { Pressable, View } from 'react-native';
 
-import { apiMessage } from "@/api/client";
-import { AppHeader } from "@/components/AppHeader";
-import { Icon } from "@/components/Icon";
-import { ScanField } from "@/components/ScanField";
+import { apiMessage } from '@/api/client';
+import { AppHeader } from '@/components/AppHeader';
+import { Icon } from '@/components/Icon';
+import { ScanField } from '@/components/ScanField';
 import {
   Amount,
   Body,
@@ -22,9 +22,9 @@ import {
   Section,
   StatusPill,
   toast,
-} from "@/components/ui";
-import { StoreSheet } from "@/features/booking/StoreSheet";
-import { VerifySheet } from "@/features/booking/VerifySheet";
+} from '@/components/ui';
+import { StoreSheet } from '@/features/booking/StoreSheet';
+import { VerifySheet } from '@/features/booking/VerifySheet';
 import {
   useBooking,
   useOrder,
@@ -32,12 +32,12 @@ import {
   useTransition,
   useTransitions,
   useUnits,
-} from "@/hooks/queries";
-import { useDeviceClass } from "@/hooks/useDeviceClass";
-import { useNow } from "@/hooks/useNow";
-import { engineLabel } from "@/config/engines";
-import { formatDateTime, humanizeMs, money } from "@/lib/format";
-import { COLORS } from "@/theme/tokens";
+} from '@/hooks/queries';
+import { useDeviceClass } from '@/hooks/useDeviceClass';
+import { useNow } from '@/hooks/useNow';
+import { engineLabel } from '@/config/engines';
+import { formatDateTime, humanizeMs, money } from '@/lib/format';
+import { COLORS } from '@/theme/tokens';
 
 export default function BookingConsole() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -53,7 +53,7 @@ export default function BookingConsole() {
 
   const [storeOpen, setStoreOpen] = useState(false);
   const [verifyOpen, setVerifyOpen] = useState(false);
-  const [barcode, setBarcode] = useState("");
+  const [barcode, setBarcode] = useState('');
 
   if (booking.isLoading) {
     return (
@@ -68,36 +68,31 @@ export default function BookingConsole() {
     return (
       <Screen testID="booking">
         <AppHeader title="Booking" back />
-        <EmptyState
-          title="Booking not found"
-          message="It may belong to another station."
-        />
+        <EmptyState title="Booking not found" message="It may belong to another station." />
       </Screen>
     );
   }
 
   const fresh = b.verifications.some(
     (v) =>
-      v.purpose === "RETRIEVAL" &&
-      v.status === "VERIFIED" &&
-      new Date(v.expiresAt).getTime() > now,
+      v.purpose === 'RETRIEVAL' && v.status === 'VERIFIED' && new Date(v.expiresAt).getTime() > now
   );
   const available = transitions.data?.transitions ?? [];
-  const canRetrieve = available.some((t) => t.code === "TO_RETRIEVAL");
-  const inRetrieval = b.status === "RETRIEVAL_IN_PROGRESS";
+  const canRetrieve = available.some((t) => t.code === 'TO_RETRIEVAL');
+  const inRetrieval = b.status === 'RETRIEVAL_IN_PROGRESS';
   const reservedUnit = units.data?.find(
-    (u) => u._id === (b.reservation?.assetUnitId ?? b.assetUnitId),
+    (u) => u._id === (b.reservation?.assetUnitId ?? b.assetUnitId)
   );
   const bagsOut = b.bags.filter(
-    (bag) => bag.status === "RETRIEVED" || bag.status === "DELIVERED",
+    (bag) => bag.status === 'RETRIEVED' || bag.status === 'DELIVERED'
   ).length;
 
   const run = (code: string, label: string) => {
-    if (code === "TO_STORED") {
+    if (code === 'TO_STORED') {
       setStoreOpen(true);
       return;
     }
-    if (code === "TO_RETRIEVAL" && !fresh) {
+    if (code === 'TO_RETRIEVAL' && !fresh) {
       setVerifyOpen(true);
       return;
     }
@@ -106,19 +101,19 @@ export default function BookingConsole() {
         id: b.id,
         code,
         payload:
-          code === "TO_HANDOVER"
+          code === 'TO_HANDOVER'
             ? {
                 inspectionDone: true,
                 durationMin: b.session.requestedDurationMin,
               }
-            : code === "TO_STARTED"
+            : code === 'TO_STARTED'
               ? { safetyAck: true, boardingVerified: true }
               : {},
       },
       {
-        onSuccess: () => toast("success", `${label} ✓`),
-        onError: (e) => toast("danger", "Action blocked", apiMessage(e)),
-      },
+        onSuccess: () => toast('success', `${label} ✓`),
+        onError: (e) => toast('danger', 'Action blocked', apiMessage(e)),
+      }
     );
   };
 
@@ -129,11 +124,11 @@ export default function BookingConsole() {
       { id: b.id, barcode: clean },
       {
         onSuccess: () => {
-          setBarcode("");
-          toast("success", "Bag scanned out");
+          setBarcode('');
+          toast('success', 'Bag scanned out');
         },
-        onError: (e) => toast("danger", "Scan rejected", apiMessage(e)),
-      },
+        onError: (e) => toast('danger', 'Scan rejected', apiMessage(e)),
+      }
     );
   };
 
@@ -150,22 +145,18 @@ export default function BookingConsole() {
       <AppHeader
         back
         title={b.ref}
-        subtitle={`${b.productName}${b.customerName ? ` · ${b.customerName}` : ""}`}
+        subtitle={`${b.productName}${b.customerName ? ` · ${b.customerName}` : ''}`}
         actions={<StatusPill status={b.status} />}
       />
 
-      <View className={isDesk ? "flex-row gap-4" : "gap-4"}>
-        <View className={isDesk ? "flex-1 gap-4" : "gap-4"}>
+      <View className={isDesk ? 'flex-row gap-4' : 'gap-4'}>
+        <View className={isDesk ? 'flex-1 gap-4' : 'gap-4'}>
           {b.session.startedAt ? (
             <Card testID="booking-timer">
               <View className="items-center gap-1 py-2">
-                <Muted>
-                  {late ? "Past the end time by" : "Time remaining"}
-                </Muted>
-                <Amount
-                  className={`text-4xl ${late ? "text-danger" : "text-navy"}`}
-                >
-                  {remaining === null ? "—" : humanizeMs(Math.abs(remaining))}
+                <Muted>{late ? 'Past the end time by' : 'Time remaining'}</Muted>
+                <Amount className={`text-4xl ${late ? 'text-danger' : 'text-navy'}`}>
+                  {remaining === null ? '—' : humanizeMs(Math.abs(remaining))}
                 </Amount>
                 <Muted>ends {formatDateTime(b.session.expectedEndAt)}</Muted>
               </View>
@@ -173,8 +164,7 @@ export default function BookingConsole() {
           ) : (
             <Notice tone="warn" testID="booking-not-started">
               <Body>
-                The timer has not started. It begins when the bags are scanned
-                in, never at payment.
+                The timer has not started. It begins when the bags are scanned in, never at payment.
               </Body>
             </Notice>
           )}
@@ -198,9 +188,7 @@ export default function BookingConsole() {
             <Notice tone="success" testID="booking-verified">
               <View className="flex-row items-center gap-2">
                 <Icon name="ShieldCheck" size={16} color={COLORS.success} />
-                <Body className="font-semibold">
-                  Identity verified — retrieval authorised.
-                </Body>
+                <Body className="font-semibold">Identity verified — retrieval authorised.</Body>
               </View>
             </Notice>
           ) : null}
@@ -235,7 +223,7 @@ export default function BookingConsole() {
                     <Meter
                       value={bagsOut}
                       max={b.bags.length}
-                      tone={bagsOut === b.bags.length ? "success" : "brand"}
+                      tone={bagsOut === b.bags.length ? 'success' : 'brand'}
                     />
                     <Muted>
                       {bagsOut} of {b.bags.length} handed back
@@ -252,8 +240,7 @@ export default function BookingConsole() {
 
                 <View className="gap-2">
                   {b.bags.map((bag) => {
-                    const out =
-                      bag.status === "RETRIEVED" || bag.status === "DELIVERED";
+                    const out = bag.status === 'RETRIEVED' || bag.status === 'DELIVERED';
                     return (
                       <View
                         key={bag.barcode}
@@ -264,9 +251,7 @@ export default function BookingConsole() {
                           <Body className="font-semibold" numberOfLines={1}>
                             {bag.description || `Bag ${bag.index}`}
                           </Body>
-                          <Ref className="text-[12px] text-muted">
-                            {bag.barcode}
-                          </Ref>
+                          <Ref className="text-[12px] text-muted">{bag.barcode}</Ref>
                         </View>
                         <StatusPill status={bag.status} size="sm" />
                         {inRetrieval && !out ? (
@@ -276,9 +261,7 @@ export default function BookingConsole() {
                             testID={`bag-scan-${bag.index}`}
                             className="rounded-xl bg-brand px-3 py-2"
                           >
-                            <Body className="text-[13px] font-semibold text-white">
-                              Scan
-                            </Body>
+                            <Body className="text-[13px] font-semibold text-white">Scan</Body>
                           </Pressable>
                         ) : null}
                       </View>
@@ -290,7 +273,7 @@ export default function BookingConsole() {
           ) : null}
         </View>
 
-        <View className={isDesk ? "w-[360px] gap-4" : "gap-4"}>
+        <View className={isDesk ? 'w-[360px] gap-4' : 'gap-4'}>
           <Card title="Session">
             <View className="flex-row flex-wrap gap-4">
               <KeyValue
@@ -300,7 +283,7 @@ export default function BookingConsole() {
               />
               <KeyValue
                 label="Compartment"
-                value={reservedUnit?.identifier ?? "—"}
+                value={reservedUnit?.identifier ?? '—'}
                 className="min-w-[45%]"
               />
               <KeyValue
@@ -318,12 +301,10 @@ export default function BookingConsole() {
 
           <Card title="Customer">
             <View className="gap-2">
-              <Body className="text-base font-semibold">
-                {b.customerName || "—"}
-              </Body>
+              <Body className="text-base font-semibold">{b.customerName || '—'}</Body>
               <View className="flex-row items-center gap-2">
                 <Icon name="Phone" size={14} color={COLORS.faint} />
-                <Muted>{b.customerPhone || "—"}</Muted>
+                <Muted>{b.customerPhone || '—'}</Muted>
               </View>
             </View>
           </Card>
@@ -332,13 +313,10 @@ export default function BookingConsole() {
             <Card title="Money" testID="booking-order">
               <View className="gap-1.5">
                 {order.data.lines.map((line, index) => (
-                  <View
-                    key={`${line.name}-${index}`}
-                    className="flex-row justify-between gap-3"
-                  >
+                  <View key={`${line.name}-${index}`} className="flex-row justify-between gap-3">
                     <Muted className="flex-1" numberOfLines={1}>
                       {line.name}
-                      {line.isDeposit ? " (deposit)" : ""}
+                      {line.isDeposit ? ' (deposit)' : ''}
                     </Muted>
                     <Muted>{money(line.unitPrice * line.quantity)}</Muted>
                   </View>
@@ -350,9 +328,7 @@ export default function BookingConsole() {
                 {order.data.balanceDue > 0 ? (
                   <View className="flex-row justify-between">
                     <Body className="font-semibold text-danger">Still due</Body>
-                    <Amount className="text-danger">
-                      {money(order.data.balanceDue)}
-                    </Amount>
+                    <Amount className="text-danger">{money(order.data.balanceDue)}</Amount>
                   </View>
                 ) : null}
               </View>
@@ -368,7 +344,7 @@ export default function BookingConsole() {
                       {event.from} → {event.to}
                     </Body>
                     <Muted>
-                      {event.note ? `${event.note} · ` : ""}
+                      {event.note ? `${event.note} · ` : ''}
                       {formatDateTime(event.at)}
                     </Muted>
                   </View>
@@ -390,7 +366,7 @@ export default function BookingConsole() {
         open={verifyOpen}
         onClose={() => setVerifyOpen(false)}
         booking={b}
-        onVerified={() => run("TO_RETRIEVAL", "Begin retrieval")}
+        onVerified={() => run('TO_RETRIEVAL', 'Begin retrieval')}
       />
     </Screen>
   );

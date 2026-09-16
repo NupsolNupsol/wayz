@@ -1,16 +1,16 @@
-import { useState } from 'react'
-import { useTranslation } from 'react-i18next'
-import { MessageCircle, Printer } from 'lucide-react'
-import { Modal } from '@/components/Modal'
-import { PrintableSlip } from './PrintableSlip'
-import { Button, Spinner } from '@/components/ui'
-import { useInvoice } from '@/hooks'
-import { bookingApi } from '@/api/booking.api'
-import { trackingUrl } from '@/api/public.api'
-import { ApiError } from '@/api/client'
-import { toast } from '@/state/toastStore'
-import { InvoiceSlip } from './InvoiceSlip'
-import { renderInvoicePdf } from './renderInvoicePdf'
+import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
+import { MessageCircle, Printer } from 'lucide-react';
+import { Modal } from '@/components/Modal';
+import { PrintableSlip } from './PrintableSlip';
+import { Button, Spinner } from '@/components/ui';
+import { useInvoice } from '@/hooks';
+import { bookingApi } from '@/api/booking.api';
+import { trackingUrl } from '@/api/public.api';
+import { ApiError } from '@/api/client';
+import { toast } from '@/state/toastStore';
+import { InvoiceSlip } from './InvoiceSlip';
+import { renderInvoicePdf } from './renderInvoicePdf';
 
 export function InvoiceModal({
   bookingId,
@@ -18,33 +18,44 @@ export function InvoiceModal({
   open,
   onClose,
 }: {
-  bookingId: string
-  trackingToken?: string
-  open: boolean
-  onClose: () => void
+  bookingId: string;
+  trackingToken?: string;
+  open: boolean;
+  onClose: () => void;
 }) {
-  const { t } = useTranslation(['bookings', 'common'])
-  const { data: invoice, isLoading } = useInvoice(bookingId, open)
-  const [sending, setSending] = useState(false)
+  const { t } = useTranslation(['bookings', 'common']);
+  const { data: invoice, isLoading } = useInvoice(bookingId, open);
+  const [sending, setSending] = useState(false);
   const sendToWhatsApp = async () => {
-    if (!invoice) return
-    setSending(true)
+    if (!invoice) return;
+    setSending(true);
     try {
-      const pdfBase64 = await renderInvoicePdf(invoice, trackingToken ? trackingUrl(trackingToken) : undefined)
-      const result = await bookingApi.whatsappInvoice(bookingId, pdfBase64)
+      const pdfBase64 = await renderInvoicePdf(
+        invoice,
+        trackingToken ? trackingUrl(trackingToken) : undefined
+      );
+      const result = await bookingApi.whatsappInvoice(bookingId, pdfBase64);
       if (result.sent && !result.asText) {
-        toast('success', t('invoice.whatsappSent'), t('invoice.whatsappSentDetail', { phone: invoice.customer.phone }))
+        toast(
+          'success',
+          t('invoice.whatsappSent'),
+          t('invoice.whatsappSentDetail', { phone: invoice.customer.phone })
+        );
       } else if (result.sent) {
-        toast('warning', t('invoice.whatsappTextOnly'), result.reason ?? '')
+        toast('warning', t('invoice.whatsappTextOnly'), result.reason ?? '');
       } else {
-        toast('danger', t('invoice.whatsappNotSent'), result.reason ?? '')
+        toast('danger', t('invoice.whatsappNotSent'), result.reason ?? '');
       }
     } catch (e) {
-      toast('danger', t('invoice.whatsappFailed'), e instanceof ApiError ? (e.errors?.join(' ') ?? e.message) : String(e))
+      toast(
+        'danger',
+        t('invoice.whatsappFailed'),
+        e instanceof ApiError ? (e.errors?.join(' ') ?? e.message) : String(e)
+      );
     } finally {
-      setSending(false)
+      setSending(false);
     }
-  }
+  };
 
   return (
     <Modal
@@ -56,7 +67,9 @@ export function InvoiceModal({
       testId="invoice-modal"
       footer={
         <>
-          <Button variant="ghost" onClick={onClose}>{t('common:action.close')}</Button>
+          <Button variant="ghost" onClick={onClose}>
+            {t('common:action.close')}
+          </Button>
           <Button
             variant="secondary"
             onClick={() => void sendToWhatsApp()}
@@ -67,7 +80,12 @@ export function InvoiceModal({
           >
             <MessageCircle size={15} /> {t('invoice.sendWhatsApp')}
           </Button>
-          <Button onClick={() => window.print()} disabled={!invoice} className="no-print" data-testid="invoice-print">
+          <Button
+            onClick={() => window.print()}
+            disabled={!invoice}
+            className="no-print"
+            data-testid="invoice-print"
+          >
             <Printer size={15} /> {t('invoice.print')}
           </Button>
         </>
@@ -77,11 +95,20 @@ export function InvoiceModal({
         <Spinner />
       ) : invoice ? (
         <>
-          <InvoiceSlip invoice={invoice} trackingUrl={trackingToken ? trackingUrl(trackingToken) : undefined} />
+          <InvoiceSlip
+            invoice={invoice}
+            trackingUrl={trackingToken ? trackingUrl(trackingToken) : undefined}
+          />
           {/* What the agent reads is the copy above; what the printer gets is this one, mounted on
               the body so no dialog furniture travels with it. */}
-          <PrintableSlip invoice={invoice} trackingUrl={trackingToken ? trackingUrl(trackingToken) : undefined} />
-          <p className="text-xs text-muted mt-3 text-center no-print" data-testid="invoice-print-note">
+          <PrintableSlip
+            invoice={invoice}
+            trackingUrl={trackingToken ? trackingUrl(trackingToken) : undefined}
+          />
+          <p
+            className="text-xs text-muted mt-3 text-center no-print"
+            data-testid="invoice-print-note"
+          >
             {t('invoice.thermalNote')}
           </p>
         </>
@@ -89,5 +116,5 @@ export function InvoiceModal({
         <p className="text-sm text-muted">{t('invoice.notFound')}</p>
       )}
     </Modal>
-  )
+  );
 }

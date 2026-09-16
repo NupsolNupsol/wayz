@@ -1,6 +1,6 @@
-import { Text, View } from 'react-native'
+import { Text, View } from 'react-native';
 
-import { humanise, TONE_CLASS, toneFor, type Tone } from '@/theme/tokens'
+import { humanise, TONE_CLASS, toneFor, type Tone } from '@/theme/tokens';
 
 export function StatusPill({
   status,
@@ -9,15 +9,15 @@ export function StatusPill({
   size = 'md',
   testID,
 }: {
-  status?: string | null
-  tone?: Tone
-  label?: string
-  size?: 'sm' | 'md'
-  testID?: string
+  status?: string | null;
+  tone?: Tone;
+  label?: string;
+  size?: 'sm' | 'md';
+  testID?: string;
 }) {
-  const resolved = tone ?? toneFor(status)
-  const t = TONE_CLASS[resolved]
-  const text = label ?? humanise(status)
+  const resolved = tone ?? toneFor(status);
+  const t = TONE_CLASS[resolved];
+  const text = label ?? humanise(status);
 
   return (
     <View
@@ -27,9 +27,11 @@ export function StatusPill({
       testID={testID}
     >
       <View className={`h-1.5 w-1.5 rounded-full ${t.dot}`} />
-      <Text className={`font-bold uppercase tracking-wide ${t.text} ${size === 'sm' ? 'text-[10px]' : 'text-[11px]'}`}>
+      <Text
+        className={`font-bold uppercase tracking-wide ${t.text} ${size === 'sm' ? 'text-[10px]' : 'text-[11px]'}`}
+      >
         {text}
       </Text>
     </View>
-  )
+  );
 }

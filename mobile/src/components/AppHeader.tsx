@@ -1,10 +1,10 @@
-import { router } from 'expo-router'
-import type { ReactNode } from 'react'
-import { Pressable, View } from 'react-native'
+import { router } from 'expo-router';
+import type { ReactNode } from 'react';
+import { Pressable, View } from 'react-native';
 
-import { Icon } from '@/components/Icon'
-import { Muted, Title } from '@/components/ui'
-import { COLORS } from '@/theme/tokens'
+import { Icon } from '@/components/Icon';
+import { Muted, Title } from '@/components/ui';
+import { COLORS } from '@/theme/tokens';
 
 export function AppHeader({
   title,
@@ -13,11 +13,11 @@ export function AppHeader({
   actions,
   testID,
 }: {
-  title: string
-  subtitle?: string
-  back?: boolean
-  actions?: ReactNode
-  testID?: string
+  title: string;
+  subtitle?: string;
+  back?: boolean;
+  actions?: ReactNode;
+  testID?: string;
 }) {
   return (
     <View className="mb-4 gap-3" testID={testID}>
@@ -41,5 +41,5 @@ export function AppHeader({
         {actions ? <View className="flex-row items-center gap-2">{actions}</View> : null}
       </View>
     </View>
-  )
+  );
 }

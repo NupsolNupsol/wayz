@@ -1,34 +1,18 @@
-import { useMutation } from "@tanstack/react-query";
-import { Redirect, router } from "expo-router";
-import { useState } from "react";
-import {
-  KeyboardAvoidingView,
-  Platform,
-  Pressable,
-  ScrollView,
-  View,
-} from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { useMutation } from '@tanstack/react-query';
+import { Redirect, router } from 'expo-router';
+import { useState } from 'react';
+import { KeyboardAvoidingView, Platform, Pressable, ScrollView, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { apiMessage } from "@/api/client";
-import { authApi } from "@/api/endpoints";
-import { Icon } from "@/components/Icon";
-import {
-  Body,
-  Button,
-  Field,
-  Heading,
-  Input,
-  Muted,
-  Notice,
-  Title,
-  toast,
-} from "@/components/ui";
-import { useDeviceClass } from "@/hooks/useDeviceClass";
-import { useSessionStore } from "@/store/session.store";
-import { COLORS } from "@/theme/tokens";
+import { apiMessage } from '@/api/client';
+import { authApi } from '@/api/endpoints';
+import { Icon } from '@/components/Icon';
+import { Body, Button, Field, Heading, Input, Muted, Notice, Title, toast } from '@/components/ui';
+import { useDeviceClass } from '@/hooks/useDeviceClass';
+import { useSessionStore } from '@/store/session.store';
+import { COLORS } from '@/theme/tokens';
 
-const DEMO = { email: "agent.wayz@lockerflow.demo", password: "Agent@123" };
+const DEMO = { email: 'agent.wayz@lockerflow.demo', password: 'Agent@123' };
 
 export default function SignIn() {
   const signIn = useSessionStore((s) => s.signIn);
@@ -36,35 +20,30 @@ export default function SignIn() {
   const token = useSessionStore((s) => s.token);
   const { isTablet } = useDeviceClass();
 
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
 
   const login = useMutation({
     mutationFn: () => authApi.login(email.trim(), password),
     onSuccess: async ({ token, user }) => {
-      if (user.role !== "AGENT") {
+      if (user.role !== 'AGENT') {
         setError(
-          `This app is for kiosk agents. ${user.fullName} signs in as ${user.role.replaceAll("_", " ").toLowerCase()}.`,
+          `This app is for kiosk agents. ${user.fullName} signs in as ${user.role.replaceAll('_', ' ').toLowerCase()}.`
         );
         return;
       }
       await signIn(token, user);
-      toast(
-        "success",
-        `Welcome, ${user.fullName.split(" ")[0]}`,
-        user.station?.name,
-      );
-      router.replace("/today");
+      toast('success', `Welcome, ${user.fullName.split(' ')[0]}`, user.station?.name);
+      router.replace('/today');
     },
-    onError: (e) =>
-      setError(apiMessage(e, "Those credentials were not accepted.")),
+    onError: (e) => setError(apiMessage(e, 'Those credentials were not accepted.')),
   });
 
   const submit = () => {
     setError(null);
     if (!email.trim() || !password) {
-      setError("Enter your email and password.");
+      setError('Enter your email and password.');
       return;
     }
     login.mutate();
@@ -75,16 +54,14 @@ export default function SignIn() {
   return (
     <SafeAreaView className="flex-1 bg-canvas" testID="sign-in">
       <KeyboardAvoidingView
-        behavior={Platform.OS === "ios" ? "padding" : undefined}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         className="flex-1"
       >
         <ScrollView
-          contentContainerStyle={{ flexGrow: 1, justifyContent: "center" }}
+          contentContainerStyle={{ flexGrow: 1, justifyContent: 'center' }}
           keyboardShouldPersistTaps="handled"
         >
-          <View
-            className={`w-full self-center px-6 ${isTablet ? "max-w-md" : ""}`}
-          >
+          <View className={`w-full self-center px-6 ${isTablet ? 'max-w-md' : ''}`}>
             <View className="mb-8 items-center gap-3">
               <View className="h-16 w-16 items-center justify-center rounded-2xl bg-brand">
                 <Icon name="Boxes" size={30} color={COLORS.white} />
@@ -153,8 +130,7 @@ export default function SignIn() {
             </View>
 
             <Muted className="mt-6 text-center">
-              Your account is tied to one station. Everything you see and create
-              belongs to it.
+              Your account is tied to one station. Everything you see and create belongs to it.
             </Muted>
           </View>
         </ScrollView>

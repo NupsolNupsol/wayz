@@ -1,10 +1,10 @@
-import { router, useLocalSearchParams } from "expo-router";
-import { useState } from "react";
-import { View } from "react-native";
+import { router, useLocalSearchParams } from 'expo-router';
+import { useState } from 'react';
+import { View } from 'react-native';
 
-import { apiMessage } from "@/api/client";
-import { AppHeader } from "@/components/AppHeader";
-import { Icon } from "@/components/Icon";
+import { apiMessage } from '@/api/client';
+import { AppHeader } from '@/components/AppHeader';
+import { Icon } from '@/components/Icon';
 import {
   Amount,
   Body,
@@ -23,26 +23,20 @@ import {
   Stepper,
   toast,
   type WizardStep,
-} from "@/components/ui";
-import { CustomerPicker } from "@/features/sell/CustomerPicker";
-import { PaymentPanel, usePaymentSplits } from "@/features/sell/PaymentPanel";
-import {
-  useCreateBooking,
-  useOrder,
-  usePay,
-  useProducts,
-  useTransition,
-} from "@/hooks/queries";
-import { engineLabel } from "@/config/engines";
-import { money } from "@/lib/format";
-import { COLORS } from "@/theme/tokens";
-import type { Booking, Customer, EngineKind, Product } from "@/types";
+} from '@/components/ui';
+import { CustomerPicker } from '@/features/sell/CustomerPicker';
+import { PaymentPanel, usePaymentSplits } from '@/features/sell/PaymentPanel';
+import { useCreateBooking, useOrder, usePay, useProducts, useTransition } from '@/hooks/queries';
+import { engineLabel } from '@/config/engines';
+import { money } from '@/lib/format';
+import { COLORS } from '@/theme/tokens';
+import type { Booking, Customer, EngineKind, Product } from '@/types';
 
 const STEPS: WizardStep[] = [
-  { key: "product", label: "Product" },
-  { key: "customer", label: "Customer" },
-  { key: "payment", label: "Payment" },
-  { key: "fulfil", label: "Hand over" },
+  { key: 'product', label: 'Product' },
+  { key: 'customer', label: 'Customer' },
+  { key: 'payment', label: 'Payment' },
+  { key: 'fulfil', label: 'Hand over' },
 ];
 
 const FULFILMENT: Partial<
@@ -52,33 +46,33 @@ const FULFILMENT: Partial<
       code: string;
       label: string;
       prompt: string;
-      flag: "inspectionDone" | "boardingVerified" | "safetyAck";
+      flag: 'inspectionDone' | 'boardingVerified' | 'safetyAck';
     }
   >
 > = {
   MOBILITY: {
-    code: "TO_HANDOVER",
-    label: "Confirm handover & start",
-    prompt: "Condition inspection captured",
-    flag: "inspectionDone",
+    code: 'TO_HANDOVER',
+    label: 'Confirm handover & start',
+    prompt: 'Condition inspection captured',
+    flag: 'inspectionDone',
   },
   LAGOON: {
-    code: "TO_STARTED",
-    label: "Verify boarding & start",
-    prompt: "Boarding count verified",
-    flag: "boardingVerified",
+    code: 'TO_STARTED',
+    label: 'Verify boarding & start',
+    prompt: 'Boarding count verified',
+    flag: 'boardingVerified',
   },
   ANAAM: {
-    code: "TO_STARTED",
-    label: "Confirm safety & start",
-    prompt: "Safety checklist signed",
-    flag: "safetyAck",
+    code: 'TO_STARTED',
+    label: 'Confirm safety & start',
+    prompt: 'Safety checklist signed',
+    flag: 'safetyAck',
   },
 };
 
 export default function Rental() {
   const params = useLocalSearchParams<{ engine?: string }>();
-  const engine = (params.engine as EngineKind) ?? "MOBILITY";
+  const engine = (params.engine as EngineKind) ?? 'MOBILITY';
   const fulfilment = FULFILMENT[engine];
 
   const [step, setStep] = useState(0);
@@ -110,9 +104,8 @@ export default function Rental() {
           setBooking(result.booking);
           setStep(2);
         },
-        onError: (e) =>
-          toast("danger", "Could not create the booking", apiMessage(e)),
-      },
+        onError: (e) => toast('danger', 'Could not create the booking', apiMessage(e)),
+      }
     );
   };
 
@@ -123,14 +116,14 @@ export default function Rental() {
       {
         onSuccess: () => {
           toast(
-            "success",
-            "Payment taken",
-            fulfilment ? "Now hand it over to start the clock." : undefined,
+            'success',
+            'Payment taken',
+            fulfilment ? 'Now hand it over to start the clock.' : undefined
           );
           setStep(3);
         },
-        onError: (e) => toast("danger", "Payment refused", apiMessage(e)),
-      },
+        onError: (e) => toast('danger', 'Payment refused', apiMessage(e)),
+      }
     );
   };
 
@@ -144,24 +137,20 @@ export default function Rental() {
       },
       {
         onSuccess: () => {
-          toast("success", "Handed over", "The session is running.");
+          toast('success', 'Handed over', 'The session is running.');
           router.replace({
-            pathname: "/booking/[id]",
+            pathname: '/booking/[id]',
             params: { id: booking.id },
           });
         },
-        onError: (e) => toast("danger", "Could not start", apiMessage(e)),
-      },
+        onError: (e) => toast('danger', 'Could not start', apiMessage(e)),
+      }
     );
   };
 
   return (
     <Screen scroll testID="rental" footer={<Footer />}>
-      <AppHeader
-        back
-        title={engineLabel(engine)}
-        subtitle="Rent something out"
-      />
+      <AppHeader back title={engineLabel(engine)} subtitle="Rent something out" />
 
       <View className="mb-4">
         <StepBar
@@ -203,11 +192,7 @@ export default function Rental() {
       {step === 1 ? (
         <Section title="Who is taking it">
           <View className="gap-3">
-            <CustomerPicker
-              selected={customer}
-              onSelect={setCustomer}
-              testID="rental-customer"
-            />
+            <CustomerPicker selected={customer} onSelect={setCustomer} testID="rental-customer" />
             <Card>
               <View className="flex-row items-center justify-between">
                 <View>
@@ -233,11 +218,7 @@ export default function Rental() {
           {order.isLoading ? (
             <Loading />
           ) : (
-            <PaymentPanel
-              order={order.data ?? null}
-              state={payment}
-              testID="rental-payment"
-            />
+            <PaymentPanel order={order.data ?? null} state={payment} testID="rental-payment" />
           )}
         </Section>
       ) : null}
@@ -257,8 +238,8 @@ export default function Rental() {
               <>
                 <Notice tone="warn">
                   <Body>
-                    The clock starts when you confirm this, not when the
-                    customer paid. Tick it only once it is actually done.
+                    The clock starts when you confirm this, not when the customer paid. Tick it only
+                    once it is actually done.
                   </Body>
                 </Notice>
                 <CheckRow
@@ -271,10 +252,7 @@ export default function Rental() {
               </>
             ) : (
               <Notice tone="info">
-                <Body>
-                  This activity has no handover step — the order is already on
-                  its way.
-                </Body>
+                <Body>This activity has no handover step — the order is already on its way.</Body>
               </Notice>
             )}
           </View>
@@ -341,7 +319,7 @@ export default function Rental() {
         onPress={() =>
           booking &&
           router.replace({
-            pathname: "/booking/[id]",
+            pathname: '/booking/[id]',
             params: { id: booking.id },
           })
         }

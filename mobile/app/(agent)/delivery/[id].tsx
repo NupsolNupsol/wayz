@@ -1,10 +1,10 @@
-import { useLocalSearchParams } from "expo-router";
-import { useState } from "react";
-import { View } from "react-native";
+import { useLocalSearchParams } from 'expo-router';
+import { useState } from 'react';
+import { View } from 'react-native';
 
-import { apiMessage } from "@/api/client";
-import { AppHeader } from "@/components/AppHeader";
-import { Icon } from "@/components/Icon";
+import { apiMessage } from '@/api/client';
+import { AppHeader } from '@/components/AppHeader';
+import { Icon } from '@/components/Icon';
 import {
   Body,
   Button,
@@ -24,10 +24,10 @@ import {
   StatusPill,
   TextArea,
   toast,
-} from "@/components/ui";
-import { useDelivery, useDeliveryTransition } from "@/hooks/queries";
-import { formatDateTime, relativeTime } from "@/lib/format";
-import { COLORS } from "@/theme/tokens";
+} from '@/components/ui';
+import { useDelivery, useDeliveryTransition } from '@/hooks/queries';
+import { formatDateTime, relativeTime } from '@/lib/format';
+import { COLORS } from '@/theme/tokens';
 
 export default function DeliveryDetail() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -36,10 +36,10 @@ export default function DeliveryDetail() {
 
   const [releaseOpen, setReleaseOpen] = useState(false);
   const [identityChecked, setIdentityChecked] = useState(false);
-  const [code, setCode] = useState("");
+  const [code, setCode] = useState('');
 
   const [cancelOpen, setCancelOpen] = useState(false);
-  const [reason, setReason] = useState("");
+  const [reason, setReason] = useState('');
 
   if (detail.isLoading) {
     return (
@@ -54,52 +54,45 @@ export default function DeliveryDetail() {
     return (
       <Screen testID="delivery">
         <AppHeader title="Delivery" back />
-        <EmptyState
-          title="Delivery not found"
-          message="It may belong to another station."
-        />
+        <EmptyState title="Delivery not found" message="It may belong to another station." />
       </Screen>
     );
   }
 
   const d = data.delivery;
   const can = (code: string) => data.transitions.some((t) => t.code === code);
-  const waiting = d.status === "RELEASE_REQUESTED";
+  const waiting = d.status === 'RELEASE_REQUESTED';
 
   const release = () => {
     move.mutate(
       {
         id: d._id,
-        code: "TO_RELEASE_APPROVED",
+        code: 'TO_RELEASE_APPROVED',
         payload: { compartmentCode: code.trim() },
       },
       {
         onSuccess: () => {
-          toast(
-            "success",
-            "Compartment released",
-            "The courier has the code for 15 minutes.",
-          );
+          toast('success', 'Compartment released', 'The courier has the code for 15 minutes.');
           setReleaseOpen(false);
           setIdentityChecked(false);
-          setCode("");
+          setCode('');
         },
-        onError: (e) => toast("danger", "Not released", apiMessage(e)),
-      },
+        onError: (e) => toast('danger', 'Not released', apiMessage(e)),
+      }
     );
   };
 
   const cancel = () => {
     move.mutate(
-      { id: d._id, code: "TO_CANCELLED", payload: { reason: reason.trim() } },
+      { id: d._id, code: 'TO_CANCELLED', payload: { reason: reason.trim() } },
       {
         onSuccess: () => {
-          toast("warn", "Delivery cancelled");
+          toast('warn', 'Delivery cancelled');
           setCancelOpen(false);
-          setReason("");
+          setReason('');
         },
-        onError: (e) => toast("danger", "Could not cancel", apiMessage(e)),
-      },
+        onError: (e) => toast('danger', 'Could not cancel', apiMessage(e)),
+      }
     );
   };
 
@@ -127,11 +120,9 @@ export default function DeliveryDetail() {
               </Body>
             </View>
             <Body>
-              Check that the person in front of you is{" "}
-              <Body className="font-bold">
-                {d.assignedToName ?? "the assigned courier"}
-              </Body>{" "}
-              before you open anything.
+              Check that the person in front of you is{' '}
+              <Body className="font-bold">{d.assignedToName ?? 'the assigned courier'}</Body> before
+              you open anything.
             </Body>
           </View>
         </Notice>
@@ -142,9 +133,7 @@ export default function DeliveryDetail() {
           <View className="gap-3">
             <View className="flex-row items-start gap-2">
               <Icon name="MapPin" size={16} color={COLORS.brand} />
-              <Body className="flex-1 font-semibold">
-                {d.destination.address}
-              </Body>
+              <Body className="flex-1 font-semibold">{d.destination.address}</Body>
             </View>
             {d.destination.notes ? <Muted>{d.destination.notes}</Muted> : null}
             <View className="flex-row items-center gap-2">
@@ -160,26 +149,18 @@ export default function DeliveryDetail() {
           <View className="flex-row flex-wrap gap-4">
             <KeyValue
               label="Courier"
-              value={d.assignedToName ?? "Not claimed yet"}
+              value={d.assignedToName ?? 'Not claimed yet'}
               className="min-w-[45%]"
             />
             <KeyValue
               label="Compartment"
-              value={d.assetUnitIdentifier ?? "—"}
+              value={d.assetUnitIdentifier ?? '—'}
               className="min-w-[45%]"
             />
-            <KeyValue
-              label="Raised"
-              value={relativeTime(d.requestedAt)}
-              className="min-w-[45%]"
-            />
+            <KeyValue label="Raised" value={relativeTime(d.requestedAt)} className="min-w-[45%]" />
             <KeyValue
               label="How it was asked for"
-              value={
-                d.origin === "AT_STORAGE"
-                  ? "At the desk"
-                  : "By phone — verified"
-              }
+              value={d.origin === 'AT_STORAGE' ? 'At the desk' : 'By phone — verified'}
               className="min-w-[45%]"
             />
           </View>
@@ -210,7 +191,7 @@ export default function DeliveryDetail() {
       ) : null}
 
       <View className="mt-5 gap-2">
-        {can("TO_RELEASE_APPROVED") ? (
+        {can('TO_RELEASE_APPROVED') ? (
           <Button
             label="Check the courier & release"
             size="lg"
@@ -219,7 +200,7 @@ export default function DeliveryDetail() {
             testID="delivery-release-open"
           />
         ) : null}
-        {can("TO_CANCELLED") ? (
+        {can('TO_CANCELLED') ? (
           <Button
             label="Cancel this delivery"
             variant="secondary"
@@ -230,12 +211,11 @@ export default function DeliveryDetail() {
         ) : null}
       </View>
 
-      {d.compartmentCode && d.status === "RELEASE_APPROVED" ? (
+      {d.compartmentCode && d.status === 'RELEASE_APPROVED' ? (
         <Notice tone="info" testID="delivery-code-issued">
           <Body>
-            The code is on the courier&apos;s phone until{" "}
-            {formatDateTime(d.compartmentCodeExpiresAt)}. If it expires, approve
-            again.
+            The code is on the courier&apos;s phone until{' '}
+            {formatDateTime(d.compartmentCodeExpiresAt)}. If it expires, approve again.
           </Body>
         </Notice>
       ) : null}
@@ -261,7 +241,7 @@ export default function DeliveryDetail() {
         <CheckRow
           checked={identityChecked}
           onChange={setIdentityChecked}
-          title={`This is ${d.assignedToName ?? "the assigned courier"}`}
+          title={`This is ${d.assignedToName ?? 'the assigned courier'}`}
           subtitle="Check their ID against the name on the job. A courier can never approve their own collection."
           testID="delivery-identity-check"
         />

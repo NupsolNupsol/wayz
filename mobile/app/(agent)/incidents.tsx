@@ -1,9 +1,9 @@
-import { useState } from 'react'
-import { FlatList, View } from 'react-native'
+import { useState } from 'react';
+import { FlatList, View } from 'react-native';
 
-import { apiMessage } from '@/api/client'
-import { AppHeader } from '@/components/AppHeader'
-import { Icon } from '@/components/Icon'
+import { apiMessage } from '@/api/client';
+import { AppHeader } from '@/components/AppHeader';
+import { Icon } from '@/components/Icon';
 import {
   Button,
   EmptyState,
@@ -19,44 +19,44 @@ import {
   StatusPill,
   TextArea,
   toast,
-} from '@/components/ui'
-import { enginesFor } from '@/config/engines'
-import { useCreateIncident, useIncidentCatalogue, useIncidents } from '@/hooks/queries'
-import { formatDateTime } from '@/lib/format'
-import { useSessionStore } from '@/store/session.store'
-import { COLORS } from '@/theme/tokens'
-import type { EngineKind } from '@/types'
+} from '@/components/ui';
+import { enginesFor } from '@/config/engines';
+import { useCreateIncident, useIncidentCatalogue, useIncidents } from '@/hooks/queries';
+import { formatDateTime } from '@/lib/format';
+import { useSessionStore } from '@/store/session.store';
+import { COLORS } from '@/theme/tokens';
+import type { EngineKind } from '@/types';
 
 export default function Incidents() {
-  const me = useSessionStore((s) => s.me)
-  const { data = [], isLoading, isFetching, refetch } = useIncidents()
-  const catalogue = useIncidentCatalogue()
-  const create = useCreateIncident()
+  const me = useSessionStore((s) => s.me);
+  const { data = [], isLoading, isFetching, refetch } = useIncidents();
+  const catalogue = useIncidentCatalogue();
+  const create = useCreateIncident();
 
-  const engines = enginesFor(me?.engineKinds ?? [])
-  const [open, setOpen] = useState(false)
-  const [engine, setEngine] = useState<EngineKind | null>(engines[0] ?? null)
-  const [type, setType] = useState<string | null>(null)
-  const [description, setDescription] = useState('')
+  const engines = enginesFor(me?.engineKinds ?? []);
+  const [open, setOpen] = useState(false);
+  const [engine, setEngine] = useState<EngineKind | null>(engines[0] ?? null);
+  const [type, setType] = useState<string | null>(null);
+  const [description, setDescription] = useState('');
 
-  const types = engine ? (catalogue.data?.byEngine?.[engine] ?? []) : []
-  const label = (code: string) => catalogue.data?.labels?.[code] ?? code.replaceAll('_', ' ')
+  const types = engine ? (catalogue.data?.byEngine?.[engine] ?? []) : [];
+  const label = (code: string) => catalogue.data?.labels?.[code] ?? code.replaceAll('_', ' ');
 
   const submit = () => {
-    if (!type) return
+    if (!type) return;
     create.mutate(
       { type, description: description.trim(), engineKind: engine ?? undefined },
       {
         onSuccess: () => {
-          toast('warn', 'Incident reported', 'Your manager sees it straight away.')
-          setOpen(false)
-          setType(null)
-          setDescription('')
+          toast('warn', 'Incident reported', 'Your manager sees it straight away.');
+          setOpen(false);
+          setType(null);
+          setDescription('');
         },
         onError: (e) => toast('danger', 'Could not report it', apiMessage(e)),
-      },
-    )
-  }
+      }
+    );
+  };
 
   return (
     <Screen padded={false} testID="incidents">
@@ -65,7 +65,14 @@ export default function Incidents() {
           back
           title="Incidents"
           subtitle="Anything that went wrong at this counter"
-          actions={<Button label="Report" size="sm" onPress={() => setOpen(true)} testID="incidents-report" />}
+          actions={
+            <Button
+              label="Report"
+              size="sm"
+              onPress={() => setOpen(true)}
+              testID="incidents-report"
+            />
+          }
         />
       </View>
 
@@ -132,8 +139,8 @@ export default function Incidents() {
                   key={kind}
                   selected={engine === kind}
                   onPress={() => {
-                    setEngine(kind)
-                    setType(null)
+                    setEngine(kind);
+                    setType(null);
                   }}
                   title={kind.replaceAll('_', ' ')}
                   testID={`incident-engine-${kind}`}
@@ -171,5 +178,5 @@ export default function Incidents() {
         </Field>
       </Sheet>
     </Screen>
-  )
+  );
 }

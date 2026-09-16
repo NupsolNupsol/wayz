@@ -1,10 +1,10 @@
-import { CameraView, useCameraPermissions } from 'expo-camera'
-import { useState } from 'react'
-import { Platform, Pressable, View } from 'react-native'
+import { CameraView, useCameraPermissions } from 'expo-camera';
+import { useState } from 'react';
+import { Platform, Pressable, View } from 'react-native';
 
-import { Icon } from '@/components/Icon'
-import { Body, Button, Input, Muted, Sheet } from '@/components/ui'
-import { COLORS } from '@/theme/tokens'
+import { Icon } from '@/components/Icon';
+import { Body, Button, Input, Muted, Sheet } from '@/components/ui';
+import { COLORS } from '@/theme/tokens';
 
 export function ScanField({
   value,
@@ -14,14 +14,14 @@ export function ScanField({
   autoFocus = false,
   testID,
 }: {
-  value: string
-  onChangeText: (value: string) => void
-  onSubmit: (code: string) => void
-  placeholder?: string
-  autoFocus?: boolean
-  testID?: string
+  value: string;
+  onChangeText: (value: string) => void;
+  onSubmit: (code: string) => void;
+  placeholder?: string;
+  autoFocus?: boolean;
+  testID?: string;
 }) {
-  const [cameraOpen, setCameraOpen] = useState(false)
+  const [cameraOpen, setCameraOpen] = useState(false);
 
   return (
     <>
@@ -55,13 +55,13 @@ export function ScanField({
         open={cameraOpen}
         onClose={() => setCameraOpen(false)}
         onScanned={(code) => {
-          setCameraOpen(false)
-          onChangeText(code)
-          onSubmit(code)
+          setCameraOpen(false);
+          onChangeText(code);
+          onSubmit(code);
         }}
       />
     </>
-  )
+  );
 }
 
 export function CameraSheet({
@@ -71,13 +71,13 @@ export function CameraSheet({
   title = 'Scan',
   subtitle = 'Point the camera at the barcode.',
 }: {
-  open: boolean
-  onClose: () => void
-  onScanned: (code: string) => void
-  title?: string
-  subtitle?: string
+  open: boolean;
+  onClose: () => void;
+  onScanned: (code: string) => void;
+  title?: string;
+  subtitle?: string;
 }) {
-  const [permission, requestPermission] = useCameraPermissions()
+  const [permission, requestPermission] = useCameraPermissions();
 
   return (
     <Sheet open={open} onClose={onClose} title={title} subtitle={subtitle} testID="camera-sheet">
@@ -86,7 +86,11 @@ export function CameraSheet({
       ) : !permission.granted ? (
         <View className="gap-3">
           <Body>The camera has not been allowed for this app yet.</Body>
-          <Button label="Allow the camera" onPress={() => void requestPermission()} testID="camera-permission" />
+          <Button
+            label="Allow the camera"
+            onPress={() => void requestPermission()}
+            testID="camera-permission"
+          />
           <Muted>You can always type the barcode instead.</Muted>
         </View>
       ) : (
@@ -104,5 +108,5 @@ export function CameraSheet({
 
       <Button label="Close" variant="secondary" onPress={onClose} testID="camera-close" />
     </Sheet>
-  )
+  );
 }

@@ -1,12 +1,12 @@
-import type { EngineKind } from '@/types'
+import type { EngineKind } from '@/types';
 
 export interface EngineMeta {
-  label: string
-  short: string
-  tagline: string
-  icon: 'ShoppingBag' | 'Bike' | 'Sailboat' | 'UtensilsCrossed' | 'Rabbit'
-  flow: 'bags' | 'rental'
-  route: '/new/shop-drop' | '/new/rental'
+  label: string;
+  short: string;
+  tagline: string;
+  icon: 'ShoppingBag' | 'Bike' | 'Sailboat' | 'UtensilsCrossed' | 'Rabbit';
+  flow: 'bags' | 'rental';
+  route: '/new/shop-drop' | '/new/rental';
 }
 
 export const ENGINE_META: Record<EngineKind, EngineMeta> = {
@@ -50,12 +50,12 @@ export const ENGINE_META: Record<EngineKind, EngineMeta> = {
     flow: 'rental',
     route: '/new/rental',
   },
-}
+};
 
-export const VISIBLE_ENGINES: EngineKind[] = ['SHOP_AND_DROP', 'MOBILITY', 'LAGOON']
+export const VISIBLE_ENGINES: EngineKind[] = ['SHOP_AND_DROP', 'MOBILITY', 'LAGOON'];
 
 export const enginesFor = (assigned: EngineKind[]): EngineKind[] =>
-  VISIBLE_ENGINES.filter((kind) => assigned.includes(kind))
+  VISIBLE_ENGINES.filter((kind) => assigned.includes(kind));
 
 export const engineLabel = (kind: EngineKind | string): string =>
-  ENGINE_META[kind as EngineKind]?.label ?? String(kind)
+  ENGINE_META[kind as EngineKind]?.label ?? String(kind);

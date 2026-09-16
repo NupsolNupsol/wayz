@@ -1,49 +1,66 @@
-import { useState } from 'react'
-import { useTranslation } from 'react-i18next'
-import { BadgePercent, Gift } from 'lucide-react'
-import { clsx } from 'clsx'
-import { Modal } from './Modal'
-import { Button, Field } from './ui'
-import { NumberInput } from './NumberInput'
-import { useDiscountBooking } from '@/hooks'
-import { useAuthStore } from '@/store/auth'
-import { toast } from '@/state/toastStore'
-import { ApiError } from '@/api/client'
-import { money } from '@/utils'
+import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
+import { BadgePercent, Gift } from 'lucide-react';
+import { clsx } from 'clsx';
+import { Modal } from './Modal';
+import { Button, Field } from './ui';
+import { NumberInput } from './NumberInput';
+import { useDiscountBooking } from '@/hooks';
+import { useAuthStore } from '@/store/auth';
+import { toast } from '@/state/toastStore';
+import { ApiError } from '@/api/client';
+import { money } from '@/utils';
 
-export function DiscountButton({ bookingId, total, onDone }: { bookingId: string; total: number; onDone?: () => void }) {
-  const { t } = useTranslation(['ui', 'common'])
-  const reasons = useAuthStore((s) => s.me?.tenant?.discountReasons ?? [])
-  const discount = useDiscountBooking()
+export function DiscountButton({
+  bookingId,
+  total,
+  onDone,
+}: {
+  bookingId: string;
+  total: number;
+  onDone?: () => void;
+}) {
+  const { t } = useTranslation(['ui', 'common']);
+  const reasons = useAuthStore((s) => s.me?.tenant?.discountReasons ?? []);
+  const discount = useDiscountBooking();
 
-  const [open, setOpen] = useState(false)
-  const [reasonCode, setReasonCode] = useState('')
-  const [percent, setPercent] = useState(10)
-  const [free, setFree] = useState(false)
-  const [note, setNote] = useState('')
+  const [open, setOpen] = useState(false);
+  const [reasonCode, setReasonCode] = useState('');
+  const [percent, setPercent] = useState(10);
+  const [free, setFree] = useState(false);
+  const [note, setNote] = useState('');
 
-  if (reasons.length === 0) return null
+  if (reasons.length === 0) return null;
 
-  const reason = reasons.find((r) => r.code === reasonCode) ?? null
-  const asked = free ? 100 : percent
-  const overCeiling = !!reason && asked > reason.maxPercent
-  const ready = !!reason && asked > 0 && !overCeiling
+  const reason = reasons.find((r) => r.code === reasonCode) ?? null;
+  const asked = free ? 100 : percent;
+  const overCeiling = !!reason && asked > reason.maxPercent;
+  const ready = !!reason && asked > 0 && !overCeiling;
 
   const apply = () => {
-    if (!reason) return
+    if (!reason) return;
     discount.mutate(
       { id: bookingId, reasonCode: reason.code, percent: asked, note: note.trim() || undefined },
       {
         onSuccess: () => {
-          setOpen(false)
-          setNote('')
-          toast('success', free ? t('ui:discount.madeFree') : t('ui:discount.applied'), reason.label)
-          onDone?.()
+          setOpen(false);
+          setNote('');
+          toast(
+            'success',
+            free ? t('ui:discount.madeFree') : t('ui:discount.applied'),
+            reason.label
+          );
+          onDone?.();
         },
-        onError: (e) => toast('danger', t('ui:discount.refused'), e instanceof ApiError ? (e.errors?.join(' ') ?? e.message) : ''),
-      },
-    )
-  }
+        onError: (e) =>
+          toast(
+            'danger',
+            t('ui:discount.refused'),
+            e instanceof ApiError ? (e.errors?.join(' ') ?? e.message) : ''
+          ),
+      }
+    );
+  };
 
   return (
     <>
@@ -62,14 +79,21 @@ export function DiscountButton({ bookingId, total, onDone }: { bookingId: string
             <Button variant="ghost" onClick={() => setOpen(false)}>
               {t('common:action.cancel')}
             </Button>
-            <Button onClick={apply} loading={discount.isPending} disabled={!ready} data-testid="discount-apply">
+            <Button
+              onClick={apply}
+              loading={discount.isPending}
+              disabled={!ready}
+              data-testid="discount-apply"
+            >
               {free ? <Gift size={15} /> : <BadgePercent size={15} />}
               {free ? t('ui:discount.makeFree') : t('ui:discount.take', { percent: asked })}
             </Button>
           </>
         }
       >
-        <p className="text-xs uppercase tracking-wider text-muted font-bold mb-2">{t('ui:discount.why')}</p>
+        <p className="text-xs uppercase tracking-wider text-muted font-bold mb-2">
+          {t('ui:discount.why')}
+        </p>
         <div className="flex flex-wrap gap-2 mb-4" data-testid="discount-reasons">
           {reasons.map((r) => (
             <button
@@ -79,7 +103,9 @@ export function DiscountButton({ bookingId, total, onDone }: { bookingId: string
               data-testid={`discount-reason-${r.code}`}
               className={clsx(
                 'lf-btn !h-9 !px-3 text-xs border',
-                reasonCode === r.code ? 'bg-brand text-brand-fg border-brand' : 'bg-surface border-line text-muted hover:text-brand',
+                reasonCode === r.code
+                  ? 'bg-brand text-brand-fg border-brand'
+                  : 'bg-surface border-line text-muted hover:text-brand'
               )}
             >
               {r.label}
@@ -89,12 +115,20 @@ export function DiscountButton({ bookingId, total, onDone }: { bookingId: string
         </div>
 
         <label className="flex items-center gap-2 text-sm mb-3 cursor-pointer">
-          <input type="checkbox" checked={free} onChange={(e) => setFree(e.target.checked)} data-testid="discount-free" />
+          <input
+            type="checkbox"
+            checked={free}
+            onChange={(e) => setFree(e.target.checked)}
+            data-testid="discount-free"
+          />
           {t('ui:discount.freeRide')}
         </label>
 
         {!free && (
-          <Field label={t('ui:discount.howMuch')} hint={reason ? t('ui:discount.ceiling', { percent: reason.maxPercent }) : undefined}>
+          <Field
+            label={t('ui:discount.howMuch')}
+            hint={reason ? t('ui:discount.ceiling', { percent: reason.maxPercent }) : undefined}
+          >
             <NumberInput
               min={1}
               max={reason?.maxPercent ?? 100}
@@ -112,9 +146,14 @@ export function DiscountButton({ bookingId, total, onDone }: { bookingId: string
         )}
 
         <Field label={t('common:field.notes')}>
-          <input className="lf-input" value={note} onChange={(e) => setNote(e.target.value)} data-testid="discount-note" />
+          <input
+            className="lf-input"
+            value={note}
+            onChange={(e) => setNote(e.target.value)}
+            data-testid="discount-note"
+          />
         </Field>
       </Modal>
     </>
-  )
+  );
 }

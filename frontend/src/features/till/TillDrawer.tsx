@@ -1,53 +1,92 @@
-import { useState } from 'react'
-import { formatTime } from '@/utils'
-import { useTranslation } from 'react-i18next'
-import { ArrowDownToLine, ArrowUpFromLine, Banknote, Landmark, TriangleAlert, Wallet } from 'lucide-react'
-import { clsx } from 'clsx'
-import { PageHeader } from '@/components/PageHeader'
-import { RefText } from '@/components/RefLink'
-import { Badge, Button, Card, EmptyState, Field, SectionTitle, Spinner, StatCard } from '@/components/ui'
-import { DataTable } from '@/components/DataTable'
-import { Modal } from '@/components/Modal'
-import { useTillDrawer, useOpenShift, useRecordMovement } from '@/hooks'
-import { ApiError } from '@/api/client'
-import { toast } from '@/state/toastStore'
-import { money } from './tillFormat'
-import type { CashMovement, CashMovementKind } from '@/api/till.api'
+import { useState } from 'react';
+import { formatTime } from '@/utils';
+import { useTranslation } from 'react-i18next';
+import {
+  ArrowDownToLine,
+  ArrowUpFromLine,
+  Banknote,
+  Landmark,
+  TriangleAlert,
+  Wallet,
+} from 'lucide-react';
+import { clsx } from 'clsx';
+import { PageHeader } from '@/components/PageHeader';
+import { RefText } from '@/components/RefLink';
+import {
+  Badge,
+  Button,
+  Card,
+  EmptyState,
+  Field,
+  SectionTitle,
+  Spinner,
+  StatCard,
+} from '@/components/ui';
+import { DataTable } from '@/components/DataTable';
+import { Modal } from '@/components/Modal';
+import { useTillDrawer, useOpenShift, useRecordMovement } from '@/hooks';
+import { ApiError } from '@/api/client';
+import { toast } from '@/state/toastStore';
+import { money } from './tillFormat';
+import type { CashMovement, CashMovementKind } from '@/api/till.api';
 
-const KINDS: { value: CashMovementKind; icon: typeof Banknote; tone: 'success' | 'warning' | 'info' }[] = [
+const KINDS: {
+  value: CashMovementKind;
+  icon: typeof Banknote;
+  tone: 'success' | 'warning' | 'info';
+}[] = [
   { value: 'FLOAT_IN', icon: ArrowDownToLine, tone: 'success' },
   { value: 'PAY_OUT', icon: ArrowUpFromLine, tone: 'warning' },
   { value: 'DROP', icon: Landmark, tone: 'info' },
-]
+];
 
-const kindMeta = (k: CashMovementKind) => KINDS.find((x) => x.value === k) ?? KINDS[0]
+const kindMeta = (k: CashMovementKind) => KINDS.find((x) => x.value === k) ?? KINDS[0];
 
 export function TillDrawer() {
-  const { t } = useTranslation(['till', 'common'])
-  const { data, isLoading } = useTillDrawer()
-  const record = useRecordMovement()
-  const openShift = useOpenShift()
+  const { t } = useTranslation(['till', 'common']);
+  const { data, isLoading } = useTillDrawer();
+  const record = useRecordMovement();
+  const openShift = useOpenShift();
 
-  const [kind, setKind] = useState<CashMovementKind | null>(null)
-  const [amount, setAmount] = useState('')
-  const [reason, setReason] = useState('')
-  const [reference, setReference] = useState('')
+  const [kind, setKind] = useState<CashMovementKind | null>(null);
+  const [amount, setAmount] = useState('');
+  const [reason, setReason] = useState('');
+  const [reference, setReference] = useState('');
 
-  const close = () => { setKind(null); setAmount(''); setReason(''); setReference('') }
+  const close = () => {
+    setKind(null);
+    setAmount('');
+    setReason('');
+    setReference('');
+  };
 
   const submit = () => {
-    if (!kind) return
+    if (!kind) return;
     record.mutate(
-      { kind, amount: Number(amount || 0), reason: reason.trim(), reference: reference.trim() || undefined },
+      {
+        kind,
+        amount: Number(amount || 0),
+        reason: reason.trim(),
+        reference: reference.trim() || undefined,
+      },
       {
         onSuccess: () => {
-          toast('success', t('drawer.recorded', { kind: t(`drawer.kind.${kind}`) }), t('drawer.recordedDetail', { amount: money(Number(amount || 0)) }))
-          close()
+          toast(
+            'success',
+            t('drawer.recorded', { kind: t(`drawer.kind.${kind}`) }),
+            t('drawer.recordedDetail', { amount: money(Number(amount || 0)) })
+          );
+          close();
         },
-        onError: (e) => toast('danger', t('drawer.notRecorded'), e instanceof ApiError ? (e.errors?.join(' ') ?? e.message) : ''),
-      },
-    )
-  }
+        onError: (e) =>
+          toast(
+            'danger',
+            t('drawer.notRecorded'),
+            e instanceof ApiError ? (e.errors?.join(' ') ?? e.message) : ''
+          ),
+      }
+    );
+  };
 
   if (isLoading) {
     return (
@@ -55,11 +94,11 @@ export function TillDrawer() {
         <PageHeader title={t('drawer.title')} subtitle={t('common:state.loading')} />
         <Spinner />
       </div>
-    )
+    );
   }
 
-  const d = data?.drawer ?? null
-  const movements = data?.movements ?? []
+  const d = data?.drawer ?? null;
+  const movements = data?.movements ?? [];
 
   return (
     <div data-testid="till-drawer">
@@ -72,7 +111,12 @@ export function TillDrawer() {
           d ? (
             <div className="flex flex-wrap gap-2">
               {KINDS.map((k) => (
-                <Button key={k.value} variant={k.value === 'FLOAT_IN' ? 'primary' : 'secondary'} onClick={() => setKind(k.value)} data-testid={`drawer-add-${k.value}`}>
+                <Button
+                  key={k.value}
+                  variant={k.value === 'FLOAT_IN' ? 'primary' : 'secondary'}
+                  onClick={() => setKind(k.value)}
+                  data-testid={`drawer-add-${k.value}`}
+                >
                   <k.icon size={16} /> {t(`drawer.kind.${k.value}`)}
                 </Button>
               ))}
@@ -88,27 +132,65 @@ export function TillDrawer() {
             title={t('drawer.noTillOpen')}
             message={t('drawer.openToRecord')}
             action={
-              <Button onClick={() => openShift.mutate(undefined, { onSuccess: () => toast('success', t('drawer.tillOpen')) })} loading={openShift.isPending} data-testid="drawer-open-till">{t('drawer.openMyTill')}</Button>
+              <Button
+                onClick={() =>
+                  openShift.mutate(undefined, {
+                    onSuccess: () => toast('success', t('drawer.tillOpen')),
+                  })
+                }
+                loading={openShift.isPending}
+                data-testid="drawer-open-till"
+              >
+                {t('drawer.openMyTill')}
+              </Button>
             }
           />
         </Card>
       ) : (
         <>
           <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 mb-5">
-            <StatCard label={t('drawer.shouldBeInDrawer')} value={money(d.derived)} icon={<Wallet size={18} />} tone="info" testId="drawer-stat-total" />
-            <StatCard label={t('drawer.floatIn')} value={money(d.floatIn)} icon={<ArrowDownToLine size={18} />} tone="success" testId="drawer-stat-float" />
-            <StatCard label={t('drawer.kind.PAY_OUT')} value={money(d.paidOut)} icon={<ArrowUpFromLine size={18} />} tone={d.paidOut ? 'warning' : 'neutral'} testId="drawer-stat-paidout" />
-            <StatCard label={t('drawer.kind.DROP')} value={money(d.dropped)} icon={<Landmark size={18} />} tone="neutral" testId="drawer-stat-dropped" />
+            <StatCard
+              label={t('drawer.shouldBeInDrawer')}
+              value={money(d.derived)}
+              icon={<Wallet size={18} />}
+              tone="info"
+              testId="drawer-stat-total"
+            />
+            <StatCard
+              label={t('drawer.floatIn')}
+              value={money(d.floatIn)}
+              icon={<ArrowDownToLine size={18} />}
+              tone="success"
+              testId="drawer-stat-float"
+            />
+            <StatCard
+              label={t('drawer.kind.PAY_OUT')}
+              value={money(d.paidOut)}
+              icon={<ArrowUpFromLine size={18} />}
+              tone={d.paidOut ? 'warning' : 'neutral'}
+              testId="drawer-stat-paidout"
+            />
+            <StatCard
+              label={t('drawer.kind.DROP')}
+              value={money(d.dropped)}
+              icon={<Landmark size={18} />}
+              tone="neutral"
+              testId="drawer-stat-dropped"
+            />
           </div>
 
           {Math.abs(d.drift) > 0.009 && (
-            <Card className="mb-5 p-4 flex items-start gap-3 border-danger-strong/40 bg-red-50 dark:bg-red-900/20" data-testid="drawer-drift">
+            <Card
+              className="mb-5 p-4 flex items-start gap-3 border-danger-strong/40 bg-red-50 dark:bg-red-900/20"
+              data-testid="drawer-drift"
+            >
               <TriangleAlert size={18} className="text-danger-strong shrink-0 mt-0.5" />
               <div>
                 <p className="font-semibold text-danger-strong">{t('drawer.disagree')}</p>
                 <p className="text-sm text-muted">
-                  The movements add up to {money(d.derived)} but the till has been accumulating {money(d.expected)}.
-                  Report this — it is a system problem, not a counting one, so do not adjust your count to match.
+                  The movements add up to {money(d.derived)} but the till has been accumulating{' '}
+                  {money(d.expected)}. Report this — it is a system problem, not a counting one, so
+                  do not adjust your count to match.
                 </p>
               </div>
             </Card>
@@ -133,8 +215,12 @@ export function TillDrawer() {
                 </div>
               ))}
               <div className="border-t border-line dark:border-dk-border mt-2 pt-3 flex items-baseline justify-between">
-                <span className="font-semibold text-navy dark:text-dk-texthi">{t('drawer.expected')}</span>
-                <span className="text-xl font-bold tabular-nums text-navy dark:text-dk-texthi">{money(d.derived)}</span>
+                <span className="font-semibold text-navy dark:text-dk-texthi">
+                  {t('drawer.expected')}
+                </span>
+                <span className="text-xl font-bold tabular-nums text-navy dark:text-dk-texthi">
+                  {money(d.derived)}
+                </span>
               </div>
               <p className="text-[11px] text-muted mt-3">
                 {t('drawer.cardNote', { amount: money(d.cardSales) })}
@@ -154,16 +240,23 @@ export function TillDrawer() {
                   {
                     key: 'kind',
                     header: t('common:column.movement'),
-                    filter: { kind: 'select', options: KINDS.map((k) => ({ label: t(`drawer.kind.${k.value}`), value: k.value })), value: (r: CashMovement) => r.kind },
+                    filter: {
+                      kind: 'select',
+                      options: KINDS.map((k) => ({
+                        label: t(`drawer.kind.${k.value}`),
+                        value: k.value,
+                      })),
+                      value: (r: CashMovement) => r.kind,
+                    },
                     sortValue: (r: CashMovement) => r.kind,
                     render: (r: CashMovement) => {
-                      const m = kindMeta(r.kind)
+                      const m = kindMeta(r.kind);
                       return (
                         <Badge tone={m.tone}>
                           <m.icon size={12} className="me-1 inline" />
                           {t(`drawer.kind.${m.value}`)}
                         </Badge>
-                      )
+                      );
                     },
                   },
                   {
@@ -172,7 +265,12 @@ export function TillDrawer() {
                     align: 'right',
                     sortValue: (r: CashMovement) => r.amount,
                     render: (r: CashMovement) => (
-                      <strong className={clsx('tabular-nums', r.kind === 'FLOAT_IN' ? 'text-success' : 'text-danger-strong')}>
+                      <strong
+                        className={clsx(
+                          'tabular-nums',
+                          r.kind === 'FLOAT_IN' ? 'text-success' : 'text-danger-strong'
+                        )}
+                      >
                         {r.kind === 'FLOAT_IN' ? '+' : '−'}
                         {money(r.amount)}
                       </strong>
@@ -181,7 +279,10 @@ export function TillDrawer() {
                   {
                     key: 'reason',
                     header: t('common:column.reason'),
-                    filter: { kind: 'text', value: (r: CashMovement) => `${r.reason} ${r.reference}` },
+                    filter: {
+                      kind: 'text',
+                      value: (r: CashMovement) => `${r.reason} ${r.reference}`,
+                    },
                     render: (r: CashMovement) => (
                       <div className="max-w-[260px]">
                         <p className="text-sm">{r.reason}</p>
@@ -189,7 +290,11 @@ export function TillDrawer() {
                       </div>
                     ),
                   },
-                  { key: 'by', header: t('common:column.by'), render: (r: CashMovement) => <span className="text-sm">{r.actorName}</span> },
+                  {
+                    key: 'by',
+                    header: t('common:column.by'),
+                    render: (r: CashMovement) => <span className="text-sm">{r.actorName}</span>,
+                  },
                   {
                     key: 'when',
                     header: t('common:column.recorded'),
@@ -216,7 +321,9 @@ export function TillDrawer() {
         testId="drawer-modal"
         footer={
           <>
-            <Button variant="ghost" onClick={close}>{t('common:action.cancel')}</Button>
+            <Button variant="ghost" onClick={close}>
+              {t('common:action.cancel')}
+            </Button>
             <Button
               onClick={submit}
               loading={record.isPending}
@@ -252,7 +359,12 @@ export function TillDrawer() {
         </Field>
 
         <Field label={t('common:field.reference')} hint={t('drawer.referenceHint')}>
-          <input className="lf-input" value={reference} onChange={(e) => setReference(e.target.value)} data-testid="drawer-reference" />
+          <input
+            className="lf-input"
+            value={reference}
+            onChange={(e) => setReference(e.target.value)}
+            data-testid="drawer-reference"
+          />
         </Field>
 
         {kind !== 'FLOAT_IN' && d && (
@@ -262,5 +374,5 @@ export function TillDrawer() {
         )}
       </Modal>
     </div>
-  )
+  );
 }

@@ -1,91 +1,105 @@
-import { useState } from 'react'
-import { CircleCheck, MessageSquareWarning, Send, TriangleAlert, X } from 'lucide-react'
-import { clsx } from 'clsx'
-import { useCheckChange, useReportIssue } from '@/hooks'
-import { toast } from '@/state/toastStore'
-import { ApiError } from '@/api/client'
-import type { VersionChange } from '@/api/versions.api'
+import { useState } from 'react';
+import { CircleCheck, MessageSquareWarning, Send, TriangleAlert, X } from 'lucide-react';
+import { clsx } from 'clsx';
+import { useCheckChange, useReportIssue } from '@/hooks';
+import { toast } from '@/state/toastStore';
+import { ApiError } from '@/api/client';
+import type { VersionChange } from '@/api/versions.api';
 
-const NAME_KEY = 'wayz.versions.tester'
+const NAME_KEY = 'wayz.versions.tester';
 
 const readName = () => {
   try {
-    return window.localStorage.getItem(NAME_KEY) ?? ''
+    return window.localStorage.getItem(NAME_KEY) ?? '';
   } catch {
-    return ''
+    return '';
   }
-}
+};
 
 const rememberName = (name: string) => {
   try {
-    window.localStorage.setItem(NAME_KEY, name)
+    window.localStorage.setItem(NAME_KEY, name);
   } catch {
     /* a private window is fine — they just type it again */
   }
-}
+};
 
 const when = (iso: string) =>
-  new Date(iso).toLocaleString(undefined, { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })
+  new Date(iso).toLocaleString(undefined, {
+    day: 'numeric',
+    month: 'short',
+    hour: '2-digit',
+    minute: '2-digit',
+  });
 
 export function ChangeVerdict({
   versionId,
   index,
   change,
 }: {
-  versionId: string
-  index: number
-  change: VersionChange
+  versionId: string;
+  index: number;
+  change: VersionChange;
 }) {
-  const check = useCheckChange(versionId)
-  const report = useReportIssue(versionId)
+  const check = useCheckChange(versionId);
+  const report = useReportIssue(versionId);
 
-  const [name, setName] = useState(readName)
-  const [asking, setAsking] = useState<'CHECK' | 'ISSUE' | null>(null)
-  const [note, setNote] = useState('')
+  const [name, setName] = useState(readName);
+  const [asking, setAsking] = useState<'CHECK' | 'ISSUE' | null>(null);
+  const [note, setNote] = useState('');
 
-  const checks = change.checks ?? []
-  const issues = change.issues ?? []
-  const openIssues = issues.filter((i) => i.status === 'OPEN')
-  const mine = checks.some((c) => c.by.toLowerCase() === name.trim().toLowerCase() && name.trim().length > 0)
+  const checks = change.checks ?? [];
+  const issues = change.issues ?? [];
+  const openIssues = issues.filter((i) => i.status === 'OPEN');
+  const mine = checks.some(
+    (c) => c.by.toLowerCase() === name.trim().toLowerCase() && name.trim().length > 0
+  );
 
   const fail = (e: unknown) =>
-    toast('danger', 'That did not go through', e instanceof ApiError ? (e.errors?.join(' ') ?? e.message) : '')
+    toast(
+      'danger',
+      'That did not go through',
+      e instanceof ApiError ? (e.errors?.join(' ') ?? e.message) : ''
+    );
 
   const confirmCheck = () => {
-    const who = name.trim()
-    if (!who) return
-    rememberName(who)
+    const who = name.trim();
+    if (!who) return;
+    rememberName(who);
     check.mutate(
       { index, by: who },
       {
         onSuccess: () => {
-          setAsking(null)
-          toast('success', 'Marked as checked', `${change.title} — thanks, ${who}.`)
+          setAsking(null);
+          toast('success', 'Marked as checked', `${change.title} — thanks, ${who}.`);
         },
         onError: fail,
-      },
-    )
-  }
+      }
+    );
+  };
 
   const confirmIssue = () => {
-    const who = name.trim()
-    if (!who || note.trim().length < 3) return
-    rememberName(who)
+    const who = name.trim();
+    if (!who || note.trim().length < 3) return;
+    rememberName(who);
     report.mutate(
       { index, by: who, note: note.trim() },
       {
         onSuccess: () => {
-          setAsking(null)
-          setNote('')
-          toast('warning', 'Reported', 'The team can see it on this release.')
+          setAsking(null);
+          setNote('');
+          toast('warning', 'Reported', 'The team can see it on this release.');
         },
         onError: fail,
-      },
-    )
-  }
+      }
+    );
+  };
 
   return (
-    <div className="mt-4 pt-4 border-t border-line dark:border-dk-border" data-testid={`version-verdict-${index}`}>
+    <div
+      className="mt-4 pt-4 border-t border-line dark:border-dk-border"
+      data-testid={`version-verdict-${index}`}
+    >
       <div className="flex flex-wrap items-center gap-2">
         {checks.length > 0 ? (
           <span
@@ -106,7 +120,8 @@ export function ChangeVerdict({
             className="inline-flex items-center gap-1.5 rounded-full bg-amber-50 dark:bg-amber-900/25 text-amber-700 dark:text-amber-300 text-xs font-semibold px-3 py-1.5"
             data-testid={`version-issue-count-${index}`}
           >
-            <TriangleAlert size={13} /> {openIssues.length} open report{openIssues.length === 1 ? '' : 's'}
+            <TriangleAlert size={13} /> {openIssues.length} open report
+            {openIssues.length === 1 ? '' : 's'}
           </span>
         )}
 
@@ -120,7 +135,7 @@ export function ChangeVerdict({
             'lf-btn !h-9 !px-3 text-xs border',
             mine
               ? 'border-success/50 text-success bg-emerald-50 dark:bg-emerald-900/25'
-              : 'border-line dark:border-dk-border text-muted hover:text-success hover:border-success/50',
+              : 'border-line dark:border-dk-border text-muted hover:text-success hover:border-success/50'
           )}
           data-testid={`version-check-${index}`}
         >
@@ -138,12 +153,20 @@ export function ChangeVerdict({
       </div>
 
       {asking && (
-        <div className="mt-3 rounded-xl2 border border-line dark:border-dk-border bg-canvas dark:bg-dk-elevated p-3" data-testid={`version-form-${index}`}>
+        <div
+          className="mt-3 rounded-xl2 border border-line dark:border-dk-border bg-canvas dark:bg-dk-elevated p-3"
+          data-testid={`version-form-${index}`}
+        >
           <div className="flex items-center justify-between gap-2 mb-2">
             <p className="text-xs font-bold uppercase tracking-wider text-navy dark:text-dk-texthi">
               {asking === 'CHECK' ? 'Who checked it?' : 'What went wrong?'}
             </p>
-            <button type="button" onClick={() => setAsking(null)} className="text-muted hover:text-navy" aria-label="Close">
+            <button
+              type="button"
+              onClick={() => setAsking(null)}
+              className="text-muted hover:text-navy"
+              aria-label="Close"
+            >
               <X size={14} />
             </button>
           </div>
@@ -169,7 +192,12 @@ export function ChangeVerdict({
           <button
             type="button"
             className="lf-btn-primary !h-9 text-xs"
-            disabled={!name.trim() || (asking === 'ISSUE' && note.trim().length < 3) || check.isPending || report.isPending}
+            disabled={
+              !name.trim() ||
+              (asking === 'ISSUE' && note.trim().length < 3) ||
+              check.isPending ||
+              report.isPending
+            }
             onClick={() => (asking === 'CHECK' ? confirmCheck() : confirmIssue())}
             data-testid={`version-submit-${index}`}
           >
@@ -187,7 +215,7 @@ export function ChangeVerdict({
                 'rounded-xl2 border p-3',
                 issue.status === 'OPEN'
                   ? 'border-amber-300 bg-amber-50 dark:bg-amber-900/20 dark:border-amber-500/40'
-                  : 'border-line dark:border-dk-border opacity-70',
+                  : 'border-line dark:border-dk-border opacity-70'
               )}
               data-testid={`version-issue-${index}-${n}`}
             >
@@ -196,14 +224,18 @@ export function ChangeVerdict({
                 <span className="text-xs font-bold text-navy dark:text-dk-texthi">{issue.by}</span>
                 <span className="text-[11px] text-muted">{when(issue.at)}</span>
                 {issue.status === 'RESOLVED' && (
-                  <span className="text-[10px] font-bold uppercase tracking-wider text-success">fixed</span>
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-success">
+                    fixed
+                  </span>
                 )}
               </div>
-              <p className="text-sm text-navy dark:text-dk-text leading-relaxed whitespace-pre-wrap">{issue.note}</p>
+              <p className="text-sm text-navy dark:text-dk-text leading-relaxed whitespace-pre-wrap">
+                {issue.note}
+              </p>
             </li>
           ))}
         </ul>
       )}
     </div>
-  )
+  );
 }

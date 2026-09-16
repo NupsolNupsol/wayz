@@ -1,38 +1,38 @@
-import { useEffect, useState } from 'react'
-import { useTranslation } from 'react-i18next'
-import { CircleCheck, CircleX, FilePlus2, ReceiptText } from 'lucide-react'
-import { PageHeader } from '@/components/PageHeader'
-import { Badge, Button, Field, Spinner, StatCard } from '@/components/ui'
-import { DataTable } from '@/components/DataTable'
-import { Modal } from '@/components/Modal'
-import { Select } from '@/components/Select'
-import { NumberInput } from '@/components/NumberInput'
-import { useManualSales, useRecordManualSale, useReviewManualSale } from '@/hooks'
-import { engineLabel, visibleEngineOptions } from '@/config/engineMeta'
-import { ApiError } from '@/api/client'
-import { formatDateTime } from '@/utils'
-import { toast } from '@/state/toastStore'
-import type { EngineKind, PaymentMethod } from '@/api/types'
-import type { ManualSale, ManualSaleStatus } from '@/api/manualSale.api'
+import { useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
+import { CircleCheck, CircleX, FilePlus2, ReceiptText } from 'lucide-react';
+import { PageHeader } from '@/components/PageHeader';
+import { Badge, Button, Field, Spinner, StatCard } from '@/components/ui';
+import { DataTable } from '@/components/DataTable';
+import { Modal } from '@/components/Modal';
+import { Select } from '@/components/Select';
+import { NumberInput } from '@/components/NumberInput';
+import { useManualSales, useRecordManualSale, useReviewManualSale } from '@/hooks';
+import { engineLabel, visibleEngineOptions } from '@/config/engineMeta';
+import { ApiError } from '@/api/client';
+import { formatDateTime } from '@/utils';
+import { toast } from '@/state/toastStore';
+import type { EngineKind, PaymentMethod } from '@/api/types';
+import type { ManualSale, ManualSaleStatus } from '@/api/manualSale.api';
 
 const STATUS_TONE: Record<ManualSaleStatus, 'info' | 'success' | 'danger'> = {
   PENDING: 'info',
   APPROVED: 'success',
   REJECTED: 'danger',
-}
+};
 
-const today = () => new Date().toISOString().slice(0, 10)
+const today = () => new Date().toISOString().slice(0, 10);
 
 export function ManualSalesPage() {
-  const { t } = useTranslation(['accounting', 'common'])
-  const [status, setStatus] = useState<ManualSaleStatus | ''>('')
-  const { data, isLoading } = useManualSales(status ? { status } : undefined)
-  const record = useRecordManualSale()
-  const review = useReviewManualSale()
+  const { t } = useTranslation(['accounting', 'common']);
+  const [status, setStatus] = useState<ManualSaleStatus | ''>('');
+  const { data, isLoading } = useManualSales(status ? { status } : undefined);
+  const record = useRecordManualSale();
+  const review = useReviewManualSale();
 
-  const [creating, setCreating] = useState(false)
-  const [reviewing, setReviewing] = useState<ManualSale | null>(null)
-  const [note, setNote] = useState('')
+  const [creating, setCreating] = useState(false);
+  const [reviewing, setReviewing] = useState<ManualSale | null>(null);
+  const [note, setNote] = useState('');
   const [form, setForm] = useState({
     stationId: '',
     engineKind: 'MOBILITY' as EngineKind,
@@ -40,44 +40,55 @@ export function ManualSalesPage() {
     amount: 0,
     method: 'CASH' as PaymentMethod,
     occurredAt: today(),
-  })
+  });
 
-  const stations = (data?.stations ?? []).map((st) => ({ label: st.name, value: st._id }))
+  const stations = (data?.stations ?? []).map((st) => ({ label: st.name, value: st._id }));
 
   useEffect(() => {
-    if (form.stationId || stations.length === 0) return
-    setForm((prev) => ({ ...prev, stationId: stations[0].value }))
-  }, [form.stationId, stations])
+    if (form.stationId || stations.length === 0) return;
+    setForm((prev) => ({ ...prev, stationId: stations[0].value }));
+  }, [form.stationId, stations]);
 
-  const rows = data?.rows ?? []
+  const rows = data?.rows ?? [];
   const fail = (e: unknown) =>
-    toast('danger', t('common:error.couldNotSave'), e instanceof ApiError ? (e.errors?.join(' ') ?? e.message) : '')
+    toast(
+      'danger',
+      t('common:error.couldNotSave'),
+      e instanceof ApiError ? (e.errors?.join(' ') ?? e.message) : ''
+    );
 
   const submit = () => {
     record.mutate(form, {
       onSuccess: (sale) => {
-        setCreating(false)
-        setForm((prev) => ({ ...prev, description: '', amount: 0 }))
-        toast('success', t('manualSales.recorded'), t('manualSales.recordedDetail', { ref: sale.ref }))
+        setCreating(false);
+        setForm((prev) => ({ ...prev, description: '', amount: 0 }));
+        toast(
+          'success',
+          t('manualSales.recorded'),
+          t('manualSales.recordedDetail', { ref: sale.ref })
+        );
       },
       onError: fail,
-    })
-  }
+    });
+  };
 
   const decide = (approve: boolean) => {
-    if (!reviewing) return
+    if (!reviewing) return;
     review.mutate(
       { id: reviewing._id, approve, note: note.trim() || undefined },
       {
         onSuccess: () => {
-          toast(approve ? 'success' : 'warning', approve ? t('manualSales.approved') : t('manualSales.rejected'))
-          setReviewing(null)
-          setNote('')
+          toast(
+            approve ? 'success' : 'warning',
+            approve ? t('manualSales.approved') : t('manualSales.rejected')
+          );
+          setReviewing(null);
+          setNote('');
         },
         onError: fail,
-      },
-    )
-  }
+      }
+    );
+  };
 
   return (
     <div data-testid="manual-sales">
@@ -86,7 +97,11 @@ export function ManualSalesPage() {
         subtitle={t('manualSales.subtitle')}
         crumbs={[{ label: t('manualSales.title') }]}
         actions={
-          <Button onClick={() => setCreating(true)} disabled={stations.length === 0} data-testid="manual-sales-add">
+          <Button
+            onClick={() => setCreating(true)}
+            disabled={stations.length === 0}
+            data-testid="manual-sales-add"
+          >
             <FilePlus2 size={16} />
             {t('manualSales.record')}
           </Button>
@@ -140,7 +155,9 @@ export function ManualSalesPage() {
               filter: { kind: 'text', value: (r) => `${r.ref} ${r.description}` },
               render: (r) => (
                 <div>
-                  <p className="font-semibold text-navy dark:text-dk-texthi font-mono text-xs">{r.ref}</p>
+                  <p className="font-semibold text-navy dark:text-dk-texthi font-mono text-xs">
+                    {r.ref}
+                  </p>
                   <p className="text-xs text-muted">{r.description}</p>
                 </div>
               ),
@@ -148,15 +165,27 @@ export function ManualSalesPage() {
             {
               key: 'activity',
               header: t('common:column.activity'),
-              filter: { kind: 'select', options: visibleEngineOptions(), value: (r) => r.engineKind },
+              filter: {
+                kind: 'select',
+                options: visibleEngineOptions(),
+                value: (r) => r.engineKind,
+              },
               render: (r) => <Badge tone="info">{engineLabel(r.engineKind)}</Badge>,
             },
-            { key: 'station', header: t('common:column.station'), render: (r) => <span className="text-muted">{r.stationName}</span> },
+            {
+              key: 'station',
+              header: t('common:column.station'),
+              render: (r) => <span className="text-muted">{r.stationName}</span>,
+            },
             {
               key: 'occurred',
               header: t('manualSales.occurredAt'),
               sortValue: (r) => r.occurredAt,
-              render: (r) => <span className="text-muted text-xs tabular-nums">{formatDateTime(new Date(r.occurredAt).getTime())}</span>,
+              render: (r) => (
+                <span className="text-muted text-xs tabular-nums">
+                  {formatDateTime(new Date(r.occurredAt).getTime())}
+                </span>
+              ),
             },
             {
               key: 'amount',
@@ -175,13 +204,17 @@ export function ManualSalesPage() {
               header: t('common:column.status'),
               filter: {
                 kind: 'select',
-                options: (['PENDING', 'APPROVED', 'REJECTED'] as ManualSaleStatus[]).map((value) => ({
-                  label: t(`manualSales.status.${value}`),
-                  value,
-                })),
+                options: (['PENDING', 'APPROVED', 'REJECTED'] as ManualSaleStatus[]).map(
+                  (value) => ({
+                    label: t(`manualSales.status.${value}`),
+                    value,
+                  })
+                ),
                 value: (r) => r.status,
               },
-              render: (r) => <Badge tone={STATUS_TONE[r.status]}>{t(`manualSales.status.${r.status}`)}</Badge>,
+              render: (r) => (
+                <Badge tone={STATUS_TONE[r.status]}>{t(`manualSales.status.${r.status}`)}</Badge>
+              ),
             },
             {
               key: 'actions',
@@ -192,9 +225,9 @@ export function ManualSalesPage() {
                   <Button
                     variant="secondary"
                     onClick={(e) => {
-                      e.stopPropagation()
-                      setReviewing(r)
-                      setNote('')
+                      e.stopPropagation();
+                      setReviewing(r);
+                      setNote('');
                     }}
                     data-testid={`manual-sales-review-${r._id}`}
                   >
@@ -214,7 +247,9 @@ export function ManualSalesPage() {
         testId="manual-sales-modal"
         footer={
           <>
-            <Button variant="ghost" onClick={() => setCreating(false)}>{t('common:action.cancel')}</Button>
+            <Button variant="ghost" onClick={() => setCreating(false)}>
+              {t('common:action.cancel')}
+            </Button>
             <Button
               onClick={submit}
               loading={record.isPending}
@@ -245,7 +280,11 @@ export function ManualSalesPage() {
             />
           </Field>
         </div>
-        <Field label={t('manualSales.description')} required hint={t('manualSales.descriptionHint')}>
+        <Field
+          label={t('manualSales.description')}
+          required
+          hint={t('manualSales.descriptionHint')}
+        >
           <input
             className="lf-input"
             value={form.description}
@@ -255,7 +294,12 @@ export function ManualSalesPage() {
         </Field>
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-x-4">
           <Field label={t('common:column.amount')} required hint={t('manualSales.amountHint')}>
-            <NumberInput value={form.amount} onChange={(v) => setForm({ ...form, amount: v })} min={0} testId="manual-sales-amount" />
+            <NumberInput
+              value={form.amount}
+              onChange={(v) => setForm({ ...form, amount: v })}
+              min={0}
+              testId="manual-sales-amount"
+            />
           </Field>
           <Field label={t('common:column.method')} required>
             <Select
@@ -289,7 +333,9 @@ export function ManualSalesPage() {
         testId="manual-sales-review-modal"
         footer={
           <>
-            <Button variant="ghost" onClick={() => setReviewing(null)}>{t('common:action.cancel')}</Button>
+            <Button variant="ghost" onClick={() => setReviewing(null)}>
+              {t('common:action.cancel')}
+            </Button>
             <Button
               variant="danger"
               onClick={() => decide(false)}
@@ -300,7 +346,11 @@ export function ManualSalesPage() {
               <CircleX size={16} />
               {t('manualSales.reject')}
             </Button>
-            <Button onClick={() => decide(true)} loading={review.isPending} data-testid="manual-sales-approve">
+            <Button
+              onClick={() => decide(true)}
+              loading={review.isPending}
+              data-testid="manual-sales-approve"
+            >
               <CircleCheck size={16} />
               {t('manualSales.approve')}
             </Button>
@@ -320,5 +370,5 @@ export function ManualSalesPage() {
         </Field>
       </Modal>
     </div>
-  )
+  );
 }

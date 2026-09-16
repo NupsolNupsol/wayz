@@ -1,12 +1,12 @@
-import { useEffect, useState } from 'react'
-import { useTranslation } from 'react-i18next'
-import { clsx } from 'clsx'
-import { Modal } from './Modal'
-import { Button, Field } from './ui'
+import { useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
+import { clsx } from 'clsx';
+import { Modal } from './Modal';
+import { Button, Field } from './ui';
 
 export interface ReasonChoice {
-  value: string
-  label: string
+  value: string;
+  label: string;
 }
 
 export function ReasonDialog({
@@ -21,31 +21,32 @@ export function ReasonDialog({
   tone = 'danger',
   testId = 'reason-dialog',
 }: {
-  open: boolean
-  onClose: () => void
-  onConfirm: (reason: string) => void
-  title: string
-  subtitle?: string
-  choices: ReasonChoice[]
-  confirmLabel: string
-  confirming?: boolean
-  tone?: 'danger' | 'primary'
-  testId?: string
+  open: boolean;
+  onClose: () => void;
+  onConfirm: (reason: string) => void;
+  title: string;
+  subtitle?: string;
+  choices: ReasonChoice[];
+  confirmLabel: string;
+  confirming?: boolean;
+  tone?: 'danger' | 'primary';
+  testId?: string;
 }) {
-  const { t } = useTranslation(['common', 'ui'])
-  const [picked, setPicked] = useState('')
-  const [note, setNote] = useState('')
+  const { t } = useTranslation(['common', 'ui']);
+  const [picked, setPicked] = useState('');
+  const [note, setNote] = useState('');
 
   useEffect(() => {
     if (!open) {
-      setPicked('')
-      setNote('')
+      setPicked('');
+      setNote('');
     }
-  }, [open])
+  }, [open]);
 
-  const chosen = choices.find((c) => c.value === picked)
-  const reason = picked === 'OTHER' ? note.trim() : [chosen?.label, note.trim()].filter(Boolean).join(' — ')
-  const ready = reason.trim().length >= 3
+  const chosen = choices.find((c) => c.value === picked);
+  const reason =
+    picked === 'OTHER' ? note.trim() : [chosen?.label, note.trim()].filter(Boolean).join(' — ');
+  const ready = reason.trim().length >= 3;
 
   return (
     <Modal
@@ -71,7 +72,9 @@ export function ReasonDialog({
         </>
       }
     >
-      <p className="text-xs uppercase tracking-wider text-muted font-bold mb-2">{t('common:field.reason')}</p>
+      <p className="text-xs uppercase tracking-wider text-muted font-bold mb-2">
+        {t('common:field.reason')}
+      </p>
       <div className="flex flex-wrap gap-2 mb-4" data-testid={`${testId}-choices`}>
         {choices.map((choice) => (
           <button
@@ -81,7 +84,9 @@ export function ReasonDialog({
             data-testid={`${testId}-choice-${choice.value}`}
             className={clsx(
               'lf-btn !h-9 !px-3 text-xs border',
-              picked === choice.value ? 'bg-brand text-brand-fg border-brand' : 'bg-surface border-line text-muted hover:text-brand',
+              picked === choice.value
+                ? 'bg-brand text-brand-fg border-brand'
+                : 'bg-surface border-line text-muted hover:text-brand'
             )}
           >
             {choice.label}
@@ -89,7 +94,10 @@ export function ReasonDialog({
         ))}
       </div>
 
-      <Field label={t('common:field.notes')} hint={picked === 'OTHER' ? t('common:field.reasonRequired') : undefined}>
+      <Field
+        label={t('common:field.notes')}
+        hint={picked === 'OTHER' ? t('common:field.reasonRequired') : undefined}
+      >
         <textarea
           className="lf-input min-h-[80px]"
           value={note}
@@ -98,5 +106,5 @@ export function ReasonDialog({
         />
       </Field>
     </Modal>
-  )
+  );
 }

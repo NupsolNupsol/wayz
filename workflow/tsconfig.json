@@ -18,6 +18,13 @@
     "outDir": "dist",
     "rootDir": "."
   },
-  "include": ["index.ts", "shared/**/*.ts", "utils/**/*.ts", "workflow/**/*.ts", "bookingWorkflowValidators/**/*.ts", "bookingWorkflowOperations/**/*.ts"],
+  "include": [
+    "index.ts",
+    "shared/**/*.ts",
+    "utils/**/*.ts",
+    "workflow/**/*.ts",
+    "bookingWorkflowValidators/**/*.ts",
+    "bookingWorkflowOperations/**/*.ts"
+  ],
   "exclude": ["dist", "node_modules"]
 }

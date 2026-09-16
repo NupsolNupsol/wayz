@@ -1,10 +1,10 @@
-import { useMemo, useState } from 'react'
-import { View } from 'react-native'
+import { useMemo, useState } from 'react';
+import { View } from 'react-native';
 
-import type { PaymentSplit } from '@/api/endpoints'
-import { Amount, Body, Card, Input, Label, Muted, OptionRow, Segmented } from '@/components/ui'
-import { money } from '@/lib/format'
-import type { CardScheme, Order, PaymentMethod } from '@/types'
+import type { PaymentSplit } from '@/api/endpoints';
+import { Amount, Body, Card, Input, Label, Muted, OptionRow, Segmented } from '@/components/ui';
+import { money } from '@/lib/format';
+import type { CardScheme, Order, PaymentMethod } from '@/types';
 
 const SCHEMES: { value: CardScheme; label: string }[] = [
   { value: 'MADA', label: 'Mada' },
@@ -12,31 +12,43 @@ const SCHEMES: { value: CardScheme; label: string }[] = [
   { value: 'MASTERCARD', label: 'Mastercard' },
   { value: 'SPAN', label: 'SPAN' },
   { value: 'GCC', label: 'GCC' },
-]
+];
 
 export function usePaymentSplits(order: Order | null) {
-  const [method, setMethod] = useState<'CASH' | 'CARD' | 'SPLIT'>('CARD')
-  const [scheme, setScheme] = useState<CardScheme>('MADA')
-  const [cashPart, setCashPart] = useState('')
+  const [method, setMethod] = useState<'CASH' | 'CARD' | 'SPLIT'>('CARD');
+  const [scheme, setScheme] = useState<CardScheme>('MADA');
+  const [cashPart, setCashPart] = useState('');
 
-  const total = order?.balanceDue ?? order?.total ?? 0
+  const total = order?.balanceDue ?? order?.total ?? 0;
 
   const splits = useMemo<PaymentSplit[]>(() => {
-    if (method === 'CASH') return [{ method: 'CASH' as PaymentMethod, amount: total }]
-    if (method === 'CARD') return [{ method: 'CARD' as PaymentMethod, amount: total, cardScheme: scheme }]
+    if (method === 'CASH') return [{ method: 'CASH' as PaymentMethod, amount: total }];
+    if (method === 'CARD')
+      return [{ method: 'CARD' as PaymentMethod, amount: total, cardScheme: scheme }];
 
-    const cash = Math.min(total, Math.max(0, Number(cashPart) || 0))
-    const card = Math.round((total - cash) * 100) / 100
-    const parts: PaymentSplit[] = []
-    if (cash > 0) parts.push({ method: 'CASH', amount: cash })
-    if (card > 0) parts.push({ method: 'CARD', amount: card, cardScheme: scheme })
-    return parts
-  }, [method, scheme, cashPart, total])
+    const cash = Math.min(total, Math.max(0, Number(cashPart) || 0));
+    const card = Math.round((total - cash) * 100) / 100;
+    const parts: PaymentSplit[] = [];
+    if (cash > 0) parts.push({ method: 'CASH', amount: cash });
+    if (card > 0) parts.push({ method: 'CARD', amount: card, cardScheme: scheme });
+    return parts;
+  }, [method, scheme, cashPart, total]);
 
-  const covered = Math.round(splits.reduce((sum, s) => sum + s.amount, 0) * 100) / 100
-  const ready = total > 0 ? Math.abs(covered - total) < 0.01 : false
+  const covered = Math.round(splits.reduce((sum, s) => sum + s.amount, 0) * 100) / 100;
+  const ready = total > 0 ? Math.abs(covered - total) < 0.01 : false;
 
-  return { method, setMethod, scheme, setScheme, cashPart, setCashPart, splits, total, covered, ready }
+  return {
+    method,
+    setMethod,
+    scheme,
+    setScheme,
+    cashPart,
+    setCashPart,
+    splits,
+    total,
+    covered,
+    ready,
+  };
 }
 
 export function PaymentPanel({
@@ -44,11 +56,11 @@ export function PaymentPanel({
   state,
   testID,
 }: {
-  order: Order | null
-  state: ReturnType<typeof usePaymentSplits>
-  testID?: string
+  order: Order | null;
+  state: ReturnType<typeof usePaymentSplits>;
+  testID?: string;
 }) {
-  if (!order) return null
+  if (!order) return null;
 
   return (
     <View className="gap-4" testID={testID}>
@@ -124,5 +136,5 @@ export function PaymentPanel({
         </Muted>
       ) : null}
     </View>
-  )
+  );
 }

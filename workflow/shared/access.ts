@@ -1,12 +1,12 @@
-export const AGENT = 'AGENT'
-export const DELIVERY_AGENT = 'DELIVERY_AGENT'
-export const SUPERVISOR = 'SUPERVISOR'
-export const CHIEF_CAPTAIN = 'CHIEF_CAPTAIN'
-export const MANAGER = 'MANAGER'
-export const PROJECT_MANAGER = 'PROJECT_MANAGER'
-export const HR = 'HR'
-export const ACCOUNTANT = 'ACCOUNTANT'
-export const TENANT_ADMIN = 'TENANT_ADMIN'
+export const AGENT = 'AGENT';
+export const DELIVERY_AGENT = 'DELIVERY_AGENT';
+export const SUPERVISOR = 'SUPERVISOR';
+export const CHIEF_CAPTAIN = 'CHIEF_CAPTAIN';
+export const MANAGER = 'MANAGER';
+export const PROJECT_MANAGER = 'PROJECT_MANAGER';
+export const HR = 'HR';
+export const ACCOUNTANT = 'ACCOUNTANT';
+export const TENANT_ADMIN = 'TENANT_ADMIN';
 
 export const ROLES = [
   AGENT,
@@ -18,20 +18,20 @@ export const ROLES = [
   HR,
   ACCOUNTANT,
   TENANT_ADMIN,
-] as const
+] as const;
 
-export type Role = (typeof ROLES)[number]
+export type Role = (typeof ROLES)[number];
 
-export const OPS: Role[] = [AGENT, SUPERVISOR, MANAGER, PROJECT_MANAGER]
+export const OPS: Role[] = [AGENT, SUPERVISOR, MANAGER, PROJECT_MANAGER];
 
-export const TILL: Role[] = [AGENT]
+export const TILL: Role[] = [AGENT];
 
-export const OVERRIDE_ROLES: Role[] = [SUPERVISOR, MANAGER, PROJECT_MANAGER, TENANT_ADMIN]
+export const OVERRIDE_ROLES: Role[] = [SUPERVISOR, MANAGER, PROJECT_MANAGER, TENANT_ADMIN];
 
-export const COURIER: Role[] = [DELIVERY_AGENT]
-export const KIOSK_OPS: Role[] = [AGENT, SUPERVISOR, MANAGER, PROJECT_MANAGER]
+export const COURIER: Role[] = [DELIVERY_AGENT];
+export const KIOSK_OPS: Role[] = [AGENT, SUPERVISOR, MANAGER, PROJECT_MANAGER];
 
-export const LAGOON_OPS: Role[] = [AGENT, CHIEF_CAPTAIN, SUPERVISOR, MANAGER, PROJECT_MANAGER]
+export const LAGOON_OPS: Role[] = [AGENT, CHIEF_CAPTAIN, SUPERVISOR, MANAGER, PROJECT_MANAGER];
 
-export const LAGOON_TILL: Role[] = [AGENT]
-export const LAGOON_SAIL: Role[] = [CHIEF_CAPTAIN, SUPERVISOR, MANAGER, PROJECT_MANAGER]
+export const LAGOON_TILL: Role[] = [AGENT];
+export const LAGOON_SAIL: Role[] = [CHIEF_CAPTAIN, SUPERVISOR, MANAGER, PROJECT_MANAGER];

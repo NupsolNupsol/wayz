@@ -1,23 +1,23 @@
-import { create } from 'zustand'
-import { persist } from 'zustand/middleware'
-import type { Me } from '../api/types'
-import { configureAuth } from '../api/client'
-import { applyThemeMode } from './theme'
-import { applyLanguage, type Language } from '../i18n'
-import { runViewTransition } from '../lib/viewTransition'
+import { create } from 'zustand';
+import { persist } from 'zustand/middleware';
+import type { Me } from '../api/types';
+import { configureAuth } from '../api/client';
+import { applyThemeMode } from './theme';
+import { applyLanguage, type Language } from '../i18n';
+import { runViewTransition } from '../lib/viewTransition';
 
 interface AuthState {
-  token: string | null
-  me: Me | null
-  online: boolean
-  theme: 'light' | 'dark'
-  language: Language
-  setSession: (token: string, me: Me) => void
-  setMe: (me: Me) => void
-  logout: () => void
-  setOnline: (online: boolean) => void
-  toggleTheme: (origin?: { x: number; y: number }) => void
-  setLanguage: (language: Language, origin?: { x: number; y: number }) => void
+  token: string | null;
+  me: Me | null;
+  online: boolean;
+  theme: 'light' | 'dark';
+  language: Language;
+  setSession: (token: string, me: Me) => void;
+  setMe: (me: Me) => void;
+  logout: () => void;
+  setOnline: (online: boolean) => void;
+  toggleTheme: (origin?: { x: number; y: number }) => void;
+  setLanguage: (language: Language, origin?: { x: number; y: number }) => void;
 }
 
 export const useAuthStore = create<AuthState>()(
@@ -33,41 +33,41 @@ export const useAuthStore = create<AuthState>()(
       logout: () => set({ token: null, me: null }),
       setOnline: (online) => set({ online }),
       toggleTheme: (origin) => {
-        const next = get().theme === 'light' ? 'dark' : 'light'
+        const next = get().theme === 'light' ? 'dark' : 'light';
         runViewTransition(
           () => {
-            applyThemeMode(next)
-            set({ theme: next })
+            applyThemeMode(next);
+            set({ theme: next });
           },
           'theme',
-          origin,
-        )
+          origin
+        );
       },
       setLanguage: (language, origin) => {
-        if (get().language === language) return
+        if (get().language === language) return;
         runViewTransition(
           () => {
-            applyLanguage(language)
-            set({ language })
+            applyLanguage(language);
+            set({ language });
           },
           'language',
-          origin,
-        )
+          origin
+        );
       },
     }),
-    { name: 'wayz.platform.auth' },
-  ),
-)
+    { name: 'wayz.platform.auth' }
+  )
+);
 
 configureAuth(
   () => useAuthStore.getState().token,
-  () => useAuthStore.getState().logout(),
-)
+  () => useAuthStore.getState().logout()
+);
 
 export function bootstrapTheme() {
-  applyThemeMode(useAuthStore.getState().theme)
+  applyThemeMode(useAuthStore.getState().theme);
 }
 
 export function bootstrapLanguage() {
-  applyLanguage(useAuthStore.getState().language ?? 'en')
+  applyLanguage(useAuthStore.getState().language ?? 'en');
 }

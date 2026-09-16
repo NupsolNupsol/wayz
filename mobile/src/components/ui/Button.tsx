@@ -1,11 +1,11 @@
-import * as Haptics from 'expo-haptics'
-import type { ReactNode } from 'react'
-import { ActivityIndicator, Platform, Pressable, Text, View } from 'react-native'
+import * as Haptics from 'expo-haptics';
+import type { ReactNode } from 'react';
+import { ActivityIndicator, Platform, Pressable, Text, View } from 'react-native';
 
-import { COLORS } from '@/theme/tokens'
+import { COLORS } from '@/theme/tokens';
 
-type Variant = 'primary' | 'secondary' | 'ghost' | 'danger' | 'success'
-type Size = 'md' | 'lg' | 'sm'
+type Variant = 'primary' | 'secondary' | 'ghost' | 'danger' | 'success';
+type Size = 'md' | 'lg' | 'sm';
 
 const BOX: Record<Variant, string> = {
   primary: 'bg-brand active:bg-brand-dark',
@@ -13,7 +13,7 @@ const BOX: Record<Variant, string> = {
   ghost: 'bg-transparent active:bg-canvas',
   danger: 'bg-danger active:opacity-90',
   success: 'bg-success active:opacity-90',
-}
+};
 
 const LABEL: Record<Variant, string> = {
   primary: 'text-white',
@@ -21,15 +21,15 @@ const LABEL: Record<Variant, string> = {
   ghost: 'text-brand-ink',
   danger: 'text-white',
   success: 'text-white',
-}
+};
 
 const SIZE: Record<Size, string> = {
   sm: 'h-10 px-3.5 rounded-xl',
   md: 'h-12 px-5 rounded-2xl',
   lg: 'h-14 px-6 rounded-2xl',
-}
+};
 
-const TEXT_SIZE: Record<Size, string> = { sm: 'text-sm', md: 'text-[15px]', lg: 'text-base' }
+const TEXT_SIZE: Record<Size, string> = { sm: 'text-sm', md: 'text-[15px]', lg: 'text-base' };
 
 export function Button({
   label,
@@ -42,22 +42,22 @@ export function Button({
   full = false,
   testID,
 }: {
-  label: string
-  onPress?: () => void
-  variant?: Variant
-  size?: Size
-  loading?: boolean
-  disabled?: boolean
-  icon?: ReactNode
-  full?: boolean
-  testID?: string
+  label: string;
+  onPress?: () => void;
+  variant?: Variant;
+  size?: Size;
+  loading?: boolean;
+  disabled?: boolean;
+  icon?: ReactNode;
+  full?: boolean;
+  testID?: string;
 }) {
-  const inert = disabled || loading
+  const inert = disabled || loading;
 
   const press = () => {
-    if (Platform.OS !== 'web') void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light)
-    onPress?.()
-  }
+    if (Platform.OS !== 'web') void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    onPress?.();
+  };
 
   return (
     <Pressable
@@ -71,7 +71,9 @@ export function Button({
       }`}
     >
       {loading ? (
-        <ActivityIndicator color={variant === 'secondary' || variant === 'ghost' ? COLORS.navy : COLORS.white} />
+        <ActivityIndicator
+          color={variant === 'secondary' || variant === 'ghost' ? COLORS.navy : COLORS.white}
+        />
       ) : (
         <>
           {icon ? <View>{icon}</View> : null}
@@ -79,5 +81,5 @@ export function Button({
         </>
       )}
     </Pressable>
-  )
+  );
 }

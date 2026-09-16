@@ -1,40 +1,65 @@
-import { router } from 'expo-router'
-import { useMemo, useState } from 'react'
-import { FlatList, View } from 'react-native'
+import { router } from 'expo-router';
+import { useMemo, useState } from 'react';
+import { FlatList, View } from 'react-native';
 
-import { AppHeader } from '@/components/AppHeader'
-import { Icon } from '@/components/Icon'
-import { EmptyState, Input, ListGroup, ListRow, Loading, Muted, Ref, Screen, Segmented, StatusPill } from '@/components/ui'
-import { engineLabel } from '@/config/engines'
-import { useBookings } from '@/hooks/queries'
-import { formatDateTime } from '@/lib/format'
-import { COLORS } from '@/theme/tokens'
+import { AppHeader } from '@/components/AppHeader';
+import { Icon } from '@/components/Icon';
+import {
+  EmptyState,
+  Input,
+  ListGroup,
+  ListRow,
+  Loading,
+  Muted,
+  Ref,
+  Screen,
+  Segmented,
+  StatusPill,
+} from '@/components/ui';
+import { engineLabel } from '@/config/engines';
+import { useBookings } from '@/hooks/queries';
+import { formatDateTime } from '@/lib/format';
+import { COLORS } from '@/theme/tokens';
 
-type Filter = 'live' | 'done' | 'all'
+type Filter = 'live' | 'done' | 'all';
 
-const LIVE = ['CONFIRMED', 'RESERVED', 'ACTIVE', 'OVERTIME', 'RETRIEVAL_IN_PROGRESS', 'PREPARING', 'SERVED']
+const LIVE = [
+  'CONFIRMED',
+  'RESERVED',
+  'ACTIVE',
+  'OVERTIME',
+  'RETRIEVAL_IN_PROGRESS',
+  'PREPARING',
+  'SERVED',
+];
 
 export default function Bookings() {
-  const [filter, setFilter] = useState<Filter>('live')
-  const [query, setQuery] = useState('')
-  const { data = [], isLoading, isFetching, refetch } = useBookings()
+  const [filter, setFilter] = useState<Filter>('live');
+  const [query, setQuery] = useState('');
+  const { data = [], isLoading, isFetching, refetch } = useBookings();
 
   const rows = useMemo(() => {
     const byFilter = data.filter((b) => {
-      if (filter === 'live') return LIVE.includes(b.status)
-      if (filter === 'done') return ['COMPLETED', 'CANCELLED'].includes(b.status)
-      return true
-    })
+      if (filter === 'live') return LIVE.includes(b.status);
+      if (filter === 'done') return ['COMPLETED', 'CANCELLED'].includes(b.status);
+      return true;
+    });
 
-    const term = query.trim().toLowerCase()
+    const term = query.trim().toLowerCase();
     const searched = term
       ? byFilter.filter((b) =>
-          [b.ref, b.customerName, b.customerPhone, b.productName].filter(Boolean).join(' ').toLowerCase().includes(term),
+          [b.ref, b.customerName, b.customerPhone, b.productName]
+            .filter(Boolean)
+            .join(' ')
+            .toLowerCase()
+            .includes(term)
         )
-      : byFilter
+      : byFilter;
 
-    return [...searched].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
-  }, [data, filter, query])
+    return [...searched].sort(
+      (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+    );
+  }, [data, filter, query]);
 
   return (
     <Screen padded={false} testID="bookings">
@@ -97,5 +122,5 @@ export default function Bookings() {
         />
       )}
     </Screen>
-  )
+  );
 }

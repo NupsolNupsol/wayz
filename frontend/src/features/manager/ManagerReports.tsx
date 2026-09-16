@@ -1,55 +1,62 @@
-import { useState } from 'react'
-import { useStatusLabel } from '@/i18n/useStatusLabel'
-import { useTranslation } from 'react-i18next'
-import { Download, TrendingUp, Boxes, Package, BadgePercent } from 'lucide-react'
-import { PageHeader } from '@/components/PageHeader'
-import { Card, SectionTitle, Button, Field, Spinner, StatCard, Badge } from '@/components/ui'
-import { BarChart } from '@/components/Charts'
-import { DataTable } from '@/components/DataTable'
-import { useReportDiscounts, useReportOccupancy, useReportRentals, useReportRevenue } from '@/hooks'
-import { managerApi } from '@/api/manager.api'
-import { useAuthStore } from '@/store/auth'
-import { engineLabel } from '@/config/engineMeta'
-import { formatDayLabel, money } from '@/utils'
-import { toast } from '@/state/toastStore'
-import type { EngineKind } from '@/api/types'
+import { useState } from 'react';
+import { useStatusLabel } from '@/i18n/useStatusLabel';
+import { useTranslation } from 'react-i18next';
+import { Download, TrendingUp, Boxes, Package, BadgePercent } from 'lucide-react';
+import { PageHeader } from '@/components/PageHeader';
+import { Card, SectionTitle, Button, Field, Spinner, StatCard, Badge } from '@/components/ui';
+import { BarChart } from '@/components/Charts';
+import { DataTable } from '@/components/DataTable';
+import {
+  useReportDiscounts,
+  useReportOccupancy,
+  useReportRentals,
+  useReportRevenue,
+} from '@/hooks';
+import { managerApi } from '@/api/manager.api';
+import { useAuthStore } from '@/store/auth';
+import { engineLabel } from '@/config/engineMeta';
+import { formatDayLabel, money } from '@/utils';
+import { toast } from '@/state/toastStore';
+import type { EngineKind } from '@/api/types';
 
-const today = () => new Date().toISOString().slice(0, 10)
-const daysAgo = (n: number) => new Date(Date.now() - n * 86_400_000).toISOString().slice(0, 10)
+const today = () => new Date().toISOString().slice(0, 10);
+const daysAgo = (n: number) => new Date(Date.now() - n * 86_400_000).toISOString().slice(0, 10);
 
 export function ManagerReports() {
-  const { t } = useTranslation(['manager', 'common'])
-  const statusLabel = useStatusLabel()
-  const [from, setFrom] = useState(daysAgo(29))
-  const [to, setTo] = useState(today())
-  const range = { from, to }
+  const { t } = useTranslation(['manager', 'common']);
+  const statusLabel = useStatusLabel();
+  const [from, setFrom] = useState(daysAgo(29));
+  const [to, setTo] = useState(today());
+  const range = { from, to };
 
-  const revenue = useReportRevenue(range)
-  const occupancy = useReportOccupancy()
-  const rentals = useReportRentals(range)
-  const discounts = useReportDiscounts(range)
-  const token = useAuthStore((s) => s.token)
+  const revenue = useReportRevenue(range);
+  const occupancy = useReportOccupancy();
+  const rentals = useReportRentals(range);
+  const discounts = useReportDiscounts(range);
+  const token = useAuthStore((s) => s.token);
 
   const exportCsv = async (kind: string) => {
     try {
-      const res = await fetch(managerApi.exportUrl(kind, range), { headers: { Authorization: `Bearer ${token}` } })
-      if (!res.ok) throw new Error(`Export failed (${res.status})`)
-      const blob = await res.blob()
-      const url = URL.createObjectURL(blob)
-      const a = document.createElement('a')
-      a.href = url
-      a.download = `${kind}-${from}-to-${to}.csv`
-      document.body.appendChild(a)
-      a.click()
-      a.remove()
-      setTimeout(() => URL.revokeObjectURL(url), 1000)
-      toast('success', t('reports.exported'), `${kind}.csv`)
+      const res = await fetch(managerApi.exportUrl(kind, range), {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!res.ok) throw new Error(`Export failed (${res.status})`);
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${kind}-${from}-to-${to}.csv`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+      toast('success', t('reports.exported'), `${kind}.csv`);
     } catch (e) {
-      toast('danger', t('reports.couldNotExport'), e instanceof Error ? e.message : '')
+      toast('danger', t('reports.couldNotExport'), e instanceof Error ? e.message : '');
     }
-  }
+  };
 
-  const loading = revenue.isLoading || occupancy.isLoading || rentals.isLoading
+  const loading = revenue.isLoading || occupancy.isLoading || rentals.isLoading;
 
   return (
     <div data-testid="manager-reports">
@@ -61,30 +68,80 @@ export function ManagerReports() {
 
       <Card className="mb-5">
         <div className="flex flex-wrap items-end gap-4">
-          <Field label={t('common:field.from')}><input type="date" className="lf-input" value={from} onChange={(e) => setFrom(e.target.value)} data-testid="report-from" /></Field>
-          <Field label="To"><input type="date" className="lf-input" value={to} onChange={(e) => setTo(e.target.value)} data-testid="report-to" /></Field>
+          <Field label={t('common:field.from')}>
+            <input
+              type="date"
+              className="lf-input"
+              value={from}
+              onChange={(e) => setFrom(e.target.value)}
+              data-testid="report-from"
+            />
+          </Field>
+          <Field label="To">
+            <input
+              type="date"
+              className="lf-input"
+              value={to}
+              onChange={(e) => setTo(e.target.value)}
+              data-testid="report-to"
+            />
+          </Field>
           <div className="flex flex-wrap gap-2 pb-4">
             {[7, 30, 90].map((d) => (
-              <Button key={d} variant="ghost" onClick={() => { setFrom(daysAgo(d - 1)); setTo(today()) }}>{t('reports.lastDays', { count: d })}</Button>
+              <Button
+                key={d}
+                variant="ghost"
+                onClick={() => {
+                  setFrom(daysAgo(d - 1));
+                  setTo(today());
+                }}
+              >
+                {t('reports.lastDays', { count: d })}
+              </Button>
             ))}
           </div>
         </div>
       </Card>
 
-      {loading ? <Spinner /> : (
+      {loading ? (
+        <Spinner />
+      ) : (
         <div className="flex flex-col gap-5">
           <Card>
             <div className="flex flex-wrap items-center justify-between gap-2 mb-3">
-              <SectionTitle className="flex items-center gap-2"><TrendingUp size={18} />{t('reports.revenue')}</SectionTitle>
-              <Button variant="secondary" onClick={() => exportCsv('revenue')} data-testid="export-revenue"><Download size={15} /> CSV</Button>
+              <SectionTitle className="flex items-center gap-2">
+                <TrendingUp size={18} />
+                {t('reports.revenue')}
+              </SectionTitle>
+              <Button
+                variant="secondary"
+                onClick={() => exportCsv('revenue')}
+                data-testid="export-revenue"
+              >
+                <Download size={15} /> CSV
+              </Button>
             </div>
             {revenue.data && (
               <>
                 <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
-                  <StatCard label={t('reports.gross')} value={money(revenue.data.gross)} tone="success" testId="report-gross" />
+                  <StatCard
+                    label={t('reports.gross')}
+                    value={money(revenue.data.gross)}
+                    tone="success"
+                    testId="report-gross"
+                  />
                   <StatCard label={t('reports.transactions')} value={revenue.data.transactions} />
-                  <StatCard label={t('reports.overtimeRevenue')} value={money(revenue.data.overtimeRevenue)} tone="warning" />
-                  <StatCard label={t('reports.avgPerDay')} value={money(revenue.data.daily.length ? revenue.data.gross / revenue.data.daily.length : 0)} />
+                  <StatCard
+                    label={t('reports.overtimeRevenue')}
+                    value={money(revenue.data.overtimeRevenue)}
+                    tone="warning"
+                  />
+                  <StatCard
+                    label={t('reports.avgPerDay')}
+                    value={money(
+                      revenue.data.daily.length ? revenue.data.gross / revenue.data.daily.length : 0
+                    )}
+                  />
                 </div>
                 <BarChart
                   data={revenue.data.daily.slice(-30).map((d) => ({
@@ -95,22 +152,39 @@ export function ManagerReports() {
                 />
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 mt-5">
                   <div>
-                    <p className="text-xs font-bold uppercase tracking-wide text-muted mb-2">{t('reports.byPaymentMethod')}</p>
+                    <p className="text-xs font-bold uppercase tracking-wide text-muted mb-2">
+                      {t('reports.byPaymentMethod')}
+                    </p>
                     {revenue.data.byMethod.map((m) => (
-                      <div key={m.method} className="flex justify-between text-sm py-1 border-b border-line last:border-0">
-                        <span><Badge tone="neutral">{statusLabel(m.method, 'method')}</Badge> <span className="text-muted">{t('reports.txnCount', { count: m.count })}</span></span>
+                      <div
+                        key={m.method}
+                        className="flex justify-between text-sm py-1 border-b border-line last:border-0"
+                      >
+                        <span>
+                          <Badge tone="neutral">{statusLabel(m.method, 'method')}</Badge>{' '}
+                          <span className="text-muted">
+                            {t('reports.txnCount', { count: m.count })}
+                          </span>
+                        </span>
                         <strong className="tabular-nums">{money(m.total)}</strong>
                       </div>
                     ))}
                   </div>
                   <div>
-                    <p className="text-xs font-bold uppercase tracking-wide text-muted mb-2">{t('reports.byService')}</p>
-                    {revenue.data.byEngine.filter((e) => e.total > 0).map((e) => (
-                      <div key={e.engineKind} className="flex justify-between text-sm py-1 border-b border-line last:border-0">
-                        <span>{engineLabel(e.engineKind as EngineKind)}</span>
-                        <strong className="tabular-nums">{money(e.total)}</strong>
-                      </div>
-                    ))}
+                    <p className="text-xs font-bold uppercase tracking-wide text-muted mb-2">
+                      {t('reports.byService')}
+                    </p>
+                    {revenue.data.byEngine
+                      .filter((e) => e.total > 0)
+                      .map((e) => (
+                        <div
+                          key={e.engineKind}
+                          className="flex justify-between text-sm py-1 border-b border-line last:border-0"
+                        >
+                          <span>{engineLabel(e.engineKind as EngineKind)}</span>
+                          <strong className="tabular-nums">{money(e.total)}</strong>
+                        </div>
+                      ))}
                   </div>
                 </div>
               </>
@@ -119,37 +193,79 @@ export function ManagerReports() {
 
           <Card data-testid="report-discounts">
             <div className="flex flex-wrap items-center justify-between gap-2 mb-3">
-              <SectionTitle className="flex items-center gap-2"><BadgePercent size={18} />{t('reports.discounts')}</SectionTitle>
-              <Button variant="secondary" onClick={() => exportCsv('discounts')} data-testid="export-discounts"><Download size={15} /> CSV</Button>
+              <SectionTitle className="flex items-center gap-2">
+                <BadgePercent size={18} />
+                {t('reports.discounts')}
+              </SectionTitle>
+              <Button
+                variant="secondary"
+                onClick={() => exportCsv('discounts')}
+                data-testid="export-discounts"
+              >
+                <Download size={15} /> CSV
+              </Button>
             </div>
             {discounts.data && (
               <>
                 <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
-                  <StatCard label={t('reports.discountGiven')} value={money(discounts.data.given)} tone="warning" testId="report-discount-total" />
-                  <StatCard label={t('reports.discountCount')} value={discounts.data.count} testId="report-discount-count" />
-                  <StatCard label={t('reports.freeRides')} value={discounts.data.freeRides} tone="danger" testId="report-free-rides" />
+                  <StatCard
+                    label={t('reports.discountGiven')}
+                    value={money(discounts.data.given)}
+                    tone="warning"
+                    testId="report-discount-total"
+                  />
+                  <StatCard
+                    label={t('reports.discountCount')}
+                    value={discounts.data.count}
+                    testId="report-discount-count"
+                  />
+                  <StatCard
+                    label={t('reports.freeRides')}
+                    value={discounts.data.freeRides}
+                    tone="danger"
+                    testId="report-free-rides"
+                  />
                   <StatCard
                     label={t('reports.discountAvg')}
-                    value={money(discounts.data.count ? discounts.data.given / discounts.data.count : 0)}
+                    value={money(
+                      discounts.data.count ? discounts.data.given / discounts.data.count : 0
+                    )}
                   />
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 mb-5">
                   <div>
-                    <p className="text-xs font-bold uppercase tracking-wide text-muted mb-2">{t('reports.byReason')}</p>
-                    {discounts.data.byReason.length === 0 && <p className="text-sm text-muted">{t('reports.noDiscounts')}</p>}
+                    <p className="text-xs font-bold uppercase tracking-wide text-muted mb-2">
+                      {t('reports.byReason')}
+                    </p>
+                    {discounts.data.byReason.length === 0 && (
+                      <p className="text-sm text-muted">{t('reports.noDiscounts')}</p>
+                    )}
                     {discounts.data.byReason.map((r) => (
-                      <div key={r.key} className="flex justify-between text-sm py-1 border-b border-line last:border-0" data-testid={`discount-reason-${r.key}`}>
-                        <span>{r.key} <span className="text-muted">· {r.count}</span></span>
+                      <div
+                        key={r.key}
+                        className="flex justify-between text-sm py-1 border-b border-line last:border-0"
+                        data-testid={`discount-reason-${r.key}`}
+                      >
+                        <span>
+                          {r.key} <span className="text-muted">· {r.count}</span>
+                        </span>
                         <strong className="tabular-nums">{money(r.total)}</strong>
                       </div>
                     ))}
                   </div>
                   <div>
-                    <p className="text-xs font-bold uppercase tracking-wide text-muted mb-2">{t('reports.byAgent')}</p>
+                    <p className="text-xs font-bold uppercase tracking-wide text-muted mb-2">
+                      {t('reports.byAgent')}
+                    </p>
                     {discounts.data.byAgent.map((r) => (
-                      <div key={r.key} className="flex justify-between text-sm py-1 border-b border-line last:border-0">
-                        <span>{r.key} <span className="text-muted">· {r.count}</span></span>
+                      <div
+                        key={r.key}
+                        className="flex justify-between text-sm py-1 border-b border-line last:border-0"
+                      >
+                        <span>
+                          {r.key} <span className="text-muted">· {r.count}</span>
+                        </span>
                         <strong className="tabular-nums">{money(r.total)}</strong>
                       </div>
                     ))}
@@ -162,18 +278,51 @@ export function ManagerReports() {
                   keyOf={(r) => `${r.bookingId}-${r.at}`}
                   empty={{ title: t('reports.noDiscounts') }}
                   columns={[
-                    { key: 'ref', header: t('common:column.reference'), render: (r) => <span className="font-semibold">{r.ref}</span>, sortValue: (r) => r.ref },
-                    { key: 'activity', header: t('common:column.activity'), render: (r) => engineLabel(r.engineKind) },
-                    { key: 'customer', header: t('common:column.customer'), render: (r) => r.customerName },
-                    { key: 'reason', header: t('reports.reason'), render: (r) => r.reason, sortValue: (r) => r.reason },
+                    {
+                      key: 'ref',
+                      header: t('common:column.reference'),
+                      render: (r) => <span className="font-semibold">{r.ref}</span>,
+                      sortValue: (r) => r.ref,
+                    },
+                    {
+                      key: 'activity',
+                      header: t('common:column.activity'),
+                      render: (r) => engineLabel(r.engineKind),
+                    },
+                    {
+                      key: 'customer',
+                      header: t('common:column.customer'),
+                      render: (r) => r.customerName,
+                    },
+                    {
+                      key: 'reason',
+                      header: t('reports.reason'),
+                      render: (r) => r.reason,
+                      sortValue: (r) => r.reason,
+                    },
                     {
                       key: 'kind',
                       header: t('reports.kind'),
                       render: (r) =>
-                        r.free ? <Badge tone="danger">{t('reports.freeRide')}</Badge> : <Badge tone="warning">{r.percent}%</Badge>,
+                        r.free ? (
+                          <Badge tone="danger">{t('reports.freeRide')}</Badge>
+                        ) : (
+                          <Badge tone="warning">{r.percent}%</Badge>
+                        ),
                     },
-                    { key: 'given', header: t('reports.given'), align: 'right', render: (r) => <span className="tabular-nums">{money(r.amount)}</span>, sortValue: (r) => r.amount },
-                    { key: 'by', header: t('reports.givenBy'), render: (r) => r.givenBy, sortValue: (r) => r.givenBy },
+                    {
+                      key: 'given',
+                      header: t('reports.given'),
+                      align: 'right',
+                      render: (r) => <span className="tabular-nums">{money(r.amount)}</span>,
+                      sortValue: (r) => r.amount,
+                    },
+                    {
+                      key: 'by',
+                      header: t('reports.givenBy'),
+                      render: (r) => r.givenBy,
+                      sortValue: (r) => r.givenBy,
+                    },
                   ]}
                 />
               </>
@@ -182,8 +331,17 @@ export function ManagerReports() {
 
           <Card>
             <div className="flex flex-wrap items-center justify-between gap-2 mb-3">
-              <SectionTitle className="flex items-center gap-2"><Boxes size={18} />{t('reports.occupancy')}</SectionTitle>
-              <Button variant="secondary" onClick={() => exportCsv('occupancy')} data-testid="export-occupancy"><Download size={15} /> CSV</Button>
+              <SectionTitle className="flex items-center gap-2">
+                <Boxes size={18} />
+                {t('reports.occupancy')}
+              </SectionTitle>
+              <Button
+                variant="secondary"
+                onClick={() => exportCsv('occupancy')}
+                data-testid="export-occupancy"
+              >
+                <Download size={15} /> CSV
+              </Button>
             </div>
             {occupancy.data && (
               <DataTable
@@ -207,24 +365,58 @@ export function ManagerReports() {
                     sortValue: (r) => r.kind,
                     filter: {
                       kind: 'select',
-                      options: [...new Set(occupancy.data.byAssetType.map((r) => r.kind))].map((k) => ({
-                        label: t(`assets:kind.${k}`, { defaultValue: k }),
-                        value: k,
-                      })),
+                      options: [...new Set(occupancy.data.byAssetType.map((r) => r.kind))].map(
+                        (k) => ({
+                          label: t(`assets:kind.${k}`, { defaultValue: k }),
+                          value: k,
+                        })
+                      ),
                       value: (r) => r.kind,
                     },
-                    render: (r) => <span className="text-muted">{t(`assets:kind.${r.kind}`, { defaultValue: r.kind })}</span>,
+                    render: (r) => (
+                      <span className="text-muted">
+                        {t(`assets:kind.${r.kind}`, { defaultValue: r.kind })}
+                      </span>
+                    ),
                   },
-                  { key: 'total', header: t('common:field.total'), align: 'right', sortValue: (r) => r.total, render: (r) => <span className="tabular-nums">{r.total}</span> },
-                  { key: 'inUse', header: t('assets:table.inUse'), align: 'right', sortValue: (r) => r.inUse, render: (r) => <span className="tabular-nums">{r.inUse}</span> },
-                  { key: 'down', header: t('assets:table.down'), align: 'right', sortValue: (r) => r.outOfService, render: (r) => <span className="tabular-nums">{r.outOfService}</span> },
+                  {
+                    key: 'total',
+                    header: t('common:field.total'),
+                    align: 'right',
+                    sortValue: (r) => r.total,
+                    render: (r) => <span className="tabular-nums">{r.total}</span>,
+                  },
+                  {
+                    key: 'inUse',
+                    header: t('assets:table.inUse'),
+                    align: 'right',
+                    sortValue: (r) => r.inUse,
+                    render: (r) => <span className="tabular-nums">{r.inUse}</span>,
+                  },
+                  {
+                    key: 'down',
+                    header: t('assets:table.down'),
+                    align: 'right',
+                    sortValue: (r) => r.outOfService,
+                    render: (r) => <span className="tabular-nums">{r.outOfService}</span>,
+                  },
                   {
                     key: 'utilisation',
                     header: t('assets:table.utilisation'),
                     align: 'right',
                     sortValue: (r) => r.utilisationPct,
                     render: (r) => (
-                      <Badge tone={r.utilisationPct > 80 ? 'danger' : r.utilisationPct > 50 ? 'warning' : 'success'}>{r.utilisationPct}%</Badge>
+                      <Badge
+                        tone={
+                          r.utilisationPct > 80
+                            ? 'danger'
+                            : r.utilisationPct > 50
+                              ? 'warning'
+                              : 'success'
+                        }
+                      >
+                        {r.utilisationPct}%
+                      </Badge>
                     ),
                   },
                 ]}
@@ -234,20 +426,44 @@ export function ManagerReports() {
 
           <Card>
             <div className="flex flex-wrap items-center justify-between gap-2 mb-3">
-              <SectionTitle className="flex items-center gap-2"><Package size={18} /> {t('reports.rentals')}</SectionTitle>
-              <Button variant="secondary" onClick={() => exportCsv('rentals')} data-testid="export-rentals"><Download size={15} /> CSV</Button>
+              <SectionTitle className="flex items-center gap-2">
+                <Package size={18} /> {t('reports.rentals')}
+              </SectionTitle>
+              <Button
+                variant="secondary"
+                onClick={() => exportCsv('rentals')}
+                data-testid="export-rentals"
+              >
+                <Download size={15} /> CSV
+              </Button>
             </div>
             {rentals.data && (
               <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-                <StatCard label={t('common:field.total')} value={rentals.data.total} testId="report-rentals-total" />
-                <StatCard label={t('reports.completed')} value={rentals.data.completed} tone="success" />
-                <StatCard label={t('reports.overdueNow')} value={rentals.data.overdueNow} tone={rentals.data.overdueNow ? 'danger' : 'neutral'} sublabel={money(rentals.data.penaltyAccruing) + ' accruing'} />
-                <StatCard label={t('reports.avgDuration')} value={`${Math.floor(rentals.data.averageDurationMin / 60)}h ${rentals.data.averageDurationMin % 60}m`} />
+                <StatCard
+                  label={t('common:field.total')}
+                  value={rentals.data.total}
+                  testId="report-rentals-total"
+                />
+                <StatCard
+                  label={t('reports.completed')}
+                  value={rentals.data.completed}
+                  tone="success"
+                />
+                <StatCard
+                  label={t('reports.overdueNow')}
+                  value={rentals.data.overdueNow}
+                  tone={rentals.data.overdueNow ? 'danger' : 'neutral'}
+                  sublabel={money(rentals.data.penaltyAccruing) + ' accruing'}
+                />
+                <StatCard
+                  label={t('reports.avgDuration')}
+                  value={`${Math.floor(rentals.data.averageDurationMin / 60)}h ${rentals.data.averageDurationMin % 60}m`}
+                />
               </div>
             )}
           </Card>
         </div>
       )}
     </div>
-  )
+  );
 }

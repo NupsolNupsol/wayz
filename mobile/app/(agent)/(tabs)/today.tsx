@@ -1,8 +1,8 @@
-import { router } from "expo-router";
-import { Pressable, View } from "react-native";
+import { router } from 'expo-router';
+import { Pressable, View } from 'react-native';
 
-import { AppHeader } from "@/components/AppHeader";
-import { Icon, type IconName } from "@/components/Icon";
+import { AppHeader } from '@/components/AppHeader';
+import { Icon, type IconName } from '@/components/Icon';
 import {
   Amount,
   Body,
@@ -15,21 +15,16 @@ import {
   Muted,
   Screen,
   Section,
-} from "@/components/ui";
-import { ENGINE_META, enginesFor } from "@/config/engines";
-import { useDeviceClass } from "@/hooks/useDeviceClass";
-import { useBookings, useShift, useStats } from "@/hooks/queries";
-import { formatTime, humanizeMs, money } from "@/lib/format";
-import { useSessionStore } from "@/store/session.store";
-import { COLORS } from "@/theme/tokens";
-import type { Booking } from "@/types";
+} from '@/components/ui';
+import { ENGINE_META, enginesFor } from '@/config/engines';
+import { useDeviceClass } from '@/hooks/useDeviceClass';
+import { useBookings, useShift, useStats } from '@/hooks/queries';
+import { formatTime, humanizeMs, money } from '@/lib/format';
+import { useSessionStore } from '@/store/session.store';
+import { COLORS } from '@/theme/tokens';
+import type { Booking } from '@/types';
 
-const LIVE_STATUSES = [
-  "ACTIVE",
-  "OVERTIME",
-  "RETRIEVAL_IN_PROGRESS",
-  "PREPARING",
-];
+const LIVE_STATUSES = ['ACTIVE', 'OVERTIME', 'RETRIEVAL_IN_PROGRESS', 'PREPARING'];
 
 export default function Today() {
   const me = useSessionStore((s) => s.me);
@@ -43,8 +38,7 @@ export default function Today() {
     .filter((b) => LIVE_STATUSES.includes(b.status) && b.session.expectedEndAt)
     .sort(
       (a, b) =>
-        new Date(a.session.expectedEndAt!).getTime() -
-        new Date(b.session.expectedEndAt!).getTime(),
+        new Date(a.session.expectedEndAt!).getTime() - new Date(b.session.expectedEndAt!).getTime()
     )
     .slice(0, 4);
 
@@ -57,7 +51,7 @@ export default function Today() {
   }
 
   const s = stats.data;
-  const tillOpen = shift.data?.status === "OPEN";
+  const tillOpen = shift.data?.status === 'OPEN';
 
   return (
     <Screen
@@ -67,17 +61,14 @@ export default function Today() {
       testID="today"
     >
       <AppHeader
-        title={`Hello, ${me?.fullName?.split(" ")[0] ?? "there"}`}
-        subtitle={
-          [me?.station?.name, me?.kiosk?.name].filter(Boolean).join(" · ") ||
-          undefined
-        }
+        title={`Hello, ${me?.fullName?.split(' ')[0] ?? 'there'}`}
+        subtitle={[me?.station?.name, me?.kiosk?.name].filter(Boolean).join(' · ') || undefined}
         actions={
           <Pressable
             accessibilityRole="button"
             accessibilityLabel="Profile"
             testID="today-profile"
-            onPress={() => router.push("/profile")}
+            onPress={() => router.push('/profile')}
             className="h-10 w-10 items-center justify-center rounded-2xl border border-line bg-surface active:bg-canvas"
           >
             <Icon name="User" size={18} color={COLORS.navy} />
@@ -88,16 +79,14 @@ export default function Today() {
       {!tillOpen ? (
         <Card
           className="mb-4 border-warn/40 bg-warn-soft"
-          onPress={() => router.push("/shift")}
+          onPress={() => router.push('/shift')}
           testID="today-till-closed"
         >
           <View className="flex-row items-center gap-3">
             <Icon name="Wallet" size={20} color={COLORS.warn} />
             <View className="flex-1">
               <Body className="font-semibold">Your till is closed</Body>
-              <Muted>
-                Open it before taking cash, or the day will not reconcile.
-              </Muted>
+              <Muted>Open it before taking cash, or the day will not reconcile.</Muted>
             </View>
             <Icon name="ChevronRight" size={18} color={COLORS.warn} />
           </View>
@@ -124,16 +113,16 @@ export default function Today() {
           value={String(s?.activeOperations ?? 0)}
           icon="Activity"
           columns={columns}
-          onPress={() => router.push("/operations")}
+          onPress={() => router.push('/operations')}
           testID="stat-active"
         />
         <Stat
           label="Overdue"
           value={String(s?.overdue ?? 0)}
           icon="Clock"
-          tone={s?.overdue ? "danger" : "neutral"}
+          tone={s?.overdue ? 'danger' : 'neutral'}
           columns={columns}
-          onPress={() => router.push("/operations")}
+          onPress={() => router.push('/operations')}
           testID="stat-overdue"
         />
       </View>
@@ -179,7 +168,7 @@ export default function Today() {
         action={
           <Pressable
             accessibilityRole="button"
-            onPress={() => router.push("/operations")}
+            onPress={() => router.push('/operations')}
             testID="today-see-all"
           >
             <Muted className="font-semibold text-brand-ink">See all</Muted>
@@ -210,29 +199,20 @@ export default function Today() {
 
 function RunningRow({ booking }: { booking: Booking }) {
   const remaining = booking.session.remainingMs;
-  const late =
-    booking.session.isOvertime || (remaining !== null && remaining <= 0);
+  const late = booking.session.isOvertime || (remaining !== null && remaining <= 0);
 
   return (
     <ListRow
       testID={`today-booking-${booking.id}`}
-      onPress={() =>
-        router.push({ pathname: "/booking/[id]", params: { id: booking.id } })
-      }
+      onPress={() => router.push({ pathname: '/booking/[id]', params: { id: booking.id } })}
       title={booking.customerName || booking.ref}
       subtitle={booking.productName}
       trailing={
         <>
-          <Amount className={late ? "text-danger" : "text-navy"}>
-            {remaining === null
-              ? "—"
-              : late
-                ? "Overdue"
-                : humanizeMs(remaining)}
+          <Amount className={late ? 'text-danger' : 'text-navy'}>
+            {remaining === null ? '—' : late ? 'Overdue' : humanizeMs(remaining)}
           </Amount>
-          <Muted className="text-[11px]">
-            ends {formatTime(booking.session.expectedEndAt)}
-          </Muted>
+          <Muted className="text-[11px]">ends {formatTime(booking.session.expectedEndAt)}</Muted>
         </>
       }
     />
@@ -243,7 +223,7 @@ function Stat({
   label,
   value,
   icon,
-  tone = "neutral",
+  tone = 'neutral',
   columns,
   onPress,
   testID,
@@ -251,25 +231,19 @@ function Stat({
   label: string;
   value: string;
   icon: IconName;
-  tone?: "neutral" | "danger";
+  tone?: 'neutral' | 'danger';
   columns: number;
   onPress?: () => void;
   testID?: string;
 }) {
-  const basis = columns >= 4 ? "23%" : "47%";
+  const basis = columns >= 4 ? '23%' : '47%';
   const body = (
     <>
       <View className="mb-2 flex-row items-center justify-between">
         <Label>{label}</Label>
-        <Icon
-          name={icon}
-          size={16}
-          color={tone === "danger" ? COLORS.danger : COLORS.faint}
-        />
+        <Icon name={icon} size={16} color={tone === 'danger' ? COLORS.danger : COLORS.faint} />
       </View>
-      <Amount
-        className={`text-2xl ${tone === "danger" ? "text-danger" : "text-navy"}`}
-      >
+      <Amount className={`text-2xl ${tone === 'danger' ? 'text-danger' : 'text-navy'}`}>
         {value}
       </Amount>
     </>

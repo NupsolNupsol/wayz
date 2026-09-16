@@ -1,4 +1,9 @@
-import type { AssetUnitSnapshot, BookingSnapshot, OperationResult, WorkflowContext } from '../shared/types.js'
+import type {
+  AssetUnitSnapshot,
+  BookingSnapshot,
+  OperationResult,
+  WorkflowContext,
+} from '../shared/types.js';
 import {
   ACTIVE,
   AGENT_HOLDER,
@@ -14,14 +19,14 @@ import {
   UNIT_OCCUPIED,
   UNIT_RESERVED,
   type CustodyHolder,
-} from '../shared/status.js'
+} from '../shared/status.js';
 
-const RESERVATION_MINUTES = 15
+const RESERVATION_MINUTES = 15;
 
 export function addCustody(
   result: OperationResult,
   ctx: WorkflowContext,
-  move: { from: CustodyHolder; to: CustodyHolder; note?: string; bagIndex?: number },
+  move: { from: CustodyHolder; to: CustodyHolder; note?: string; bagIndex?: number }
 ): void {
   result.booking.custody.push({
     from: move.from,
@@ -29,45 +34,45 @@ export function addCustody(
     at: ctx.now.toISOString(),
     note: move.note,
     bagIndex: move.bagIndex,
-  })
+  });
 }
 
 export function chooseUnit(ctx: WorkflowContext): AssetUnitSnapshot | null {
-  const requested = typeof ctx.payload.unitId === 'string' ? ctx.payload.unitId : ''
-  if (requested) return ctx.assets.byId[requested] ?? null
-  return ctx.assets.available[0] ?? null
+  const requested = typeof ctx.payload.unitId === 'string' ? ctx.payload.unitId : '';
+  if (requested) return ctx.assets.byId[requested] ?? null;
+  return ctx.assets.available[0] ?? null;
 }
 
 export function reserveUnit(result: OperationResult, ctx: WorkflowContext): void {
-  const unit = chooseUnit(ctx)
+  const unit = chooseUnit(ctx);
   if (!unit) {
-    result.errors.push('No available unit to reserve.')
-    return
+    result.errors.push('No available unit to reserve.');
+    return;
   }
   result.booking.reservation = {
     assetUnitId: unit._id,
     expiresAt: new Date(ctx.now.getTime() + RESERVATION_MINUTES * 60_000).toISOString(),
     status: RESERVATION_ACTIVE,
-  }
-  result.booking.assetUnitId = unit._id
-  result.booking.session.assetUnitId = unit._id
+  };
+  result.booking.assetUnitId = unit._id;
+  result.booking.session.assetUnitId = unit._id;
   result.assetIntents.push({
     op: 'SET_STATUS',
     unitId: unit._id,
     status: UNIT_RESERVED,
     currentBookingId: result.booking._id,
-  })
-  result.audits.push({ action: 'RESERVE_UNIT', detail: unit._id })
+  });
+  result.audits.push({ action: 'RESERVE_UNIT', detail: unit._id });
 }
 
 export function reassignUnit(result: OperationResult, ctx: WorkflowContext): void {
-  const previous = ctx.booking.reservation?.assetUnitId ?? ctx.booking.assetUnitId
-  const next = chooseUnit(ctx)
+  const previous = ctx.booking.reservation?.assetUnitId ?? ctx.booking.assetUnitId;
+  const next = chooseUnit(ctx);
   if (!next) {
-    result.errors.push('No replacement unit available.')
-    return
+    result.errors.push('No replacement unit available.');
+    return;
   }
-  const reason = String(ctx.payload.reason ?? '')
+  const reason = String(ctx.payload.reason ?? '');
 
   if (previous) {
     result.assetIntents.push({
@@ -76,41 +81,45 @@ export function reassignUnit(result: OperationResult, ctx: WorkflowContext): voi
       status: UNIT_MAINTENANCE,
       currentBookingId: null,
       note: `Reassigned away: ${reason}`,
-    })
+    });
   }
   result.assetIntents.push({
     op: 'SET_STATUS',
     unitId: next._id,
     status: UNIT_RESERVED,
     currentBookingId: result.booking._id,
-  })
+  });
 
   result.booking.reservation = {
     assetUnitId: next._id,
     expiresAt: new Date(ctx.now.getTime() + RESERVATION_MINUTES * 60_000).toISOString(),
     status: RESERVATION_ACTIVE,
-  }
-  result.booking.assetUnitId = next._id
-  result.booking.session.assetUnitId = next._id
+  };
+  result.booking.assetUnitId = next._id;
+  result.booking.session.assetUnitId = next._id;
 
-  extendForReplacement(result, ctx)
+  extendForReplacement(result, ctx);
 
-  result.audits.push({ action: 'REASSIGN_UNIT', reason, detail: `${previous ?? '—'} → ${next._id}` })
+  result.audits.push({
+    action: 'REASSIGN_UNIT',
+    reason,
+    detail: `${previous ?? '—'} → ${next._id}`,
+  });
 }
 
 export function replaceUnit(result: OperationResult, ctx: WorkflowContext): void {
-  const previous = ctx.booking.assetUnitId
-  const next = chooseUnit(ctx)
+  const previous = ctx.booking.assetUnitId;
+  const next = chooseUnit(ctx);
   if (!next) {
-    result.errors.push('No replacement unit available.')
-    return
+    result.errors.push('No replacement unit available.');
+    return;
   }
   if (next._id === previous) {
-    result.errors.push('That is the same unit — choose a different one.')
-    return
+    result.errors.push('That is the same unit — choose a different one.');
+    return;
   }
 
-  const reason = String(ctx.payload.reason ?? '')
+  const reason = String(ctx.payload.reason ?? '');
 
   if (previous) {
     result.assetIntents.push({
@@ -119,34 +128,43 @@ export function replaceUnit(result: OperationResult, ctx: WorkflowContext): void
       status: UNIT_MAINTENANCE,
       currentBookingId: null,
       note: `Replaced mid-rental: ${reason}`,
-    })
+    });
   }
   result.assetIntents.push({
     op: 'SET_STATUS',
     unitId: next._id,
     status: UNIT_OCCUPIED,
     currentBookingId: result.booking._id,
-  })
+  });
 
-  result.booking.assetUnitId = next._id
-  result.booking.session.assetUnitId = next._id
-  addCustody(result, ctx, { from: AGENT_HOLDER, to: CUSTOMER, note: `Replacement ${next.identifier}` })
+  result.booking.assetUnitId = next._id;
+  result.booking.session.assetUnitId = next._id;
+  addCustody(result, ctx, {
+    from: AGENT_HOLDER,
+    to: CUSTOMER,
+    note: `Replacement ${next.identifier}`,
+  });
 
-  extendForReplacement(result, ctx)
-  result.audits.push({ action: 'REPLACE_UNIT', reason, detail: `${previous ?? '—'} → ${next._id}` })
+  extendForReplacement(result, ctx);
+  result.audits.push({
+    action: 'REPLACE_UNIT',
+    reason,
+    detail: `${previous ?? '—'} → ${next._id}`,
+  });
 }
 
 function extendForReplacement(result: OperationResult, ctx: WorkflowContext): void {
-  const bonusMin = ctx.rules?.replacementBonusMin ?? 0
-  if (bonusMin <= 0 || !result.booking.session.expectedEndAt) return
+  const bonusMin = ctx.rules?.replacementBonusMin ?? 0;
+  if (bonusMin <= 0 || !result.booking.session.expectedEndAt) return;
 
-  const end = new Date(result.booking.session.expectedEndAt)
-  if (Number.isNaN(end.getTime())) return
+  const end = new Date(result.booking.session.expectedEndAt);
+  if (Number.isNaN(end.getTime())) return;
 
-  result.booking.session.expectedEndAt = new Date(end.getTime() + bonusMin * 60_000).toISOString()
+  result.booking.session.expectedEndAt = new Date(end.getTime() + bonusMin * 60_000).toISOString();
   // Totalled, not replaced: a customer unlucky enough to be swapped twice is owed both.
-  result.booking.session.replacementBonusMin = (result.booking.session.replacementBonusMin ?? 0) + bonusMin
-  result.audits.push({ action: 'REPLACEMENT_TIME_ADDED', detail: `+${bonusMin} min` })
+  result.booking.session.replacementBonusMin =
+    (result.booking.session.replacementBonusMin ?? 0) + bonusMin;
+  result.audits.push({ action: 'REPLACEMENT_TIME_ADDED', detail: `+${bonusMin} min` });
 }
 
 /**
@@ -154,100 +172,117 @@ function extendForReplacement(result: OperationResult, ctx: WorkflowContext): vo
  * records when it cast off, and nothing counts down or runs into overtime.
  */
 export function startRide(result: OperationResult, ctx: WorkflowContext): void {
-  result.booking.session.startedAt = timerStart(ctx).toISOString()
-  result.booking.session.expectedEndAt = null
-  result.audits.push({ action: 'START_RIDE', detail: 'Cast off — a ride is not timed' })
+  result.booking.session.startedAt = timerStart(ctx).toISOString();
+  result.booking.session.expectedEndAt = null;
+  result.audits.push({ action: 'START_RIDE', detail: 'Cast off — a ride is not timed' });
 }
 
 export function startTimer(result: OperationResult, ctx: WorkflowContext): void {
-  const requested = ctx.payload.durationMin ?? ctx.booking.session.requestedDurationMin
-  const durationMin = Number(requested)
+  const requested = ctx.payload.durationMin ?? ctx.booking.session.requestedDurationMin;
+  const durationMin = Number(requested);
   if (!Number.isFinite(durationMin) || durationMin <= 0) {
-    result.errors.push('A positive duration is required to start the timer.')
-    return
+    result.errors.push('A positive duration is required to start the timer.');
+    return;
   }
 
-  const startedAt = timerStart(ctx)
-  const expectedEnd = new Date(startedAt.getTime() + durationMin * 60_000)
-  result.booking.session.requestedDurationMin = durationMin
-  result.booking.session.startedAt = startedAt.toISOString()
-  result.booking.session.expectedEndAt = expectedEnd.toISOString()
-  result.audits.push({ action: 'START_TIMER', detail: `${durationMin} min → ${expectedEnd.toISOString()}` })
+  const startedAt = timerStart(ctx);
+  const expectedEnd = new Date(startedAt.getTime() + durationMin * 60_000);
+  result.booking.session.requestedDurationMin = durationMin;
+  result.booking.session.startedAt = startedAt.toISOString();
+  result.booking.session.expectedEndAt = expectedEnd.toISOString();
+  result.audits.push({
+    action: 'START_TIMER',
+    detail: `${durationMin} min → ${expectedEnd.toISOString()}`,
+  });
 }
 
 function timerStart(ctx: WorkflowContext): Date {
-  const policy = ctx.rules?.timer
-  if (!policy || policy.startsOn !== 'PAYMENT') return ctx.now
+  const policy = ctx.rules?.timer;
+  if (!policy || policy.startsOn !== 'PAYMENT') return ctx.now;
 
-  const paidAt = ctx.booking.session.paidAt
-  if (!paidAt) return ctx.now
+  const paidAt = ctx.booking.session.paidAt;
+  if (!paidAt) return ctx.now;
 
-  const paid = new Date(paidAt)
-  if (Number.isNaN(paid.getTime())) return ctx.now
+  const paid = new Date(paidAt);
+  if (Number.isNaN(paid.getTime())) return ctx.now;
 
-  return new Date(paid.getTime() + Math.max(0, policy.startDelayMin) * 60_000)
+  return new Date(paid.getTime() + Math.max(0, policy.startDelayMin) * 60_000);
 }
 
 export function storeBagsAndOccupy(result: OperationResult, ctx: WorkflowContext): void {
-  const unitId = ctx.booking.reservation?.assetUnitId ?? ctx.booking.assetUnitId
+  const unitId = ctx.booking.reservation?.assetUnitId ?? ctx.booking.assetUnitId;
   if (!unitId) {
-    result.errors.push('No unit to store into.')
-    return
+    result.errors.push('No unit to store into.');
+    return;
   }
-  result.booking.bags = result.booking.bags.map((b) => ({ ...b, status: BAG_STORED, assignedUnitId: unitId }))
-  if (result.booking.reservation) result.booking.reservation.status = RESERVATION_CONSUMED
-  result.booking.assetUnitId = unitId
-  result.booking.session.assetUnitId = unitId
+  result.booking.bags = result.booking.bags.map((b) => ({
+    ...b,
+    status: BAG_STORED,
+    assignedUnitId: unitId,
+  }));
+  if (result.booking.reservation) result.booking.reservation.status = RESERVATION_CONSUMED;
+  result.booking.assetUnitId = unitId;
+  result.booking.session.assetUnitId = unitId;
   result.assetIntents.push({
     op: 'SET_STATUS',
     unitId,
     status: UNIT_OCCUPIED,
     currentBookingId: result.booking._id,
-  })
-  result.audits.push({ action: 'STORE_BAGS', detail: `${result.booking.bags.length} bag(s) → ${unitId}` })
+  });
+  result.audits.push({
+    action: 'STORE_BAGS',
+    detail: `${result.booking.bags.length} bag(s) → ${unitId}`,
+  });
 }
 
 export function assignAndOccupy(result: OperationResult, ctx: WorkflowContext): void {
-  const assetTypeId = ctx.booking.metadata?.assetTypeId as string | undefined
-  if (!assetTypeId) return
+  const assetTypeId = ctx.booking.metadata?.assetTypeId as string | undefined;
+  if (!assetTypeId) return;
 
-  const unit = ctx.assets.current ?? chooseUnit(ctx)
+  const unit = ctx.assets.current ?? chooseUnit(ctx);
   if (!unit) {
-    result.errors.push('No available unit to assign.')
-    return
+    result.errors.push('No available unit to assign.');
+    return;
   }
-  result.booking.assetUnitId = unit._id
-  result.booking.session.assetUnitId = unit._id
+  result.booking.assetUnitId = unit._id;
+  result.booking.session.assetUnitId = unit._id;
   result.assetIntents.push({
     op: 'SET_STATUS',
     unitId: unit._id,
     status: UNIT_OCCUPIED,
     currentBookingId: result.booking._id,
-  })
+  });
 }
 
-export function markUnit(result: OperationResult, status: typeof UNIT_OCCUPIED | 'RETRIEVAL_PENDING'): void {
-  if (!result.booking.assetUnitId) return
-  result.assetIntents.push({ op: 'SET_STATUS', unitId: result.booking.assetUnitId, status })
+export function markUnit(
+  result: OperationResult,
+  status: typeof UNIT_OCCUPIED | 'RETRIEVAL_PENDING'
+): void {
+  if (!result.booking.assetUnitId) return;
+  result.assetIntents.push({ op: 'SET_STATUS', unitId: result.booking.assetUnitId, status });
 }
 
 export function completeAndRelease(result: OperationResult, ctx: WorkflowContext): void {
-  result.booking.session.chargeableEndedAt = ctx.now.toISOString()
-  result.booking.bags = result.booking.bags.map((b) => ({ ...b, status: BAG_DELIVERED, assignedUnitId: null }))
+  result.booking.session.chargeableEndedAt = ctx.now.toISOString();
+  result.booking.bags = result.booking.bags.map((b) => ({
+    ...b,
+    status: BAG_DELIVERED,
+    assignedUnitId: null,
+  }));
   if (result.booking.assetUnitId) {
     result.assetIntents.push({
       op: 'SET_STATUS',
       unitId: result.booking.assetUnitId,
       status: UNIT_AVAILABLE,
       currentBookingId: null,
-    })
+    });
   }
 }
 
 export function cancelRelease(result: OperationResult, ctx?: WorkflowContext): void {
   // A cancelled session is over: stop its clock, or a cancelled rental keeps running up overtime.
   if (ctx && result.booking.session.startedAt && !result.booking.session.chargeableEndedAt) {
-    result.booking.session.chargeableEndedAt = ctx.now.toISOString()
+    result.booking.session.chargeableEndedAt = ctx.now.toISOString();
   }
   if (result.booking.assetUnitId) {
     result.assetIntents.push({
@@ -255,31 +290,46 @@ export function cancelRelease(result: OperationResult, ctx?: WorkflowContext): v
       unitId: result.booking.assetUnitId,
       status: UNIT_AVAILABLE,
       currentBookingId: null,
-    })
+    });
   }
-  if (result.booking.reservation) result.booking.reservation.status = RESERVATION_RELEASED
+  if (result.booking.reservation) result.booking.reservation.status = RESERVATION_RELEASED;
 }
 
-export function consumeVerification(result: OperationResult, ctx: WorkflowContext, purpose = 'RETRIEVAL'): void {
+export function consumeVerification(
+  result: OperationResult,
+  ctx: WorkflowContext,
+  purpose = 'RETRIEVAL'
+): void {
   const fresh = result.booking.verifications.find(
-    (v) => v.purpose === purpose && v.status === 'VERIFIED' && new Date(v.expiresAt).getTime() > ctx.now.getTime(),
-  )
-  if (!fresh) return
-  fresh.status = 'CONSUMED'
-  fresh.consumedAt = ctx.now.toISOString()
-  result.audits.push({ action: 'CONSUME_VERIFICATION', detail: `${purpose} · ${fresh.method}`, reason: fresh.reason ?? undefined })
+    (v) =>
+      v.purpose === purpose &&
+      v.status === 'VERIFIED' &&
+      new Date(v.expiresAt).getTime() > ctx.now.getTime()
+  );
+  if (!fresh) return;
+  fresh.status = 'CONSUMED';
+  fresh.consumedAt = ctx.now.toISOString();
+  result.audits.push({
+    action: 'CONSUME_VERIFICATION',
+    detail: `${purpose} · ${fresh.method}`,
+    reason: fresh.reason ?? undefined,
+  });
 }
 
 export function setStatus(result: OperationResult, status: BookingSnapshot['status']): void {
-  result.booking.status = status
-  result.booking.session.status = status
+  result.booking.status = status;
+  result.booking.session.status = status;
 }
 
-export function handOverToCustomer(result: OperationResult, ctx: WorkflowContext, note: string): void {
-  assignAndOccupy(result, ctx)
-  startTimer(result, ctx)
-  addCustody(result, ctx, { from: AGENT_HOLDER, to: CUSTOMER, note })
-  setStatus(result, ACTIVE)
+export function handOverToCustomer(
+  result: OperationResult,
+  ctx: WorkflowContext,
+  note: string
+): void {
+  assignAndOccupy(result, ctx);
+  startTimer(result, ctx);
+  addCustody(result, ctx, { from: AGENT_HOLDER, to: CUSTOMER, note });
+  setStatus(result, ACTIVE);
 }
 
-export { LOCKER, AGENT_HOLDER, CUSTOMER }
+export { LOCKER, AGENT_HOLDER, CUSTOMER };
