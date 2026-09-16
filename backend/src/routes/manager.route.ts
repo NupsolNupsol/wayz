@@ -1,62 +1,62 @@
-import { Router } from 'express'
-import { authenticate, requireRole } from '../middlewares/auth.js'
-import { BACK_OFFICE, FLOOR_LEADS } from '../domain/roles.js'
-import { managerController } from '../controllers/manager.controller.js'
+import { Router } from 'express';
+import { authenticate, requireRole } from '../middlewares/auth.js';
+import { BACK_OFFICE, FLOOR_LEADS } from '../domain/roles.js';
+import { managerController } from '../controllers/manager.controller.js';
 
-const router = Router()
+const router = Router();
 
-router.use(authenticate, requireRole(...FLOOR_LEADS))
+router.use(authenticate, requireRole(...FLOOR_LEADS));
 
-const configure = requireRole(...BACK_OFFICE)
+const configure = requireRole(...BACK_OFFICE);
 
-router.get('/overview', managerController.overview)
-router.get('/live-sessions', managerController.liveSessions)
+router.get('/overview', managerController.overview);
+router.get('/live-sessions', managerController.liveSessions);
 
-router.get('/rentals', managerController.rentals)
-router.get('/rentals/:id', managerController.rentalDetail)
+router.get('/rentals', managerController.rentals);
+router.get('/rentals/:id', managerController.rentalDetail);
 
-router.get('/customers', managerController.customers)
-router.get('/customers/:id', managerController.customerDetail)
+router.get('/customers', managerController.customers);
+router.get('/customers/:id', managerController.customerDetail);
 
-router.get('/org', managerController.org)
-router.post('/org/sites', configure, managerController.createSite)
-router.patch('/org/sites/:id', configure, managerController.updateSite)
-router.post('/org/stations', configure, managerController.createStation)
-router.patch('/org/stations/:id', configure, managerController.updateStation)
-router.post('/org/kiosks', configure, managerController.createKiosk)
-router.patch('/org/kiosks/:id', configure, managerController.updateKiosk)
-router.delete('/org/kiosks/:id', configure, managerController.removeKiosk)
-router.post('/org/gates', configure, managerController.createGate)
-router.patch('/org/gates/:id', configure, managerController.updateGate)
-router.delete('/org/gates/:id', configure, managerController.removeGate)
-router.delete('/org/stations/:id', configure, managerController.removeStation)
-router.delete('/org/sites/:id', configure, managerController.removeSite)
+router.get('/org', managerController.org);
+router.post('/org/sites', configure, managerController.createSite);
+router.patch('/org/sites/:id', configure, managerController.updateSite);
+router.post('/org/stations', configure, managerController.createStation);
+router.patch('/org/stations/:id', configure, managerController.updateStation);
+router.post('/org/kiosks', configure, managerController.createKiosk);
+router.patch('/org/kiosks/:id', configure, managerController.updateKiosk);
+router.delete('/org/kiosks/:id', configure, managerController.removeKiosk);
+router.post('/org/gates', configure, managerController.createGate);
+router.patch('/org/gates/:id', configure, managerController.updateGate);
+router.delete('/org/gates/:id', configure, managerController.removeGate);
+router.delete('/org/stations/:id', configure, managerController.removeStation);
+router.delete('/org/sites/:id', configure, managerController.removeSite);
 
-router.get('/payments', managerController.payments)
+router.get('/payments', managerController.payments);
 
-router.get('/incidents', managerController.incidents)
-router.patch('/incidents/:id', managerController.updateIncident)
-router.get('/shifts', managerController.shifts)
-router.get('/shifts/:id', managerController.shift)
+router.get('/incidents', managerController.incidents);
+router.patch('/incidents/:id', managerController.updateIncident);
+router.get('/shifts', managerController.shifts);
+router.get('/shifts/:id', managerController.shift);
 
-router.get('/staff', managerController.staff)
-router.post('/staff', configure, managerController.createStaff)
-router.patch('/staff/:id', configure, managerController.updateStaff)
-router.post('/staff/:id/password', configure, managerController.resetStaffPassword)
-router.delete('/staff/:id', configure, managerController.removeStaff)
-router.post('/staff/:id/invite', configure, managerController.reinviteStaff)
+router.get('/staff', managerController.staff);
+router.post('/staff', configure, managerController.createStaff);
+router.patch('/staff/:id', configure, managerController.updateStaff);
+router.post('/staff/:id/password', configure, managerController.resetStaffPassword);
+router.delete('/staff/:id', configure, managerController.removeStaff);
+router.post('/staff/:id/invite', configure, managerController.reinviteStaff);
 
-router.get('/settings', managerController.settings)
-router.patch('/settings', configure, managerController.updateSettings)
+router.get('/settings', managerController.settings);
+router.patch('/settings', configure, managerController.updateSettings);
 
-router.get('/reports/revenue', managerController.reportRevenue)
-router.get('/reports/agents', managerController.reportAgents)
-router.get('/reports/occupancy', managerController.reportOccupancy)
-router.get('/reports/rentals', managerController.reportRentals)
-router.get('/reports/customers', managerController.reportCustomers)
-router.get('/reports/discounts', managerController.reportDiscounts)
-router.get('/reports/export/:kind', managerController.exportReport)
+router.get('/reports/revenue', managerController.reportRevenue);
+router.get('/reports/agents', managerController.reportAgents);
+router.get('/reports/occupancy', managerController.reportOccupancy);
+router.get('/reports/rentals', managerController.reportRentals);
+router.get('/reports/customers', managerController.reportCustomers);
+router.get('/reports/discounts', managerController.reportDiscounts);
+router.get('/reports/export/:kind', managerController.exportReport);
 
-router.get('/activity', managerController.activity)
+router.get('/activity', managerController.activity);
 
-export default router
+export default router;

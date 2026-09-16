@@ -1,30 +1,30 @@
-import { Schema } from 'mongoose'
-import bcrypt from 'bcryptjs'
-import { createHash, randomBytes } from 'node:crypto'
-import type { EngineKind, Role } from '../domain/types.js'
+import { Schema } from 'mongoose';
+import bcrypt from 'bcryptjs';
+import { createHash, randomBytes } from 'node:crypto';
+import type { EngineKind, Role } from '../domain/types.js';
 
-export const INVITE_TTL_HOURS = 72
+export const INVITE_TTL_HOURS = 72;
 
 export interface UserInvite {
-  tokenHash: string
-  expiresAt: Date
-  sentAt: Date
-  invitedBy: string
-  deliveredTo: string
+  tokenHash: string;
+  expiresAt: Date;
+  sentAt: Date;
+  invitedBy: string;
+  deliveredTo: string;
 }
 
 export interface UserDoc {
-  _id: string
-  email: string
-  passwordHash: string | null
-  invite: UserInvite | null
-  fullName: string
-  role: Role
-  tenantId: string
-  siteId: string
-  zoneId: string | null
-  stationId: string
-  kioskId: string | null
+  _id: string;
+  email: string;
+  passwordHash: string | null;
+  invite: UserInvite | null;
+  fullName: string;
+  role: Role;
+  tenantId: string;
+  siteId: string;
+  zoneId: string | null;
+  stationId: string;
+  kioskId: string | null;
   /**
    * The gate this member of staff covers.
    *
@@ -32,14 +32,14 @@ export interface UserDoc {
    * at a gate, so they are the one who fetches a customer's bags out of it. Set for the staff who
    * work a gate; null for everyone else.
    */
-  gateId: string | null
-  engineKinds: EngineKind[]
-  reportsTo: string | null
-  phone: string
-  active: boolean
-  removedAt?: Date | null
-  lastLoginAt?: Date | null
-  comparePassword(candidate: string): Promise<boolean>
+  gateId: string | null;
+  engineKinds: EngineKind[];
+  reportsTo: string | null;
+  phone: string;
+  active: boolean;
+  removedAt?: Date | null;
+  lastLoginAt?: Date | null;
+  comparePassword(candidate: string): Promise<boolean>;
 }
 
 const inviteSchema = new Schema<UserInvite>(
@@ -50,8 +50,8 @@ const inviteSchema = new Schema<UserInvite>(
     invitedBy: { type: String, default: '' },
     deliveredTo: { type: String, default: '' },
   },
-  { _id: false },
-)
+  { _id: false }
+);
 
 const userSchema = new Schema<UserDoc>(
   {
@@ -82,31 +82,31 @@ const userSchema = new Schema<UserDoc>(
     removedAt: { type: Date, default: null },
     lastLoginAt: { type: Date, default: null },
   },
-  { _id: false, timestamps: true },
-)
+  { _id: false, timestamps: true }
+);
 
-userSchema.index({ 'invite.tokenHash': 1 })
+userSchema.index({ 'invite.tokenHash': 1 });
 
 userSchema.methods.comparePassword = function (candidate: string): Promise<boolean> {
-  if (!this.passwordHash) return Promise.resolve(false)
-  return bcrypt.compare(candidate, this.passwordHash)
-}
+  if (!this.passwordHash) return Promise.resolve(false);
+  return bcrypt.compare(candidate, this.passwordHash);
+};
 
 export function hashPassword(plain: string): string {
-  return bcrypt.hashSync(plain, 10)
+  return bcrypt.hashSync(plain, 10);
 }
 
 export function newInviteToken(): { token: string; tokenHash: string; expiresAt: Date } {
-  const token = randomBytes(32).toString('base64url')
+  const token = randomBytes(32).toString('base64url');
   return {
     token,
     tokenHash: hashInviteToken(token),
     expiresAt: new Date(Date.now() + INVITE_TTL_HOURS * 3_600_000),
-  }
+  };
 }
 
 export function hashInviteToken(token: string): string {
-  return createHash('sha256').update(token).digest('hex')
+  return createHash('sha256').update(token).digest('hex');
 }
 
 /**
@@ -120,14 +120,14 @@ export function hashInviteToken(token: string): string {
  * The import is deferred to avoid a cycle: the directory reaches back into this schema.
  */
 async function registerForLogin(email: string | undefined): Promise<void> {
-  if (!email) return
+  if (!email) return;
   try {
     const [{ currentTenant }, { rememberLogin }] = await Promise.all([
       import('../platform/tenantContext.js'),
       import('../platform/loginDirectory.js'),
-    ])
-    const tenant = currentTenant()
-    if (tenant) await rememberLogin(email, tenant.tenantId)
+    ]);
+    const tenant = currentTenant();
+    if (tenant) await rememberLogin(email, tenant.tenantId);
   } catch {
     // The directory is a convenience for signing in without naming a tenant; a failure
     // here must never cost the user record itself.
@@ -135,11 +135,12 @@ async function registerForLogin(email: string | undefined): Promise<void> {
 }
 
 userSchema.post('save', function (doc) {
-  void registerForLogin(doc?.email)
-})
+  void registerForLogin(doc?.email);
+});
 
 userSchema.post('insertMany', function (docs: unknown) {
-  for (const doc of (docs as { email?: string }[] | undefined) ?? []) void registerForLogin(doc?.email)
-})
+  for (const doc of (docs as { email?: string }[] | undefined) ?? [])
+    void registerForLogin(doc?.email);
+});
 
-export const UserSchema = userSchema
+export const UserSchema = userSchema;

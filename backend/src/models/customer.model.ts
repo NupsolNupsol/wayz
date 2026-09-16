@@ -1,19 +1,19 @@
-import { Schema } from 'mongoose'
-import { nanoid } from 'nanoid'
+import { Schema } from 'mongoose';
+import { nanoid } from 'nanoid';
 
 export interface CustomerDoc {
-  _id: string
-  tenantId: string
-  name: string
-  phone: string
-  email?: string
+  _id: string;
+  tenantId: string;
+  name: string;
+  phone: string;
+  email?: string;
   /** National identity / residency card number. Asked for at registration. */
-  nationalId?: string
-  vatId?: string
-  phoneVerifiedAt?: Date | null
-  active?: boolean
-  createdAt: Date
-  updatedAt: Date
+  nationalId?: string;
+  vatId?: string;
+  phoneVerifiedAt?: Date | null;
+  active?: boolean;
+  createdAt: Date;
+  updatedAt: Date;
 }
 
 const customerSchema = new Schema<CustomerDoc>(
@@ -28,9 +28,9 @@ const customerSchema = new Schema<CustomerDoc>(
     phoneVerifiedAt: { type: Date, default: null },
     active: { type: Boolean, default: true },
   },
-  { _id: false, timestamps: true },
-)
+  { _id: false, timestamps: true }
+);
 
-customerSchema.index({ tenantId: 1, phone: 1 })
+customerSchema.index({ tenantId: 1, phone: 1 });
 
-export const CustomerSchema = customerSchema
+export const CustomerSchema = customerSchema;

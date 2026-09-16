@@ -1,98 +1,117 @@
-import { InvoiceDoc, Kiosk, Order, Payment, Receipt, Station, Tenant, User } from '../models/index.js'
-import { ApiError } from '../utils/ApiError.js'
-import { round2 } from '../utils/helpers.js'
-import { SCHEME_LABELS } from '../constants/labels.constants.js'
-import { invoiceWhatsApp } from '../constants/messages.constants.js'
-import type { BookingHydrated } from '../models/booking.model.js'
-import type { PaymentMethod } from '../domain/types.js'
-import type { CardScheme } from '../domain/commission.js'
-import { env } from '../config/env.js'
-import { isPubliclyFetchable, sendFile, sendTextVia, isChannelConfigured } from './vonage.service.js'
-import type { Scope } from '../interfaces/index.js'
+import {
+  InvoiceDoc,
+  Kiosk,
+  Order,
+  Payment,
+  Receipt,
+  Station,
+  Tenant,
+  User,
+} from '../models/index.js';
+import { ApiError } from '../utils/ApiError.js';
+import { round2 } from '../utils/helpers.js';
+import { SCHEME_LABELS } from '../constants/labels.constants.js';
+import { invoiceWhatsApp } from '../constants/messages.constants.js';
+import type { BookingHydrated } from '../models/booking.model.js';
+import type { PaymentMethod } from '../domain/types.js';
+import type { CardScheme } from '../domain/commission.js';
+import { env } from '../config/env.js';
+import {
+  isPubliclyFetchable,
+  sendFile,
+  sendTextVia,
+  isChannelConfigured,
+} from './vonage.service.js';
+import type { Scope } from '../interfaces/index.js';
 
-export type InvoiceLineKind = 'ITEM' | 'PENALTY' | 'OVERTIME' | 'DELIVERY' | 'DEPOSIT'
+export type InvoiceLineKind = 'ITEM' | 'PENALTY' | 'OVERTIME' | 'DELIVERY' | 'DEPOSIT';
 
 export interface InvoiceLine {
-  index: number
-  name: string
+  index: number;
+  name: string;
   /** The slip prints in Arabic whatever the agent's screen language is. */
-  nameAr: string
-  quantity: number
-  unitPrice: number
-  total: number
-  isDeposit: boolean
-  kind: InvoiceLineKind
+  nameAr: string;
+  quantity: number;
+  unitPrice: number;
+  total: number;
+  isDeposit: boolean;
+  kind: InvoiceLineKind;
 }
 
 export interface InvoicePaymentLine {
-  label: { en: string; ar: string }
-  method: PaymentMethod
-  amount: number
+  label: { en: string; ar: string };
+  method: PaymentMethod;
+  amount: number;
 }
 
 export interface Invoice {
-  number: string
-  issuedAt: string
+  number: string;
+  issuedAt: string;
   seller: {
-    name: string
-    legalName: string
-    crNumber: string
-    vatNumber: string
-    currency: string
-  }
-  branch: string
-  desk: string | null
-  servedBy: string
-  customer: { name: string; phone: string }
-  lines: InvoiceLine[]
-  payments: InvoicePaymentLine[]
-  totals: { base: number; vat: number; vatRate: number; total: number; deposit: number }
-  qrPayload: string
-  barcode: string
-  status: string
+    name: string;
+    legalName: string;
+    crNumber: string;
+    vatNumber: string;
+    currency: string;
+  };
+  branch: string;
+  desk: string | null;
+  servedBy: string;
+  customer: { name: string; phone: string };
+  lines: InvoiceLine[];
+  payments: InvoicePaymentLine[];
+  totals: { base: number; vat: number; vatRate: number; total: number; deposit: number };
+  qrPayload: string;
+  barcode: string;
+  status: string;
 }
 
 const EXTRA_LINES: Record<string, InvoiceLineKind> = {
   OVERTIME_PENALTY: 'OVERTIME',
   WRONG_STATION_PENALTY: 'PENALTY',
   DELIVERY_FEE: 'DELIVERY',
-}
+};
 
 function lineKind(line: { productId: string; isDeposit: boolean }): InvoiceLineKind {
-  if (line.isDeposit) return 'DEPOSIT'
-  return EXTRA_LINES[line.productId] ?? 'ITEM'
+  if (line.isDeposit) return 'DEPOSIT';
+  return EXTRA_LINES[line.productId] ?? 'ITEM';
 }
 
-const CASH_LABEL = { en: 'Cash', ar: 'نقدًا' }
-const CARD_LABEL = { en: 'Card', ar: 'بطاقة' }
+const CASH_LABEL = { en: 'Cash', ar: 'نقدًا' };
+const CARD_LABEL = { en: 'Card', ar: 'بطاقة' };
 
-function paymentLabel(method: PaymentMethod, cardScheme: CardScheme | null): { en: string; ar: string } {
-  if (method === 'CASH') return CASH_LABEL
-  return cardScheme ? (SCHEME_LABELS[cardScheme] ?? CARD_LABEL) : CARD_LABEL
+function paymentLabel(
+  method: PaymentMethod,
+  cardScheme: CardScheme | null
+): { en: string; ar: string } {
+  if (method === 'CASH') return CASH_LABEL;
+  return cardScheme ? (SCHEME_LABELS[cardScheme] ?? CARD_LABEL) : CARD_LABEL;
 }
 
 export async function buildInvoice(scope: Scope, booking: BookingHydrated): Promise<Invoice> {
-  const order = await Order.findById(booking.orderId).lean()
-  if (!order) throw ApiError.notFound('Order not found.')
+  const order = await Order.findById(booking.orderId).lean();
+  if (!order) throw ApiError.notFound('Order not found.');
 
   const [tenant, station, kiosk, agent, payments, receipt] = await Promise.all([
     Tenant.findById(scope.tenantId).lean(),
     Station.findOne({ _id: booking.stationId, tenantId: scope.tenantId }).lean(),
-    booking.kioskId ? Kiosk.findOne({ _id: booking.kioskId, tenantId: scope.tenantId }).lean() : null,
+    booking.kioskId
+      ? Kiosk.findOne({ _id: booking.kioskId, tenantId: scope.tenantId }).lean()
+      : null,
     User.findById(booking.agentId, { fullName: 1 }).lean(),
     Payment.find({ orderId: order._id, tenantId: scope.tenantId, status: { $ne: 'PENDING' } })
       .sort({ createdAt: 1 })
       .lean(),
     Receipt.findOne({ orderId: order._id, tenantId: scope.tenantId }).lean(),
-  ])
-  if (!tenant) throw ApiError.notFound('Tenant not found.')
+  ]);
+  if (!tenant) throw ApiError.notFound('Tenant not found.');
 
-  const byLabel = new Map<string, InvoicePaymentLine>()
+  const byLabel = new Map<string, InvoicePaymentLine>();
   for (const p of payments) {
-    const label = paymentLabel(p.method, p.cardScheme)
-    const line = byLabel.get(label.en) ?? { label, method: p.method, amount: 0 }
-    line.amount = round2(line.amount + (p.kind === 'REFUND' ? -p.amount : p.amount))
-    byLabel.set(label.en, line)
+    const label = paymentLabel(p.method, p.cardScheme);
+    const line = byLabel.get(label.en) ?? { label, method: p.method, amount: 0 };
+    line.amount = round2(line.amount + (p.kind === 'REFUND' ? -p.amount : p.amount));
+    byLabel.set(label.en, line);
   }
 
   const lines: InvoiceLine[] = order.lines.map((line, i) => ({
@@ -104,7 +123,7 @@ export async function buildInvoice(scope: Scope, booking: BookingHydrated): Prom
     total: round2(line.unitPrice * line.quantity),
     isDeposit: line.isDeposit,
     kind: lineKind(line),
-  }))
+  }));
 
   return {
     number: order.ref,
@@ -129,26 +148,33 @@ export async function buildInvoice(scope: Scope, booking: BookingHydrated): Prom
       total: round2(order.total),
       deposit: round2(order.depositTotal ?? 0),
     },
-    qrPayload: receipt?.qrPayload ?? `ZATCA|${tenant._id.toUpperCase()}|${order.ref}|${order.total.toFixed(2)}`,
+    qrPayload:
+      receipt?.qrPayload ??
+      `ZATCA|${tenant._id.toUpperCase()}|${order.ref}|${order.total.toFixed(2)}`,
     barcode: order.ref,
     status: order.status,
-  }
+  };
 }
 
-const INVOICE_TTL_MIN = 60
+const INVOICE_TTL_MIN = 60;
 
 export async function whatsAppInvoice(
   scope: Scope,
   booking: BookingHydrated,
-  pdf: Buffer,
+  pdf: Buffer
 ): Promise<{ sent: boolean; asText: boolean; url: string; reason?: string }> {
   const [order, tenant] = await Promise.all([
     Order.findById(booking.orderId, { ref: 1, total: 1 }).lean(),
     Tenant.findById(scope.tenantId, { name: 1, currency: 1 }).lean(),
-  ])
+  ]);
 
   if (!booking.customerPhone) {
-    return { sent: false, asText: false, url: '', reason: 'This booking has no customer phone number.' }
+    return {
+      sent: false,
+      asText: false,
+      url: '',
+      reason: 'This booking has no customer phone number.',
+    };
   }
 
   const doc = await InvoiceDoc.create({
@@ -157,12 +183,12 @@ export async function whatsAppInvoice(
     orderRef: order?.ref ?? booking.ref,
     pdf,
     expiresAt: new Date(Date.now() + INVOICE_TTL_MIN * 60_000),
-  })
+  });
 
-  const base = (env.PUBLIC_API_URL ?? env.PUBLIC_APP_URL).replace(/\/$/, '')
-  const url = `${base}/api/public/invoice/${doc._id}`
-  const tracking = `${env.PUBLIC_APP_URL.replace(/\/$/, '')}/track/${booking.trackingToken}`
-  const brand = tenant?.name ?? 'WAYZ'
+  const base = (env.PUBLIC_API_URL ?? env.PUBLIC_APP_URL).replace(/\/$/, '');
+  const url = `${base}/api/public/invoice/${doc._id}`;
+  const tracking = `${env.PUBLIC_APP_URL.replace(/\/$/, '')}/track/${booking.trackingToken}`;
+  const brand = tenant?.name ?? 'WAYZ';
 
   const message = {
     brand,
@@ -170,12 +196,12 @@ export async function whatsAppInvoice(
     total: order?.total ?? 0,
     currency: tenant?.currency ?? 'SAR',
     tracking,
-  }
-  const thanks = invoiceWhatsApp(message)
+  };
+  const thanks = invoiceWhatsApp(message);
 
   if (!isPubliclyFetchable(url)) {
-    const withLink = invoiceWhatsApp({ ...message, invoiceUrl: url })
-    const fallback = await sendTextVia(['whatsapp', 'sms'], booking.customerPhone, withLink)
+    const withLink = invoiceWhatsApp({ ...message, invoiceUrl: url });
+    const fallback = await sendTextVia(['whatsapp', 'sms'], booking.customerPhone, withLink);
     return {
       sent: fallback.ok,
       asText: true,
@@ -183,7 +209,7 @@ export async function whatsAppInvoice(
       reason: fallback.ok
         ? `The message went, but not the PDF: WhatsApp fetches attachments itself and cannot reach ${base}. Point PUBLIC_API_URL at a publicly reachable address to attach the invoice.`
         : fallback.error,
-    }
+    };
   }
 
   /*
@@ -193,17 +219,23 @@ export async function whatsAppInvoice(
    * as a link rather than not reaching them.
    */
   if (!isChannelConfigured('whatsapp')) {
-    const asLink = await sendTextVia(['sms'], booking.customerPhone, invoiceWhatsApp({ ...message, invoiceUrl: url }))
-    return { sent: asLink.ok, asText: true, url, reason: asLink.ok ? undefined : asLink.error }
+    const asLink = await sendTextVia(
+      ['sms'],
+      booking.customerPhone,
+      invoiceWhatsApp({ ...message, invoiceUrl: url })
+    );
+    return { sent: asLink.ok, asText: true, url, reason: asLink.ok ? undefined : asLink.error };
   }
 
-  const result = await sendFile('whatsapp', booking.customerPhone, { url, caption: thanks })
-  return { sent: result.ok, asText: false, url, reason: result.ok ? undefined : result.error }
+  const result = await sendFile('whatsapp', booking.customerPhone, { url, caption: thanks });
+  return { sent: result.ok, asText: false, url, reason: result.ok ? undefined : result.error };
 }
 
-export async function readInvoicePdf(token: string): Promise<{ pdf: Buffer; filename: string } | null> {
-  const doc = await InvoiceDoc.findById(token)
-  if (!doc) return null
-  if (doc.expiresAt.getTime() < Date.now()) return null
-  return { pdf: Buffer.from(doc.pdf), filename: `invoice-${doc.orderRef}.pdf` }
+export async function readInvoicePdf(
+  token: string
+): Promise<{ pdf: Buffer; filename: string } | null> {
+  const doc = await InvoiceDoc.findById(token);
+  if (!doc) return null;
+  if (doc.expiresAt.getTime() < Date.now()) return null;
+  return { pdf: Buffer.from(doc.pdf), filename: `invoice-${doc.orderRef}.pdf` };
 }

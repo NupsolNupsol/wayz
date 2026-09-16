@@ -1,12 +1,11 @@
-import type { JwtPayload } from './utils/jwt.js'
+import type { JwtPayload } from './utils/jwt.js';
 
 declare global {
-   
   namespace Express {
     interface Request {
-      auth?: JwtPayload
+      auth?: JwtPayload;
     }
   }
 }
 
-export {}
+export {};

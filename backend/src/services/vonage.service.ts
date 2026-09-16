@@ -1,6 +1,6 @@
-import { env } from '../config/env.js'
-import { logger } from '../config/logger.js'
-import type { WhatsAppResult } from '../interfaces/index.js'
+import { env } from '../config/env.js';
+import { logger } from '../config/logger.js';
+import type { WhatsAppResult } from '../interfaces/index.js';
 
 /**
  * Vonage's Messages API, which carries both WhatsApp and SMS.
@@ -14,7 +14,7 @@ import type { WhatsAppResult } from '../interfaces/index.js'
  * code that only ever goes to WhatsApp reaches nobody.
  */
 
-export type MessageChannel = 'whatsapp' | 'sms'
+export type MessageChannel = 'whatsapp' | 'sms';
 
 /**
  * How long the counter will wait for the provider.
@@ -23,22 +23,22 @@ export type MessageChannel = 'whatsapp' | 'sms'
  * or unreachable the request used to hang on the default socket timeout — minutes, in
  * practice — and the desk simply froze.
  */
-const PROVIDER_TIMEOUT_MS = 10_000
+const PROVIDER_TIMEOUT_MS = 10_000;
 
 export function toDigits(phone: string): string {
-  return phone.replace(/\D/g, '')
+  return phone.replace(/\D/g, '');
 }
 
 export function maskPhone(phone: string): string {
-  const digits = toDigits(phone)
-  if (digits.length < 4) return '••••'
-  return `${'•'.repeat(Math.max(2, digits.length - 4))}${digits.slice(-4)}`
+  const digits = toDigits(phone);
+  if (digits.length < 4) return '••••';
+  return `${'•'.repeat(Math.max(2, digits.length - 4))}${digits.slice(-4)}`;
 }
 
-const hasCredentials = (): boolean => !!(env.VONAGE_API_KEY && env.VONAGE_API_SECRET)
+const hasCredentials = (): boolean => !!(env.VONAGE_API_KEY && env.VONAGE_API_SECRET);
 
 export function isWhatsAppConfigured(): boolean {
-  return hasCredentials() && !!env.VONAGE_WHATSAPP_NUMBER
+  return hasCredentials() && !!env.VONAGE_WHATSAPP_NUMBER;
 }
 
 /**
@@ -49,16 +49,16 @@ export function isWhatsAppConfigured(): boolean {
  * account is, and `VONAGE_SMS_FROM` only decides what the message appears to come from.
  */
 export function isSmsConfigured(): boolean {
-  return hasCredentials()
+  return hasCredentials();
 }
 
 export function isChannelConfigured(channel: MessageChannel): boolean {
-  return channel === 'sms' ? isSmsConfigured() : isWhatsAppConfigured()
+  return channel === 'sms' ? isSmsConfigured() : isWhatsAppConfigured();
 }
 
 /** Who the message appears to be from, which differs by channel. */
 function senderFor(channel: MessageChannel): string {
-  return channel === 'sms' ? env.VONAGE_SMS_FROM : toDigits(env.VONAGE_WHATSAPP_NUMBER ?? '')
+  return channel === 'sms' ? env.VONAGE_SMS_FROM : toDigits(env.VONAGE_WHATSAPP_NUMBER ?? '');
 }
 
 /**
@@ -69,19 +69,22 @@ function senderFor(channel: MessageChannel): string {
  * pointing both at one URL breaks whichever channel that URL is not for.
  */
 function endpointFor(channel: MessageChannel): string {
-  return channel === 'sms' ? env.VONAGE_MESSAGES_URL : env.VONAGE_WHATSAPP_URL
+  return channel === 'sms' ? env.VONAGE_MESSAGES_URL : env.VONAGE_WHATSAPP_URL;
 }
 
 async function send(
   channel: MessageChannel,
   phone: string,
-  message: Record<string, unknown>,
+  message: Record<string, unknown>
 ): Promise<WhatsAppResult> {
   if (!isChannelConfigured(channel)) {
-    return { ok: false, error: `${channel === 'sms' ? 'SMS' : 'WhatsApp'} provider is not configured.` }
+    return {
+      ok: false,
+      error: `${channel === 'sms' ? 'SMS' : 'WhatsApp'} provider is not configured.`,
+    };
   }
 
-  const auth = Buffer.from(`${env.VONAGE_API_KEY}:${env.VONAGE_API_SECRET}`).toString('base64')
+  const auth = Buffer.from(`${env.VONAGE_API_KEY}:${env.VONAGE_API_SECRET}`).toString('base64');
   try {
     const res = await fetch(endpointFor(channel), {
       method: 'POST',
@@ -93,28 +96,38 @@ async function send(
         channel,
         ...message,
       }),
-    })
-    const body = await res.text().catch(() => '')
+    });
+    const body = await res.text().catch(() => '');
     if (!res.ok) {
-      logger.warn('Message send failed', { channel, endpoint: endpointFor(channel), status: res.status, to: maskPhone(phone), body: body.slice(0, 300) })
-      return { ok: false, error: `Vonage responded ${res.status}: ${body.slice(0, 300)}` }
+      logger.warn('Message send failed', {
+        channel,
+        endpoint: endpointFor(channel),
+        status: res.status,
+        to: maskPhone(phone),
+        body: body.slice(0, 300),
+      });
+      return { ok: false, error: `Vonage responded ${res.status}: ${body.slice(0, 300)}` };
     }
-    logger.info('Message sent', { channel, to: maskPhone(phone), kind: message.message_type })
-    return { ok: true }
+    logger.info('Message sent', { channel, to: maskPhone(phone), kind: message.message_type });
+    return { ok: true };
   } catch (err) {
     const error =
       err instanceof Error && err.name === 'TimeoutError'
         ? `The ${channel === 'sms' ? 'SMS' : 'WhatsApp'} provider did not answer within ${PROVIDER_TIMEOUT_MS / 1000}s.`
         : err instanceof Error
           ? err.message
-          : String(err)
-    logger.warn('Message send errored', { channel, to: maskPhone(phone), error })
-    return { ok: false, error }
+          : String(err);
+    logger.warn('Message send errored', { channel, to: maskPhone(phone), error });
+    return { ok: false, error };
   }
 }
 
-export async function sendText(channel: MessageChannel, phone: string, text: string): Promise<WhatsAppResult> {
-  return send(channel, phone, { message_type: 'text', text })
+export async function sendText(
+  channel: MessageChannel,
+  phone: string,
+  text: string
+): Promise<WhatsAppResult> {
+  return send(channel, phone, { message_type: 'text', text });
 }
 
 /**
@@ -127,12 +140,12 @@ export async function sendText(channel: MessageChannel, phone: string, text: str
 export async function sendFile(
   channel: MessageChannel,
   phone: string,
-  file: { url: string; caption?: string },
+  file: { url: string; caption?: string }
 ): Promise<WhatsAppResult> {
   if (channel === 'sms') {
-    return sendText('sms', phone, [file.caption, file.url].filter(Boolean).join('\n'))
+    return sendText('sms', phone, [file.caption, file.url].filter(Boolean).join('\n'));
   }
-  return send('whatsapp', phone, { message_type: 'file', file })
+  return send('whatsapp', phone, { message_type: 'file', file });
 }
 
 /**
@@ -144,27 +157,27 @@ export async function sendFile(
 export async function sendTextVia(
   channels: MessageChannel[],
   phone: string,
-  text: string,
+  text: string
 ): Promise<WhatsAppResult & { channel?: MessageChannel }> {
-  let last: WhatsAppResult = { ok: false, error: 'No channel is configured.' }
+  let last: WhatsAppResult = { ok: false, error: 'No channel is configured.' };
   for (const channel of channels) {
-    if (!isChannelConfigured(channel)) continue
-    const result = await sendText(channel, phone, text)
-    if (result.ok) return { ...result, channel }
-    last = result
+    if (!isChannelConfigured(channel)) continue;
+    const result = await sendText(channel, phone, text);
+    if (result.ok) return { ...result, channel };
+    last = result;
   }
-  return last
+  return last;
 }
 
 /** Unchanged from the original transport: a host Vonage could actually fetch from. */
 export function isPubliclyFetchable(url: string): boolean {
   try {
-    const host = new URL(url).hostname.toLowerCase()
-    if (host === 'localhost' || host.endsWith('.local') || host === '::1') return false
-    if (/^127\./.test(host) || /^10\./.test(host) || /^192\.168\./.test(host)) return false
-    if (/^172\.(1[6-9]|2\d|3[01])\./.test(host)) return false
-    return true
+    const host = new URL(url).hostname.toLowerCase();
+    if (host === 'localhost' || host.endsWith('.local') || host === '::1') return false;
+    if (/^127\./.test(host) || /^10\./.test(host) || /^192\.168\./.test(host)) return false;
+    if (/^172\.(1[6-9]|2\d|3[01])\./.test(host)) return false;
+    return true;
   } catch {
-    return false
+    return false;
   }
 }

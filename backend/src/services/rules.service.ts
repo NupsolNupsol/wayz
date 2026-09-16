@@ -1,4 +1,4 @@
-import { Tenant } from '../models/index.js'
+import { Tenant } from '../models/index.js';
 import {
   DEFAULT_PENALTY_SCHEDULE,
   DEFAULT_RENTAL_RULES,
@@ -12,13 +12,13 @@ import {
   type PenaltyRule,
   type RentalRules,
   type ShiftWindow,
-} from '../domain/rules.js'
+} from '../domain/rules.js';
 
 export interface TenantRules {
-  rental: RentalRules
-  penalties: PenaltyRule[]
-  shiftWindow: ShiftWindow
-  discountReasons: DiscountReason[]
+  rental: RentalRules;
+  penalties: PenaltyRule[];
+  shiftWindow: ShiftWindow;
+  discountReasons: DiscountReason[];
 }
 
 export async function tenantRules(tenantId: string): Promise<TenantRules> {
@@ -27,13 +27,13 @@ export async function tenantRules(tenantId: string): Promise<TenantRules> {
     penaltySchedule: 1,
     shiftWindow: 1,
     discountReasons: 1,
-  }).lean()
+  }).lean();
   return {
     rental: resolveRentalRules(tenant?.rentalRules),
     penalties: resolvePenaltySchedule(tenant?.penaltySchedule),
     shiftWindow: resolveShiftWindow(tenant?.shiftWindow),
     discountReasons: resolveDiscountReasons(tenant?.discountReasons),
-  }
+  };
 }
 
 export const DEFAULT_TENANT_RULES: TenantRules = {
@@ -41,4 +41,4 @@ export const DEFAULT_TENANT_RULES: TenantRules = {
   penalties: DEFAULT_PENALTY_SCHEDULE,
   shiftWindow: DEFAULT_SHIFT_WINDOW,
   discountReasons: DEFAULT_DISCOUNT_REASONS,
-}
+};

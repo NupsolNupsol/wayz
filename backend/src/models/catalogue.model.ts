@@ -1,46 +1,53 @@
-import { Schema } from 'mongoose'
-import type { BillingModel, DurationUnit, EngineKind, BagCategory, SaleType, SaleUnit } from '../domain/types.js'
+import { Schema } from 'mongoose';
+import type {
+  BillingModel,
+  DurationUnit,
+  EngineKind,
+  BagCategory,
+  SaleType,
+  SaleUnit,
+} from '../domain/types.js';
 
 export interface ProposedPolicy {
-  minAge?: number | null
-  licenseRequired?: boolean
-  conditionInspection?: 'MANDATORY_PHOTO' | 'VISUAL' | 'SKIP' | 'MANDATORY'
-  safetyAck?: boolean
-  overtimeRule?: string
-  returnLocation?: string
-  damageRule?: string
-  operatorRequirement?: string
+  minAge?: number | null;
+  licenseRequired?: boolean;
+  conditionInspection?: 'MANDATORY_PHOTO' | 'VISUAL' | 'SKIP' | 'MANDATORY';
+  safetyAck?: boolean;
+  overtimeRule?: string;
+  returnLocation?: string;
+  damageRule?: string;
+  operatorRequirement?: string;
 }
 
 export interface CatalogueProductDoc {
-  _id: string
-  tenantId: string
-  engineKind: EngineKind
-  name: string
-  nameAr?: string
-  category: string
-  basePrice: number
-  hourlyPrice?: number | null
-  tourPrice?: number | null
-  tourMinutes?: number | null
-  saleUnit: SaleUnit
-  saleType: SaleType
-  depositRequired: number
-  penaltyPrice: number
-  overtimeHourlyRate?: number | null
-  assetTypeId: string | null
+  _id: string;
+  tenantId: string;
+  engineKind: EngineKind;
+  name: string;
+  nameAr?: string;
+  category: string;
+  basePrice: number;
+  hourlyPrice?: number | null;
+  tourPrice?: number | null;
+  tourMinutes?: number | null;
+  saleUnit: SaleUnit;
+  saleType: SaleType;
+  depositRequired: number;
+  penaltyPrice: number;
+  overtimeHourlyRate?: number | null;
+  assetTypeId: string | null;
   /**
    * Where this product is sold. Empty means every desk that runs the activity; naming a station or
    * a desk keeps it to that counter, which is how a trip that only leaves from one jetty is priced.
    */
-  stationId: string | null
-  kioskId: string | null
-  billingModel: BillingModel
-  durationUnit?: DurationUnit
-  compatibleBagCategories?: BagCategory[]
-  proposedPolicy?: ProposedPolicy
-  emoji: string
-  active: boolean
+  stationId: string | null;
+  kioskId: string | null;
+  billingModel: BillingModel;
+  durationUnit?: DurationUnit;
+  compatibleBagCategories?: BagCategory[];
+  proposedPolicy?: ProposedPolicy;
+  emoji: string;
+  active: boolean;
 }
 
 const catalogueSchema = new Schema<CatalogueProductDoc>(
@@ -70,7 +77,7 @@ const catalogueSchema = new Schema<CatalogueProductDoc>(
     emoji: { type: String, default: '📦' },
     active: { type: Boolean, default: true },
   },
-  { _id: false, timestamps: true },
-)
+  { _id: false, timestamps: true }
+);
 
-export const CatalogueProductSchema = catalogueSchema
+export const CatalogueProductSchema = catalogueSchema;

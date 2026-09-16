@@ -1,6 +1,6 @@
-import type { VersionChange, VersionLink } from '../models/index.js'
+import type { VersionChange, VersionLink } from '../models/index.js';
 
-type Draft = Omit<VersionChange, 'checks' | 'issues'>
+type Draft = Omit<VersionChange, 'checks' | 'issues'>;
 
 const change = (
   area: string,
@@ -9,17 +9,19 @@ const change = (
   roles: string[],
   howToTest: string[],
   expect: string,
-  links: VersionLink[] = [],
-): Draft => ({ area, title, detail, roles, howToTest, expect, links })
+  links: VersionLink[] = []
+): Draft => ({ area, title, detail, roles, howToTest, expect, links });
 
-const AGENT = 'Sign in as agent.wayz@lockerflow.demo / Agent@123 (the Iran bag desk)'
-const MOBILITY = 'Sign in as agent.gate1.wayz@lockerflow.demo / Agent@123 (the Gate 1 mobility desk)'
-const CEO = 'Sign in as admin.wayz@lockerflow.demo / Admin@123'
-const MANAGER = 'Sign in as manager.wayz@lockerflow.demo / Manager@123'
-const HR = 'Sign in as hr.wayz@lockerflow.demo / People@123'
-const COURIER = 'Sign in as courier.wayz@lockerflow.demo / Courier@123'
-const ACCOUNTANT = 'Sign in as accountant.wayz@lockerflow.demo / Account@123'
-const LAGOON_DESK = 'Sign in as welcome.wayz@lockerflow.demo / Lagoon@123 (the Mountain jetty desk)'
+const AGENT = 'Sign in as agent.wayz@lockerflow.demo / Agent@123 (the Iran bag desk)';
+const MOBILITY =
+  'Sign in as agent.gate1.wayz@lockerflow.demo / Agent@123 (the Gate 1 mobility desk)';
+const CEO = 'Sign in as admin.wayz@lockerflow.demo / Admin@123';
+const MANAGER = 'Sign in as manager.wayz@lockerflow.demo / Manager@123';
+const HR = 'Sign in as hr.wayz@lockerflow.demo / People@123';
+const COURIER = 'Sign in as courier.wayz@lockerflow.demo / Courier@123';
+const ACCOUNTANT = 'Sign in as accountant.wayz@lockerflow.demo / Account@123';
+const LAGOON_DESK =
+  'Sign in as welcome.wayz@lockerflow.demo / Lagoon@123 (the Mountain jetty desk)';
 
 export const RELEASE_FIVE: Draft[] = [
   change(
@@ -37,7 +39,7 @@ export const RELEASE_FIVE: Draft[] = [
       'Type one of the codes and redeem it, then try the same code again',
     ],
     'The batch appears with its counts. Every code is unique, six characters after the dash, with no letters that read like digits. The first redemption takes 25% off the sale; the second attempt is refused as already used. Back on the batch, that code shows as redeemed against the booking it paid for. A desk agent cannot create a batch at all.',
-    [{ label: 'Discount codes', to: '/admin/vouchers' }],
+    [{ label: 'Discount codes', to: '/admin/vouchers' }]
   ),
   change(
     'Money',
@@ -51,7 +53,7 @@ export const RELEASE_FIVE: Draft[] = [
       'Open the booking and press Sales invoice, then Print, to see the same slip',
     ],
     'The payment is followed by "it printed itself" and the slip goes to the printer without covering the counter. In the print preview it is one narrow slip, 80 mm wide, with no dialog furniture and no long blank tail after the total.',
-    [{ label: 'Till queue', to: '/till/queue' }],
+    [{ label: 'Till queue', to: '/till/queue' }]
   ),
   change(
     'Bookings',
@@ -65,7 +67,7 @@ export const RELEASE_FIVE: Draft[] = [
       'Leave the page open for a minute',
     ],
     'The remaining time reads as stopped and greyed, and it does not move again. A rental still out on the road keeps counting normally.',
-    [{ label: 'Bookings', to: '/bookings' }],
+    [{ label: 'Bookings', to: '/bookings' }]
   ),
   change(
     'Money',
@@ -80,7 +82,7 @@ export const RELEASE_FIVE: Draft[] = [
       'Start a rental, go to the payment step, tick Split it and type a first part far bigger than the total',
     ],
     'Visitors snaps to the seats actually free on that boat. The split amount snaps to the total, and the rest-on line stays correct.',
-    [],
+    []
   ),
   change(
     'Estate',
@@ -94,16 +96,24 @@ export const RELEASE_FIVE: Draft[] = [
       'Open Team, add a member, then delete them and look for them in the list',
     ],
     'The site refuses while it still holds a station and names the reason. Emptied, it goes. The deleted member drops off the team list, and their bookings, shifts and audit trail are still readable everywhere they appeared.',
-    [{ label: 'Sites & stations', to: '/manager/organisation' }, { label: 'Team', to: '/manager/team' }],
+    [
+      { label: 'Sites & stations', to: '/manager/organisation' },
+      { label: 'Team', to: '/manager/team' },
+    ]
   ),
   change(
     'Estate',
     'Venue types are yours to name',
     'The venue type on a site was a fixed list. Pick "+ Add a venue type" and type your own — water park, corniche, whatever the venue is. It is tidied into house style and joins the list for every site afterwards.',
     ['CEO', 'Manager'],
-    [MANAGER, 'Open Estate → Sites & stations and add a site', 'Open the venue type list, choose + Add a venue type, and type "water park"', 'Save, then add a second site and open the list again'],
+    [
+      MANAGER,
+      'Open Estate → Sites & stations and add a site',
+      'Open the venue type list, choose + Add a venue type, and type "water park"',
+      'Save, then add a second site and open the list again',
+    ],
     'The first site is saved as WATER PARK, and the second site is offered it in the list next to the built-in types.',
-    [{ label: 'Sites & stations', to: '/manager/organisation' }],
+    [{ label: 'Sites & stations', to: '/manager/organisation' }]
   ),
   change(
     'Delivery',
@@ -116,7 +126,10 @@ export const RELEASE_FIVE: Draft[] = [
       'Read the refusal, take the overtime at the counter, then raise the delivery again',
     ],
     'The first attempt is refused and names what is owed and where. Once the counter has taken it, the delivery is raised, and the courier task shows nothing to collect at the door.',
-    [{ label: 'Bookings', to: '/bookings' }, { label: 'Kiosk deliveries', to: '/deliveries' }],
+    [
+      { label: 'Bookings', to: '/bookings' },
+      { label: 'Kiosk deliveries', to: '/deliveries' },
+    ]
   ),
   change(
     'Money',
@@ -131,16 +144,21 @@ export const RELEASE_FIVE: Draft[] = [
       'Then choose "VIP / SELA member" and tick Free ride',
     ],
     'Promotion refuses anything over its ceiling and says so. The free ride leaves only the refundable deposit to settle, and the sale closes with just that.',
-    [{ label: 'Operating rules', to: '/admin/rules' }],
+    [{ label: 'Operating rules', to: '/admin/rules' }]
   ),
   change(
     'Money',
     'One sale, two ways to pay',
     'A customer can settle part in cash and the rest on the card. Tick Split it, set the first amount, choose the method for the rest, and both land on the same sale — the cash part in the drawer, the card part on the scheme it was taken on.',
     ['Kiosk agent'],
-    [MOBILITY, 'Open the till and sell an hour on a scooter', 'On the payment step tick Split it, put half in cash, and leave the rest on MADA', 'Confirm, then open the booking and read what was paid'],
+    [
+      MOBILITY,
+      'Open the till and sell an hour on a scooter',
+      'On the payment step tick Split it, put half in cash, and leave the rest on MADA',
+      'Confirm, then open the booking and read what was paid',
+    ],
     'Both parts are recorded against the sale, the order shows as paid, and the drawer only counts the cash half.',
-    [{ label: 'Till queue', to: '/till/queue' }],
+    [{ label: 'Till queue', to: '/till/queue' }]
   ),
   change(
     'Bookings',
@@ -155,25 +173,36 @@ export const RELEASE_FIVE: Draft[] = [
       'Confirm the customer once more and try a third time',
     ],
     'Retrieval is refused while the overtime is unpaid. Paid but unconfirmed it is still refused — the old check no longer counts. Only after a fresh confirmation do the bags come out.',
-    [{ label: 'Bookings', to: '/bookings' }],
+    [{ label: 'Bookings', to: '/bookings' }]
   ),
   change(
     'Assets',
     'An incident takes the asset out of service and closes the booking',
     'Reporting damage on a live rental closes the session and moves the unit to maintenance in one step, so a broken scooter cannot be rented again while the report is open.',
     ['Kiosk agent', 'Manager'],
-    [MOBILITY, 'Rent a scooter and hand it over', 'Open the booking and press Incident, choose Asset damage and describe it', 'Open Assets and find that scooter'],
+    [
+      MOBILITY,
+      'Rent a scooter and hand it over',
+      'Open the booking and press Incident, choose Asset damage and describe it',
+      'Open Assets and find that scooter',
+    ],
     'The booking closes and the scooter reads as in maintenance, out of the pool, until a lead resolves the incident.',
-    [{ label: 'Assets', to: '/assets' }],
+    [{ label: 'Assets', to: '/assets' }]
   ),
   change(
     'Pricing',
     'Products carry an Arabic name and an icon',
     'A product can be given its Arabic name and an emoji, so the Arabic counter reads properly and the tiles are recognisable at a glance.',
     ['CEO', 'Manager', 'HR'],
-    [HR, 'Open Pricing and edit a product', 'Give it an Arabic name and an icon, and save', AGENT, 'Switch the platform to Arabic and open the counter'],
+    [
+      HR,
+      'Open Pricing and edit a product',
+      'Give it an Arabic name and an icon, and save',
+      AGENT,
+      'Switch the platform to Arabic and open the counter',
+    ],
     'The tile shows the icon and the Arabic name, and the invoice prints the Arabic name too.',
-    [{ label: 'Pricing', to: '/manager/pricing' }],
+    [{ label: 'Pricing', to: '/manager/pricing' }]
   ),
   change(
     'Bookings',
@@ -186,7 +215,7 @@ export const RELEASE_FIVE: Draft[] = [
       'Click Bookings in the menu, then come back to Shop & Drop',
     ],
     'The sale is exactly where you left it, with the same quote, and a line saying it was picked up where you left off. Starting a new one is one button away.',
-    [{ label: 'Shop & Drop', to: '/shop-drop' }],
+    [{ label: 'Shop & Drop', to: '/shop-drop' }]
   ),
   change(
     'Bookings',
@@ -200,7 +229,7 @@ export const RELEASE_FIVE: Draft[] = [
       'Tick Split it, put half in cash, and confirm the payment',
     ],
     'The split payment goes through. Before this, an email confirmation left the sale refused with "Confirm the customer before taking their money" even though the box showed the customer as verified.',
-    [],
+    []
   ),
   change(
     'Money',
@@ -215,7 +244,10 @@ export const RELEASE_FIVE: Draft[] = [
       'Open Settlement → Payments and find that booking',
     ],
     'The till expects the discounted amount, not the list price, and the accountant sees the same figure. The audit trail names who gave the discount and against what.',
-    [{ label: 'Till', to: '/shift' }, { label: 'Payments', to: '/accounting/settlement/payments' }],
+    [
+      { label: 'Till', to: '/shift' },
+      { label: 'Payments', to: '/accounting/settlement/payments' },
+    ]
   ),
   change(
     'Shop & Drop',
@@ -234,16 +266,23 @@ export const RELEASE_FIVE: Draft[] = [
       'Sign in as the Gate 1 agent and look at the bookings list',
     ],
     'The booking leaves the desk that took it in and appears at Gate 1, still open, with the bags shown as held by that gate. The Gate 1 agent checks the customer, takes any overtime, and closes it. Nothing is charged for the move itself.',
-    [{ label: 'Bookings', to: '/bookings' }, { label: 'Kiosk deliveries', to: '/deliveries' }],
+    [
+      { label: 'Bookings', to: '/bookings' },
+      { label: 'Kiosk deliveries', to: '/deliveries' },
+    ]
   ),
   change(
     'Delivery',
     'Releasing bags is one confirmation, not a round trip',
     'The courier no longer has to ask before the desk can act. Whoever is at the counter confirms the courier in front of them and hands the bags over in a single step, stamped with their name and the time. The courier can still tell the desk they have arrived, but nothing waits on it.',
     ['Kiosk agent', 'Delivery agent'],
-    [AGENT, 'Open Kiosk deliveries with a courier assigned to a job', 'Press Check courier and confirm, without the courier pressing anything first'],
+    [
+      AGENT,
+      'Open Kiosk deliveries with a courier assigned to a job',
+      'Press Check courier and confirm, without the courier pressing anything first',
+    ],
     'The bags are released on that one confirmation, and the timeline records who released them and when.',
-    [{ label: 'Kiosk deliveries', to: '/deliveries' }],
+    [{ label: 'Kiosk deliveries', to: '/deliveries' }]
   ),
   change(
     'Money',
@@ -263,9 +302,9 @@ export const RELEASE_FIVE: Draft[] = [
     [
       { label: 'Operating rules', to: '/admin/rules' },
       { label: 'Reports', to: '/manager/reports' },
-    ],
+    ]
   ),
-]
+];
 
 export const RELEASE_FIVE_META = {
   _id: 'ver-0005',
@@ -283,4 +322,4 @@ export const RELEASE_FIVE_META = {
     'Sites, stations and people deleted softly, history intact',
     'No typed amount can exceed what is owed',
   ],
-}
+};

@@ -1,20 +1,20 @@
-import { Schema } from 'mongoose'
-import { nanoid } from 'nanoid'
-import type { EngineKind, IncidentType } from '../domain/types.js'
+import { Schema } from 'mongoose';
+import { nanoid } from 'nanoid';
+import type { EngineKind, IncidentType } from '../domain/types.js';
 
 export interface IncidentDoc {
-  _id: string
-  ref: string
-  tenantId: string
-  stationId: string
-  bookingId?: string | null
-  engineKind?: EngineKind | null
-  type: IncidentType
-  status: 'REPORTED' | 'INVESTIGATING' | 'AWAITING_APPROVAL' | 'RESOLVED' | 'REJECTED'
-  description: string
-  reportedBy: string
-  createdAt: Date
-  updatedAt: Date
+  _id: string;
+  ref: string;
+  tenantId: string;
+  stationId: string;
+  bookingId?: string | null;
+  engineKind?: EngineKind | null;
+  type: IncidentType;
+  status: 'REPORTED' | 'INVESTIGATING' | 'AWAITING_APPROVAL' | 'RESOLVED' | 'REJECTED';
+  description: string;
+  reportedBy: string;
+  createdAt: Date;
+  updatedAt: Date;
 }
 
 const incidentSchema = new Schema<IncidentDoc>(
@@ -30,7 +30,7 @@ const incidentSchema = new Schema<IncidentDoc>(
     description: { type: String, required: true },
     reportedBy: { type: String, required: true },
   },
-  { _id: false, timestamps: true },
-)
+  { _id: false, timestamps: true }
+);
 
-export const IncidentSchema = incidentSchema
+export const IncidentSchema = incidentSchema;

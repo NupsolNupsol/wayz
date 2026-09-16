@@ -1,42 +1,42 @@
-import { Schema } from 'mongoose'
-import { nanoid } from 'nanoid'
-import type { EngineKind } from '../domain/types.js'
+import { Schema } from 'mongoose';
+import { nanoid } from 'nanoid';
+import type { EngineKind } from '../domain/types.js';
 
-export type VoucherStatus = 'ISSUED' | 'REDEEMED' | 'VOID'
+export type VoucherStatus = 'ISSUED' | 'REDEEMED' | 'VOID';
 
 export interface VoucherCampaignDoc {
-  _id: string
-  tenantId: string
-  name: string
-  percent: number
-  quantity: number
+  _id: string;
+  tenantId: string;
+  name: string;
+  percent: number;
+  quantity: number;
   /** Empty means the code works on every activity the tenant runs. */
-  engineKinds: EngineKind[]
-  expiresAt?: Date | null
-  note?: string
-  createdBy: string
-  active: boolean
-  createdAt: Date
-  updatedAt: Date
+  engineKinds: EngineKind[];
+  expiresAt?: Date | null;
+  note?: string;
+  createdBy: string;
+  active: boolean;
+  createdAt: Date;
+  updatedAt: Date;
 }
 
 export interface VoucherDoc {
-  _id: string
-  tenantId: string
-  campaignId: string
-  code: string
-  percent: number
-  engineKinds: EngineKind[]
-  expiresAt?: Date | null
-  status: VoucherStatus
-  redeemedAt?: Date | null
-  redeemedBy?: string | null
-  bookingId?: string | null
-  stationId?: string | null
-  kioskId?: string | null
-  amountOff?: number | null
-  createdAt: Date
-  updatedAt: Date
+  _id: string;
+  tenantId: string;
+  campaignId: string;
+  code: string;
+  percent: number;
+  engineKinds: EngineKind[];
+  expiresAt?: Date | null;
+  status: VoucherStatus;
+  redeemedAt?: Date | null;
+  redeemedBy?: string | null;
+  bookingId?: string | null;
+  stationId?: string | null;
+  kioskId?: string | null;
+  amountOff?: number | null;
+  createdAt: Date;
+  updatedAt: Date;
 }
 
 const campaignSchema = new Schema<VoucherCampaignDoc>(
@@ -52,8 +52,8 @@ const campaignSchema = new Schema<VoucherCampaignDoc>(
     createdBy: { type: String, required: true },
     active: { type: Boolean, default: true },
   },
-  { _id: false, timestamps: true },
-)
+  { _id: false, timestamps: true }
+);
 
 const voucherSchema = new Schema<VoucherDoc>(
   {
@@ -72,11 +72,11 @@ const voucherSchema = new Schema<VoucherDoc>(
     kioskId: { type: String, default: null },
     amountOff: { type: Number, default: null },
   },
-  { _id: false, timestamps: true },
-)
+  { _id: false, timestamps: true }
+);
 
 /** One customer, one code: the pair is what makes a code redeemable exactly once. */
-voucherSchema.index({ tenantId: 1, code: 1 }, { unique: true })
+voucherSchema.index({ tenantId: 1, code: 1 }, { unique: true });
 
-export const VoucherCampaignSchema = campaignSchema
-export const VoucherSchema = voucherSchema
+export const VoucherCampaignSchema = campaignSchema;
+export const VoucherSchema = voucherSchema;

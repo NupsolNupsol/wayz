@@ -1,4 +1,4 @@
-import { Counter } from '../models/index.js'
+import { Counter } from '../models/index.js';
 
 export const ID_PREFIX = {
   booking: 'bk',
@@ -27,35 +27,39 @@ export const ID_PREFIX = {
   refundRequest: 'rfr',
   trip: 'trp',
   version: 'ver',
-} as const
+} as const;
 
-export type CounterName = keyof typeof ID_PREFIX
+export type CounterName = keyof typeof ID_PREFIX;
 
-const PAD = 4
+const PAD = 4;
 
 export async function nextSequence(name: CounterName): Promise<number> {
   const doc = await Counter.findOneAndUpdate(
     { _id: name },
     { $inc: { seq: 1 } },
-    { new: true, upsert: true, setDefaultsOnInsert: true },
-  ).lean()
-  return doc!.seq
+    { new: true, upsert: true, setDefaultsOnInsert: true }
+  ).lean();
+  return doc!.seq;
 }
 
 export function pad(seq: number): string {
-  return String(seq).padStart(PAD, '0')
+  return String(seq).padStart(PAD, '0');
 }
 
 export function formatId(name: CounterName, seq: number): string {
-  return `${ID_PREFIX[name]}-${pad(seq)}`
+  return `${ID_PREFIX[name]}-${pad(seq)}`;
 }
 
 export async function nextId(name: CounterName): Promise<string> {
-  return formatId(name, await nextSequence(name))
+  return formatId(name, await nextSequence(name));
 }
 
 export async function ensureCounterAtLeast(name: CounterName, value: number): Promise<void> {
-  await Counter.updateOne({ _id: name, seq: { $lt: value } }, { $set: { seq: value } }, { upsert: true }).catch(async () => {
-    await Counter.updateOne({ _id: name, seq: { $lt: value } }, { $set: { seq: value } })
-  })
+  await Counter.updateOne(
+    { _id: name, seq: { $lt: value } },
+    { $set: { seq: value } },
+    { upsert: true }
+  ).catch(async () => {
+    await Counter.updateOne({ _id: name, seq: { $lt: value } }, { $set: { seq: value } });
+  });
 }

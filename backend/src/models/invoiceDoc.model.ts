@@ -1,14 +1,14 @@
-import { Schema } from 'mongoose'
-import { randomBytes } from 'node:crypto'
+import { Schema } from 'mongoose';
+import { randomBytes } from 'node:crypto';
 
 export interface InvoiceDocDoc {
-  _id: string
-  tenantId: string
-  bookingId: string
-  orderRef: string
-  pdf: Buffer
-  expiresAt: Date
-  createdAt: Date
+  _id: string;
+  tenantId: string;
+  bookingId: string;
+  orderRef: string;
+  pdf: Buffer;
+  expiresAt: Date;
+  createdAt: Date;
 }
 
 const invoiceDocSchema = new Schema<InvoiceDocDoc>(
@@ -20,10 +20,10 @@ const invoiceDocSchema = new Schema<InvoiceDocDoc>(
     pdf: { type: Buffer, required: true },
     expiresAt: { type: Date, required: true },
   },
-  { _id: false, timestamps: { createdAt: true, updatedAt: false } },
-)
+  { _id: false, timestamps: { createdAt: true, updatedAt: false } }
+);
 
-invoiceDocSchema.index({ expiresAt: 1 }, { expireAfterSeconds: 0 })
+invoiceDocSchema.index({ expiresAt: 1 }, { expireAfterSeconds: 0 });
 
 /**
  * An invoice PDF is opened from a link, by somebody with no account.
@@ -33,20 +33,20 @@ invoiceDocSchema.index({ expiresAt: 1 }, { expireAfterSeconds: 0 })
  * is told their invoice expired when it did not.
  */
 invoiceDocSchema.post('save', function (doc) {
-  const token = (doc as { _id?: string })?._id
-  if (!token) return
+  const token = (doc as { _id?: string })?._id;
+  if (!token) return;
   void (async () => {
     try {
       const [{ currentTenant }, { registerPublicToken }] = await Promise.all([
         import('../platform/tenantContext.js'),
         import('../platform/publicLinks.js'),
-      ])
-      const tenant = currentTenant()
-      if (tenant) await registerPublicToken(token, tenant.tenantId)
+      ]);
+      const tenant = currentTenant();
+      if (tenant) await registerPublicToken(token, tenant.tenantId);
     } catch {
       /* never at the cost of the invoice itself */
     }
-  })()
-})
+  })();
+});
 
-export const InvoiceDocSchema = invoiceDocSchema
+export const InvoiceDocSchema = invoiceDocSchema;

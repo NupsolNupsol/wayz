@@ -1,43 +1,55 @@
-import { currentTenant } from '../platform/tenantContext.js'
-import { registerPublicToken } from '../platform/publicLinks.js'
-import { Booking, Gate, INVITE_TTL_HOURS, Kiosk, Shift, Station, Tenant, User, hashPassword, newInviteToken, type UserDoc } from '../models/index.js'
-import { recordAudit } from './audit.service.js'
-import { ENGINE_KINDS, ROLES, type EngineKind, type Role } from '../domain/types.js'
+import { currentTenant } from '../platform/tenantContext.js';
+import { registerPublicToken } from '../platform/publicLinks.js';
+import {
+  Booking,
+  Gate,
+  INVITE_TTL_HOURS,
+  Kiosk,
+  Shift,
+  Station,
+  Tenant,
+  User,
+  hashPassword,
+  newInviteToken,
+  type UserDoc,
+} from '../models/index.js';
+import { recordAudit } from './audit.service.js';
+import { ENGINE_KINDS, ROLES, type EngineKind, type Role } from '../domain/types.js';
 import {
   ACTIVITY_SCOPED,
   ASSIGNABLE_BY,
   KIOSK_SCOPED,
   LAGOON_ONLY,
   SUB_MANAGER_ROLES,
-} from '../domain/roles.js'
-import { ROLE_LABELS } from '../constants/labels.constants.js'
-import { ROLE_LABELS_AR } from '../constants/messages.constants.js'
-import { ApiError } from '../utils/ApiError.js'
-import { env } from '../config/env.js'
-import { logger } from '../config/logger.js'
-import { nextId } from './counter.service.js'
-import { invitationEmail, isEmailConfigured, sendEmail } from './email.service.js'
+} from '../domain/roles.js';
+import { ROLE_LABELS } from '../constants/labels.constants.js';
+import { ROLE_LABELS_AR } from '../constants/messages.constants.js';
+import { ApiError } from '../utils/ApiError.js';
+import { env } from '../config/env.js';
+import { logger } from '../config/logger.js';
+import { nextId } from './counter.service.js';
+import { invitationEmail, isEmailConfigured, sendEmail } from './email.service.js';
 
-import type { InviteResult, StaffInput } from '../interfaces/index.js'
-import type { ManagerScope } from '../interfaces/index.js'
+import type { InviteResult, StaffInput } from '../interfaces/index.js';
+import type { ManagerScope } from '../interfaces/index.js';
 
-export { ASSIGNABLE_BY } from '../domain/roles.js'
+export { ASSIGNABLE_BY } from '../domain/roles.js';
 
-export const ASSIGNABLE_ROLES: Role[] = ASSIGNABLE_BY.TENANT_ADMIN ?? []
+export const ASSIGNABLE_ROLES: Role[] = ASSIGNABLE_BY.TENANT_ADMIN ?? [];
 
 async function sendInvitation(user: UserDoc, invitedBy: string): Promise<InviteResult> {
-  const { token, tokenHash, expiresAt } = newInviteToken()
+  const { token, tokenHash, expiresAt } = newInviteToken();
   /*
    * The invitation link is opened by somebody who has no account yet, so it carries no
    * way to say which tenant it belongs to. Its hash is registered the same way a tracking
    * link is — the hash, not the token, so the control plane never holds a usable secret.
    */
-  const tenantNow = currentTenant()
-  if (tenantNow) await registerPublicToken(tokenHash, tenantNow.tenantId)
+  const tenantNow = currentTenant();
+  if (tenantNow) await registerPublicToken(tokenHash, tenantNow.tenantId);
   const [tenant, inviter] = await Promise.all([
     Tenant.findById(user.tenantId).lean(),
     invitedBy ? User.findById(invitedBy).lean() : null,
-  ])
+  ]);
 
   await User.updateOne(
     { _id: user._id },
@@ -51,20 +63,20 @@ async function sendInvitation(user: UserDoc, invitedBy: string): Promise<InviteR
           deliveredTo: user.email,
         },
       },
-    },
-  )
+    }
+  );
 
-  const link = `${env.PUBLIC_APP_URL.replace(/\/$/, '')}/invitation/${token}`
+  const link = `${env.PUBLIC_APP_URL.replace(/\/$/, '')}/invitation/${token}`;
 
   if (!isEmailConfigured()) {
-    logger.warn('Invitation not emailed — no mail provider configured', { user: user._id })
+    logger.warn('Invitation not emailed — no mail provider configured', { user: user._id });
     return {
       emailed: false,
       deliveredTo: user.email,
       expiresAt,
       reason: 'No email provider is configured. Copy the link and give it to them yourself.',
       link,
-    }
+    };
   }
 
   const result = await sendEmail({
@@ -77,33 +89,42 @@ async function sendInvitation(user: UserDoc, invitedBy: string): Promise<InviteR
       expiresInHours: INVITE_TTL_HOURS,
       invitedByName: inviter?.fullName,
     }),
-  })
+  });
 
   return result.ok
-    ? { emailed: true, deliveredTo: user.email, expiresAt, ...(env.INVITE_TEST_PEEK ? { link } : {}) }
-    : { emailed: false, deliveredTo: user.email, expiresAt, reason: result.error, link }
+    ? {
+        emailed: true,
+        deliveredTo: user.email,
+        expiresAt,
+        ...(env.INVITE_TEST_PEEK ? { link } : {}),
+      }
+    : { emailed: false, deliveredTo: user.email, expiresAt, reason: result.error, link };
 }
 
-const LAGOON: EngineKind = 'LAGOON'
+const LAGOON: EngineKind = 'LAGOON';
 
 function resolveEngines(role: Role, engineKinds?: EngineKind[] | null): EngineKind[] {
-  if (!ACTIVITY_SCOPED.includes(role)) return []
+  if (!ACTIVITY_SCOPED.includes(role)) return [];
 
-  const engines = [...new Set(engineKinds ?? [])]
+  const engines = [...new Set(engineKinds ?? [])];
   if (!engines.length) {
-    throw ApiError.badRequest('Choose the activity this person works — they only see the ones they are assigned to.')
+    throw ApiError.badRequest(
+      'Choose the activity this person works — they only see the ones they are assigned to.'
+    );
   }
   for (const engine of engines) {
-    if (!ENGINE_KINDS.includes(engine)) throw ApiError.badRequest(`Unknown activity "${engine}".`)
+    if (!ENGINE_KINDS.includes(engine)) throw ApiError.badRequest(`Unknown activity "${engine}".`);
   }
 
   if (LAGOON_ONLY.includes(role) && engines.some((e) => e !== LAGOON)) {
-    throw ApiError.badRequest(`${ROLE_LABELS[role] ?? role} only works the lagoon.`)
+    throw ApiError.badRequest(`${ROLE_LABELS[role] ?? role} only works the lagoon.`);
   }
   if (KIOSK_SCOPED.includes(role) && engines.length > 1) {
-    throw ApiError.badRequest('Someone who answers for one desk works one activity — choose a single one.')
+    throw ApiError.badRequest(
+      'Someone who answers for one desk works one activity — choose a single one.'
+    );
   }
-  return engines
+  return engines;
 }
 
 async function resolveKiosk(
@@ -111,23 +132,27 @@ async function resolveKiosk(
   role: Role,
   engines: EngineKind[],
   stationId: string,
-  kioskId?: string | null,
+  kioskId?: string | null
 ) {
-  if (!KIOSK_SCOPED.includes(role)) return null
+  if (!KIOSK_SCOPED.includes(role)) return null;
 
   if (!kioskId) {
-    throw ApiError.badRequest(`A ${(ROLE_LABELS[role] ?? role).toLowerCase()} answers for one kiosk — choose which.`)
+    throw ApiError.badRequest(
+      `A ${(ROLE_LABELS[role] ?? role).toLowerCase()} answers for one kiosk — choose which.`
+    );
   }
 
-  const kiosk = await Kiosk.findOne({ _id: kioskId, tenantId }).lean()
-  if (!kiosk) throw ApiError.badRequest('That kiosk does not exist in this tenant.')
+  const kiosk = await Kiosk.findOne({ _id: kioskId, tenantId }).lean();
+  if (!kiosk) throw ApiError.badRequest('That kiosk does not exist in this tenant.');
   if (kiosk.stationId !== stationId) {
-    throw ApiError.badRequest('That kiosk belongs to a different station.')
+    throw ApiError.badRequest('That kiosk belongs to a different station.');
   }
   if (!engines.includes(kiosk.engineKind)) {
-    throw ApiError.badRequest(`${kiosk.name} runs ${kiosk.engineKind.replaceAll('_', ' ').toLowerCase()}, not the activity you chose.`)
+    throw ApiError.badRequest(
+      `${kiosk.name} runs ${kiosk.engineKind.replaceAll('_', ' ').toLowerCase()}, not the activity you chose.`
+    );
   }
-  return kiosk._id
+  return kiosk._id;
 }
 
 /**
@@ -146,39 +171,48 @@ async function resolveGate(
   role: Role,
   engines: EngineKind[],
   stationId: string,
-  gateId?: string | null,
+  gateId?: string | null
 ): Promise<string | null> {
-  const needsGate = role === 'AGENT' && engines.includes('MOBILITY')
-  if (!needsGate) return null
+  const needsGate = role === 'AGENT' && engines.includes('MOBILITY');
+  if (!needsGate) return null;
 
   if (!gateId) {
     throw ApiError.badRequest('A mobility agent answers for one gate — choose which.', [
       'The gate is where the lockers are, and where they retrieve a customer’s bags.',
-    ])
+    ]);
   }
 
-  const gate = await Gate.findOne({ _id: gateId, tenantId, active: { $ne: false } }).lean()
-  if (!gate) throw ApiError.badRequest('That gate does not exist in this tenant.')
-  if (gate.stationId !== stationId) throw ApiError.badRequest('That gate belongs to a different station.')
-  return gate._id
+  const gate = await Gate.findOne({ _id: gateId, tenantId, active: { $ne: false } }).lean();
+  if (!gate) throw ApiError.badRequest('That gate does not exist in this tenant.');
+  if (gate.stationId !== stationId)
+    throw ApiError.badRequest('That gate belongs to a different station.');
+  return gate._id;
 }
 
-async function resolveReportsTo(tenantId: string, role: Role, reportsTo?: string | null): Promise<string | null> {
-  if (!SUB_MANAGER_ROLES.includes(role) || !reportsTo) return null
+async function resolveReportsTo(
+  tenantId: string,
+  role: Role,
+  reportsTo?: string | null
+): Promise<string | null> {
+  if (!SUB_MANAGER_ROLES.includes(role) || !reportsTo) return null;
 
-  const lead = await User.findOne({ _id: reportsTo, tenantId }).lean()
-  if (!lead) throw ApiError.badRequest('That manager does not exist in this tenant.')
+  const lead = await User.findOne({ _id: reportsTo, tenantId }).lean();
+  if (!lead) throw ApiError.badRequest('That manager does not exist in this tenant.');
   if (!(ASSIGNABLE_BY[lead.role] ?? []).includes(role)) {
-    throw ApiError.badRequest(`A ${(ROLE_LABELS[lead.role] ?? lead.role).toLowerCase()} does not lead a ${(ROLE_LABELS[role] ?? role).toLowerCase()}.`)
+    throw ApiError.badRequest(
+      `A ${(ROLE_LABELS[lead.role] ?? lead.role).toLowerCase()} does not lead a ${(ROLE_LABELS[role] ?? role).toLowerCase()}.`
+    );
   }
-  return lead._id
+  return lead._id;
 }
 
 function assertAssignableRole(actorRole: Role, role: Role) {
-  if (!ROLES.includes(role)) throw ApiError.badRequest(`Unknown role "${role}".`)
-  const allowed = ASSIGNABLE_BY[actorRole] ?? []
+  if (!ROLES.includes(role)) throw ApiError.badRequest(`Unknown role "${role}".`);
+  const allowed = ASSIGNABLE_BY[actorRole] ?? [];
   if (!allowed.includes(role)) {
-    throw ApiError.forbidden(`A ${actorRole.replaceAll('_', ' ').toLowerCase()} may not assign the ${role} role.`)
+    throw ApiError.forbidden(
+      `A ${actorRole.replaceAll('_', ' ').toLowerCase()} may not assign the ${role} role.`
+    );
   }
 }
 
@@ -194,25 +228,29 @@ export async function listStaff(scope: ManagerScope) {
       { $match: { tenantId: scope.tenantId } },
       { $group: { _id: '$agentId', bookings: { $sum: 1 } } },
     ]),
-  ])
+  ]);
 
-  const stationName = new Map(stations.map((s) => [s._id, s.name]))
+  const stationName = new Map(stations.map((s) => [s._id, s.name]));
   const [kiosks, gates] = await Promise.all([
     Kiosk.find({ tenantId: scope.tenantId }).lean(),
     Gate.find({ tenantId: scope.tenantId }).lean(),
-  ])
-  const kioskName = new Map(kiosks.map((k) => [k._id, k.name]))
-  const gateName = new Map(gates.map((g) => [g._id, g.name]))
-  const leadName = new Map(users.map((u) => [u._id, u.fullName]))
-  const openShifts = new Map(shiftAgg.map((s: { _id: string; openShifts: number }) => [s._id, s.openShifts]))
+  ]);
+  const kioskName = new Map(kiosks.map((k) => [k._id, k.name]));
+  const gateName = new Map(gates.map((g) => [g._id, g.name]));
+  const leadName = new Map(users.map((u) => [u._id, u.fullName]));
+  const openShifts = new Map(
+    shiftAgg.map((s: { _id: string; openShifts: number }) => [s._id, s.openShifts])
+  );
   const openShiftRows = await Shift.find(
     { tenantId: scope.tenantId, status: { $ne: 'CLOSED' } },
-    { agentId: 1, status: 1 },
-  ).lean()
-  const shiftStatus = new Map(openShiftRows.map((row) => [row.agentId, row.status]))
-  const bookings = new Map(bookingAgg.map((b: { _id: string; bookings: number }) => [b._id, b.bookings]))
+    { agentId: 1, status: 1 }
+  ).lean();
+  const shiftStatus = new Map(openShiftRows.map((row) => [row.agentId, row.status]));
+  const bookings = new Map(
+    bookingAgg.map((b: { _id: string; bookings: number }) => [b._id, b.bookings])
+  );
 
-  const now = Date.now()
+  const now = Date.now();
   return users.map((u) => ({
     _id: u._id,
     fullName: u.fullName,
@@ -236,19 +274,20 @@ export async function listStaff(scope: ManagerScope) {
     hasOpenShift: (openShifts.get(u._id) ?? 0) > 0,
     shiftStatus: shiftStatus.get(u._id) ?? null,
     bookingsHandled: bookings.get(u._id) ?? 0,
-  }))
+  }));
 }
 
 export async function createStaff(scope: ManagerScope, input: StaffInput) {
-  assertAssignableRole(scope.role, input.role)
+  assertAssignableRole(scope.role, input.role);
 
-  const email = input.email.trim().toLowerCase()
-  if (await User.exists({ email })) throw ApiError.badRequest('That email address is already registered.')
+  const email = input.email.trim().toLowerCase();
+  if (await User.exists({ email }))
+    throw ApiError.badRequest('That email address is already registered.');
 
-  const station = await Station.findOne({ _id: input.stationId, tenantId: scope.tenantId }).lean()
-  if (!station) throw ApiError.badRequest('That station does not exist in this tenant.')
+  const station = await Station.findOne({ _id: input.stationId, tenantId: scope.tenantId }).lean();
+  if (!station) throw ApiError.badRequest('That station does not exist in this tenant.');
 
-  const engines = resolveEngines(input.role, input.engineKinds)
+  const engines = resolveEngines(input.role, input.engineKinds);
 
   const user = await User.create({
     _id: await nextId('user'),
@@ -261,15 +300,21 @@ export async function createStaff(scope: ManagerScope, input: StaffInput) {
     siteId: station.siteId,
     zoneId: station.zoneId || null,
     stationId: input.stationId,
-    kioskId: await resolveKiosk(scope.tenantId, input.role, engines, input.stationId, input.kioskId),
+    kioskId: await resolveKiosk(
+      scope.tenantId,
+      input.role,
+      engines,
+      input.stationId,
+      input.kioskId
+    ),
     gateId: await resolveGate(scope.tenantId, input.role, engines, input.stationId, input.gateId),
     engineKinds: engines,
     reportsTo: await resolveReportsTo(scope.tenantId, input.role, input.reportsTo),
     phone: input.phone ?? '',
     active: true,
-  })
+  });
 
-  const invitation = await sendInvitation(user, scope.userId)
+  const invitation = await sendInvitation(user, scope.userId);
 
   await recordAudit({
     tenantId: scope.tenantId,
@@ -278,22 +323,24 @@ export async function createStaff(scope: ManagerScope, input: StaffInput) {
     entity: 'User',
     entityId: user._id,
     detail: `${ROLE_LABELS[input.role] ?? input.role} · ${invitation.emailed ? 'invitation emailed' : 'invitation not emailed'}`,
-  })
+  });
 
-  return { ...sanitiseUser(user.toObject()), invitation }
+  return { ...sanitiseUser(user.toObject()), invitation };
 }
 
 export async function reinviteStaff(scope: ManagerScope, id: string) {
-  const user = await User.findOne({ _id: id, tenantId: scope.tenantId })
-  if (!user) throw ApiError.notFound('Staff member not found.')
+  const user = await User.findOne({ _id: id, tenantId: scope.tenantId });
+  if (!user) throw ApiError.notFound('Staff member not found.');
   if (!(ASSIGNABLE_BY[scope.role] ?? []).includes(user.role)) {
-    throw ApiError.forbidden(`A ${scope.role.replaceAll('_', ' ').toLowerCase()} may not invite a ${user.role} account.`)
+    throw ApiError.forbidden(
+      `A ${scope.role.replaceAll('_', ' ').toLowerCase()} may not invite a ${user.role} account.`
+    );
   }
   if (user.passwordHash) {
-    throw ApiError.unprocessable('That account is already set up — send a password reset instead.')
+    throw ApiError.unprocessable('That account is already set up — send a password reset instead.');
   }
 
-  const invitation = await sendInvitation(user, scope.userId)
+  const invitation = await sendInvitation(user, scope.userId);
 
   await recordAudit({
     tenantId: scope.tenantId,
@@ -302,110 +349,128 @@ export async function reinviteStaff(scope: ManagerScope, id: string) {
     entity: 'User',
     entityId: user._id,
     detail: invitation.emailed ? 'invitation re-sent' : 'invitation not emailed',
-  })
+  });
 
-  return { ...sanitiseUser(user.toObject()), invitation }
+  return { ...sanitiseUser(user.toObject()), invitation };
 }
 
 export async function updateStaff(
   scope: ManagerScope,
   id: string,
-  patch: Partial<Omit<StaffInput, 'password'>> & { active?: boolean },
+  patch: Partial<Omit<StaffInput, 'password'>> & { active?: boolean }
 ) {
-  const user = await User.findOne({ _id: id, tenantId: scope.tenantId })
-  if (!user) throw ApiError.notFound('Staff member not found.')
-  if (patch.role) assertAssignableRole(scope.role, patch.role)
+  const user = await User.findOne({ _id: id, tenantId: scope.tenantId });
+  if (!user) throw ApiError.notFound('Staff member not found.');
+  if (patch.role) assertAssignableRole(scope.role, patch.role);
   if (!(ASSIGNABLE_BY[scope.role] ?? []).includes(user.role)) {
-    throw ApiError.forbidden(`A ${scope.role.replaceAll('_', ' ').toLowerCase()} may not change a ${user.role} account.`)
+    throw ApiError.forbidden(
+      `A ${scope.role.replaceAll('_', ' ').toLowerCase()} may not change a ${user.role} account.`
+    );
   }
 
   if (id === scope.userId && (patch.active === false || (patch.role && patch.role !== user.role))) {
-    throw ApiError.unprocessable('You cannot change your own role or suspend your own account.')
+    throw ApiError.unprocessable('You cannot change your own role or suspend your own account.');
   }
 
   if (patch.active === false) {
-    const open = await Shift.countDocuments({ tenantId: scope.tenantId, agentId: id, status: { $ne: 'CLOSED' } })
-    if (open > 0) throw ApiError.unprocessable('This agent has an open shift — reconcile and close it first.')
+    const open = await Shift.countDocuments({
+      tenantId: scope.tenantId,
+      agentId: id,
+      status: { $ne: 'CLOSED' },
+    });
+    if (open > 0)
+      throw ApiError.unprocessable('This agent has an open shift — reconcile and close it first.');
   }
 
   if (patch.stationId && patch.stationId !== user.stationId) {
-    const station = await Station.findOne({ _id: patch.stationId, tenantId: scope.tenantId }).lean()
-    if (!station) throw ApiError.badRequest('That station does not exist in this tenant.')
-    user.siteId = station.siteId
+    const station = await Station.findOne({
+      _id: patch.stationId,
+      tenantId: scope.tenantId,
+    }).lean();
+    if (!station) throw ApiError.badRequest('That station does not exist in this tenant.');
+    user.siteId = station.siteId;
   }
 
   if (patch.email) {
-    const email = patch.email.trim().toLowerCase()
+    const email = patch.email.trim().toLowerCase();
     if (email !== user.email && (await User.exists({ email }))) {
-      throw ApiError.badRequest('That email address is already registered.')
+      throw ApiError.badRequest('That email address is already registered.');
     }
-    user.email = email
+    user.email = email;
   }
-  if (patch.fullName) user.fullName = patch.fullName.trim()
-  if (patch.role) user.role = patch.role
-  if (patch.stationId) user.stationId = patch.stationId
-  if (patch.phone !== undefined) user.phone = patch.phone
-  if (patch.active !== undefined) user.active = patch.active
+  if (patch.fullName) user.fullName = patch.fullName.trim();
+  if (patch.role) user.role = patch.role;
+  if (patch.stationId) user.stationId = patch.stationId;
+  if (patch.phone !== undefined) user.phone = patch.phone;
+  if (patch.active !== undefined) user.active = patch.active;
 
   user.engineKinds = resolveEngines(
     user.role,
-    patch.engineKinds !== undefined ? patch.engineKinds : user.engineKinds,
-  )
+    patch.engineKinds !== undefined ? patch.engineKinds : user.engineKinds
+  );
   user.kioskId = await resolveKiosk(
     scope.tenantId,
     user.role,
     user.engineKinds,
     user.stationId,
-    patch.kioskId !== undefined ? patch.kioskId : user.kioskId,
-  )
+    patch.kioskId !== undefined ? patch.kioskId : user.kioskId
+  );
   user.gateId = await resolveGate(
     scope.tenantId,
     user.role,
     user.engineKinds,
     user.stationId,
-    patch.gateId !== undefined ? patch.gateId : user.gateId,
-  )
+    patch.gateId !== undefined ? patch.gateId : user.gateId
+  );
   user.reportsTo = await resolveReportsTo(
     scope.tenantId,
     user.role,
-    patch.reportsTo !== undefined ? patch.reportsTo : user.reportsTo,
-  )
+    patch.reportsTo !== undefined ? patch.reportsTo : user.reportsTo
+  );
 
-  await user.save()
-  return sanitiseUser(user.toObject())
+  await user.save();
+  return sanitiseUser(user.toObject());
 }
 
 export async function resetStaffPassword(scope: ManagerScope, id: string, password: string) {
-  if (!password || password.length < 8) throw ApiError.badRequest('Password must be at least 8 characters.')
-  const user = await User.findOne({ _id: id, tenantId: scope.tenantId })
-  if (!user) throw ApiError.notFound('Staff member not found.')
-  user.passwordHash = hashPassword(password)
-  await user.save()
-  return { ok: true }
+  if (!password || password.length < 8)
+    throw ApiError.badRequest('Password must be at least 8 characters.');
+  const user = await User.findOne({ _id: id, tenantId: scope.tenantId });
+  if (!user) throw ApiError.notFound('Staff member not found.');
+  user.passwordHash = hashPassword(password);
+  await user.save();
+  return { ok: true };
 }
 
 function sanitiseUser(u: object) {
-  const { passwordHash, __v, ...rest } = u as Record<string, unknown>
-  void passwordHash
-  void __v
-  return rest
+  const { passwordHash, __v, ...rest } = u as Record<string, unknown>;
+  void passwordHash;
+  void __v;
+  return rest;
 }
 
 export async function removeStaff(scope: ManagerScope, id: string) {
-  const user = await User.findOne({ _id: id, tenantId: scope.tenantId })
-  if (!user) throw ApiError.notFound('Staff member not found.')
-  if (id === scope.userId) throw ApiError.unprocessable('You cannot remove your own account.')
+  const user = await User.findOne({ _id: id, tenantId: scope.tenantId });
+  if (!user) throw ApiError.notFound('Staff member not found.');
+  if (id === scope.userId) throw ApiError.unprocessable('You cannot remove your own account.');
   if (!(ASSIGNABLE_BY[scope.role] ?? []).includes(user.role)) {
-    throw ApiError.forbidden(`A ${scope.role.replaceAll('_', ' ').toLowerCase()} may not remove a ${user.role} account.`)
+    throw ApiError.forbidden(
+      `A ${scope.role.replaceAll('_', ' ').toLowerCase()} may not remove a ${user.role} account.`
+    );
   }
 
-  const open = await Shift.countDocuments({ tenantId: scope.tenantId, agentId: id, status: { $ne: 'CLOSED' } })
-  if (open > 0) throw ApiError.unprocessable('This person has an open till — reconcile and close it first.')
+  const open = await Shift.countDocuments({
+    tenantId: scope.tenantId,
+    agentId: id,
+    status: { $ne: 'CLOSED' },
+  });
+  if (open > 0)
+    throw ApiError.unprocessable('This person has an open till — reconcile and close it first.');
 
-  user.active = false
-  user.removedAt = new Date()
-  user.email = `${user.email}.removed.${Date.now()}`
-  await user.save()
+  user.active = false;
+  user.removedAt = new Date();
+  user.email = `${user.email}.removed.${Date.now()}`;
+  await user.save();
 
   await recordAudit({
     tenantId: scope.tenantId,
@@ -414,7 +479,7 @@ export async function removeStaff(scope: ManagerScope, id: string) {
     entity: 'User',
     entityId: user._id,
     detail: `${user.fullName} (${user.role})`,
-  })
+  });
 
-  return { removed: id, name: user.fullName }
+  return { removed: id, name: user.fullName };
 }

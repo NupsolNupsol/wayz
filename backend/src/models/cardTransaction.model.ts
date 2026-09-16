@@ -1,40 +1,40 @@
-import { Schema } from 'mongoose'
-import type { EngineKind } from '../domain/types.js'
-import type { CardScheme } from '../domain/commission.js'
+import { Schema } from 'mongoose';
+import type { EngineKind } from '../domain/types.js';
+import type { CardScheme } from '../domain/commission.js';
 
-export const TRANSACTION_SOURCES = ['TPE', 'ETL', 'MANUAL'] as const
-export type TransactionSource = (typeof TRANSACTION_SOURCES)[number]
+export const TRANSACTION_SOURCES = ['TPE', 'ETL', 'MANUAL'] as const;
+export type TransactionSource = (typeof TRANSACTION_SOURCES)[number];
 
-export const TRANSACTION_STATUSES = ['CAPTURED', 'SETTLED', 'REFUNDED', 'REVERSED'] as const
-export type TransactionStatus = (typeof TRANSACTION_STATUSES)[number]
+export const TRANSACTION_STATUSES = ['CAPTURED', 'SETTLED', 'REFUNDED', 'REVERSED'] as const;
+export type TransactionStatus = (typeof TRANSACTION_STATUSES)[number];
 
 export interface CardTransactionDoc {
-  _id: string
-  tenantId: string
-  source: TransactionSource
-  externalRef: string
-  terminalId: string
-  scheme: CardScheme
-  maskedPan: string
-  authCode: string
-  currency: string
-  grossAmount: number
-  commissionRate: number
-  commissionAmount: number
-  netSettled: number
-  baseAmount: number
-  vatAmount: number
-  vatRate: number
-  engineKind: EngineKind | null
-  stationId: string | null
-  paymentId: string | null
-  bookingId: string | null
-  capturedAt: Date
-  settlementDate: Date | null
-  status: TransactionStatus
-  batchId: string
-  createdAt: Date
-  updatedAt: Date
+  _id: string;
+  tenantId: string;
+  source: TransactionSource;
+  externalRef: string;
+  terminalId: string;
+  scheme: CardScheme;
+  maskedPan: string;
+  authCode: string;
+  currency: string;
+  grossAmount: number;
+  commissionRate: number;
+  commissionAmount: number;
+  netSettled: number;
+  baseAmount: number;
+  vatAmount: number;
+  vatRate: number;
+  engineKind: EngineKind | null;
+  stationId: string | null;
+  paymentId: string | null;
+  bookingId: string | null;
+  capturedAt: Date;
+  settlementDate: Date | null;
+  status: TransactionStatus;
+  batchId: string;
+  createdAt: Date;
+  updatedAt: Date;
 }
 
 const cardTransactionSchema = new Schema<CardTransactionDoc>(
@@ -64,22 +64,22 @@ const cardTransactionSchema = new Schema<CardTransactionDoc>(
     status: { type: String, default: 'CAPTURED', index: true },
     batchId: { type: String, default: '' },
   },
-  { _id: false, timestamps: true },
-)
+  { _id: false, timestamps: true }
+);
 
-cardTransactionSchema.index({ tenantId: 1, externalRef: 1 }, { unique: true })
-cardTransactionSchema.index({ tenantId: 1, capturedAt: -1 })
+cardTransactionSchema.index({ tenantId: 1, externalRef: 1 }, { unique: true });
+cardTransactionSchema.index({ tenantId: 1, capturedAt: -1 });
 
-export const CardTransactionSchema = cardTransactionSchema
+export const CardTransactionSchema = cardTransactionSchema;
 
 export interface CommissionRateDoc {
-  _id: string
-  tenantId: string
-  scheme: CardScheme
-  rate: number
-  updatedBy: string
-  createdAt: Date
-  updatedAt: Date
+  _id: string;
+  tenantId: string;
+  scheme: CardScheme;
+  rate: number;
+  updatedBy: string;
+  createdAt: Date;
+  updatedAt: Date;
 }
 
 const commissionRateSchema = new Schema<CommissionRateDoc>(
@@ -90,9 +90,9 @@ const commissionRateSchema = new Schema<CommissionRateDoc>(
     rate: { type: Number, required: true, min: 0 },
     updatedBy: { type: String, default: '' },
   },
-  { _id: false, timestamps: true },
-)
+  { _id: false, timestamps: true }
+);
 
-commissionRateSchema.index({ tenantId: 1, scheme: 1 }, { unique: true })
+commissionRateSchema.index({ tenantId: 1, scheme: 1 }, { unique: true });
 
-export const CommissionRateSchema = commissionRateSchema
+export const CommissionRateSchema = commissionRateSchema;

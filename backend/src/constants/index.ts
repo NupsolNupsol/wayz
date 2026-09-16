@@ -1,1 +1,1 @@
-export * from './labels.constants.js'
+export * from './labels.constants.js';

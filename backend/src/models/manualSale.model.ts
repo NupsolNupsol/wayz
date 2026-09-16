@@ -1,29 +1,29 @@
-import { Schema } from 'mongoose'
-import type { EngineKind, PaymentMethod } from '../domain/types.js'
+import { Schema } from 'mongoose';
+import type { EngineKind, PaymentMethod } from '../domain/types.js';
 
-export const MANUAL_SALE_STATUSES = ['PENDING', 'APPROVED', 'REJECTED'] as const
-export type ManualSaleStatus = (typeof MANUAL_SALE_STATUSES)[number]
+export const MANUAL_SALE_STATUSES = ['PENDING', 'APPROVED', 'REJECTED'] as const;
+export type ManualSaleStatus = (typeof MANUAL_SALE_STATUSES)[number];
 
 export interface ManualSaleDoc {
-  _id: string
-  ref: string
-  tenantId: string
-  stationId: string
-  engineKind: EngineKind
-  description: string
-  amount: number
-  baseAmount: number
-  vatAmount: number
-  vatRate: number
-  method: PaymentMethod
-  occurredAt: Date
-  status: ManualSaleStatus
-  enteredBy: string
-  reviewedBy: string | null
-  reviewedAt: Date | null
-  reviewNote: string
-  createdAt: Date
-  updatedAt: Date
+  _id: string;
+  ref: string;
+  tenantId: string;
+  stationId: string;
+  engineKind: EngineKind;
+  description: string;
+  amount: number;
+  baseAmount: number;
+  vatAmount: number;
+  vatRate: number;
+  method: PaymentMethod;
+  occurredAt: Date;
+  status: ManualSaleStatus;
+  enteredBy: string;
+  reviewedBy: string | null;
+  reviewedAt: Date | null;
+  reviewNote: string;
+  createdAt: Date;
+  updatedAt: Date;
 }
 
 const manualSaleSchema = new Schema<ManualSaleDoc>(
@@ -46,9 +46,9 @@ const manualSaleSchema = new Schema<ManualSaleDoc>(
     reviewedAt: { type: Date, default: null },
     reviewNote: { type: String, default: '' },
   },
-  { _id: false, timestamps: true },
-)
+  { _id: false, timestamps: true }
+);
 
-manualSaleSchema.index({ tenantId: 1, status: 1, occurredAt: -1 })
+manualSaleSchema.index({ tenantId: 1, status: 1, occurredAt: -1 });
 
-export const ManualSaleSchema = manualSaleSchema
+export const ManualSaleSchema = manualSaleSchema;

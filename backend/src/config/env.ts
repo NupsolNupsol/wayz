@@ -1,5 +1,5 @@
-import 'dotenv/config'
-import { z } from 'zod'
+import 'dotenv/config';
+import { z } from 'zod';
 
 const schema = z.object({
   NODE_ENV: z.enum(['development', 'production', 'test']).default('development'),
@@ -147,14 +147,13 @@ const schema = z.object({
     .optional(),
 
   EXPIRY_WARNING_MINUTES: z.coerce.number().int().positive().default(15),
-})
+});
 
-const parsed = schema.safeParse(process.env)
+const parsed = schema.safeParse(process.env);
 if (!parsed.success) {
-   
-  console.error('Invalid environment configuration:', parsed.error.flatten().fieldErrors)
-  process.exit(1)
+  console.error('Invalid environment configuration:', parsed.error.flatten().fieldErrors);
+  process.exit(1);
 }
 
-export const env = parsed.data
-export type Env = typeof env
+export const env = parsed.data;
+export type Env = typeof env;

@@ -1,4 +1,4 @@
-import { Schema } from 'mongoose'
+import { Schema } from 'mongoose';
 
 /**
  * The tenant registry — the control plane's record of who exists.
@@ -8,8 +8,14 @@ import { Schema } from 'mongoose'
  * looked up here, and the name written on this document is what gets opened.
  */
 
-export const TENANT_LIFECYCLE = ['PROVISIONING', 'ACTIVE', 'SUSPENDED', 'FAILED', 'ARCHIVED'] as const
-export type TenantLifecycle = (typeof TENANT_LIFECYCLE)[number]
+export const TENANT_LIFECYCLE = [
+  'PROVISIONING',
+  'ACTIVE',
+  'SUSPENDED',
+  'FAILED',
+  'ARCHIVED',
+] as const;
+export type TenantLifecycle = (typeof TENANT_LIFECYCLE)[number];
 
 /**
  * Provisioning is a sequence of steps rather than one switch.
@@ -17,65 +23,77 @@ export type TenantLifecycle = (typeof TENANT_LIFECYCLE)[number]
  * Recorded individually so a run that dies halfway can be retried from where it stopped
  * instead of starting again on a half-built tenant.
  */
-export const PROVISIONING_STEPS = ['DATABASE', 'INDEXES', 'PROFILES', 'ORG', 'ADMIN_USER', 'CATALOGUE'] as const
-export type ProvisioningStep = (typeof PROVISIONING_STEPS)[number]
+export const PROVISIONING_STEPS = [
+  'DATABASE',
+  'INDEXES',
+  'PROFILES',
+  'ORG',
+  'ADMIN_USER',
+  'CATALOGUE',
+] as const;
+export type ProvisioningStep = (typeof PROVISIONING_STEPS)[number];
 
 export interface TenantBrandingRecord {
-  primaryColor: string
-  secondaryColor: string
-  accentColor: string
-  logoUrl: string | null
-  logoText: string
-  faviconUrl: string | null
-  fontFamily: string
+  primaryColor: string;
+  secondaryColor: string;
+  accentColor: string;
+  logoUrl: string | null;
+  logoText: string;
+  faviconUrl: string | null;
+  fontFamily: string;
 }
 
 export interface TenantInvoiceIdentity {
-  legalName: string
-  legalNameAr: string
-  tradingName: string
-  crNumber: string
-  vatNumber: string
-  addressLine1: string
-  addressLine2: string
-  city: string
-  region: string
-  postalCode: string
-  country: string
-  phone: string
-  email: string
-  invoicePrefix: string
-  invoiceFooter: string
-  invoiceFooterAr: string
+  legalName: string;
+  legalNameAr: string;
+  tradingName: string;
+  crNumber: string;
+  vatNumber: string;
+  addressLine1: string;
+  addressLine2: string;
+  city: string;
+  region: string;
+  postalCode: string;
+  country: string;
+  phone: string;
+  email: string;
+  invoicePrefix: string;
+  invoiceFooter: string;
+  invoiceFooterAr: string;
 }
 
 export interface TenantRegistryDoc {
-  _id: string
+  _id: string;
   /** The url-safe handle. Decides the database name and the tenant's login path. */
-  slug: string
-  name: string
-  dbName: string
-  lifecycle: TenantLifecycle
-  branding: TenantBrandingRecord
-  invoice: TenantInvoiceIdentity
-  currency: string
-  timezone: string
-  locale: string
-  secondaryLocale: string
+  slug: string;
+  name: string;
+  dbName: string;
+  lifecycle: TenantLifecycle;
+  branding: TenantBrandingRecord;
+  invoice: TenantInvoiceIdentity;
+  currency: string;
+  timezone: string;
+  locale: string;
+  secondaryLocale: string;
   /** Capability keys this tenant may use. The frontend asks about these, never about names. */
-  capabilities: string[]
+  capabilities: string[];
   /** Profile keys enabled for this tenant. A tenant admin can only assign from this set. */
-  enabledProfiles: string[]
+  enabledProfiles: string[];
   provisioning: {
-    steps: { step: ProvisioningStep; status: 'PENDING' | 'DONE' | 'FAILED'; at: Date | null; error: string | null }[]
-    lastError: string | null
-    startedAt: Date | null
-    completedAt: Date | null
-  }
-  suspendedReason: string | null
-  createdBy: string
-  createdAt: Date
-  updatedAt: Date
+    steps: {
+      step: ProvisioningStep;
+      status: 'PENDING' | 'DONE' | 'FAILED';
+      at: Date | null;
+      error: string | null;
+    }[];
+    lastError: string | null;
+    startedAt: Date | null;
+    completedAt: Date | null;
+  };
+  suspendedReason: string | null;
+  createdBy: string;
+  createdAt: Date;
+  updatedAt: Date;
 }
 
 const brandingSchema = new Schema<TenantBrandingRecord>(
@@ -88,8 +106,8 @@ const brandingSchema = new Schema<TenantBrandingRecord>(
     faviconUrl: { type: String, default: null },
     fontFamily: { type: String, default: 'system-ui, -apple-system, Segoe UI, Roboto, sans-serif' },
   },
-  { _id: false },
-)
+  { _id: false }
+);
 
 const invoiceSchema = new Schema<TenantInvoiceIdentity>(
   {
@@ -110,8 +128,8 @@ const invoiceSchema = new Schema<TenantInvoiceIdentity>(
     invoiceFooter: { type: String, default: '' },
     invoiceFooterAr: { type: String, default: '' },
   },
-  { _id: false },
-)
+  { _id: false }
+);
 
 export const tenantRegistrySchema = new Schema<TenantRegistryDoc>(
   {
@@ -138,7 +156,7 @@ export const tenantRegistrySchema = new Schema<TenantRegistryDoc>(
               at: { type: Date, default: null },
               error: { type: String, default: null },
             },
-            { _id: false },
+            { _id: false }
           ),
         ],
         default: [],
@@ -150,18 +168,18 @@ export const tenantRegistrySchema = new Schema<TenantRegistryDoc>(
     suspendedReason: { type: String, default: null },
     createdBy: { type: String, default: '' },
   },
-  { _id: false, timestamps: true },
-)
+  { _id: false, timestamps: true }
+);
 
 export interface PlatformAdminDoc {
-  _id: string
-  email: string
-  fullName: string
-  passwordHash: string
-  active: boolean
-  lastLoginAt: Date | null
-  createdAt: Date
-  updatedAt: Date
+  _id: string;
+  email: string;
+  fullName: string;
+  passwordHash: string;
+  active: boolean;
+  lastLoginAt: Date | null;
+  createdAt: Date;
+  updatedAt: Date;
 }
 
 export const platformAdminSchema = new Schema<PlatformAdminDoc>(
@@ -173,19 +191,19 @@ export const platformAdminSchema = new Schema<PlatformAdminDoc>(
     active: { type: Boolean, default: true },
     lastLoginAt: { type: Date, default: null },
   },
-  { _id: false, timestamps: true },
-)
+  { _id: false, timestamps: true }
+);
 
 export interface PlatformAuditDoc {
-  _id: string
-  actorId: string
-  actorEmail: string
-  action: string
-  tenantId: string | null
-  detail: string
-  before: unknown
-  after: unknown
-  at: Date
+  _id: string;
+  actorId: string;
+  actorEmail: string;
+  action: string;
+  tenantId: string | null;
+  detail: string;
+  before: unknown;
+  after: unknown;
+  at: Date;
 }
 
 export const platformAuditSchema = new Schema<PlatformAuditDoc>(
@@ -200,5 +218,5 @@ export const platformAuditSchema = new Schema<PlatformAuditDoc>(
     after: { type: Schema.Types.Mixed, default: null },
     at: { type: Date, default: () => new Date(), index: true },
   },
-  { _id: false, versionKey: false },
-)
+  { _id: false, versionKey: false }
+);

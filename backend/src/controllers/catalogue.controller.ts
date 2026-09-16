@@ -1,24 +1,18 @@
-import { z } from "zod";
-import { asyncHandler } from "../utils/asyncHandler.js";
-import { scopeFromReq } from "../utils/scope.js";
-import {
-  listAssetTypes,
-  listProducts,
-  listUnits,
-} from "../services/catalogue.service.js";
-import { suggestPacking } from "../services/packing.service.js";
-import type { EngineKind } from "../domain/types.js";
+import { z } from 'zod';
+import { asyncHandler } from '../utils/asyncHandler.js';
+import { scopeFromReq } from '../utils/scope.js';
+import { listAssetTypes, listProducts, listUnits } from '../services/catalogue.service.js';
+import { suggestPacking } from '../services/packing.service.js';
+import type { EngineKind } from '../domain/types.js';
 
 const suggestSchema = z.object({
   bags: z
     .array(
       z.object({
-        category: z.enum(["SOFT", "HARD", "OVERSIZE", "FRAGILE"]).optional(),
-        dimensions: z
-          .object({ w: z.number(), h: z.number(), d: z.number() })
-          .optional(),
+        category: z.enum(['SOFT', 'HARD', 'OVERSIZE', 'FRAGILE']).optional(),
+        dimensions: z.object({ w: z.number(), h: z.number(), d: z.number() }).optional(),
         weight: z.number().optional(),
-      }),
+      })
     )
     .min(1),
 });

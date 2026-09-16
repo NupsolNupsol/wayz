@@ -1,45 +1,45 @@
-import { Schema } from 'mongoose'
+import { Schema } from 'mongoose';
 
 export interface VersionLink {
-  label: string
-  to: string
+  label: string;
+  to: string;
 }
 
 export interface VersionCheck {
-  by: string
-  at: Date
+  by: string;
+  at: Date;
 }
 
 export interface VersionIssue {
-  by: string
-  note: string
-  at: Date
-  status: 'OPEN' | 'RESOLVED'
+  by: string;
+  note: string;
+  at: Date;
+  status: 'OPEN' | 'RESOLVED';
 }
 
 export interface VersionChange {
-  area: string
-  title: string
-  detail: string
-  roles: string[]
-  howToTest: string[]
-  expect: string
-  links: VersionLink[]
-  checks: VersionCheck[]
-  issues: VersionIssue[]
+  area: string;
+  title: string;
+  detail: string;
+  roles: string[];
+  howToTest: string[];
+  expect: string;
+  links: VersionLink[];
+  checks: VersionCheck[];
+  issues: VersionIssue[];
 }
 
 export interface VersionDoc {
-  _id: string
-  number: string
-  name: string
-  status: 'DRAFT' | 'RELEASED'
-  releasedAt: Date
-  summary: string
-  highlights: string[]
-  changes: VersionChange[]
-  createdAt: Date
-  updatedAt: Date
+  _id: string;
+  number: string;
+  name: string;
+  status: 'DRAFT' | 'RELEASED';
+  releasedAt: Date;
+  summary: string;
+  highlights: string[];
+  changes: VersionChange[];
+  createdAt: Date;
+  updatedAt: Date;
 }
 
 const changeSchema = new Schema<VersionChange>(
@@ -51,11 +51,21 @@ const changeSchema = new Schema<VersionChange>(
     howToTest: { type: [String], default: [] },
     expect: { type: String, default: '' },
     links: {
-      type: [new Schema<VersionLink>({ label: { type: String, required: true }, to: { type: String, required: true } }, { _id: false })],
+      type: [
+        new Schema<VersionLink>(
+          { label: { type: String, required: true }, to: { type: String, required: true } },
+          { _id: false }
+        ),
+      ],
       default: [],
     },
     checks: {
-      type: [new Schema<VersionCheck>({ by: { type: String, required: true }, at: { type: Date, default: Date.now } }, { _id: false })],
+      type: [
+        new Schema<VersionCheck>(
+          { by: { type: String, required: true }, at: { type: Date, default: Date.now } },
+          { _id: false }
+        ),
+      ],
       default: [],
     },
     issues: {
@@ -67,14 +77,14 @@ const changeSchema = new Schema<VersionChange>(
             at: { type: Date, default: Date.now },
             status: { type: String, default: 'OPEN' },
           },
-          { _id: false },
+          { _id: false }
         ),
       ],
       default: [],
     },
   },
-  { _id: false },
-)
+  { _id: false }
+);
 
 const versionSchema = new Schema<VersionDoc>(
   {
@@ -87,7 +97,7 @@ const versionSchema = new Schema<VersionDoc>(
     highlights: { type: [String], default: [] },
     changes: { type: [changeSchema], default: [] },
   },
-  { _id: false, timestamps: true },
-)
+  { _id: false, timestamps: true }
+);
 
-export const VersionSchema = versionSchema
+export const VersionSchema = versionSchema;

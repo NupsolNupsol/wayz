@@ -1,12 +1,12 @@
-import { Router } from 'express'
-import { authenticate } from '../middlewares/auth.js'
-import { devClockController } from '../controllers/devClock.controller.js'
+import { Router } from 'express';
+import { authenticate } from '../middlewares/auth.js';
+import { devClockController } from '../controllers/devClock.controller.js';
 
-const router = Router()
+const router = Router();
 
-router.use(authenticate)
+router.use(authenticate);
 
-router.get('/status', devClockController.status)
-router.post('/bookings/:id/age', devClockController.age)
+router.get('/status', devClockController.status);
+router.post('/bookings/:id/age', devClockController.age);
 
-export default router
+export default router;

@@ -1,8 +1,8 @@
-import { Schema, type Model } from 'mongoose'
-import { platformDb, tenantConnection } from './connections.js'
-import { modelsFor } from './tenantModels.js'
-import { ApiError } from '../utils/ApiError.js'
-import type { TenantRegistryDoc } from './registry.model.js'
+import { Schema, type Model } from 'mongoose';
+import { platformDb, tenantConnection } from './connections.js';
+import { modelsFor } from './tenantModels.js';
+import { ApiError } from '../utils/ApiError.js';
+import type { TenantRegistryDoc } from './registry.model.js';
 
 /**
  * Which tenant a sign-in belongs to.
@@ -19,9 +19,9 @@ import type { TenantRegistryDoc } from './registry.model.js'
  */
 
 export interface LoginDirectoryDoc {
-  _id: string
-  email: string
-  tenantId: string
+  _id: string;
+  email: string;
+  tenantId: string;
 }
 
 export const loginDirectorySchema = new Schema<LoginDirectoryDoc>(
@@ -30,29 +30,29 @@ export const loginDirectorySchema = new Schema<LoginDirectoryDoc>(
     email: { type: String, required: true, unique: true, lowercase: true, trim: true, index: true },
     tenantId: { type: String, required: true, index: true },
   },
-  { _id: false, versionKey: false },
-)
+  { _id: false, versionKey: false }
+);
 
 function directory(): Model<LoginDirectoryDoc> {
-  const conn = platformDb().TenantRegistry.db
+  const conn = platformDb().TenantRegistry.db;
   return (
     (conn.models.LoginDirectory as Model<LoginDirectoryDoc>) ??
     conn.model<LoginDirectoryDoc>('LoginDirectory', loginDirectorySchema)
-  )
+  );
 }
 
 export async function rememberLogin(email: string, tenantId: string): Promise<void> {
-  const value = email.trim().toLowerCase()
-  if (!value) return
+  const value = email.trim().toLowerCase();
+  if (!value) return;
   await directory().updateOne(
     { _id: value },
     { $set: { email: value, tenantId } },
-    { upsert: true },
-  )
+    { upsert: true }
+  );
 }
 
 export async function forgetLogin(email: string): Promise<void> {
-  await directory().deleteOne({ _id: email.trim().toLowerCase() })
+  await directory().deleteOne({ _id: email.trim().toLowerCase() });
 }
 
 /**
@@ -62,43 +62,49 @@ export async function forgetLogin(email: string): Promise<void> {
  * without every user-creation path having to remember to register itself.
  */
 export async function reindexTenantLogins(registry: TenantRegistryDoc): Promise<number> {
-  const conn = await tenantConnection(registry.dbName)
-  const { User } = modelsFor(conn)
-  const users = await User.find({}, { email: 1 }).lean<{ email: string }[]>()
+  const conn = await tenantConnection(registry.dbName);
+  const { User } = modelsFor(conn);
+  const users = await User.find({}, { email: 1 }).lean<{ email: string }[]>();
 
   const rows = users
     .map((u) => (u.email ?? '').trim().toLowerCase())
     .filter(Boolean)
     .map((email) => ({
-      updateOne: { filter: { _id: email }, update: { $set: { email, tenantId: registry._id } }, upsert: true },
-    }))
+      updateOne: {
+        filter: { _id: email },
+        update: { $set: { email, tenantId: registry._id } },
+        upsert: true,
+      },
+    }));
 
-  if (!rows.length) return 0
-  await directory().bulkWrite(rows, { ordered: false })
-  return rows.length
+  if (!rows.length) return 0;
+  await directory().bulkWrite(rows, { ordered: false });
+  return rows.length;
 }
 
 export interface ResolvedLoginTenant {
-  tenantId: string
-  registry: TenantRegistryDoc
+  tenantId: string;
+  registry: TenantRegistryDoc;
 }
 
 /** Finds the tenant a sign-in belongs to: an explicit slug first, then the directory. */
 export async function tenantForLogin(email: string, slug?: string): Promise<ResolvedLoginTenant> {
-  const { TenantRegistry } = platformDb()
+  const { TenantRegistry } = platformDb();
 
   if (slug) {
-    const bySlug = await TenantRegistry.findOne({ slug: slug.trim().toLowerCase() }).lean<TenantRegistryDoc>()
-    if (!bySlug) throw ApiError.unauthorized('Unknown tenant.')
-    return { tenantId: bySlug._id, registry: bySlug }
+    const bySlug = await TenantRegistry.findOne({
+      slug: slug.trim().toLowerCase(),
+    }).lean<TenantRegistryDoc>();
+    if (!bySlug) throw ApiError.unauthorized('Unknown tenant.');
+    return { tenantId: bySlug._id, registry: bySlug };
   }
 
-  const hit = await directory().findById(email.trim().toLowerCase()).lean<LoginDirectoryDoc>()
+  const hit = await directory().findById(email.trim().toLowerCase()).lean<LoginDirectoryDoc>();
   // Deliberately the same refusal as a wrong password: an unknown address should not be
   // distinguishable from a known one at an unknown tenant.
-  if (!hit) throw ApiError.unauthorized('Invalid email or password.')
+  if (!hit) throw ApiError.unauthorized('Invalid email or password.');
 
-  const registry = await TenantRegistry.findById(hit.tenantId).lean<TenantRegistryDoc>()
-  if (!registry) throw ApiError.unauthorized('Invalid email or password.')
-  return { tenantId: registry._id, registry }
+  const registry = await TenantRegistry.findById(hit.tenantId).lean<TenantRegistryDoc>();
+  if (!registry) throw ApiError.unauthorized('Invalid email or password.');
+  return { tenantId: registry._id, registry };
 }

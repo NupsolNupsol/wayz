@@ -1,29 +1,29 @@
-import { Schema } from 'mongoose'
+import { Schema } from 'mongoose';
 
-export const CASH_MOVEMENT_KINDS = ['FLOAT_IN', 'PAY_OUT', 'DROP'] as const
-export type CashMovementKind = (typeof CASH_MOVEMENT_KINDS)[number]
+export const CASH_MOVEMENT_KINDS = ['FLOAT_IN', 'PAY_OUT', 'DROP'] as const;
+export type CashMovementKind = (typeof CASH_MOVEMENT_KINDS)[number];
 
 export const MOVEMENT_SIGN: Record<CashMovementKind, 1 | -1> = {
   FLOAT_IN: 1,
   PAY_OUT: -1,
   DROP: -1,
-}
+};
 
 export interface CashMovementDoc {
-  _id: string
-  tenantId: string
-  stationId: string
-  shiftId: string
-  actorId: string
-  kind: CashMovementKind
-  amount: number
-  baseAmount: number
-  vatAmount: number
-  vatRate: number
-  reason: string
-  reference: string
-  createdAt: Date
-  updatedAt: Date
+  _id: string;
+  tenantId: string;
+  stationId: string;
+  shiftId: string;
+  actorId: string;
+  kind: CashMovementKind;
+  amount: number;
+  baseAmount: number;
+  vatAmount: number;
+  vatRate: number;
+  reason: string;
+  reference: string;
+  createdAt: Date;
+  updatedAt: Date;
 }
 
 const cashMovementSchema = new Schema<CashMovementDoc>(
@@ -41,9 +41,9 @@ const cashMovementSchema = new Schema<CashMovementDoc>(
     reason: { type: String, required: true },
     reference: { type: String, default: '' },
   },
-  { _id: false, timestamps: true },
-)
+  { _id: false, timestamps: true }
+);
 
-cashMovementSchema.index({ tenantId: 1, shiftId: 1, createdAt: -1 })
+cashMovementSchema.index({ tenantId: 1, shiftId: 1, createdAt: -1 });
 
-export const CashMovementSchema = cashMovementSchema
+export const CashMovementSchema = cashMovementSchema;

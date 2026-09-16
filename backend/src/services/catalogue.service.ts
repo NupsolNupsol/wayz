@@ -1,9 +1,9 @@
-import { AssetType, AssetUnit, CatalogueProduct, Gate, Tenant } from '../models/index.js'
-import { engineFilter, kioskFilter, reachableUnitFilter } from '../domain/access.js'
-import { ENGINE_KINDS, type EngineKind } from '../domain/types.js'
-import type { Scope } from '../interfaces/index.js'
+import { AssetType, AssetUnit, CatalogueProduct, Gate, Tenant } from '../models/index.js';
+import { engineFilter, kioskFilter, reachableUnitFilter } from '../domain/access.js';
+import { ENGINE_KINDS, type EngineKind } from '../domain/types.js';
+import type { Scope } from '../interfaces/index.js';
 
-type Caller = Pick<Scope, 'role' | 'engineKinds'> & Partial<Pick<Scope, 'kioskId' | 'stationId'>>
+type Caller = Pick<Scope, 'role' | 'engineKinds'> & Partial<Pick<Scope, 'kioskId' | 'stationId'>>;
 
 /**
  * What this desk can actually sell.
@@ -29,56 +29,57 @@ type Caller = Pick<Scope, 'role' | 'engineKinds'> & Partial<Pick<Scope, 'kioskId
  * not at the next restart.
  */
 async function gateIdsAt(tenantId: string, stationId?: string): Promise<string[]> {
-  if (!stationId) return []
-  const gates = await Gate.find({ tenantId, stationId, active: { $ne: false } }, { _id: 1 }).lean()
-  return gates.map((g) => g._id)
+  if (!stationId) return [];
+  const gates = await Gate.find({ tenantId, stationId, active: { $ne: false } }, { _id: 1 }).lean();
+  return gates.map((g) => g._id);
 }
 
 export async function listProducts(tenantId: string, engineKind?: EngineKind, caller?: Caller) {
-  const q: Record<string, unknown> = { tenantId, active: true }
-  const engines = caller ? engineFilter(caller, engineKind) : engineKind
-  if (engines !== undefined) q.engineKind = engines
+  const q: Record<string, unknown> = { tenantId, active: true };
+  const engines = caller ? engineFilter(caller, engineKind) : engineKind;
+  if (engines !== undefined) q.engineKind = engines;
 
   // A product kept to one desk is offered at that desk only; one with no desk named belongs to
   // every counter running its activity.
-  const kiosk = caller ? kioskFilter(caller) : undefined
-  if (kiosk !== undefined) q.$or = [{ kioskId: null }, { kioskId: { $exists: false } }, { kioskId: kiosk }]
+  const kiosk = caller ? kioskFilter(caller) : undefined;
+  if (kiosk !== undefined)
+    q.$or = [{ kioskId: null }, { kioskId: { $exists: false } }, { kioskId: kiosk }];
 
-  const products = await CatalogueProduct.find(q).sort({ category: 1, name: 1 }).lean()
-  if (kiosk === undefined || products.length === 0) return products
+  const products = await CatalogueProduct.find(q).sort({ category: 1, name: 1 }).lean();
+  if (kiosk === undefined || products.length === 0) return products;
 
-  const backed = [...new Set(products.map((p) => p.assetTypeId).filter(Boolean) as string[])]
-  if (backed.length === 0) return products
+  const backed = [...new Set(products.map((p) => p.assetTypeId).filter(Boolean) as string[])];
+  if (backed.length === 0) return products;
 
   // Both places a desk can reach: its own counter, and the gates of its station. A Shop & Drop
   // counter holds no lockers at all, so without the gates it would find itself stocking nothing
   // and offering nothing.
-  const reach = reachableUnitFilter(caller!, await gateIdsAt(tenantId, caller?.stationId))
+  const reach = reachableUnitFilter(caller!, await gateIdsAt(tenantId, caller?.stationId));
   const stocked = new Set(
     await AssetUnit.distinct('assetTypeId', {
       tenantId,
       assetTypeId: { $in: backed },
       ...(caller?.stationId ? { stationId: caller.stationId } : {}),
       ...(reach ?? {}),
-    }),
-  )
+    })
+  );
 
-  return products.filter((p) => !p.assetTypeId || stocked.has(p.assetTypeId))
+  return products.filter((p) => !p.assetTypeId || stocked.has(p.assetTypeId));
 }
 
 export function getProduct(tenantId: string, productId: string) {
-  return CatalogueProduct.findOne({ _id: productId, tenantId }).lean()
+  return CatalogueProduct.findOne({ _id: productId, tenantId }).lean();
 }
 
 export function listAssetTypes(tenantId: string, engineKind?: EngineKind, caller?: Caller) {
-  const q: Record<string, unknown> = { tenantId }
-  const engines = caller ? engineFilter(caller, engineKind) : engineKind
-  if (engines !== undefined) q.engineKind = engines
-  return AssetType.find(q).lean()
+  const q: Record<string, unknown> = { tenantId };
+  const engines = caller ? engineFilter(caller, engineKind) : engineKind;
+  if (engines !== undefined) q.engineKind = engines;
+  return AssetType.find(q).lean();
 }
 
 export function getAssetType(tenantId: string, assetTypeId: string) {
-  return AssetType.findOne({ _id: assetTypeId, tenantId }).lean()
+  return AssetType.findOne({ _id: assetTypeId, tenantId }).lean();
 }
 
 /**
@@ -89,42 +90,47 @@ export function getAssetType(tenantId: string, assetTypeId: string) {
  * disagree with itself about which desk a unit belongs to.
  */
 export async function listUnits(tenantId: string, stationId: string, caller?: Caller) {
-  const q: Record<string, unknown> = { tenantId, stationId }
+  const q: Record<string, unknown> = { tenantId, stationId };
 
   if (caller) {
-    const engines = engineFilter(caller)
+    const engines = engineFilter(caller);
     if (engines !== undefined) {
-      const types = await AssetType.find({ tenantId, engineKind: engines }, { _id: 1 }).lean()
-      q.assetTypeId = { $in: types.map((t) => t._id) }
+      const types = await AssetType.find({ tenantId, engineKind: engines }, { _id: 1 }).lean();
+      q.assetTypeId = { $in: types.map((t) => t._id) };
     }
     // The desk's own units and the lockers standing at its station's gates. The engine filter
     // above already keeps a scooter bay from being handed a list of compartments.
-    const reach = reachableUnitFilter(caller, await gateIdsAt(tenantId, stationId))
-    if (reach) Object.assign(q, reach)
+    const reach = reachableUnitFilter(caller, await gateIdsAt(tenantId, stationId));
+    if (reach) Object.assign(q, reach);
   }
 
-  const units = await AssetUnit.find(q).sort({ assetTypeId: 1, identifier: 1 }).lean()
-  if (units.length === 0) return []
+  const units = await AssetUnit.find(q).sort({ assetTypeId: 1, identifier: 1 }).lean();
+  if (units.length === 0) return [];
 
-  const typeIds = [...new Set(units.map((u) => u.assetTypeId))]
+  const typeIds = [...new Set(units.map((u) => u.assetTypeId))];
   const [types, products] = await Promise.all([
     AssetType.find({ tenantId, _id: { $in: typeIds } }).lean(),
     CatalogueProduct.find({ tenantId, assetTypeId: { $in: typeIds }, active: true }).lean(),
-  ])
+  ]);
 
-  const typeById = new Map(types.map((t) => [t._id, t]))
-  const productByType = new Map(products.map((p) => [p.assetTypeId as string, p]))
+  const typeById = new Map(types.map((t) => [t._id, t]));
+  const productByType = new Map(products.map((p) => [p.assetTypeId as string, p]));
 
   // A locker's gate is part of what it is, from the counter's point of view: it decides where the
   // bags are carried, and it is the first thing the agent tells the customer.
-  const gateIds = [...new Set(units.map((u) => u.gateId).filter(Boolean) as string[])]
+  const gateIds = [...new Set(units.map((u) => u.gateId).filter(Boolean) as string[])];
   const gateNames = gateIds.length
-    ? new Map((await Gate.find({ tenantId, _id: { $in: gateIds } }, { name: 1 }).lean()).map((g) => [g._id, g.name]))
-    : new Map<string, string>()
+    ? new Map(
+        (await Gate.find({ tenantId, _id: { $in: gateIds } }, { name: 1 }).lean()).map((g) => [
+          g._id,
+          g.name,
+        ])
+      )
+    : new Map<string, string>();
 
   return units.map((u) => {
-    const type = typeById.get(u.assetTypeId)
-    const product = productByType.get(u.assetTypeId)
+    const type = typeById.get(u.assetTypeId);
+    const product = productByType.get(u.assetTypeId);
     return {
       ...u,
       assetTypeName: type?.name ?? u.assetTypeId,
@@ -141,12 +147,12 @@ export async function listUnits(tenantId: string, stationId: string, caller?: Ca
       billingModel: product?.billingModel ?? null,
       gateId: u.gateId ?? null,
       gateName: u.gateId ? (gateNames.get(u.gateId) ?? u.gateId) : null,
-    }
-  })
+    };
+  });
 }
 
 export async function tenantEngines(tenantId: string): Promise<EngineKind[]> {
-  const tenant = await Tenant.findById(tenantId, { enabledEngines: 1 }).lean()
-  const engines = tenant?.enabledEngines ?? []
-  return engines.length ? engines : [...ENGINE_KINDS]
+  const tenant = await Tenant.findById(tenantId, { enabledEngines: 1 }).lean();
+  const engines = tenant?.enabledEngines ?? [];
+  return engines.length ? engines : [...ENGINE_KINDS];
 }

@@ -1,12 +1,12 @@
-import { connectDB, disconnectDB } from '../config/db.js'
-import { env } from '../config/env.js'
-import { logger } from '../config/logger.js'
-import { bootstrapPlatform } from './bootstrap.js'
-import { closeAllConnections, platformDb } from './connections.js'
-import { createTenant, provisionTenant } from './provisioning.service.js'
-import { runInTenant } from './tenantContext.js'
-import { hashPassword } from '../models/user.model.js'
-import type { TenantRegistryDoc } from './registry.model.js'
+import { connectDB, disconnectDB } from '../config/db.js';
+import { env } from '../config/env.js';
+import { logger } from '../config/logger.js';
+import { bootstrapPlatform } from './bootstrap.js';
+import { closeAllConnections, platformDb } from './connections.js';
+import { createTenant, provisionTenant } from './provisioning.service.js';
+import { runInTenant } from './tenantContext.js';
+import { hashPassword } from '../models/user.model.js';
+import type { TenantRegistryDoc } from './registry.model.js';
 
 /**
  * Provisions the tenant the isolation tests attack WAYZ from.
@@ -19,18 +19,18 @@ import type { TenantRegistryDoc } from './registry.model.js'
  * a small live check that provisioning is idempotent.
  */
 async function run() {
-  const slug = process.env.ISOLATION_TENANT_SLUG ?? 'isolation'
+  const slug = process.env.ISOLATION_TENANT_SLUG ?? 'isolation';
   const admin = {
     email: process.env.ISOLATION_TENANT_EMAIL ?? 'admin.isolation@lockerflow.test',
     fullName: 'Isolation Probe Admin',
     password: process.env.ISOLATION_TENANT_PASSWORD ?? 'Isolation@12345',
-  }
+  };
 
-  await connectDB(env.MONGODB_URI)
-  await bootstrapPlatform()
+  await connectDB(env.MONGODB_URI);
+  await bootstrapPlatform();
 
-  const { TenantRegistry } = platformDb()
-  const existing = await TenantRegistry.findById(slug).lean<TenantRegistryDoc>()
+  const { TenantRegistry } = platformDb();
+  const existing = await TenantRegistry.findById(slug).lean<TenantRegistryDoc>();
 
   const tenant = existing
     ? await provisionTenant(slug, admin)
@@ -43,7 +43,7 @@ async function run() {
         branding: { primaryColor: '#7c3aed', secondaryColor: '#4c1d95', logoText: 'IP' },
         capabilities: [],
         enabledProfiles: [],
-      })
+      });
 
   /*
    * A working agent, so the isolation test can actually try to reach across.
@@ -54,9 +54,9 @@ async function run() {
    * proves nothing about isolation.
    */
   await runInTenant(tenant._id, async (ctx) => {
-    const { User } = ctx.models
-    const email = process.env.ISOLATION_AGENT_EMAIL ?? 'agent.isolation@lockerflow.test'
-    const already = await User.findOne({ email }).lean()
+    const { User } = ctx.models;
+    const email = process.env.ISOLATION_AGENT_EMAIL ?? 'agent.isolation@lockerflow.test';
+    const already = await User.findOne({ email }).lean();
     if (!already) {
       await User.create({
         _id: `usr_agent_${ctx.slug}`,
@@ -69,22 +69,24 @@ async function run() {
         stationId: '',
         kioskId: null,
         active: true,
-      })
+      });
     }
-  })
+  });
 
   logger.info(existing ? 'Isolation tenant resumed' : 'Isolation tenant created', {
     tenant: tenant._id,
     db: tenant.dbName,
     lifecycle: tenant.lifecycle,
-  })
+  });
 
-  await closeAllConnections()
-  await disconnectDB()
-  process.exit(0)
+  await closeAllConnections();
+  await disconnectDB();
+  process.exit(0);
 }
 
 run().catch((err) => {
-  logger.error('Could not provision the isolation tenant', { err: err instanceof Error ? err.message : String(err) })
-  process.exit(1)
-})
+  logger.error('Could not provision the isolation tenant', {
+    err: err instanceof Error ? err.message : String(err),
+  });
+  process.exit(1);
+});

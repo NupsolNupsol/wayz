@@ -1,40 +1,40 @@
-import { Router } from 'express'
-import { authenticate, requireRole } from '../middlewares/auth.js'
-import { FLOOR_LEADS, SELLING_STAFF } from '../domain/roles.js'
-import { bookingController } from '../controllers/booking.controller.js'
-import { voucherController } from '../controllers/voucher.controller.js'
+import { Router } from 'express';
+import { authenticate, requireRole } from '../middlewares/auth.js';
+import { FLOOR_LEADS, SELLING_STAFF } from '../domain/roles.js';
+import { bookingController } from '../controllers/booking.controller.js';
+import { voucherController } from '../controllers/voucher.controller.js';
 
-const router = Router()
+const router = Router();
 
-router.use(authenticate, requireRole(...SELLING_STAFF, ...FLOOR_LEADS))
+router.use(authenticate, requireRole(...SELLING_STAFF, ...FLOOR_LEADS));
 
-const desk = requireRole(...SELLING_STAFF)
+const desk = requireRole(...SELLING_STAFF);
 
-router.get('/', bookingController.list)
-router.get('/:id', bookingController.get)
-router.get('/:id/order', bookingController.order)
-router.get('/:id/payments', bookingController.payments)
-router.get('/:id/invoice', bookingController.invoice)
-router.get('/:id/invoice/xml', bookingController.invoiceXml)
-router.post('/:id/invoice/whatsapp', bookingController.whatsappInvoice)
-router.get('/:id/refund', bookingController.refundPosition)
-router.post('/:id/refund', bookingController.refund)
+router.get('/', bookingController.list);
+router.get('/:id', bookingController.get);
+router.get('/:id/order', bookingController.order);
+router.get('/:id/payments', bookingController.payments);
+router.get('/:id/invoice', bookingController.invoice);
+router.get('/:id/invoice/xml', bookingController.invoiceXml);
+router.post('/:id/invoice/whatsapp', bookingController.whatsappInvoice);
+router.get('/:id/refund', bookingController.refundPosition);
+router.post('/:id/refund', bookingController.refund);
 
-router.post('/', desk, bookingController.create)
-router.get('/:id/transitions', desk, bookingController.transitions)
-router.post('/:id/pay', desk, bookingController.pay)
-router.post('/:id/discount', desk, bookingController.discount)
-router.post('/voucher/check', desk, voucherController.check)
-router.post('/:id/voucher', desk, voucherController.redeem)
-router.post('/:id/settle', desk, bookingController.settle)
-router.post('/:id/reserve', desk, bookingController.reserve)
-router.post('/:id/reassign', desk, bookingController.reassign)
-router.post('/:id/return', desk, bookingController.returnHere)
-router.post('/:id/scan-out', desk, bookingController.scanOut)
-router.post('/:id/transition', desk, bookingController.transition)
+router.post('/', desk, bookingController.create);
+router.get('/:id/transitions', desk, bookingController.transitions);
+router.post('/:id/pay', desk, bookingController.pay);
+router.post('/:id/discount', desk, bookingController.discount);
+router.post('/voucher/check', desk, voucherController.check);
+router.post('/:id/voucher', desk, voucherController.redeem);
+router.post('/:id/settle', desk, bookingController.settle);
+router.post('/:id/reserve', desk, bookingController.reserve);
+router.post('/:id/reassign', desk, bookingController.reassign);
+router.post('/:id/return', desk, bookingController.returnHere);
+router.post('/:id/scan-out', desk, bookingController.scanOut);
+router.post('/:id/transition', desk, bookingController.transition);
 
-router.post('/:id/verification/send', desk, bookingController.sendVerification)
-router.post('/:id/verification/confirm', desk, bookingController.confirmVerification)
-router.get('/:id/verification/evidence/:evidenceId', bookingController.verificationEvidence)
+router.post('/:id/verification/send', desk, bookingController.sendVerification);
+router.post('/:id/verification/confirm', desk, bookingController.confirmVerification);
+router.get('/:id/verification/evidence/:evidenceId', bookingController.verificationEvidence);
 
-export default router
+export default router;

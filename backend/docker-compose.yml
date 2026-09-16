@@ -13,11 +13,11 @@ services:
     container_name: lockerflow-mongo
     restart: unless-stopped
     ports:
-      - "27017:27017"
+      - '27017:27017'
     volumes:
       - mongo_data:/data/db
     healthcheck:
-      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      test: ['CMD', 'mongosh', '--eval', "db.adminCommand('ping')"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -27,12 +27,12 @@ services:
     container_name: lockerflow-redis
     restart: unless-stopped
     ports:
-      - "127.0.0.1:6379:6379"
+      - '127.0.0.1:6379:6379'
     command: redis-server --appendonly yes
     volumes:
       - redis_data:/data
     healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
+      test: ['CMD', 'redis-cli', 'ping']
       interval: 10s
       timeout: 5s
       retries: 5
@@ -58,8 +58,8 @@ services:
       REDIS_URL: redis://redis:6379
       # Mode-specific, like the URLs above: the host runs the sweep on an in-process timer and
       # does not seed a throwaway database, this stack has a real Redis and a fresh volume.
-      QUEUE_ENABLED: "true"
-      AUTO_SEED: "false"
+      QUEUE_ENABLED: 'true'
+      AUTO_SEED: 'false'
 
       # --- Environment-specific: overridable, safe non-secret defaults. -----------------
       # Both browsers that talk to this API in development: the web workspace and the Expo
@@ -125,7 +125,7 @@ services:
       MAIL_FALLBACK_USER: ${MAIL_FALLBACK_USER:-}
       MAIL_FALLBACK_PASSWORD: ${MAIL_FALLBACK_PASSWORD:-}
     ports:
-      - "4000:4000"
+      - '4000:4000'
 
 volumes:
   mongo_data:

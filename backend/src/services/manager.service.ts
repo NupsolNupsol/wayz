@@ -1,44 +1,55 @@
-import { AssetUnit, Booking, Customer, Incident, Kiosk, Order, Payment, Shift, Station, User } from '../models/index.js'
-import { tenantEngines } from './catalogue.service.js'
-import { ApiError } from '../utils/ApiError.js'
-import { round2 } from '../utils/helpers.js'
-import type { EngineKind } from '../domain/types.js'
-import { computeOvertime } from '../domain/overtime.js'
-import { canWorkEngine, engineFilter } from '../domain/access.js'
-import type { ManagerScope } from '../interfaces/index.js'
+import {
+  AssetUnit,
+  Booking,
+  Customer,
+  Incident,
+  Kiosk,
+  Order,
+  Payment,
+  Shift,
+  Station,
+  User,
+} from '../models/index.js';
+import { tenantEngines } from './catalogue.service.js';
+import { ApiError } from '../utils/ApiError.js';
+import { round2 } from '../utils/helpers.js';
+import type { EngineKind } from '../domain/types.js';
+import { computeOvertime } from '../domain/overtime.js';
+import { canWorkEngine, engineFilter } from '../domain/access.js';
+import type { ManagerScope } from '../interfaces/index.js';
 
 function startOfDay(d = new Date()): Date {
-  const x = new Date(d)
-  x.setHours(0, 0, 0, 0)
-  return x
+  const x = new Date(d);
+  x.setHours(0, 0, 0, 0);
+  return x;
 }
 
 function daysAgo(n: number): Date {
-  return startOfDay(new Date(Date.now() - n * 86_400_000))
+  return startOfDay(new Date(Date.now() - n * 86_400_000));
 }
 
-const ACTIVE_STATUSES = ['ACTIVE', 'OVERTIME', 'RETRIEVAL_IN_PROGRESS']
+const ACTIVE_STATUSES = ['ACTIVE', 'OVERTIME', 'RETRIEVAL_IN_PROGRESS'];
 
 function scoped(scope: ManagerScope, extra: Record<string, unknown> = {}): Record<string, unknown> {
-  const q: Record<string, unknown> = { tenantId: scope.tenantId, ...extra }
-  const engines = engineFilter({ role: scope.role, engineKinds: scope.engineKinds })
-  if (engines !== undefined) q.engineKind = engines
-  return q
+  const q: Record<string, unknown> = { tenantId: scope.tenantId, ...extra };
+  const engines = engineFilter({ role: scope.role, engineKinds: scope.engineKinds });
+  if (engines !== undefined) q.engineKind = engines;
+  return q;
 }
 
 function owns(scope: ManagerScope, engineKind?: EngineKind | null): boolean {
-  if (!engineKind) return true
-  return canWorkEngine({ role: scope.role, engineKinds: scope.engineKinds }, engineKind)
+  if (!engineKind) return true;
+  return canWorkEngine({ role: scope.role, engineKinds: scope.engineKinds }, engineKind);
 }
 
 export async function managerOverview(scope: ManagerScope) {
-  const allEngines = await tenantEngines(scope.tenantId)
-  const mine = scope.engineKinds?.length ? scope.engineKinds : null
-  const engines = mine ? allEngines.filter((e) => mine.includes(e)) : allEngines
-  const base = scoped(scope)
-  const tenantOnly = { tenantId: scope.tenantId }
-  const now = new Date()
-  const today = startOfDay()
+  const allEngines = await tenantEngines(scope.tenantId);
+  const mine = scope.engineKinds?.length ? scope.engineKinds : null;
+  const engines = mine ? allEngines.filter((e) => mine.includes(e)) : allEngines;
+  const base = scoped(scope);
+  const tenantOnly = { tenantId: scope.tenantId };
+  const now = new Date();
+  const today = startOfDay();
 
   const [
     revenueToday,
@@ -60,15 +71,23 @@ export async function managerOverview(scope: ManagerScope) {
     sumRevenue(base, today),
     sumRevenue(base, daysAgo(6)),
     sumRevenue(base, daysAgo(29)),
-    Payment.distinct('orderId', { ...base, kind: 'SALE', createdAt: { $gte: today } }).then((ids) => ids.length),
+    Payment.distinct('orderId', { ...base, kind: 'SALE', createdAt: { $gte: today } }).then(
+      (ids) => ids.length
+    ),
     Booking.countDocuments({ ...base, status: { $in: ACTIVE_STATUSES } }),
-    Booking.countDocuments({ ...base, status: { $in: ['ACTIVE', 'OVERTIME'] }, 'session.expectedEndAt': { $lt: now } }),
+    Booking.countDocuments({
+      ...base,
+      status: { $in: ['ACTIVE', 'OVERTIME'] },
+      'session.expectedEndAt': { $lt: now },
+    }),
     Incident.countDocuments({ ...base, status: { $nin: ['RESOLVED', 'REJECTED'] } }),
     Shift.countDocuments({ ...tenantOnly, status: 'RECONCILING' }),
 
     Payment.aggregate([
       { $match: { ...base, status: 'CAPTURED', createdAt: { $gte: daysAgo(29) } } },
-      { $lookup: { from: 'bookings', localField: 'bookingId', foreignField: '_id', as: 'booking' } },
+      {
+        $lookup: { from: 'bookings', localField: 'bookingId', foreignField: '_id', as: 'booking' },
+      },
       { $unwind: { path: '$booking', preserveNullAndEmptyArrays: true } },
       { $group: { _id: '$booking.engineKind', total: { $sum: '$amount' }, count: { $sum: 1 } } },
     ]),
@@ -102,35 +121,59 @@ export async function managerOverview(scope: ManagerScope) {
     // Money the desk chose not to take. The client asked to see this summed, not buried.
     Booking.aggregate([
       { $match: { ...base, discount: { $ne: null }, 'discount.at': { $gte: today } } },
-      { $group: { _id: null, total: { $sum: '$discount.amount' }, count: { $sum: 1 }, free: { $sum: { $cond: ['$discount.free', 1, 0] } } } },
+      {
+        $group: {
+          _id: null,
+          total: { $sum: '$discount.amount' },
+          count: { $sum: 1 },
+          free: { $sum: { $cond: ['$discount.free', 1, 0] } },
+        },
+      },
     ]),
     Booking.aggregate([
       { $match: { ...base, discount: { $ne: null }, 'discount.at': { $gte: daysAgo(29) } } },
-      { $group: { _id: null, total: { $sum: '$discount.amount' }, count: { $sum: 1 }, free: { $sum: { $cond: ['$discount.free', 1, 0] } } } },
+      {
+        $group: {
+          _id: null,
+          total: { $sum: '$discount.amount' },
+          count: { $sum: 1 },
+          free: { $sum: { $cond: ['$discount.free', 1, 0] } },
+        },
+      },
     ]),
-  ])
+  ]);
 
-  const stations = await Station.find({ tenantId: scope.tenantId }).lean()
-  const stationName = new Map(stations.map((s) => [s._id, s.name]))
+  const stations = await Station.find({ tenantId: scope.tenantId }).lean();
+  const stationName = new Map(stations.map((s) => [s._id, s.name]));
 
-  const unitsByStatus = Object.fromEntries(unitAgg.map((u: { _id: string; count: number }) => [u._id, u.count]))
-  const totalUnits = Object.values(unitsByStatus).reduce((a: number, b) => a + (b as number), 0)
-  const inUse = (unitsByStatus.OCCUPIED ?? 0) + (unitsByStatus.RESERVED ?? 0) + (unitsByStatus.RETRIEVAL_PENDING ?? 0)
+  const unitsByStatus = Object.fromEntries(
+    unitAgg.map((u: { _id: string; count: number }) => [u._id, u.count])
+  );
+  const totalUnits = Object.values(unitsByStatus).reduce((a: number, b) => a + (b as number), 0);
+  const inUse =
+    (unitsByStatus.OCCUPIED ?? 0) +
+    (unitsByStatus.RESERVED ?? 0) +
+    (unitsByStatus.RETRIEVAL_PENDING ?? 0);
 
   const engineMap = new Map(
-    revenueByEngine.map((r: { _id: string; total: number; count: number }) => [r._id, { total: r.total, count: r.count }]),
-  )
+    revenueByEngine.map((r: { _id: string; total: number; count: number }) => [
+      r._id,
+      { total: r.total, count: r.count },
+    ])
+  );
 
-  const trend: { date: string; total: number; count: number }[] = []
-  const byDate = new Map(revenueTrend.map((d: { _id: string; total: number; count: number }) => [d._id, d]))
+  const trend: { date: string; total: number; count: number }[] = [];
+  const byDate = new Map(
+    revenueTrend.map((d: { _id: string; total: number; count: number }) => [d._id, d])
+  );
   for (let i = 13; i >= 0; i--) {
-    const key = new Date(Date.now() - i * 86_400_000).toISOString().slice(0, 10)
-    const hit = byDate.get(key)
-    trend.push({ date: key, total: round2(hit?.total ?? 0), count: hit?.count ?? 0 })
+    const key = new Date(Date.now() - i * 86_400_000).toISOString().slice(0, 10);
+    const hit = byDate.get(key);
+    trend.push({ date: key, total: round2(hit?.total ?? 0), count: hit?.count ?? 0 });
   }
 
-  const discountsToday = discountsTodayAgg[0] ?? { total: 0, count: 0, free: 0 }
-  const discounts30d = discounts30dAgg[0] ?? { total: 0, count: 0, free: 0 }
+  const discountsToday = discountsTodayAgg[0] ?? { total: 0, count: 0, free: 0 };
+  const discounts30d = discounts30dAgg[0] ?? { total: 0, count: 0, free: 0 };
 
   return {
     revenue: { today: revenueToday, last7Days: revenue7d, last30Days: revenue30d },
@@ -152,7 +195,10 @@ export async function managerOverview(scope: ManagerScope) {
       totalUnits,
       inUse,
       available: unitsByStatus.AVAILABLE ?? 0,
-      outOfService: (unitsByStatus.MAINTENANCE ?? 0) + (unitsByStatus.OUT_OF_SERVICE ?? 0) + (unitsByStatus.BLOCKED ?? 0),
+      outOfService:
+        (unitsByStatus.MAINTENANCE ?? 0) +
+        (unitsByStatus.OUT_OF_SERVICE ?? 0) +
+        (unitsByStatus.BLOCKED ?? 0),
       utilisationPct: totalUnits ? Math.round((inUse / totalUnits) * 100) : 0,
       byStatus: unitsByStatus as Record<string, number>,
     },
@@ -168,24 +214,31 @@ export async function managerOverview(scope: ManagerScope) {
       active: s.active,
     })),
     revenueTrend: trend,
-  }
+  };
 }
 
 async function sumRevenue(base: Record<string, unknown>, since: Date): Promise<number> {
   const agg = await Payment.aggregate([
-    { $match: { ...base, status: 'CAPTURED', kind: { $in: ['SALE', 'OVERTIME'] }, createdAt: { $gte: since } } },
+    {
+      $match: {
+        ...base,
+        status: 'CAPTURED',
+        kind: { $in: ['SALE', 'OVERTIME'] },
+        createdAt: { $gte: since },
+      },
+    },
     { $group: { _id: null, total: { $sum: '$amount' } } },
-  ])
-  return round2(agg[0]?.total ?? 0)
+  ]);
+  return round2(agg[0]?.total ?? 0);
 }
 
 export async function managerIncidents(scope: ManagerScope) {
   const [incidents, stations] = await Promise.all([
     Incident.find(scoped(scope)).sort({ createdAt: -1 }).limit(300).lean(),
     Station.find({ tenantId: scope.tenantId }).lean(),
-  ])
-  const stationName = new Map(stations.map((s) => [s._id, s.name]))
-  return incidents.map((i) => ({ ...i, stationName: stationName.get(i.stationId) ?? i.stationId }))
+  ]);
+  const stationName = new Map(stations.map((s) => [s._id, s.name]));
+  return incidents.map((i) => ({ ...i, stationName: stationName.get(i.stationId) ?? i.stationId }));
 }
 
 export async function managerShifts(scope: ManagerScope) {
@@ -194,31 +247,31 @@ export async function managerShifts(scope: ManagerScope) {
     Station.find({ tenantId: scope.tenantId }).lean(),
     Kiosk.find({ tenantId: scope.tenantId }).lean(),
     User.find({ tenantId: scope.tenantId }).lean(),
-  ])
-  const stationName = new Map(stations.map((s) => [s._id, s.name]))
-  const kioskName = new Map(kiosks.map((k) => [k._id, k.name]))
-  const userName = new Map(users.map((u) => [u._id, u.fullName]))
+  ]);
+  const stationName = new Map(stations.map((s) => [s._id, s.name]));
+  const kioskName = new Map(kiosks.map((k) => [k._id, k.name]));
+  const userName = new Map(users.map((u) => [u._id, u.fullName]));
   return shifts.map((s) => ({
     ...s,
     stationName: stationName.get(s.stationId) ?? s.stationId,
     kioskName: s.kioskId ? (kioskName.get(s.kioskId) ?? s.kioskId) : null,
     agentName: userName.get(s.agentId) ?? s.agentId,
-  }))
+  }));
 }
 
 export async function managerShift(scope: ManagerScope, shiftId: string) {
-  const rows = await managerShifts(scope)
-  const shift = rows.find((s) => s._id === shiftId)
-  if (!shift) throw ApiError.notFound('Shift not found.')
-  return shift
+  const rows = await managerShifts(scope);
+  const shift = rows.find((s) => s._id === shiftId);
+  if (!shift) throw ApiError.notFound('Shift not found.');
+  return shift;
 }
 
 export async function managerStaff(scope: ManagerScope) {
   const [users, stations] = await Promise.all([
     User.find({ tenantId: scope.tenantId }).lean(),
     Station.find({ tenantId: scope.tenantId }).lean(),
-  ])
-  const stationName = new Map(stations.map((s) => [s._id, s.name]))
+  ]);
+  const stationName = new Map(stations.map((s) => [s._id, s.name]));
   return users.map((u) => ({
     _id: u._id,
     fullName: u.fullName,
@@ -226,7 +279,7 @@ export async function managerStaff(scope: ManagerScope) {
     role: u.role,
     phone: u.phone,
     stationName: stationName.get(u.stationId) ?? u.stationId,
-  }))
+  }));
 }
 
 export async function managerLiveSessions(scope: ManagerScope) {
@@ -236,11 +289,11 @@ export async function managerLiveSessions(scope: ManagerScope) {
       .limit(200)
       .lean(),
     Station.find({ tenantId: scope.tenantId }).lean(),
-  ])
-  const stationName = new Map(stations.map((s) => [s._id, s.name]))
+  ]);
+  const stationName = new Map(stations.map((s) => [s._id, s.name]));
 
   return bookings.map((b) => {
-    const overtime = computeOvertime(b.session)
+    const overtime = computeOvertime(b.session);
     return {
       _id: b._id,
       ref: b.ref,
@@ -254,8 +307,8 @@ export async function managerLiveSessions(scope: ManagerScope) {
       gracePeriodMin: overtime.gracePeriodMin,
       isOvertime: overtime.isOvertime,
       penaltyAmount: overtime.penaltyAmount,
-    }
-  })
+    };
+  });
 }
 
 const RENTAL_SCOPES = {
@@ -263,27 +316,30 @@ const RENTAL_SCOPES = {
   completed: ['COMPLETED'],
   expired: ['OVERTIME'],
   all: [] as string[],
-}
+};
 
-export async function managerRentals(scope: ManagerScope, which: keyof typeof RENTAL_SCOPES = 'all') {
-  const statuses = RENTAL_SCOPES[which]
-  const query = scoped(scope)
+export async function managerRentals(
+  scope: ManagerScope,
+  which: keyof typeof RENTAL_SCOPES = 'all'
+) {
+  const statuses = RENTAL_SCOPES[which];
+  const query = scoped(scope);
   if (which === 'expired') {
-    query.status = { $in: ['ACTIVE', 'OVERTIME'] }
+    query.status = { $in: ['ACTIVE', 'OVERTIME'] };
   } else if (statuses.length) {
-    query.status = { $in: statuses }
+    query.status = { $in: statuses };
   }
 
   const [bookings, stations, users] = await Promise.all([
     Booking.find(query).sort({ createdAt: -1 }).limit(400).lean(),
     Station.find({ tenantId: scope.tenantId }).lean(),
     User.find({ tenantId: scope.tenantId }).lean(),
-  ])
-  const stationName = new Map(stations.map((s) => [s._id, s.name]))
-  const agentName = new Map(users.map((u) => [u._id, u.fullName]))
+  ]);
+  const stationName = new Map(stations.map((s) => [s._id, s.name]));
+  const agentName = new Map(users.map((u) => [u._id, u.fullName]));
 
   const rows = bookings.map((b) => {
-    const o = computeOvertime(b.session)
+    const o = computeOvertime(b.session);
     return {
       _id: b._id,
       ref: b.ref,
@@ -303,23 +359,23 @@ export async function managerRentals(scope: ManagerScope, which: keyof typeof RE
       isOvertime: o.isOvertime,
       penaltyAmount: o.penaltyAmount,
       createdAt: b.createdAt,
-    }
-  })
+    };
+  });
 
-  return which === 'expired' ? rows.filter((r) => r.isOvertime) : rows
+  return which === 'expired' ? rows.filter((r) => r.isOvertime) : rows;
 }
 
 export async function managerRentalDetail(scope: ManagerScope, bookingId: string) {
-  const booking = await Booking.findOne({ _id: bookingId, tenantId: scope.tenantId }).lean()
-  if (!booking) throw ApiError.notFound('Rental not found.')
-  if (!owns(scope, booking.engineKind)) throw ApiError.notFound('Rental not found.')
+  const booking = await Booking.findOne({ _id: bookingId, tenantId: scope.tenantId }).lean();
+  if (!booking) throw ApiError.notFound('Rental not found.');
+  if (!owns(scope, booking.engineKind)) throw ApiError.notFound('Rental not found.');
 
   const [order, payments, station, agent] = await Promise.all([
     Order.findById(booking.orderId).lean(),
     Payment.find({ bookingId, tenantId: scope.tenantId }).sort({ createdAt: 1 }).lean(),
     Station.findById(booking.stationId).lean(),
     User.findById(booking.agentId).lean(),
-  ])
+  ]);
 
   return {
     booking: { ...booking, overtime: computeOvertime(booking.session) },
@@ -327,7 +383,7 @@ export async function managerRentalDetail(scope: ManagerScope, bookingId: string
     payments,
     stationName: station?.name ?? booking.stationId,
     agentName: agent?.fullName ?? booking.agentId,
-  }
+  };
 }
 
 export async function managerCustomers(scope: ManagerScope) {
@@ -344,11 +400,13 @@ export async function managerCustomers(scope: ManagerScope) {
         },
       },
     ]),
-  ])
-  const stats = new Map(agg.map((a: { _id: string; bookings: number; completed: number; lastAt: Date }) => [a._id, a]))
+  ]);
+  const stats = new Map(
+    agg.map((a: { _id: string; bookings: number; completed: number; lastAt: Date }) => [a._id, a])
+  );
 
   return customers.map((c) => {
-    const s = stats.get(c._id)
+    const s = stats.get(c._id);
     return {
       _id: c._id,
       name: c.name,
@@ -358,16 +416,19 @@ export async function managerCustomers(scope: ManagerScope) {
       bookings: s?.bookings ?? 0,
       completed: s?.completed ?? 0,
       lastBookingAt: s?.lastAt ?? null,
-    }
-  })
+    };
+  });
 }
 
 export async function managerCustomerDetail(scope: ManagerScope, customerId: string) {
-  const customer = await Customer.findOne({ _id: customerId, tenantId: scope.tenantId }).lean()
-  if (!customer) throw ApiError.notFound('Customer not found.')
+  const customer = await Customer.findOne({ _id: customerId, tenantId: scope.tenantId }).lean();
+  if (!customer) throw ApiError.notFound('Customer not found.');
 
   const [bookings, paid] = await Promise.all([
-    Booking.find({ tenantId: scope.tenantId, customerId }).sort({ createdAt: -1 }).limit(200).lean(),
+    Booking.find({ tenantId: scope.tenantId, customerId })
+      .sort({ createdAt: -1 })
+      .limit(200)
+      .lean(),
     Payment.aggregate([
       { $match: { tenantId: scope.tenantId, status: 'CAPTURED' } },
       { $lookup: { from: 'bookings', localField: 'bookingId', foreignField: '_id', as: 'b' } },
@@ -375,7 +436,7 @@ export async function managerCustomerDetail(scope: ManagerScope, customerId: str
       { $match: { 'b.customerId': customerId } },
       { $group: { _id: null, total: { $sum: '$amount' } } },
     ]),
-  ])
+  ]);
 
   return {
     customer,
@@ -389,7 +450,7 @@ export async function managerCustomerDetail(scope: ManagerScope, customerId: str
       createdAt: b.createdAt,
       penaltyAmount: computeOvertime(b.session).penaltyAmount,
     })),
-  }
+  };
 }
 
 export async function managerPayments(scope: ManagerScope) {
@@ -402,10 +463,14 @@ export async function managerPayments(scope: ManagerScope) {
       { $unwind: { path: '$b', preserveNullAndEmptyArrays: true } },
     ]),
     Station.find({ tenantId: scope.tenantId }).lean(),
-  ])
-  const stationName = new Map(stations.map((s) => [s._id, s.name]))
+  ]);
+  const stationName = new Map(stations.map((s) => [s._id, s.name]));
 
-  return (payments as Array<Record<string, unknown> & { b?: { ref?: string; customerName?: string; engineKind?: string } }>).map((p) => ({
+  return (
+    payments as Array<
+      Record<string, unknown> & { b?: { ref?: string; customerName?: string; engineKind?: string } }
+    >
+  ).map((p) => ({
     _id: p._id as string,
     amount: p.amount as number,
     method: p.method as string,
@@ -417,5 +482,5 @@ export async function managerPayments(scope: ManagerScope) {
     customerName: p.b?.customerName ?? null,
     engineKind: p.b?.engineKind ?? null,
     stationName: stationName.get(p.stationId as string) ?? (p.stationId as string),
-  }))
+  }));
 }

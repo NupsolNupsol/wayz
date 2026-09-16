@@ -1,15 +1,15 @@
-import { Schema } from 'mongoose'
-import type { EngineKind } from '../domain/types.js'
+import { Schema } from 'mongoose';
+import type { EngineKind } from '../domain/types.js';
 
 export interface SiteDoc {
-  _id: string
-  tenantId: string
-  name: string
-  city: string
-  venueType?: string
-  address?: string
-  contactPhone?: string
-  active: boolean
+  _id: string;
+  tenantId: string;
+  name: string;
+  city: string;
+  venueType?: string;
+  address?: string;
+  contactPhone?: string;
+  active: boolean;
 }
 const siteSchema = new Schema<SiteDoc>(
   {
@@ -22,15 +22,15 @@ const siteSchema = new Schema<SiteDoc>(
     contactPhone: { type: String, default: '' },
     active: { type: Boolean, default: true },
   },
-  { _id: false, timestamps: true },
-)
-export const SiteSchema = siteSchema
+  { _id: false, timestamps: true }
+);
+export const SiteSchema = siteSchema;
 
 export interface ZoneDoc {
-  _id: string
-  tenantId: string
-  siteId: string
-  name: string
+  _id: string;
+  tenantId: string;
+  siteId: string;
+  name: string;
 }
 const zoneSchema = new Schema<ZoneDoc>(
   {
@@ -39,24 +39,24 @@ const zoneSchema = new Schema<ZoneDoc>(
     siteId: { type: String, required: true, index: true },
     name: { type: String, required: true },
   },
-  { _id: false, timestamps: true },
-)
-export const ZoneSchema = zoneSchema
+  { _id: false, timestamps: true }
+);
+export const ZoneSchema = zoneSchema;
 
 export interface StationDoc {
-  _id: string
-  tenantId: string
-  siteId: string
-  zoneId: string
-  name: string
-  code?: string
-  engineKinds: EngineKind[]
-  openingTime?: string
-  closingTime?: string
-  contactPhone?: string
-  active: boolean
-  mapX?: number | null
-  mapY?: number | null
+  _id: string;
+  tenantId: string;
+  siteId: string;
+  zoneId: string;
+  name: string;
+  code?: string;
+  engineKinds: EngineKind[];
+  openingTime?: string;
+  closingTime?: string;
+  contactPhone?: string;
+  active: boolean;
+  mapX?: number | null;
+  mapY?: number | null;
 }
 const stationSchema = new Schema<StationDoc>(
   {
@@ -74,26 +74,26 @@ const stationSchema = new Schema<StationDoc>(
     mapX: { type: Number, default: null },
     mapY: { type: Number, default: null },
   },
-  { _id: false, timestamps: true },
-)
-export const StationSchema = stationSchema
+  { _id: false, timestamps: true }
+);
+export const StationSchema = stationSchema;
 
 export interface KioskDoc {
-  _id: string
-  tenantId: string
-  siteId: string
-  stationId: string
-  name: string
-  code?: string
-  location?: string
-  engineKind: EngineKind
+  _id: string;
+  tenantId: string;
+  siteId: string;
+  stationId: string;
+  name: string;
+  code?: string;
+  location?: string;
+  engineKind: EngineKind;
   /** An exit the customer leaves by. Shop & Drop bags are sent to one of these to be collected. */
-  isExitGate: boolean
-  active: boolean
-  mapX?: number | null
-  mapY?: number | null
-  createdAt: Date
-  updatedAt: Date
+  isExitGate: boolean;
+  active: boolean;
+  mapX?: number | null;
+  mapY?: number | null;
+  createdAt: Date;
+  updatedAt: Date;
 }
 
 const kioskSchema = new Schema<KioskDoc>(
@@ -111,10 +111,10 @@ const kioskSchema = new Schema<KioskDoc>(
     mapX: { type: Number, default: null },
     mapY: { type: Number, default: null },
   },
-  { _id: false, timestamps: true },
-)
+  { _id: false, timestamps: true }
+);
 
-export const KioskSchema = kioskSchema
+export const KioskSchema = kioskSchema;
 
 /**
  * A gate: the place at a station where the lockers actually are.
@@ -131,18 +131,18 @@ export const KioskSchema = kioskSchema
  * nothing, and every query already scoped by station would have to learn a second way to reach it.
  */
 export interface GateDoc {
-  _id: string
-  tenantId: string
-  siteId: string
-  stationId: string
-  name: string
-  code?: string
-  location?: string
-  active: boolean
-  mapX?: number | null
-  mapY?: number | null
-  createdAt: Date
-  updatedAt: Date
+  _id: string;
+  tenantId: string;
+  siteId: string;
+  stationId: string;
+  name: string;
+  code?: string;
+  location?: string;
+  active: boolean;
+  mapX?: number | null;
+  mapY?: number | null;
+  createdAt: Date;
+  updatedAt: Date;
 }
 
 const gateSchema = new Schema<GateDoc>(
@@ -158,9 +158,9 @@ const gateSchema = new Schema<GateDoc>(
     mapX: { type: Number, default: null },
     mapY: { type: Number, default: null },
   },
-  { _id: false, timestamps: true },
-)
+  { _id: false, timestamps: true }
+);
 
-gateSchema.index({ tenantId: 1, stationId: 1, active: 1 })
+gateSchema.index({ tenantId: 1, stationId: 1, active: 1 });
 
-export const GateSchema = gateSchema
+export const GateSchema = gateSchema;

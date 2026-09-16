@@ -1,31 +1,31 @@
-import { Schema } from 'mongoose'
-import type { EngineKind } from '../domain/types.js'
+import { Schema } from 'mongoose';
+import type { EngineKind } from '../domain/types.js';
 
-export const REFUND_REQUEST_STATUSES = ['PENDING', 'APPROVED', 'REJECTED'] as const
-export type RefundRequestStatus = (typeof REFUND_REQUEST_STATUSES)[number]
+export const REFUND_REQUEST_STATUSES = ['PENDING', 'APPROVED', 'REJECTED'] as const;
+export type RefundRequestStatus = (typeof REFUND_REQUEST_STATUSES)[number];
 
 export interface RefundRequestDoc {
-  _id: string
-  ref: string
-  tenantId: string
-  stationId: string
-  kioskId: string | null
-  bookingId: string
-  bookingRef: string
-  engineKind: EngineKind
-  customerName: string
-  amount: number
-  reason: string
-  status: RefundRequestStatus
-  requestedBy: string
-  requestedByName: string
-  reviewedBy: string | null
-  reviewedByName: string | null
-  reviewedAt: Date | null
-  reviewNote: string
-  paymentIds: string[]
-  createdAt: Date
-  updatedAt: Date
+  _id: string;
+  ref: string;
+  tenantId: string;
+  stationId: string;
+  kioskId: string | null;
+  bookingId: string;
+  bookingRef: string;
+  engineKind: EngineKind;
+  customerName: string;
+  amount: number;
+  reason: string;
+  status: RefundRequestStatus;
+  requestedBy: string;
+  requestedByName: string;
+  reviewedBy: string | null;
+  reviewedByName: string | null;
+  reviewedAt: Date | null;
+  reviewNote: string;
+  paymentIds: string[];
+  createdAt: Date;
+  updatedAt: Date;
 }
 
 const refundRequestSchema = new Schema<RefundRequestDoc>(
@@ -50,9 +50,9 @@ const refundRequestSchema = new Schema<RefundRequestDoc>(
     reviewNote: { type: String, default: '' },
     paymentIds: { type: [String], default: [] },
   },
-  { _id: false, timestamps: true },
-)
+  { _id: false, timestamps: true }
+);
 
-refundRequestSchema.index({ tenantId: 1, status: 1, createdAt: -1 })
+refundRequestSchema.index({ tenantId: 1, status: 1, createdAt: -1 });
 
-export const RefundRequestSchema = refundRequestSchema
+export const RefundRequestSchema = refundRequestSchema;

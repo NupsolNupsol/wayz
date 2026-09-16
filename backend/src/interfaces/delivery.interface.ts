@@ -1,30 +1,30 @@
-import type { Role } from '../domain/types.js'
-import type { DeliveryOrigin, TransitionPayload } from '../domain/workflow.js'
+import type { Role } from '../domain/types.js';
+import type { DeliveryOrigin, TransitionPayload } from '../domain/workflow.js';
 
 export interface CreateDeliveryInput {
-  bookingId: string
+  bookingId: string;
   /** Where the bags go: an exit gate the customer will collect from, or a street address. */
-  toKioskId?: string
-  address?: string
-  notes?: string
-  contactPhone?: string
-  origin: DeliveryOrigin
-  fee?: number
-  alsoBookingIds?: string[]
+  toKioskId?: string;
+  address?: string;
+  notes?: string;
+  contactPhone?: string;
+  origin: DeliveryOrigin;
+  fee?: number;
+  alsoBookingIds?: string[];
 }
 
 export interface DeliveryActor {
-  tenantId: string
-  userId: string
-  role: Role
-  siteId?: string
-  stationId?: string
+  tenantId: string;
+  userId: string;
+  role: Role;
+  siteId?: string;
+  stationId?: string;
 }
 
 export interface ApplyDeliveryParams {
-  actor: DeliveryActor
-  id: string
-  code: string
-  payload?: TransitionPayload
-  now?: Date
+  actor: DeliveryActor;
+  id: string;
+  code: string;
+  payload?: TransitionPayload;
+  now?: Date;
 }
