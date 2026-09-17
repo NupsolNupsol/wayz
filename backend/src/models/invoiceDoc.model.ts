@@ -1,14 +1,14 @@
-import { Schema } from 'mongoose'
-import { randomBytes } from 'node:crypto'
+import { Schema } from 'mongoose';
+import { randomBytes } from 'node:crypto';
 
 export interface InvoiceDocDoc {
-  _id: string
-  tenantId: string
-  bookingId: string
-  orderRef: string
-  pdf: Buffer
-  expiresAt: Date
-  createdAt: Date
+  _id: string;
+  tenantId: string;
+  bookingId: string;
+  orderRef: string;
+  pdf: Buffer;
+  expiresAt: Date;
+  createdAt: Date;
 }
 
 const invoiceDocSchema = new Schema<InvoiceDocDoc>(
@@ -20,10 +20,9 @@ const invoiceDocSchema = new Schema<InvoiceDocDoc>(
     pdf: { type: Buffer, required: true },
     expiresAt: { type: Date, required: true },
   },
-  { _id: false, timestamps: { createdAt: true, updatedAt: false } },
-)
+  { _id: false, timestamps: { createdAt: true, updatedAt: false } }
+);
 
-invoiceDocSchema.index({ expiresAt: 1 }, { expireAfterSeconds: 0 })
+invoiceDocSchema.index({ expiresAt: 1 }, { expireAfterSeconds: 0 });
 
-
-export const InvoiceDocSchema = invoiceDocSchema
+export const InvoiceDocSchema = invoiceDocSchema;

@@ -1,14 +1,14 @@
-import type { ReactNode } from 'react'
-import { Link, useLocation, useNavigate } from 'react-router-dom'
-import { ArrowLeft, CircleHelp } from 'lucide-react'
-import { useTranslation } from 'react-i18next'
-import { hasManualSection } from '@/config/manual'
-import { homeForRole } from '@/permissions/permissions'
-import { useAuthStore } from '@/store/auth'
+import type { ReactNode } from 'react';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { ArrowLeft, CircleHelp } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
+import { hasManualSection } from '@/config/manual';
+import { homeForRole } from '@/permissions/permissions';
+import { useAuthStore } from '@/store/auth';
 
 export interface Crumb {
-  label: string
-  to?: string
+  label: string;
+  to?: string;
 }
 
 export function PageHeader({
@@ -19,20 +19,20 @@ export function PageHeader({
   helpId,
   backTo,
 }: {
-  title: string
-  subtitle?: string
-  crumbs?: Crumb[]
-  actions?: ReactNode
-  helpId?: string
-  backTo?: string
+  title: string;
+  subtitle?: string;
+  crumbs?: Crumb[];
+  actions?: ReactNode;
+  helpId?: string;
+  backTo?: string;
 }) {
-  const { t } = useTranslation('common')
-  const showHelp = !!helpId && hasManualSection(helpId)
-  const navigate = useNavigate()
-  const backLabel = t('action.back')
+  const { t } = useTranslation('common');
+  const showHelp = !!helpId && hasManualSection(helpId);
+  const navigate = useNavigate();
+  const backLabel = t('action.back');
 
-  const parent = backTo ?? [...(crumbs ?? [])].reverse().find((c) => !!c.to)?.to
-  const goBack = () => (parent ? navigate(parent) : navigate(-1))
+  const parent = backTo ?? [...(crumbs ?? [])].reverse().find((c) => !!c.to)?.to;
+  const goBack = () => (parent ? navigate(parent) : navigate(-1));
 
   /*
    * Whether there is anywhere to go back *to*.
@@ -45,10 +45,10 @@ export function PageHeader({
    * The app's own answer is simpler. A page with a named parent has one. Otherwise, a page is
    * a child if it is not the workspace this person lands on.
    */
-  const role = useAuthStore((s) => s.me?.role)
-  const { pathname } = useLocation()
-  const atHome = pathname.replace(/\/$/, '') === homeForRole(role).replace(/\/$/, '')
-  const canGoBack = !!parent || !atHome
+  const role = useAuthStore((s) => s.me?.role);
+  const { pathname } = useLocation();
+  const atHome = pathname.replace(/\/$/, '') === homeForRole(role).replace(/\/$/, '');
+  const canGoBack = !!parent || !atHome;
 
   return (
     <div className="mb-5">
@@ -84,5 +84,5 @@ export function PageHeader({
         {actions && <div className="flex items-center gap-2 flex-wrap">{actions}</div>}
       </div>
     </div>
-  )
+  );
 }

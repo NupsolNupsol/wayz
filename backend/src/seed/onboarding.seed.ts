@@ -1,7 +1,7 @@
-import { LearningProgress, User } from '../models/index.js'
-import { tourKeyFor } from '../services/learning/learning.service.js'
-import type { Role } from '../domain/types.js'
-import { requireOrganisation, runAcrossOrganisations } from '../platform/orgScope.js'
+import { LearningProgress, User } from '../models/index.js';
+import { tourKeyFor } from '../services/learning/learning.service.js';
+import type { Role } from '../domain/types.js';
+import { requireOrganisation, runAcrossOrganisations } from '../platform/orgScope.js';
 
 /**
  * Marks seeded accounts as having already been shown the guided tour.
@@ -18,10 +18,10 @@ import { requireOrganisation, runAcrossOrganisations } from '../platform/orgScop
  * through a tour keeps their place.
  */
 export async function markSeededAccountsOnboarded(): Promise<number> {
-  const people = await User.find({}, { _id: 1, role: 1 }).lean<{ _id: string; role: Role }[]>()
-  if (people.length === 0) return 0
+  const people = await User.find({}, { _id: 1, role: 1 }).lean<{ _id: string; role: Role }[]>();
+  if (people.length === 0) return 0;
 
-  const organizationId = requireOrganisation()
+  const organizationId = requireOrganisation();
 
   /*
    * Upserted by primary key, and asked globally.
@@ -50,12 +50,12 @@ export async function markSeededAccountsOnboarded(): Promise<number> {
               restarts: 0,
             },
           },
-          { upsert: true },
-        ),
-      ),
-    )
-    return results.filter((r) => r.upsertedCount > 0).length
-  })
+          { upsert: true }
+        )
+      )
+    );
+    return results.filter((r) => r.upsertedCount > 0).length;
+  });
 
-  return written
+  return written;
 }

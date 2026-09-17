@@ -1,173 +1,179 @@
-import { http, unwrap } from './client'
-import type { MapPoint } from '@/components/StationMap'
-import type { EngineKind, Role } from './types'
+import { http, unwrap } from './client';
+import type { MapPoint } from '@/components/StationMap';
+import type { EngineKind, Role } from './types';
 
 export interface TenantOverview {
   tenant: {
-    _id: string
-    name: string
-    legalName: string
-    crNumber: string
-    vatNumber: string
-    currency: string
-    vatRate: number
-    enabledEngines: EngineKind[]
-    branding: Record<string, string>
-    company: Record<string, string>
-  }
+    _id: string;
+    name: string;
+    legalName: string;
+    crNumber: string;
+    vatNumber: string;
+    currency: string;
+    vatRate: number;
+    enabledEngines: EngineKind[];
+    branding: Record<string, string>;
+    company: Record<string, string>;
+  };
   estate: {
-    sites: number
-    stations: number
-    kiosks: number
-    assetTypes: number
-    units: number
-    inUse: number
-    available: number
-    outOfService: number
-    utilisationPct: number
-  }
-  people: { total: number; active: number; byRole: Record<Role, number> }
+    sites: number;
+    stations: number;
+    kiosks: number;
+    assetTypes: number;
+    units: number;
+    inUse: number;
+    available: number;
+    outOfService: number;
+    utilisationPct: number;
+  };
+  people: { total: number; active: number; byRole: Record<Role, number> };
   operations: {
-    live: number
-    overdue: number
-    bookings30d: number
-    customers: number
-    openIncidents: number
-    openTills: number
-    reconciling: number
-    deliveries: number
-    deliveriesOpen: number
-  }
+    live: number;
+    overdue: number;
+    bookings30d: number;
+    customers: number;
+    openIncidents: number;
+    openTills: number;
+    reconciling: number;
+    deliveries: number;
+    deliveriesOpen: number;
+  };
   money: {
-    today: number
-    last30Days: number
-    refunded30Days: number
-    cash30Days: number
-    card30Days: number
-    expectedInTills: number
-  }
-  byEngine: { engineKind: EngineKind; units: number; inUse: number; enabled: boolean }[]
+    today: number;
+    last30Days: number;
+    refunded30Days: number;
+    cash30Days: number;
+    card30Days: number;
+    expectedInTills: number;
+  };
+  byEngine: { engineKind: EngineKind; units: number; inUse: number; enabled: boolean }[];
   sites: {
-    _id: string
-    name: string
-    city: string
-    venueType: string
-    active: boolean
-    stations: number
-    kiosks: number
-    units: number
-    inUse: number
-    staff: number
-    live: number
-    revenue30d: number
-  }[]
+    _id: string;
+    name: string;
+    city: string;
+    venueType: string;
+    active: boolean;
+    stations: number;
+    kiosks: number;
+    units: number;
+    inUse: number;
+    staff: number;
+    live: number;
+    revenue30d: number;
+  }[];
 }
 
 export interface TenantPerson {
-  _id: string
-  fullName: string
-  email: string
-  role: Role
-  phone: string
-  active: boolean
-  stationId: string
-  stationName: string
-  kioskId: string | null
-  kioskName: string | null
-  lastLoginAt: string | null
-  onShift: boolean
-  shiftStatus: string | null
-  bookingsHandled: number
+  _id: string;
+  fullName: string;
+  email: string;
+  role: Role;
+  phone: string;
+  active: boolean;
+  stationId: string;
+  stationName: string;
+  kioskId: string | null;
+  kioskName: string | null;
+  lastLoginAt: string | null;
+  onShift: boolean;
+  shiftStatus: string | null;
+  bookingsHandled: number;
 }
 
 export interface TenantAuditRow {
-  _id: string
-  action: string
-  entity: string
-  entityId: string
-  reason: string | null
-  detail: string | null
-  actorId: string
-  actorName: string
-  at: string
+  _id: string;
+  action: string;
+  entity: string;
+  entityId: string;
+  reason: string | null;
+  detail: string | null;
+  actorId: string;
+  actorName: string;
+  at: string;
 }
 
 export interface IsolationReport {
-  tenantId: string
-  collections: { name: string; count: number }[]
+  tenantId: string;
+  collections: { name: string; count: number }[];
 }
 
 export interface CompanyPatch {
-  name?: string
-  legalName?: string
-  crNumber?: string
-  vatNumber?: string
-  currency?: string
-  vatRate?: number
-  enabledEngines?: EngineKind[]
-  company?: Record<string, string>
-  branding?: Record<string, string>
+  name?: string;
+  legalName?: string;
+  crNumber?: string;
+  vatNumber?: string;
+  currency?: string;
+  vatRate?: number;
+  enabledEngines?: EngineKind[];
+  company?: Record<string, string>;
+  branding?: Record<string, string>;
 }
 
 export interface StationMap {
-  sites: { _id: string; name: string; city: string }[]
-  points: MapPoint[]
-  stations: MapPoint[]
+  sites: { _id: string; name: string; city: string }[];
+  points: MapPoint[];
+  stations: MapPoint[];
 }
 
 export interface MapPlacement {
-  id: string
-  x: number | null
-  y: number | null
+  id: string;
+  x: number | null;
+  y: number | null;
 }
 
 export interface VoucherCampaign {
-  id: string
-  name: string
-  percent: number
-  quantity: number
-  engineKinds: EngineKind[]
-  expiresAt: string | null
-  note: string
-  active: boolean
-  createdAt: string
-  issued: number
-  redeemed: number
-  left: number
+  id: string;
+  name: string;
+  percent: number;
+  quantity: number;
+  engineKinds: EngineKind[];
+  expiresAt: string | null;
+  note: string;
+  active: boolean;
+  createdAt: string;
+  issued: number;
+  redeemed: number;
+  left: number;
 }
 
 export interface VoucherCode {
-  id: string
-  code: string
-  status: 'ISSUED' | 'REDEEMED' | 'VOID'
-  redeemedAt: string | null
-  redeemedBy: string | null
-  bookingId: string | null
-  amountOff: number | null
+  id: string;
+  code: string;
+  status: 'ISSUED' | 'REDEEMED' | 'VOID';
+  redeemedAt: string | null;
+  redeemedBy: string | null;
+  bookingId: string | null;
+  amountOff: number | null;
 }
 
 export interface CampaignInput {
-  name: string
-  percent: number
-  quantity: number
-  engineKinds?: EngineKind[]
-  expiresAt?: string | null
-  prefix?: string
-  note?: string
+  name: string;
+  percent: number;
+  quantity: number;
+  engineKinds?: EngineKind[];
+  expiresAt?: string | null;
+  prefix?: string;
+  note?: string;
 }
 
 export const adminApi = {
   vouchers: () => unwrap<VoucherCampaign[]>(http.get('/admin/vouchers')),
-  createVouchers: (input: CampaignInput) => unwrap<VoucherCampaign>(http.post('/admin/vouchers', input)),
+  createVouchers: (input: CampaignInput) =>
+    unwrap<VoucherCampaign>(http.post('/admin/vouchers', input)),
   voucherCodes: (id: string) =>
-    unwrap<{ campaign: VoucherCampaign; codes: VoucherCode[] }>(http.get(`/admin/vouchers/${id}/codes`)),
-  stopVouchers: (id: string) => unwrap<{ stopped: number }>(http.post(`/admin/vouchers/${id}/stop`, {})),
+    unwrap<{ campaign: VoucherCampaign; codes: VoucherCode[] }>(
+      http.get(`/admin/vouchers/${id}/codes`)
+    ),
+  stopVouchers: (id: string) =>
+    unwrap<{ stopped: number }>(http.post(`/admin/vouchers/${id}/stop`, {})),
   stationMap: () => unwrap<StationMap>(http.get('/admin/station-map')),
-  saveStationMap: (placements: MapPlacement[]) => unwrap<StationMap>(http.patch('/admin/station-map', { placements })),
+  saveStationMap: (placements: MapPlacement[]) =>
+    unwrap<StationMap>(http.patch('/admin/station-map', { placements })),
   overview: () => unwrap<TenantOverview>(http.get('/admin/overview')),
   audit: () => unwrap<TenantAuditRow[]>(http.get('/admin/audit')),
   isolation: () => unwrap<IsolationReport>(http.get('/admin/isolation')),
-  updateCompany: (patch: CompanyPatch) => unwrap<Record<string, unknown>>(http.patch('/admin/company', patch)),
+  updateCompany: (patch: CompanyPatch) =>
+    unwrap<Record<string, unknown>>(http.patch('/admin/company', patch)),
 
   /**
    * Every activity the platform has coded, and which of them this organisation runs.
@@ -176,21 +182,23 @@ export const adminApi = {
    * is theirs. They come back together because the screen showing them is one screen.
    */
   activities: () =>
-    unwrap<{ catalogue: CatalogueActivity[]; adopted: EngineKind[] }>(http.get('/admin/activities')),
+    unwrap<{ catalogue: CatalogueActivity[]; adopted: EngineKind[] }>(
+      http.get('/admin/activities')
+    ),
 
   adoptActivities: (activities: EngineKind[]) =>
     unwrap<{ adopted: EngineKind[] }>(http.put('/admin/activities', { activities })),
-}
+};
 
 export interface CatalogueActivity {
-  key: EngineKind
-  label: { en: string; ar: string }
+  key: EngineKind;
+  label: { en: string; ar: string };
   /** What a tenant administrator reads when deciding whether to take it up. */
-  description: string
+  description: string;
   /** The kind of thing it runs on — what its resources are. */
-  assetKind: string
+  assetKind: string;
   /** The shape of one unit of work: a storage, a rental, an outing. */
-  sessionKind: string
+  sessionKind: string;
   /** The jobs its workflow admits, so the page can say who would staff it. */
-  actors: string[]
+  actors: string[];
 }

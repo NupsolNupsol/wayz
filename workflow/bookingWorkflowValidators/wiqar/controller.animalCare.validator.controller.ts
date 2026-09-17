@@ -1,11 +1,15 @@
-import type { ValidationResult, WorkflowContext } from '../../shared/types.js'
-import { requireAvailableUnit, requirePaid, requirePositiveDuration } from '../shared.validators.js'
+import type { ValidationResult, WorkflowContext } from '../../shared/types.js';
+import {
+  requireAvailableUnit,
+  requirePaid,
+  requirePositiveDuration,
+} from '../shared.validators.js';
 import {
   requireConsent,
   requireNamedTrainer,
   requireWithinSlotGrace,
   requireWorkableAnimal,
-} from '../shared.animal.validators.js'
+} from '../shared.animal.validators.js';
 
 /**
  * What Animal Care Pack refuses, and why.
@@ -16,8 +20,11 @@ import {
  * is only what makes this experience different from the other six.
  */
 
-export const useAnimalCareValidator = (transitionCode: string, ctx: WorkflowContext): ValidationResult => {
-  const errors: string[] = []
+export const useAnimalCareValidator = (
+  transitionCode: string,
+  ctx: WorkflowContext
+): ValidationResult => {
+  const errors: string[] = [];
 
   switch (transitionCode) {
     case 'TO_CONFIRMED': {
@@ -26,9 +33,9 @@ export const useAnimalCareValidator = (transitionCode: string, ctx: WorkflowCont
         ...requireConsent(ctx),
         // §11.1 — a care session must have a named trainer.
         ...requireNamedTrainer(ctx),
-        ...requireWorkableAnimal(ctx),
-      )
-      break
+        ...requireWorkableAnimal(ctx)
+      );
+      break;
     }
 
     case 'TO_STARTED': {
@@ -39,24 +46,24 @@ export const useAnimalCareValidator = (transitionCode: string, ctx: WorkflowCont
         ...requireWorkableAnimal(ctx),
         ...requireAvailableUnit(ctx),
         // §4.1 gives this experience a duration of 30 min.
-        ...requirePositiveDuration(ctx),
-      )
-      break
+        ...requirePositiveDuration(ctx)
+      );
+      break;
     }
 
     case 'TO_COMPLETED': {
-      break
+      break;
     }
 
     case 'TO_CANCELLED': {
-      break
+      break;
     }
 
     default: {
-      errors.push(`Unknown transition code: ${transitionCode}`)
-      break
+      errors.push(`Unknown transition code: ${transitionCode}`);
+      break;
     }
   }
 
-  return { errors }
-}
+  return { errors };
+};

@@ -1,77 +1,77 @@
-import { Schema } from 'mongoose'
-import type { DeliveryOrigin, DeliveryStatus } from '../domain/workflow.js'
+import { Schema } from 'mongoose';
+import type { DeliveryOrigin, DeliveryStatus } from '../domain/workflow.js';
 
 export interface DeliveryTimelineEntryDoc {
-  status: DeliveryStatus
-  at: Date
-  by: string
-  note?: string
+  status: DeliveryStatus;
+  at: Date;
+  by: string;
+  note?: string;
 }
 
 export interface DeliveryStopDoc {
-  bookingId: string
-  bookingRef: string
-  kioskId: string | null
-  kioskName: string
-  assetUnitId: string | null
-  assetUnitIdentifier: string | null
-  bagBarcodes: string[]
-  bagCount: number
-  status: 'PENDING' | 'COLLECTED'
-  scannedBarcodes: string[]
-  collectedAt: Date | null
+  bookingId: string;
+  bookingRef: string;
+  kioskId: string | null;
+  kioskName: string;
+  assetUnitId: string | null;
+  assetUnitIdentifier: string | null;
+  bagBarcodes: string[];
+  bagCount: number;
+  status: 'PENDING' | 'COLLECTED';
+  scannedBarcodes: string[];
+  collectedAt: Date | null;
 }
 
 export interface DeliveryRequestDoc {
-  _id: string
-  tenantId: string
-  siteId: string
-  stationId: string
-  kioskId: string | null
-  bookingId: string
-  bookingRef: string
-  customerId: string
-  customerName: string
-  customerPhone: string
+  _id: string;
+  tenantId: string;
+  siteId: string;
+  stationId: string;
+  kioskId: string | null;
+  bookingId: string;
+  bookingRef: string;
+  customerId: string;
+  customerName: string;
+  customerPhone: string;
   /**
    * Where the bags are going. Shop & Drop sends them to an exit gate, where the customer collects
    * them from that gate's agent; a `kind` of ADDRESS is the older door-to-door case.
    */
   destination: {
-    kind: 'ADDRESS' | 'GATE' | 'GATE_LOCKER'
+    kind: 'ADDRESS' | 'GATE' | 'GATE_LOCKER';
     /** The gate a storage run is carrying bags *to*. Null on any run going the other way. */
-    gateId?: string | null
-    address: string
-    kioskId: string | null
-    kioskName: string
-    notes: string
-    contactPhone: string
-  }
-  status: DeliveryStatus
-  origin: DeliveryOrigin
-  verifiedBy: string | null
-  verifiedAt: Date | null
-  verificationMethod: string | null
-  requestedBy: string
-  requestedAt: Date
-  assignedTo: string | null
-  assignedAt: Date | null
-  releaseRequestedAt: Date | null
-  releaseApprovedBy: string | null
-  releaseApprovedAt: Date | null
-  assetUnitId: string | null
-  assetUnitIdentifier: string | null
-  pickedUpAt: Date | null
-  scannedBarcodes: string[]
-  deliveredAt: Date | null
-  failureReason: string | null
-  fee: number
+    gateId?: string | null;
+    address: string;
+    kioskId: string | null;
+    kioskName: string;
+    notes: string;
+    contactPhone: string;
+  };
+  status: DeliveryStatus;
+  origin: DeliveryOrigin;
+  verifiedBy: string | null;
+  verifiedAt: Date | null;
+  verificationMethod: string | null;
+  requestedBy: string;
+  requestedAt: Date;
+  assignedTo: string | null;
+  assignedAt: Date | null;
+  releaseRequestedAt: Date | null;
+  releaseApprovedBy: string | null;
+  releaseApprovedAt: Date | null;
+  assetUnitId: string | null;
+  assetUnitIdentifier: string | null;
+  pickedUpAt: Date | null;
+  scannedBarcodes: string[];
+  deliveredAt: Date | null;
+  failureReason: string | null;
+  fee: number;
   /** What the bookings on this run owed when it was raised. Recorded, never a blocker. */
-  owedAtRequest?: number
-  stops: DeliveryStopDoc[]
-  timeline: DeliveryTimelineEntryDoc[]
-  createdAt: Date
-  updatedAt: Date
+  owedAtRequest?: number;
+  stops: DeliveryStopDoc[];
+  timeline: DeliveryTimelineEntryDoc[];
+  createdAt: Date;
+  updatedAt: Date;
 }
 
 const timelineSchema = new Schema<DeliveryTimelineEntryDoc>(
@@ -81,8 +81,8 @@ const timelineSchema = new Schema<DeliveryTimelineEntryDoc>(
     by: { type: String, required: true },
     note: { type: String },
   },
-  { _id: false },
-)
+  { _id: false }
+);
 
 const stopSchema = new Schema<DeliveryStopDoc>(
   {
@@ -98,8 +98,8 @@ const stopSchema = new Schema<DeliveryStopDoc>(
     scannedBarcodes: { type: [String], default: [] },
     collectedAt: { type: Date, default: null },
   },
-  { _id: false },
-)
+  { _id: false }
+);
 
 const deliverySchema = new Schema<DeliveryRequestDoc>(
   {
@@ -145,10 +145,10 @@ const deliverySchema = new Schema<DeliveryRequestDoc>(
     stops: { type: [stopSchema], default: [] },
     timeline: { type: [timelineSchema], default: [] },
   },
-  { timestamps: true, versionKey: false, _id: false },
-)
+  { timestamps: true, versionKey: false, _id: false }
+);
 
-deliverySchema.index({ tenantId: 1, siteId: 1, status: 1 })
-deliverySchema.index({ tenantId: 1, assignedTo: 1, status: 1 })
+deliverySchema.index({ tenantId: 1, siteId: 1, status: 1 });
+deliverySchema.index({ tenantId: 1, assignedTo: 1, status: 1 });
 
-export const DeliveryRequestSchema = deliverySchema
+export const DeliveryRequestSchema = deliverySchema;

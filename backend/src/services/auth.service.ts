@@ -1,16 +1,24 @@
-import mongoose from 'mongoose'
-import { recordAudit } from './audit.service.js'
-import { Gate, Kiosk, Station, Tenant, User, hashPassword, hashInviteToken } from '../models/index.js'
-import { runAcrossOrganisations } from '../platform/orgScope.js'
-import type { UserDoc } from '../models/index.js'
-import type { Role } from '../domain/types.js'
-import { resolveDiscountReasons } from '../domain/rules.js'
-import { ApiError } from '../utils/ApiError.js'
-import { signToken } from '../utils/jwt.js'
-import { ROLE_LABELS } from '../constants/labels.constants.js'
-import { PHONE_PROOF_TTL_MIN } from './customer.service.js'
+import mongoose from 'mongoose';
+import { recordAudit } from './audit.service.js';
+import {
+  Gate,
+  Kiosk,
+  Station,
+  Tenant,
+  User,
+  hashPassword,
+  hashInviteToken,
+} from '../models/index.js';
+import { runAcrossOrganisations } from '../platform/orgScope.js';
+import type { UserDoc } from '../models/index.js';
+import type { Role } from '../domain/types.js';
+import { resolveDiscountReasons } from '../domain/rules.js';
+import { ApiError } from '../utils/ApiError.js';
+import { signToken } from '../utils/jwt.js';
+import { ROLE_LABELS } from '../constants/labels.constants.js';
+import { PHONE_PROOF_TTL_MIN } from './customer.service.js';
 
-export const MIN_PASSWORD_LENGTH = 8
+export const MIN_PASSWORD_LENGTH = 8;
 
 export async function signOut(tenantId: string, userId: string) {
   await recordAudit({
@@ -20,8 +28,8 @@ export async function signOut(tenantId: string, userId: string) {
     entity: 'Session',
     entityId: userId,
     detail: 'Signed out',
-  })
-  return { ok: true }
+  });
+  return { ok: true };
 }
 
 /**
@@ -35,32 +43,34 @@ export async function signOut(tenantId: string, userId: string) {
  */
 export async function organisationForLogin(email: string, preferred?: string): Promise<string> {
   const candidates = await runAcrossOrganisations(() =>
-    User.find({ email: email.trim().toLowerCase() }, { tenantId: 1 }).lean(),
-  )
+    User.find({ email: email.trim().toLowerCase() }, { tenantId: 1 }).lean()
+  );
 
   if (candidates.length === 0) {
     // Deliberately the same refusal a wrong password gets: whether an address is registered
     // is not something an unauthenticated caller should be able to discover.
-    throw ApiError.unauthorized('Invalid email or password.')
+    throw ApiError.unauthorized('Invalid email or password.');
   }
 
   if (preferred) {
-    const match = candidates.find((u) => u.tenantId === preferred)
-    if (match) return match.tenantId
+    const match = candidates.find((u) => u.tenantId === preferred);
+    if (match) return match.tenantId;
   }
 
-  return candidates[0].tenantId
+  return candidates[0].tenantId;
 }
 
 export async function login(email: string, password: string) {
-  const user = await User.findOne({ email: email.trim().toLowerCase() })
-  if (!user) throw ApiError.unauthorized('Invalid email or password.')
+  const user = await User.findOne({ email: email.trim().toLowerCase() });
+  if (!user) throw ApiError.unauthorized('Invalid email or password.');
   if (!user.passwordHash) {
-    throw ApiError.unauthorized('This account has not been set up yet — use the invitation link that was emailed to you.')
+    throw ApiError.unauthorized(
+      'This account has not been set up yet — use the invitation link that was emailed to you.'
+    );
   }
-  if (user.active === false) throw ApiError.forbidden('This account has been suspended.')
-  const ok = await user.comparePassword(password)
-  if (!ok) throw ApiError.unauthorized('Invalid email or password.')
+  if (user.active === false) throw ApiError.forbidden('This account has been suspended.');
+  const ok = await user.comparePassword(password);
+  if (!ok) throw ApiError.unauthorized('Invalid email or password.');
 
   const token = signToken({
     sub: user._id,
@@ -70,10 +80,10 @@ export async function login(email: string, password: string) {
     kioskId: user.kioskId ?? null,
     gateId: user.gateId ?? null,
     engineKinds: user.engineKinds ?? [],
-  })
+  });
 
-  user.lastLoginAt = new Date()
-  await user.save()
+  user.lastLoginAt = new Date();
+  await user.save();
 
   await recordAudit({
     tenantId: user.tenantId,
@@ -82,37 +92,38 @@ export async function login(email: string, password: string) {
     entity: 'Session',
     entityId: user._id,
     detail: `${user.role} · ${user.email}`,
-  })
+  });
 
-  return { token, user: await buildMe(user._id) }
+  return { token, user: await buildMe(user._id) };
 }
 
 export async function authenticateOverride(
   tenantId: string,
   email: string,
   password: string,
-  allowedRoles: Role[],
+  allowedRoles: Role[]
 ): Promise<UserDoc> {
-  const user = await User.findOne({ email: email.trim().toLowerCase() })
+  const user = await User.findOne({ email: email.trim().toLowerCase() });
   if (!user || !(await user.comparePassword(password))) {
-    throw ApiError.unauthorized('Those credentials are not valid.')
+    throw ApiError.unauthorized('Those credentials are not valid.');
   }
-  if (user.tenantId !== tenantId) throw ApiError.forbidden('That account belongs to another tenant.')
+  if (user.tenantId !== tenantId)
+    throw ApiError.forbidden('That account belongs to another tenant.');
   if (!allowedRoles.includes(user.role)) {
-    throw ApiError.forbidden(`An override requires one of: ${allowedRoles.join(', ')}.`)
+    throw ApiError.forbidden(`An override requires one of: ${allowedRoles.join(', ')}.`);
   }
-  return user
+  return user;
 }
 
 export async function buildMe(userId: string) {
-  const user = await User.findById(userId).lean()
-  if (!user) throw ApiError.notFound('User not found.')
-  const tenant = await Tenant.findById(user.tenantId).lean()
+  const user = await User.findById(userId).lean();
+  if (!user) throw ApiError.notFound('User not found.');
+  const tenant = await Tenant.findById(user.tenantId).lean();
   const [station, kiosk, gate] = await Promise.all([
     Station.findById(user.stationId).lean(),
     user.kioskId ? Kiosk.findById(user.kioskId).lean() : null,
     user.gateId ? Gate.findById(user.gateId).lean() : null,
-  ])
+  ]);
   return {
     id: user._id,
     email: user.email,
@@ -174,32 +185,56 @@ export async function buildMe(userId: string) {
           phoneProofTtlMin: PHONE_PROOF_TTL_MIN,
         }
       : null,
-    station: station ? { id: station._id, name: station.name, engineKinds: station.engineKinds, siteId: station.siteId, zoneId: station.zoneId } : null,
-    kiosk: kiosk ? { id: kiosk._id, name: kiosk.name, code: kiosk.code, stationId: kiosk.stationId, siteId: kiosk.siteId } : null,
+    station: station
+      ? {
+          id: station._id,
+          name: station.name,
+          engineKinds: station.engineKinds,
+          siteId: station.siteId,
+          zoneId: station.zoneId,
+        }
+      : null,
+    kiosk: kiosk
+      ? {
+          id: kiosk._id,
+          name: kiosk.name,
+          code: kiosk.code,
+          stationId: kiosk.stationId,
+          siteId: kiosk.siteId,
+        }
+      : null,
     // The locker hall they answer for. A mobility agent works a bay and covers a gate; the gate is
     // where the bags are, and what the retrieval screens are built around.
-    gate: gate ? { id: gate._id, name: gate.name, code: gate.code, stationId: gate.stationId, location: gate.location } : null,
-  }
+    gate: gate
+      ? {
+          id: gate._id,
+          name: gate.name,
+          code: gate.code,
+          stationId: gate.stationId,
+          location: gate.location,
+        }
+      : null,
+  };
 }
 
-type LiveUser = mongoose.HydratedDocument<UserDoc>
+type LiveUser = mongoose.HydratedDocument<UserDoc>;
 
 async function invitedUser(token: string): Promise<LiveUser> {
-  const value = (token ?? '').trim()
-  if (!value) throw ApiError.notFound('That invitation link is not valid.')
+  const value = (token ?? '').trim();
+  if (!value) throw ApiError.notFound('That invitation link is not valid.');
 
-  const user = await User.findOne({ 'invite.tokenHash': hashInviteToken(value) })
-  if (!user || !user.invite) throw ApiError.notFound('That invitation link is not valid.')
-  if (user.passwordHash) throw ApiError.unprocessable('That invitation has already been used.')
+  const user = await User.findOne({ 'invite.tokenHash': hashInviteToken(value) });
+  if (!user || !user.invite) throw ApiError.notFound('That invitation link is not valid.');
+  if (user.passwordHash) throw ApiError.unprocessable('That invitation has already been used.');
   if (new Date(user.invite.expiresAt).getTime() < Date.now()) {
-    throw ApiError.unprocessable('That invitation has expired — ask for a new one.')
+    throw ApiError.unprocessable('That invitation has expired — ask for a new one.');
   }
-  return user
+  return user;
 }
 
 export async function readInvitation(token: string) {
-  const user = await invitedUser(token)
-  const tenant = await Tenant.findById(user.tenantId).lean()
+  const user = await invitedUser(token);
+  const tenant = await Tenant.findById(user.tenantId).lean();
   return {
     email: user.email,
     fullName: user.fullName,
@@ -208,27 +243,27 @@ export async function readInvitation(token: string) {
     tenantName: tenant?.name ?? '',
     branding: tenant?.branding ?? null,
     expiresAt: user.invite!.expiresAt,
-  }
+  };
 }
 
 export async function acceptInvitation(token: string, password: string, confirmPassword: string) {
-  const user = await invitedUser(token)
+  const user = await invitedUser(token);
 
-  const value = password ?? ''
+  const value = password ?? '';
   if (value.length < MIN_PASSWORD_LENGTH) {
-    throw ApiError.badRequest(`Choose a password of at least ${MIN_PASSWORD_LENGTH} characters.`)
+    throw ApiError.badRequest(`Choose a password of at least ${MIN_PASSWORD_LENGTH} characters.`);
   }
-  if (value !== confirmPassword) throw ApiError.badRequest('The two passwords do not match.')
+  if (value !== confirmPassword) throw ApiError.badRequest('The two passwords do not match.');
   if (value.toLowerCase() === user.email.toLowerCase()) {
-    throw ApiError.badRequest('Your password cannot be your email address.')
+    throw ApiError.badRequest('Your password cannot be your email address.');
   }
   if (!/[a-zA-Z]/.test(value) || !/[0-9]/.test(value)) {
-    throw ApiError.badRequest('Use at least one letter and one number.')
+    throw ApiError.badRequest('Use at least one letter and one number.');
   }
 
-  user.passwordHash = hashPassword(value)
-  user.invite = null
-  await user.save()
+  user.passwordHash = hashPassword(value);
+  user.invite = null;
+  await user.save();
 
   await recordAudit({
     tenantId: user.tenantId,
@@ -237,7 +272,7 @@ export async function acceptInvitation(token: string, password: string, confirmP
     entity: 'User',
     entityId: user._id,
     detail: ROLE_LABELS[user.role] ?? user.role,
-  })
+  });
 
   const authToken = signToken({
     sub: user._id,
@@ -247,6 +282,6 @@ export async function acceptInvitation(token: string, password: string, confirmP
     kioskId: user.kioskId ?? null,
     gateId: user.gateId ?? null,
     engineKinds: user.engineKinds ?? [],
-  })
-  return { token: authToken, user: await buildMe(user._id) }
+  });
+  return { token: authToken, user: await buildMe(user._id) };
 }

@@ -1,7 +1,7 @@
-import { AsyncLocalStorage } from 'node:async_hooks'
-import type { Aggregate, Query, Schema } from 'mongoose'
+import { AsyncLocalStorage } from 'node:async_hooks';
+import type { Aggregate, Query, Schema } from 'mongoose';
 
-import { ApiError } from '../utils/ApiError.js'
+import { ApiError } from '../utils/ApiError.js';
 
 /**
  * Which organisation the current unit of work belongs to.
@@ -33,7 +33,7 @@ import { ApiError } from '../utils/ApiError.js'
 
 interface OrgContext {
   /** The organisation every query in this unit of work is confined to. */
-  organizationId: string
+  organizationId: string;
   /**
    * Set only inside `runAcrossOrganisations`.
    *
@@ -41,14 +41,14 @@ interface OrgContext {
    * sign-in page has to find a person before it knows which company they work for — but it is
    * rare enough that it should be visible in a stack trace.
    */
-  unscoped?: true
+  unscoped?: true;
 }
 
-const storage = new AsyncLocalStorage<OrgContext>()
+const storage = new AsyncLocalStorage<OrgContext>();
 
 export function currentOrganisation(): string | undefined {
-  const ctx = storage.getStore()
-  return ctx?.unscoped ? undefined : ctx?.organizationId
+  const ctx = storage.getStore();
+  return ctx?.unscoped ? undefined : ctx?.organizationId;
 }
 
 /**
@@ -59,23 +59,23 @@ export function currentOrganisation(): string | undefined {
  * stack trace pointing at the caller.
  */
 export function requireOrganisation(): string {
-  const ctx = storage.getStore()
+  const ctx = storage.getStore();
   if (!ctx || ctx.unscoped) {
     throw ApiError.internal(
-      'No organisation context. Shared data can only be reached inside runInOrg() — see docs/platform/01-ARCHITECTURE.md.',
-    )
+      'No organisation context. Shared data can only be reached inside runInOrg() — see docs/platform/01-ARCHITECTURE.md.'
+    );
   }
-  return ctx.organizationId
+  return ctx.organizationId;
 }
 
 /** The only way into an organisation's data. Grep for it to find every entry point. */
 export function runInOrg<T>(organizationId: string, fn: () => Promise<T>): Promise<T> {
-  return storage.run({ organizationId }, fn)
+  return storage.run({ organizationId }, fn);
 }
 
 /** Enters an organisation for a synchronous callback — Express's `next()`. */
 export function enterOrg(organizationId: string, fn: () => void): void {
-  storage.run({ organizationId }, fn)
+  storage.run({ organizationId }, fn);
 }
 
 /**
@@ -102,7 +102,7 @@ export function enterOrg(organizationId: string, fn: () => void): void {
  * belongs to explicitly.
  */
 export function runAcrossOrganisations<T>(fn: () => Promise<T>): Promise<T> {
-  return storage.run({ organizationId: '', unscoped: true }, fn)
+  return storage.run({ organizationId: '', unscoped: true }, fn);
 }
 
 /* ------------------------------------------------------------------------------------- */
@@ -126,7 +126,7 @@ const FILTERED_OPS = [
   'update',
   'updateMany',
   'updateOne',
-] as const
+] as const;
 
 /**
  * Confines a schema's collection to one organisation.
@@ -146,16 +146,16 @@ const FILTERED_OPS = [
  */
 export function scopeToOrganisation(schema: Schema): void {
   const confine = function (this: Query<unknown, unknown>) {
-    const organizationId = currentOrganisation()
-    if (!organizationId) return
+    const organizationId = currentOrganisation();
+    if (!organizationId) return;
 
-    const filter = this.getFilter() as Record<string, unknown>
-    if (!filter) return
+    const filter = this.getFilter() as Record<string, unknown>;
+    if (!filter) return;
 
-    const named = filter.tenantId
+    const named = filter.tenantId;
     if (named === undefined) {
-      filter.tenantId = organizationId
-      return
+      filter.tenantId = organizationId;
+      return;
     }
 
     /*
@@ -165,12 +165,12 @@ export function scopeToOrganisation(schema: Schema): void {
      */
     if (typeof named === 'string' && named !== organizationId) {
       throw ApiError.internal(
-        `Query named organisation "${named}" while working inside "${organizationId}".`,
-      )
+        `Query named organisation "${named}" while working inside "${organizationId}".`
+      );
     }
-  }
+  };
 
-  for (const op of FILTERED_OPS) schema.pre(op as 'find', confine)
+  for (const op of FILTERED_OPS) schema.pre(op as 'find', confine);
 
   /*
    * Stamped at `validate`, not at `save`.
@@ -180,12 +180,12 @@ export function scopeToOrganisation(schema: Schema): void {
    * `create()` without an explicit organisation failed validation instead of being scoped.
    */
   schema.pre('validate', function () {
-    const doc = this as unknown as { tenantId?: string }
+    const doc = this as unknown as { tenantId?: string };
     if (!doc.tenantId) {
-      const organizationId = currentOrganisation()
-      if (organizationId) doc.tenantId = organizationId
+      const organizationId = currentOrganisation();
+      if (organizationId) doc.tenantId = organizationId;
     }
-  })
+  });
 
   /*
    * `insertMany` is the one hook Mongoose hands a `next`, and it waits for it.
@@ -195,28 +195,28 @@ export function scopeToOrganisation(schema: Schema): void {
    */
   schema.pre('insertMany', function (next: (err?: Error) => void, docs: unknown) {
     try {
-      const organizationId = currentOrganisation()
+      const organizationId = currentOrganisation();
       if (organizationId && Array.isArray(docs)) {
         for (const doc of docs as { tenantId?: string }[]) {
-          if (!doc.tenantId) doc.tenantId = organizationId
+          if (!doc.tenantId) doc.tenantId = organizationId;
         }
       }
-      next()
+      next();
     } catch (err) {
-      next(err as Error)
+      next(err as Error);
     }
-  })
+  });
 
   schema.pre('aggregate', function (this: Aggregate<unknown[]>) {
-    const organizationId = currentOrganisation()
-    if (!organizationId) return
+    const organizationId = currentOrganisation();
+    if (!organizationId) return;
 
-    const pipeline = this.pipeline() as unknown as Record<string, unknown>[]
-    const first = pipeline[0] as { $match?: Record<string, unknown> } | undefined
+    const pipeline = this.pipeline() as unknown as Record<string, unknown>[];
+    const first = pipeline[0] as { $match?: Record<string, unknown> } | undefined;
     if (first?.$match && first.$match.tenantId === undefined) {
-      first.$match.tenantId = organizationId
-      return
+      first.$match.tenantId = organizationId;
+      return;
     }
-    if (!first?.$match) pipeline.unshift({ $match: { tenantId: organizationId } })
-  })
+    if (!first?.$match) pipeline.unshift({ $match: { tenantId: organizationId } });
+  });
 }

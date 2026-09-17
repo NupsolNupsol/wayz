@@ -1,5 +1,5 @@
-import { createContext, useContext } from 'react'
-import type { PageContextValue } from './pageContext'
+import { createContext, useContext } from 'react';
+import type { PageContextValue } from './pageContext';
 
 /**
  * The assistant's shared state, kept apart from the component that provides it.
@@ -10,22 +10,22 @@ import type { PageContextValue } from './pageContext'
  * launcher toggles it. None of them should have to import the provider to do it.
  */
 export interface AssistantUi {
-  open: boolean
-  setOpen: (open: boolean) => void
+  open: boolean;
+  setOpen: (open: boolean) => void;
   /** Opens the panel and immediately asks — used by the "explain this page" shortcuts. */
-  openWith: (question: string) => void
-  pendingQuestion: string | null
-  clearPending: () => void
-  pageContext: () => PageContextValue | null
+  openWith: (question: string) => void;
+  pendingQuestion: string | null;
+  clearPending: () => void;
+  pageContext: () => PageContextValue | null;
   /** Changes when a different page registers, so consumers can recompute their labels. */
-  pageVersion: number
-  route: string
+  pageVersion: number;
+  route: string;
 }
 
-export const AssistantUiContext = createContext<AssistantUi | null>(null)
+export const AssistantUiContext = createContext<AssistantUi | null>(null);
 
 export function useAssistantUi(): AssistantUi {
-  const value = useContext(AssistantUiContext)
-  if (!value) throw new Error('useAssistantUi must be used inside <AssistantProvider>')
-  return value
+  const value = useContext(AssistantUiContext);
+  if (!value) throw new Error('useAssistantUi must be used inside <AssistantProvider>');
+  return value;
 }

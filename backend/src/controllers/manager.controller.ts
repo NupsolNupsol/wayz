@@ -1,12 +1,57 @@
-import { z } from 'zod'
-import type { Request } from 'express'
-import { asyncHandler } from '../utils/asyncHandler.js'
-import { ApiError } from '../utils/ApiError.js'
-import { ENGINE_KINDS, BILLING_MODELS, DURATION_UNITS, ROLES, SALE_TYPES, SALE_UNITS } from '../domain/types.js'
-import { managerIncidents, managerLiveSessions, managerOverview, managerRentals, managerRentalDetail, managerCustomers, managerCustomerDetail, managerPayments, managerShift, managerShifts } from '../services/manager.service.js'
-import { createGate, createKiosk, createSite, createStation, orgTree, removeGate, removeKiosk, removeSite, removeStation, updateGate, updateKiosk, updateSite, updateStation } from '../services/org.service.js'
-import { createStaff, listStaff, reinviteStaff, removeStaff, resetStaffPassword, updateStaff } from '../services/staff.service.js'
-import { createProduct, getSettings, listPricing, updateProduct, updateSettings } from '../services/pricing.service.js'
+import { z } from 'zod';
+import type { Request } from 'express';
+import { asyncHandler } from '../utils/asyncHandler.js';
+import { ApiError } from '../utils/ApiError.js';
+import {
+  ENGINE_KINDS,
+  BILLING_MODELS,
+  DURATION_UNITS,
+  ROLES,
+  SALE_TYPES,
+  SALE_UNITS,
+} from '../domain/types.js';
+import {
+  managerIncidents,
+  managerLiveSessions,
+  managerOverview,
+  managerRentals,
+  managerRentalDetail,
+  managerCustomers,
+  managerCustomerDetail,
+  managerPayments,
+  managerShift,
+  managerShifts,
+} from '../services/manager.service.js';
+import {
+  createGate,
+  createKiosk,
+  createSite,
+  createStation,
+  orgTree,
+  removeGate,
+  removeKiosk,
+  removeSite,
+  removeStation,
+  updateGate,
+  updateKiosk,
+  updateSite,
+  updateStation,
+} from '../services/org.service.js';
+import {
+  createStaff,
+  listStaff,
+  reinviteStaff,
+  removeStaff,
+  resetStaffPassword,
+  updateStaff,
+} from '../services/staff.service.js';
+import {
+  createProduct,
+  getSettings,
+  listPricing,
+  updateProduct,
+  updateSettings,
+} from '../services/pricing.service.js';
 import {
   activityLog,
   agentRevenueReport,
@@ -17,22 +62,22 @@ import {
   reportRows,
   revenueReport,
   toCsv,
-} from '../services/reports.service.js'
-import { updateIncidentStatus } from '../services/incident.service.js'
-import type { ManagerScope } from '../interfaces/index.js'
+} from '../services/reports.service.js';
+import { updateIncidentStatus } from '../services/incident.service.js';
+import type { ManagerScope } from '../interfaces/index.js';
 
 function managerScope(req: Request): ManagerScope {
-  if (!req.auth) throw ApiError.unauthorized()
+  if (!req.auth) throw ApiError.unauthorized();
   return {
     tenantId: req.auth.tenantId,
     userId: req.auth.sub,
     role: req.auth.role,
     engineKinds: req.auth.engineKinds ?? [],
-  }
+  };
 }
 
-const engineKind = z.enum(ENGINE_KINDS)
-const rangeSchema = z.object({ from: z.string().optional(), to: z.string().optional() })
+const engineKind = z.enum(ENGINE_KINDS);
+const rangeSchema = z.object({ from: z.string().optional(), to: z.string().optional() });
 
 const siteSchema = z.object({
   name: z.string().min(2),
@@ -40,7 +85,7 @@ const siteSchema = z.object({
   venueType: z.string().optional(),
   address: z.string().optional(),
   contactPhone: z.string().optional(),
-})
+});
 
 const stationSchema = z.object({
   siteId: z.string().min(1),
@@ -50,7 +95,7 @@ const stationSchema = z.object({
   openingTime: z.string().optional(),
   closingTime: z.string().optional(),
   contactPhone: z.string().optional(),
-})
+});
 
 /** A gate names no activity: it holds lockers, and any desk at the station can allocate them. */
 const gateSchema = z.object({
@@ -58,7 +103,7 @@ const gateSchema = z.object({
   name: z.string().min(2).max(60),
   code: z.string().max(16).optional(),
   location: z.string().max(120).optional(),
-})
+});
 
 const kioskSchema = z.object({
   stationId: z.string().min(1),
@@ -71,7 +116,7 @@ const kioskSchema = z.object({
   /** The job their company defined. See roleDefinition.model.ts. */
   roleKey: z.string().trim().min(1).max(40).nullish(),
   isExitGate: z.boolean().optional(),
-})
+});
 
 const staffSchema = z.object({
   fullName: z.string().min(2),
@@ -100,7 +145,7 @@ const staffSchema = z.object({
   roleKey: z.string().trim().min(1).max(40).nullish(),
   reportsTo: z.string().nullable().optional(),
   phone: z.string().optional(),
-})
+});
 
 const productSchema = z.object({
   name: z.string().min(2),
@@ -125,136 +170,180 @@ const productSchema = z.object({
   kioskId: z.string().min(1).nullish(),
   // An action rather than a property: create this many units at that desk now.
   initialCount: z.coerce.number().int().min(0).max(200).optional(),
-})
+});
 
 export const managerController = {
   overview: asyncHandler(async (req, res) => {
-    res.json({ success: true, data: await managerOverview(managerScope(req)) })
+    res.json({ success: true, data: await managerOverview(managerScope(req)) });
   }),
   liveSessions: asyncHandler(async (req, res) => {
-    res.json({ success: true, data: await managerLiveSessions(managerScope(req)) })
+    res.json({ success: true, data: await managerLiveSessions(managerScope(req)) });
   }),
 
   rentals: asyncHandler(async (req, res) => {
-    const q = z.object({ scope: z.enum(['active', 'completed', 'expired', 'all']).default('all') }).parse(req.query)
-    res.json({ success: true, data: await managerRentals(managerScope(req), q.scope) })
+    const q = z
+      .object({ scope: z.enum(['active', 'completed', 'expired', 'all']).default('all') })
+      .parse(req.query);
+    res.json({ success: true, data: await managerRentals(managerScope(req), q.scope) });
   }),
   rentalDetail: asyncHandler(async (req, res) => {
-    res.json({ success: true, data: await managerRentalDetail(managerScope(req), req.params.id) })
+    res.json({ success: true, data: await managerRentalDetail(managerScope(req), req.params.id) });
   }),
 
   customers: asyncHandler(async (req, res) => {
-    res.json({ success: true, data: await managerCustomers(managerScope(req)) })
+    res.json({ success: true, data: await managerCustomers(managerScope(req)) });
   }),
   customerDetail: asyncHandler(async (req, res) => {
-    res.json({ success: true, data: await managerCustomerDetail(managerScope(req), req.params.id) })
+    res.json({
+      success: true,
+      data: await managerCustomerDetail(managerScope(req), req.params.id),
+    });
   }),
 
   org: asyncHandler(async (req, res) => {
-    res.json({ success: true, data: await orgTree(managerScope(req)) })
+    res.json({ success: true, data: await orgTree(managerScope(req)) });
   }),
   createSite: asyncHandler(async (req, res) => {
-    res.status(201).json({ success: true, data: await createSite(managerScope(req), siteSchema.parse(req.body)) })
+    res
+      .status(201)
+      .json({
+        success: true,
+        data: await createSite(managerScope(req), siteSchema.parse(req.body)),
+      });
   }),
   updateSite: asyncHandler(async (req, res) => {
-    const body = siteSchema.partial().extend({ active: z.boolean().optional() }).parse(req.body)
-    res.json({ success: true, data: await updateSite(managerScope(req), req.params.id, body) })
+    const body = siteSchema.partial().extend({ active: z.boolean().optional() }).parse(req.body);
+    res.json({ success: true, data: await updateSite(managerScope(req), req.params.id, body) });
   }),
   createStation: asyncHandler(async (req, res) => {
-    res.status(201).json({ success: true, data: await createStation(managerScope(req), stationSchema.parse(req.body)) })
+    res
+      .status(201)
+      .json({
+        success: true,
+        data: await createStation(managerScope(req), stationSchema.parse(req.body)),
+      });
   }),
   updateStation: asyncHandler(async (req, res) => {
-    const body = stationSchema.partial().extend({ active: z.boolean().optional() }).parse(req.body)
-    res.json({ success: true, data: await updateStation(managerScope(req), req.params.id, body) })
+    const body = stationSchema.partial().extend({ active: z.boolean().optional() }).parse(req.body);
+    res.json({ success: true, data: await updateStation(managerScope(req), req.params.id, body) });
   }),
   createKiosk: asyncHandler(async (req, res) => {
-    res.status(201).json({ success: true, data: await createKiosk(managerScope(req), kioskSchema.parse(req.body)) })
+    res
+      .status(201)
+      .json({
+        success: true,
+        data: await createKiosk(managerScope(req), kioskSchema.parse(req.body)),
+      });
   }),
 
   createGate: asyncHandler(async (req, res) => {
-    res.status(201).json({ success: true, data: await createGate(managerScope(req), gateSchema.parse(req.body)) })
+    res
+      .status(201)
+      .json({
+        success: true,
+        data: await createGate(managerScope(req), gateSchema.parse(req.body)),
+      });
   }),
   updateGate: asyncHandler(async (req, res) => {
-    const body = gateSchema.partial().extend({ active: z.boolean().optional() }).parse(req.body)
-    res.json({ success: true, data: await updateGate(managerScope(req), req.params.id, body) })
+    const body = gateSchema.partial().extend({ active: z.boolean().optional() }).parse(req.body);
+    res.json({ success: true, data: await updateGate(managerScope(req), req.params.id, body) });
   }),
   removeGate: asyncHandler(async (req, res) => {
-    res.json({ success: true, data: await removeGate(managerScope(req), req.params.id) })
+    res.json({ success: true, data: await removeGate(managerScope(req), req.params.id) });
   }),
   removeStation: asyncHandler(async (req, res) => {
-    res.json({ success: true, data: await removeStation(managerScope(req), req.params.id) })
+    res.json({ success: true, data: await removeStation(managerScope(req), req.params.id) });
   }),
 
   removeSite: asyncHandler(async (req, res) => {
-    res.json({ success: true, data: await removeSite(managerScope(req), req.params.id) })
+    res.json({ success: true, data: await removeSite(managerScope(req), req.params.id) });
   }),
 
   removeStaff: asyncHandler(async (req, res) => {
-    res.json({ success: true, data: await removeStaff(managerScope(req), req.params.id) })
+    res.json({ success: true, data: await removeStaff(managerScope(req), req.params.id) });
   }),
 
   removeKiosk: asyncHandler(async (req, res) => {
-    res.json({ success: true, data: await removeKiosk(managerScope(req), req.params.id) })
+    res.json({ success: true, data: await removeKiosk(managerScope(req), req.params.id) });
   }),
   updateKiosk: asyncHandler(async (req, res) => {
-    const body = kioskSchema.partial().extend({ active: z.boolean().optional() }).parse(req.body)
-    res.json({ success: true, data: await updateKiosk(managerScope(req), req.params.id, body) })
+    const body = kioskSchema.partial().extend({ active: z.boolean().optional() }).parse(req.body);
+    res.json({ success: true, data: await updateKiosk(managerScope(req), req.params.id, body) });
   }),
 
   payments: asyncHandler(async (req, res) => {
-    res.json({ success: true, data: await managerPayments(managerScope(req)) })
+    res.json({ success: true, data: await managerPayments(managerScope(req)) });
   }),
 
   incidents: asyncHandler(async (req, res) => {
-    res.json({ success: true, data: await managerIncidents(managerScope(req)) })
+    res.json({ success: true, data: await managerIncidents(managerScope(req)) });
   }),
   updateIncident: asyncHandler(async (req, res) => {
     const body = z
-      .object({ status: z.enum(['REPORTED', 'INVESTIGATING', 'AWAITING_APPROVAL', 'RESOLVED', 'REJECTED']) })
-      .parse(req.body)
-    const scope = managerScope(req)
-    const data = await updateIncidentStatus({ tenantId: scope.tenantId } as never, req.params.id, body.status)
-    res.json({ success: true, data })
+      .object({
+        status: z.enum(['REPORTED', 'INVESTIGATING', 'AWAITING_APPROVAL', 'RESOLVED', 'REJECTED']),
+      })
+      .parse(req.body);
+    const scope = managerScope(req);
+    const data = await updateIncidentStatus(
+      { tenantId: scope.tenantId } as never,
+      req.params.id,
+      body.status
+    );
+    res.json({ success: true, data });
   }),
 
   shift: asyncHandler(async (req, res) => {
-    res.json({ success: true, data: await managerShift(managerScope(req), req.params.id) })
+    res.json({ success: true, data: await managerShift(managerScope(req), req.params.id) });
   }),
 
   shifts: asyncHandler(async (req, res) => {
-    res.json({ success: true, data: await managerShifts(managerScope(req)) })
+    res.json({ success: true, data: await managerShifts(managerScope(req)) });
   }),
 
   staff: asyncHandler(async (req, res) => {
-    res.json({ success: true, data: await listStaff(managerScope(req)) })
+    res.json({ success: true, data: await listStaff(managerScope(req)) });
   }),
   createStaff: asyncHandler(async (req, res) => {
-    res.status(201).json({ success: true, data: await createStaff(managerScope(req), staffSchema.parse(req.body)) })
+    res
+      .status(201)
+      .json({
+        success: true,
+        data: await createStaff(managerScope(req), staffSchema.parse(req.body)),
+      });
   }),
   updateStaff: asyncHandler(async (req, res) => {
-    const body = staffSchema.partial().extend({ active: z.boolean().optional() }).parse(req.body)
-    res.json({ success: true, data: await updateStaff(managerScope(req), req.params.id, body) })
+    const body = staffSchema.partial().extend({ active: z.boolean().optional() }).parse(req.body);
+    res.json({ success: true, data: await updateStaff(managerScope(req), req.params.id, body) });
   }),
   reinviteStaff: asyncHandler(async (req, res) => {
-    res.json({ success: true, data: await reinviteStaff(managerScope(req), req.params.id) })
+    res.json({ success: true, data: await reinviteStaff(managerScope(req), req.params.id) });
   }),
   resetStaffPassword: asyncHandler(async (req, res) => {
-    const body = z.object({ password: z.string().min(8) }).parse(req.body)
-    res.json({ success: true, data: await resetStaffPassword(managerScope(req), req.params.id, body.password) })
+    const body = z.object({ password: z.string().min(8) }).parse(req.body);
+    res.json({
+      success: true,
+      data: await resetStaffPassword(managerScope(req), req.params.id, body.password),
+    });
   }),
 
   pricing: asyncHandler(async (req, res) => {
-    res.json({ success: true, data: await listPricing(managerScope(req)) })
+    res.json({ success: true, data: await listPricing(managerScope(req)) });
   }),
   createProduct: asyncHandler(async (req, res) => {
-    res.status(201).json({ success: true, data: await createProduct(managerScope(req), productSchema.parse(req.body)) })
+    res
+      .status(201)
+      .json({
+        success: true,
+        data: await createProduct(managerScope(req), productSchema.parse(req.body)),
+      });
   }),
   updateProduct: asyncHandler(async (req, res) => {
-    const body = productSchema.partial().extend({ active: z.boolean().optional() }).parse(req.body)
-    res.json({ success: true, data: await updateProduct(managerScope(req), req.params.id, body) })
+    const body = productSchema.partial().extend({ active: z.boolean().optional() }).parse(req.body);
+    res.json({ success: true, data: await updateProduct(managerScope(req), req.params.id, body) });
   }),
   settings: asyncHandler(async (req, res) => {
-    res.json({ success: true, data: await getSettings(managerScope(req)) })
+    res.json({ success: true, data: await getSettings(managerScope(req)) });
   }),
   updateSettings: asyncHandler(async (req, res) => {
     const body = z
@@ -268,40 +357,54 @@ export const managerController = {
         company: z.record(z.string()).optional(),
         settings: z.record(z.unknown()).optional(),
       })
-      .parse(req.body)
-    res.json({ success: true, data: await updateSettings(managerScope(req), body) })
+      .parse(req.body);
+    res.json({ success: true, data: await updateSettings(managerScope(req), body) });
   }),
 
   reportRevenue: asyncHandler(async (req, res) => {
-    res.json({ success: true, data: await revenueReport(managerScope(req), rangeSchema.parse(req.query)) })
+    res.json({
+      success: true,
+      data: await revenueReport(managerScope(req), rangeSchema.parse(req.query)),
+    });
   }),
   reportAgents: asyncHandler(async (req, res) => {
-    res.json({ success: true, data: await agentRevenueReport(managerScope(req), rangeSchema.parse(req.query)) })
+    res.json({
+      success: true,
+      data: await agentRevenueReport(managerScope(req), rangeSchema.parse(req.query)),
+    });
   }),
   reportOccupancy: asyncHandler(async (req, res) => {
-    res.json({ success: true, data: await occupancyReport(managerScope(req)) })
+    res.json({ success: true, data: await occupancyReport(managerScope(req)) });
   }),
   reportRentals: asyncHandler(async (req, res) => {
-    res.json({ success: true, data: await rentalsReport(managerScope(req), rangeSchema.parse(req.query)) })
+    res.json({
+      success: true,
+      data: await rentalsReport(managerScope(req), rangeSchema.parse(req.query)),
+    });
   }),
   reportDiscounts: asyncHandler(async (req, res) => {
-    res.json({ success: true, data: await discountsReport(managerScope(req), rangeSchema.parse(req.query)) })
+    res.json({
+      success: true,
+      data: await discountsReport(managerScope(req), rangeSchema.parse(req.query)),
+    });
   }),
   reportCustomers: asyncHandler(async (req, res) => {
-    res.json({ success: true, data: await customersReport(managerScope(req)) })
+    res.json({ success: true, data: await customersReport(managerScope(req)) });
   }),
   exportReport: asyncHandler(async (req, res) => {
     const params = z
-      .object({ kind: z.enum(['revenue', 'occupancy', 'rentals', 'payments', 'agents', 'discounts']) })
-      .parse(req.params)
-    const rows = await reportRows(managerScope(req), params.kind, rangeSchema.parse(req.query))
-    const csv = toCsv(rows)
-    res.setHeader('Content-Type', 'text/csv; charset=utf-8')
-    res.setHeader('Content-Disposition', `attachment; filename="${params.kind}-report.csv"`)
-    res.send(csv)
+      .object({
+        kind: z.enum(['revenue', 'occupancy', 'rentals', 'payments', 'agents', 'discounts']),
+      })
+      .parse(req.params);
+    const rows = await reportRows(managerScope(req), params.kind, rangeSchema.parse(req.query));
+    const csv = toCsv(rows);
+    res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+    res.setHeader('Content-Disposition', `attachment; filename="${params.kind}-report.csv"`);
+    res.send(csv);
   }),
 
   activity: asyncHandler(async (req, res) => {
-    res.json({ success: true, data: await activityLog(managerScope(req)) })
+    res.json({ success: true, data: await activityLog(managerScope(req)) });
   }),
-}
+};

@@ -1,25 +1,24 @@
-import { Booking, Incident, Payment } from '../models/index.js'
+import { Booking, Incident, Payment } from '../models/index.js';
 
-
-import type { Scope } from '../interfaces/index.js'
-import { adoptedActivities } from '../platform/activityCatalogue.js'
-import { allowedEngines, engineFilter } from '../domain/access.js'
+import type { Scope } from '../interfaces/index.js';
+import { adoptedActivities } from '../platform/activityCatalogue.js';
+import { allowedEngines, engineFilter } from '../domain/access.js';
 
 function startOfToday(): Date {
-  const d = new Date()
-  d.setHours(0, 0, 0, 0)
-  return d
+  const d = new Date();
+  d.setHours(0, 0, 0, 0);
+  return d;
 }
 
 export async function dashboardStats(scope: Scope) {
-  const engines = engineFilter(scope)
+  const engines = engineFilter(scope);
   const base = {
     tenantId: scope.tenantId,
     stationId: scope.stationId,
     ...(engines === undefined ? {} : { engineKind: engines }),
-  }
-  const now = new Date()
-  const soon = new Date(now.getTime() + 45 * 60_000)
+  };
+  const now = new Date();
+  const soon = new Date(now.getTime() + 45 * 60_000);
 
   const [
     todaysTransactions,
@@ -32,27 +31,54 @@ export async function dashboardStats(scope: Scope) {
     openIncidents,
     byEngineAgg,
   ] = await Promise.all([
-    Payment.distinct('orderId', { ...base, kind: 'SALE', createdAt: { $gte: startOfToday() } }).then((ids) => ids.length),
+    Payment.distinct('orderId', {
+      ...base,
+      kind: 'SALE',
+      createdAt: { $gte: startOfToday() },
+    }).then((ids) => ids.length),
     Payment.aggregate([
-      { $match: { ...base, kind: { $in: ['SALE', 'OVERTIME'] }, status: 'CAPTURED', createdAt: { $gte: startOfToday() } } },
+      {
+        $match: {
+          ...base,
+          kind: { $in: ['SALE', 'OVERTIME'] },
+          status: 'CAPTURED',
+          createdAt: { $gte: startOfToday() },
+        },
+      },
       { $group: { _id: null, total: { $sum: '$amount' } } },
     ]),
-    Booking.countDocuments({ ...base, status: { $in: ['ACTIVE', 'OVERTIME', 'RETRIEVAL_IN_PROGRESS'] } }),
+    Booking.countDocuments({
+      ...base,
+      status: { $in: ['ACTIVE', 'OVERTIME', 'RETRIEVAL_IN_PROGRESS'] },
+    }),
     Booking.aggregate([
       { $match: { ...base } },
       { $unwind: '$bags' },
       { $match: { 'bags.status': 'STORED' } },
       { $count: 'n' },
     ]),
-    Booking.countDocuments({ ...base, status: { $in: ['ACTIVE', 'OVERTIME'] }, 'session.expectedEndAt': { $gt: now, $lt: soon } }),
-    Booking.countDocuments({ ...base, status: { $in: ['ACTIVE', 'OVERTIME'] }, 'session.expectedEndAt': { $lt: now } }),
+    Booking.countDocuments({
+      ...base,
+      status: { $in: ['ACTIVE', 'OVERTIME'] },
+      'session.expectedEndAt': { $gt: now, $lt: soon },
+    }),
+    Booking.countDocuments({
+      ...base,
+      status: { $in: ['ACTIVE', 'OVERTIME'] },
+      'session.expectedEndAt': { $lt: now },
+    }),
     Booking.countDocuments({ ...base, status: 'RETRIEVAL_IN_PROGRESS' }),
     Incident.countDocuments({ ...base, status: { $nin: ['RESOLVED', 'REJECTED'] } }),
-    Booking.aggregate([{ $match: { ...base } }, { $group: { _id: '$engineKind', count: { $sum: 1 } } }]),
-  ])
+    Booking.aggregate([
+      { $match: { ...base } },
+      { $group: { _id: '$engineKind', count: { $sum: 1 } } },
+    ]),
+  ]);
 
-  const byEngineMap = new Map<string, number>(byEngineAgg.map((e: { _id: string; count: number }) => [e._id, e.count]))
-  const adopted = await adoptedActivities()
+  const byEngineMap = new Map<string, number>(
+    byEngineAgg.map((e: { _id: string; count: number }) => [e._id, e.count])
+  );
+  const adopted = await adoptedActivities();
 
   return {
     todaysTransactions,
@@ -75,5 +101,5 @@ export async function dashboardStats(scope: Scope) {
       engineKind: k,
       count: byEngineMap.get(k) ?? 0,
     })),
-  }
+  };
 }

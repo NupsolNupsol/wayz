@@ -1,17 +1,17 @@
-import { useEffect, useState } from 'react'
-import { useTranslation } from 'react-i18next'
-import { Users } from 'lucide-react'
-import { Modal } from './Modal'
-import { Button, Field } from './ui'
-import { CustomerPicker } from './CustomerPicker'
-import { OtpBox } from './OtpBox'
-import { NumberInput } from './NumberInput'
-import { money, round2 } from '@/utils'
-import type { Customer } from '@/api/types'
+import { useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
+import { Users } from 'lucide-react';
+import { Modal } from './Modal';
+import { Button, Field } from './ui';
+import { CustomerPicker } from './CustomerPicker';
+import { OtpBox } from './OtpBox';
+import { NumberInput } from './NumberInput';
+import { money, round2 } from '@/utils';
+import type { Customer } from '@/api/types';
 
 export interface SecondPayer {
-  customer: Customer
-  amount: number
+  customer: Customer;
+  amount: number;
 }
 
 /**
@@ -30,30 +30,30 @@ export function SecondPayerModal({
   onClose,
   onConfirm,
 }: {
-  open: boolean
-  total: number
-  onClose: () => void
-  onConfirm: (payer: SecondPayer) => void
+  open: boolean;
+  total: number;
+  onClose: () => void;
+  onConfirm: (payer: SecondPayer) => void;
 }) {
-  const { t } = useTranslation(['ui', 'common'])
+  const { t } = useTranslation(['ui', 'common']);
 
-  const [customer, setCustomer] = useState<Customer | null>(null)
-  const [verified, setVerified] = useState(false)
-  const [amount, setAmount] = useState(round2(total / 2))
+  const [customer, setCustomer] = useState<Customer | null>(null);
+  const [verified, setVerified] = useState(false);
+  const [amount, setAmount] = useState(round2(total / 2));
 
   // Reopening starts clean: the last friend's confirmation has nothing to do with this sale.
   useEffect(() => {
-    if (!open) return
-    setCustomer(null)
-    setVerified(false)
-    setAmount(round2(total / 2))
-  }, [open, total])
+    if (!open) return;
+    setCustomer(null);
+    setVerified(false);
+    setAmount(round2(total / 2));
+  }, [open, total]);
 
   // A different person needs their own code.
-  useEffect(() => setVerified(false), [customer?._id])
+  useEffect(() => setVerified(false), [customer?._id]);
 
-  const share = round2(Math.min(Math.max(0, amount), total))
-  const theirs = round2(total - share)
+  const share = round2(Math.min(Math.max(0, amount), total));
+  const theirs = round2(total - share);
 
   const problem = !customer
     ? t('ui:split.pickSomeone')
@@ -63,7 +63,7 @@ export function SecondPayerModal({
         ? t('ui:split.shareTooSmall')
         : theirs <= 0
           ? t('ui:split.shareTooBig')
-          : ''
+          : '';
 
   return (
     <Modal
@@ -88,12 +88,16 @@ export function SecondPayerModal({
         </>
       }
     >
-      <p className="text-xs uppercase tracking-wider text-muted font-bold mb-2">{t('ui:split.whoElse')}</p>
+      <p className="text-xs uppercase tracking-wider text-muted font-bold mb-2">
+        {t('ui:split.whoElse')}
+      </p>
       <CustomerPicker value={customer} onChange={setCustomer} />
 
       {customer && (
         <div className="mt-4">
-          <p className="text-xs uppercase tracking-wider text-muted font-bold mb-2">{t('ui:split.confirmTitle')}</p>
+          <p className="text-xs uppercase tracking-wider text-muted font-bold mb-2">
+            {t('ui:split.confirmTitle')}
+          </p>
           <OtpBox
             phone={customer.phone}
             email={customer.email}
@@ -105,11 +109,24 @@ export function SecondPayerModal({
 
       {customer && verified && (
         <div className="mt-4" data-testid="second-payer-amount-row">
-          <Field label={t('ui:split.theirShare')} hint={t('ui:split.theirShareHint', { half: money(round2(total / 2)) })}>
-            <NumberInput min={0} max={total} step={0.5} value={amount} onChange={setAmount} testId="second-payer-amount" />
+          <Field
+            label={t('ui:split.theirShare')}
+            hint={t('ui:split.theirShareHint', { half: money(round2(total / 2)) })}
+          >
+            <NumberInput
+              min={0}
+              max={total}
+              step={0.5}
+              value={amount}
+              onChange={setAmount}
+              testId="second-payer-amount"
+            />
           </Field>
 
-          <div className="lf-card p-3 mt-2 text-sm flex items-center justify-between" data-testid="second-payer-breakdown">
+          <div
+            className="lf-card p-3 mt-2 text-sm flex items-center justify-between"
+            data-testid="second-payer-breakdown"
+          >
             <span className="text-muted">{t('ui:split.breakdown')}</span>
             <span className="font-semibold text-navy dark:text-dk-texthi tabular-nums">
               {money(theirs)} + {money(share)}
@@ -124,5 +141,5 @@ export function SecondPayerModal({
         </p>
       )}
     </Modal>
-  )
+  );
 }

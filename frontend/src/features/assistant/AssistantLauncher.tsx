@@ -1,10 +1,10 @@
-import { useQuery } from '@tanstack/react-query'
-import { useTranslation } from 'react-i18next'
-import { Sparkles } from 'lucide-react'
+import { useQuery } from '@tanstack/react-query';
+import { useTranslation } from 'react-i18next';
+import { Sparkles } from 'lucide-react';
 
-import { learningApi } from '@/api/learning.api'
-import { useAssistantUi } from './assistantUi'
-import { AssistantPanel } from './AssistantPanel'
+import { learningApi } from '@/api/learning.api';
+import { useAssistantUi } from './assistantUi';
+import { AssistantPanel } from './AssistantPanel';
 
 /**
  * The floating button, and the panel it opens.
@@ -17,17 +17,17 @@ import { AssistantPanel } from './AssistantPanel'
  * check that decides it — the capability is asked once per session and cached.
  */
 export function AssistantLauncher() {
-  const { t } = useTranslation('assistant')
-  const { open, setOpen } = useAssistantUi()
+  const { t } = useTranslation('assistant');
+  const { open, setOpen } = useAssistantUi();
 
   const capability = useQuery({
     queryKey: ['learning', 'capability'],
     queryFn: learningApi.capability,
     staleTime: 10 * 60_000,
     retry: false,
-  })
+  });
 
-  if (!capability.data?.enabled) return null
+  if (!capability.data?.enabled) return null;
 
   return (
     <>
@@ -46,5 +46,5 @@ export function AssistantLauncher() {
       )}
       <AssistantPanel />
     </>
-  )
+  );
 }

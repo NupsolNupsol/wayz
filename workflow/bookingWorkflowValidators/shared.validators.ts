@@ -1,82 +1,91 @@
-import type { WorkflowContext } from '../shared/types.js'
-import { RESERVATION_ACTIVE, UNIT_AVAILABLE, UNIT_RESERVED } from '../shared/status.js'
+import type { WorkflowContext } from '../shared/types.js';
+import { RESERVATION_ACTIVE, UNIT_AVAILABLE, UNIT_RESERVED } from '../shared/status.js';
 
 export function requireReason(ctx: WorkflowContext): string[] {
-  const reason = typeof ctx.payload.reason === 'string' ? ctx.payload.reason.trim() : ''
-  return reason ? [] : ['A reason is required for this action.']
+  const reason = typeof ctx.payload.reason === 'string' ? ctx.payload.reason.trim() : '';
+  return reason ? [] : ['A reason is required for this action.'];
 }
 
 export function requireFlag(ctx: WorkflowContext, flag: string, message: string): string[] {
-  return ctx.payload[flag] ? [] : [message]
+  return ctx.payload[flag] ? [] : [message];
 }
 
 export function requireIdentityVerified(ctx: WorkflowContext, purpose = 'RETRIEVAL'): string[] {
   const fresh = ctx.booking.verifications.find(
-    (v) => v.purpose === purpose && v.status === 'VERIFIED' && new Date(v.expiresAt).getTime() > ctx.now.getTime(),
-  )
-  if (fresh) return []
-  const stale = ctx.booking.verifications.some((v) => v.purpose === purpose && v.status === 'VERIFIED')
+    (v) =>
+      v.purpose === purpose &&
+      v.status === 'VERIFIED' &&
+      new Date(v.expiresAt).getTime() > ctx.now.getTime()
+  );
+  if (fresh) return [];
+  const stale = ctx.booking.verifications.some(
+    (v) => v.purpose === purpose && v.status === 'VERIFIED'
+  );
   return [
     stale
       ? 'The identity check has expired — verify the customer again before releasing their property.'
       : 'Verify the customer’s identity first (WhatsApp code, email code, ID document, or supervisor override).',
-  ]
+  ];
 }
 
 export function requireTargetUnitAvailable(ctx: WorkflowContext): string[] {
-  const id = typeof ctx.payload.unitId === 'string' ? ctx.payload.unitId : ''
-  if (!id) return ['A target unit must be specified.']
-  const unit = ctx.assets.byId[id]
-  if (!unit) return ['Target unit not found.']
-  if (unit.status !== UNIT_AVAILABLE) return [`Unit ${unit.identifier} is not available (${unit.status}).`]
-  return []
+  const id = typeof ctx.payload.unitId === 'string' ? ctx.payload.unitId : '';
+  if (!id) return ['A target unit must be specified.'];
+  const unit = ctx.assets.byId[id];
+  if (!unit) return ['Target unit not found.'];
+  if (unit.status !== UNIT_AVAILABLE)
+    return [`Unit ${unit.identifier} is not available (${unit.status}).`];
+  return [];
 }
 
 export function requireHeldUnitUsable(ctx: WorkflowContext): string[] {
-  const expected = ctx.booking.reservation?.assetUnitId ?? ctx.booking.assetUnitId
-  if (!expected) return ['No unit is reserved for this booking.']
+  const expected = ctx.booking.reservation?.assetUnitId ?? ctx.booking.assetUnitId;
+  if (!expected) return ['No unit is reserved for this booking.'];
 
-  const reservationStatus = ctx.booking.reservation?.status
+  const reservationStatus = ctx.booking.reservation?.status;
   if (reservationStatus && reservationStatus !== RESERVATION_ACTIVE) {
-    return [`The reservation is no longer active (${reservationStatus}) — reserve again.`]
+    return [`The reservation is no longer active (${reservationStatus}) — reserve again.`];
   }
 
-  const unit = ctx.assets.current ?? ctx.assets.byId[expected]
-  if (!unit) return ['The reserved unit no longer exists.']
+  const unit = ctx.assets.current ?? ctx.assets.byId[expected];
+  if (!unit) return ['The reserved unit no longer exists.'];
   if (unit.currentBookingId && unit.currentBookingId !== ctx.booking._id) {
-    return [`Unit ${unit.identifier} is held by another booking — reassign before continuing.`]
+    return [`Unit ${unit.identifier} is held by another booking — reassign before continuing.`];
   }
   if (![UNIT_RESERVED, UNIT_AVAILABLE].includes(unit.status)) {
-    return [`Unit ${unit.identifier} cannot receive bags (${unit.status}).`]
+    return [`Unit ${unit.identifier} cannot receive bags (${unit.status}).`];
   }
-  return []
+  return [];
 }
 
 export function requireAvailableUnit(ctx: WorkflowContext): string[] {
-  const assetTypeId = ctx.booking.metadata?.assetTypeId as string | undefined
-  if (!assetTypeId) return []
+  const assetTypeId = ctx.booking.metadata?.assetTypeId as string | undefined;
+  if (!assetTypeId) return [];
 
   // When the desk names a unit, it is that unit that has to be free — checking only that *some*
   // unit is free would let the same vehicle go out with two customers at once.
-  const requested = typeof ctx.payload.unitId === 'string' ? ctx.payload.unitId.trim() : ''
+  const requested = typeof ctx.payload.unitId === 'string' ? ctx.payload.unitId.trim() : '';
   if (requested) {
-    if (!ctx.assets.byId[requested]) return ['That unit does not belong to this desk.']
-    const free = ctx.assets.available.some((u) => u._id === requested)
-    const alreadyThisBooking = ctx.booking.assetUnitId === requested || ctx.booking.reservation?.assetUnitId === requested
-    return free || alreadyThisBooking ? [] : ['That unit is already out with someone else.']
+    if (!ctx.assets.byId[requested]) return ['That unit does not belong to this desk.'];
+    const free = ctx.assets.available.some((u) => u._id === requested);
+    const alreadyThisBooking =
+      ctx.booking.assetUnitId === requested || ctx.booking.reservation?.assetUnitId === requested;
+    return free || alreadyThisBooking ? [] : ['That unit is already out with someone else.'];
   }
 
-  return ctx.assets.available.length > 0 ? [] : ['No available unit to assign.']
+  return ctx.assets.available.length > 0 ? [] : ['No available unit to assign.'];
 }
 
 export function requirePositiveDuration(ctx: WorkflowContext): string[] {
-  const requested = ctx.payload.durationMin ?? ctx.booking.session.requestedDurationMin
-  const value = Number(requested)
-  return Number.isFinite(value) && value > 0 ? [] : ['A positive duration is required to start the timer.']
+  const requested = ctx.payload.durationMin ?? ctx.booking.session.requestedDurationMin;
+  const value = Number(requested);
+  return Number.isFinite(value) && value > 0
+    ? []
+    : ['A positive duration is required to start the timer.'];
 }
 
 export function requirePaid(ctx: WorkflowContext): string[] {
   return ctx.booking.session.paidAt
     ? []
-    : ['This booking has not been paid for yet — take the payment before handing anything over.']
+    : ['This booking has not been paid for yet — take the payment before handing anything over.'];
 }

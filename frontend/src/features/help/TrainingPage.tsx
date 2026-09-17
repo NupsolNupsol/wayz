@@ -1,16 +1,16 @@
-import { Link } from 'react-router-dom'
-import { useTranslation } from 'react-i18next'
-import { useQuery } from '@tanstack/react-query'
-import { BookOpen, GraduationCap, MessageSquareText, RotateCcw, Sparkles } from 'lucide-react'
+import { Link } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
+import { useQuery } from '@tanstack/react-query';
+import { BookOpen, GraduationCap, MessageSquareText, RotateCcw, Sparkles } from 'lucide-react';
 
-import { PageHeader } from '@/components/PageHeader'
-import { Badge, Card, SectionTitle } from '@/components/ui'
-import { learningApi } from '@/api/learning.api'
-import { useAssistantUi } from '@/features/assistant/assistantUi'
-import { QUICK_ACTIONS } from '@/features/assistant/quickActions'
-import { usePageContext, PAGE_KEYS } from '@/features/assistant/pageContext'
-import { restartTour } from '@/features/onboarding/restartTour'
-import { useAuthStore } from '@/store/auth'
+import { PageHeader } from '@/components/PageHeader';
+import { Badge, Card, SectionTitle } from '@/components/ui';
+import { learningApi } from '@/api/learning.api';
+import { useAssistantUi } from '@/features/assistant/assistantUi';
+import { QUICK_ACTIONS } from '@/features/assistant/quickActions';
+import { usePageContext, PAGE_KEYS } from '@/features/assistant/pageContext';
+import { restartTour } from '@/features/onboarding/restartTour';
+import { useAuthStore } from '@/store/auth';
 
 /**
  * One place for "how do I do this".
@@ -20,30 +20,30 @@ import { useAuthStore } from '@/store/auth'
  * those are what it is really for.
  */
 export function TrainingPage() {
-  const { t } = useTranslation(['onboarding', 'assistant', 'common'])
-  const { openWith, setOpen } = useAssistantUi()
-  const role = useAuthStore((s) => s.me?.role)
+  const { t } = useTranslation(['onboarding', 'assistant', 'common']);
+  const { openWith, setOpen } = useAssistantUi();
+  const role = useAuthStore((s) => s.me?.role);
 
   usePageContext({
     pageKey: PAGE_KEYS.training,
     module: 'ONBOARDING',
     screenTitle: t('training.title'),
-  })
+  });
 
   const capability = useQuery({
     queryKey: ['learning', 'capability'],
     queryFn: learningApi.capability,
     staleTime: 10 * 60_000,
     retry: false,
-  })
+  });
   const onboarding = useQuery({
     queryKey: ['learning', 'onboarding'],
     queryFn: learningApi.onboarding,
     retry: false,
-  })
+  });
 
-  const status = onboarding.data?.status ?? 'PENDING'
-  const enabled = capability.data?.enabled ?? false
+  const status = onboarding.data?.status ?? 'PENDING';
+  const enabled = capability.data?.enabled ?? false;
 
   return (
     <div className="space-y-6">
@@ -68,7 +68,9 @@ export function TrainingPage() {
             >
               {t(`status.${status}`)}
             </Badge>
-            {role && <Badge tone="neutral">{t(`tour.${onboarding.data?.tourKey ?? 'agent'}`)}</Badge>}
+            {role && (
+              <Badge tone="neutral">{t(`tour.${onboarding.data?.tourKey ?? 'agent'}`)}</Badge>
+            )}
           </div>
 
           <button
@@ -136,9 +138,7 @@ export function TrainingPage() {
               <span className="block font-semibold text-sm text-navy dark:text-dk-texthi">
                 {t('training.resources.manual')}
               </span>
-              <span className="block text-xs text-muted">
-                {t('training.resources.manualHint')}
-              </span>
+              <span className="block text-xs text-muted">{t('training.resources.manualHint')}</span>
             </span>
           </Link>
           <Link
@@ -159,5 +159,5 @@ export function TrainingPage() {
         </div>
       </Card>
     </div>
-  )
+  );
 }

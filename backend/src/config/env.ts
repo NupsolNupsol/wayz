@@ -1,5 +1,5 @@
-import 'dotenv/config'
-import { z } from 'zod'
+import 'dotenv/config';
+import { z } from 'zod';
 
 const schema = z.object({
   NODE_ENV: z.enum(['development', 'production', 'test']).default('development'),
@@ -188,18 +188,17 @@ const schema = z.object({
     .transform((v) => v || undefined)
     .refine(
       (v) => !v || v.length >= 32,
-      'AI_SERVICE_SECRET must be at least 32 characters, or left blank to disable the assistant.',
+      'AI_SERVICE_SECRET must be at least 32 characters, or left blank to disable the assistant.'
     )
     .optional(),
   AI_SERVICE_TIMEOUT_MS: z.coerce.number().int().positive().default(60_000),
-})
+});
 
-const parsed = schema.safeParse(process.env)
+const parsed = schema.safeParse(process.env);
 if (!parsed.success) {
-   
-  console.error('Invalid environment configuration:', parsed.error.flatten().fieldErrors)
-  process.exit(1)
+  console.error('Invalid environment configuration:', parsed.error.flatten().fieldErrors);
+  process.exit(1);
 }
 
-export const env = parsed.data
-export type Env = typeof env
+export const env = parsed.data;
+export type Env = typeof env;

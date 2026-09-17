@@ -1,16 +1,16 @@
-import { logger } from '../config/logger.js'
-import { seedFresh } from './seed.js'
-import { bootstrapApp } from '../platform/bootstrap.js'
-import { ensurePlatformAdmin } from '../platform/platformAdminBootstrap.js'
-import { closeAllConnections } from '../platform/connections.js'
-import { runInOrg } from '../platform/orgScope.js'
-import { env } from '../config/env.js'
+import { logger } from '../config/logger.js';
+import { seedFresh } from './seed.js';
+import { bootstrapApp } from '../platform/bootstrap.js';
+import { ensurePlatformAdmin } from '../platform/platformAdminBootstrap.js';
+import { closeAllConnections } from '../platform/connections.js';
+import { runInOrg } from '../platform/orgScope.js';
+import { env } from '../config/env.js';
 
 /** Seeds one organisation. Defaults to WAYZ so the existing developer workflow is unchanged. */
 async function run() {
-  const organizationId = process.env.SEED_TENANT ?? 'wayz'
-  await bootstrapApp()
-  await runInOrg(organizationId, () => seedFresh())
+  const organizationId = process.env.SEED_TENANT ?? 'wayz';
+  await bootstrapApp();
+  await runInOrg(organizationId, () => seedFresh());
 
   /*
    * The platform administrator, from the environment.
@@ -23,7 +23,7 @@ async function run() {
    * companies and read every company's revenue must not be readable by anybody who can read
    * the repository, so it comes from the machine and nowhere else.
    */
-  await ensurePlatformAdmin()
+  await ensurePlatformAdmin();
 
   if (env.PLATFORM_ADMIN_EMAIL) {
     /* The address, never the password. */
@@ -31,20 +31,20 @@ async function run() {
       signInAt: `${env.PUBLIC_APP_URL ?? 'http://localhost:5175'}/login`,
       then: '/platform',
       email: env.PLATFORM_ADMIN_EMAIL,
-    })
+    });
   } else {
     logger.warn('No platform administrator was created', {
       why: 'PLATFORM_ADMIN_EMAIL and PLATFORM_ADMIN_PASSWORD are not set in this environment.',
       fix: 'Set both, then run the seed again — or just restart the API, which does the same thing.',
-    })
+    });
   }
 
-  await closeAllConnections()
-  logger.info('Seed CLI finished', { organisation: organizationId })
-  process.exit(0)
+  await closeAllConnections();
+  logger.info('Seed CLI finished', { organisation: organizationId });
+  process.exit(0);
 }
 
 run().catch((err) => {
-  logger.error('Seed failed', { err: err instanceof Error ? err.message : String(err) })
-  process.exit(1)
-})
+  logger.error('Seed failed', { err: err instanceof Error ? err.message : String(err) });
+  process.exit(1);
+});

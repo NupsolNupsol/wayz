@@ -1,6 +1,6 @@
-import { Schema, type HydratedDocument } from 'mongoose'
-import { nanoid } from 'nanoid'
-import { DEFAULT_GRACE_MINUTES } from '../domain/overtime.js'
+import { Schema, type HydratedDocument } from 'mongoose';
+import { nanoid } from 'nanoid';
+import { DEFAULT_GRACE_MINUTES } from '../domain/overtime.js';
 import type {
   BagCategory,
   BagItemStatus,
@@ -13,21 +13,21 @@ import type {
   VerificationMethod,
   VerificationPurpose,
   VerificationStatus,
-} from '../domain/types.js'
+} from '../domain/types.js';
 
 export interface BagItem {
-  index: number
-  category: BagCategory
-  description: string
-  dimensions: { w: number; h: number; d: number }
-  weight: number
-  barcode: string
-  status: BagItemStatus
-  assignedUnitId?: string | null
+  index: number;
+  category: BagCategory;
+  description: string;
+  dimensions: { w: number; h: number; d: number };
+  weight: number;
+  barcode: string;
+  status: BagItemStatus;
+  assignedUnitId?: string | null;
 }
 
 export interface OperationalSession {
-  kind: SessionKind
+  kind: SessionKind;
   /**
    * Where this booking stands.
    *
@@ -38,79 +38,79 @@ export interface OperationalSession {
    * `activitySession.service.ts`, which is the only place a state key outside this union is
    * written, and says so where it does it.
    */
-  status: BookingStatus
-  assetUnitId?: string | null
-  requestedDurationMin: number
-  startedAt?: Date | null
-  expectedEndAt?: Date | null
-  chargeableEndedAt?: Date | null
-  gracePeriodMin: number
-  overtimeHourlyRate: number
-  expiryWarningSentAt?: Date | null
-  paidAt?: Date | null
+  status: BookingStatus;
+  assetUnitId?: string | null;
+  requestedDurationMin: number;
+  startedAt?: Date | null;
+  expectedEndAt?: Date | null;
+  chargeableEndedAt?: Date | null;
+  gracePeriodMin: number;
+  overtimeHourlyRate: number;
+  expiryWarningSentAt?: Date | null;
+  paidAt?: Date | null;
   /** Minutes handed back after a faulty unit was swapped, totalled over every swap. */
-  replacementBonusMin?: number
+  replacementBonusMin?: number;
 }
 
 export interface AssetReservationEmbed {
-  assetUnitId: string
-  expiresAt: Date
-  status: 'ACTIVE' | 'CONSUMED' | 'RELEASED' | 'EXPIRED'
+  assetUnitId: string;
+  expiresAt: Date;
+  status: 'ACTIVE' | 'CONSUMED' | 'RELEASED' | 'EXPIRED';
 }
 
 export interface CustodyEvent {
-  from: CustodyHolder
-  to: CustodyHolder
-  at: Date
-  bagIndex?: number
-  note?: string
+  from: CustodyHolder;
+  to: CustodyHolder;
+  at: Date;
+  bagIndex?: number;
+  note?: string;
 }
 
 export interface PackingPlanEmbed {
-  requiredCapacityScore: number
-  suggestedAssetTypeId: string
-  numberOfCompartmentsRequired: number
-  allocations: { compartmentIndex: number; bagIndexes: number[] }[]
-  priceCalculationSummary: string
+  requiredCapacityScore: number;
+  suggestedAssetTypeId: string;
+  numberOfCompartmentsRequired: number;
+  allocations: { compartmentIndex: number; bagIndexes: number[] }[];
+  priceCalculationSummary: string;
 }
 
 export interface IdentityVerification {
-  purpose: VerificationPurpose
-  method: VerificationMethod
-  status: VerificationStatus
-  channel?: 'WHATSAPP' | 'EMAIL' | 'MOCK' | null
-  destination?: string | null
-  phone?: string | null
-  verifiedAt: Date
-  verifiedBy: string
-  verifiedByRole: Role
-  expiresAt: Date
-  consumedAt?: Date | null
-  reason?: string | null
+  purpose: VerificationPurpose;
+  method: VerificationMethod;
+  status: VerificationStatus;
+  channel?: 'WHATSAPP' | 'EMAIL' | 'MOCK' | null;
+  destination?: string | null;
+  phone?: string | null;
+  verifiedAt: Date;
+  verifiedBy: string;
+  verifiedByRole: Role;
+  expiresAt: Date;
+  consumedAt?: Date | null;
+  reason?: string | null;
   document?: {
-    type: IdDocumentType
-    holderName: string
-    last4: string
-  } | null
-  evidenceId?: string | null
+    type: IdDocumentType;
+    holderName: string;
+    last4: string;
+  } | null;
+  evidenceId?: string | null;
 }
 
 export interface TransitionLogEntry {
-  code: string
-  from: BookingStatus
-  to: BookingStatus
-  by: string
-  at: Date
-  reason?: string
+  code: string;
+  from: BookingStatus;
+  to: BookingStatus;
+  by: string;
+  at: Date;
+  reason?: string;
 }
 
 export interface BookingDoc {
-  _id: string
-  trackingToken: string
-  ref: string
-  tenantId: string
-  stationId: string
-  kioskId: string | null
+  _id: string;
+  trackingToken: string;
+  ref: string;
+  tenantId: string;
+  stationId: string;
+  kioskId: string | null;
   /**
    * The gate holding this booking's locker.
    *
@@ -118,13 +118,13 @@ export interface BookingDoc {
    * on the bags: the staff posted to that gate retrieve them, and the courier carrying them knows
    * where they are going. Set when a locker is allocated; null for anything that uses no locker.
    */
-  gateId: string | null
-  agentId: string
-  orderId: string
-  customerId: string
-  customerName: string
-  customerPhone: string
-  customerEmail: string
+  gateId: string | null;
+  agentId: string;
+  orderId: string;
+  customerId: string;
+  customerName: string;
+  customerPhone: string;
+  customerEmail: string;
   /**
    * The built-in engine this was sold under, for a tenant that runs them.
    *
@@ -133,7 +133,7 @@ export interface BookingDoc {
    * are keyed by it, and rewriting history to fit a newer model is how reconciliations stop
    * balancing.
    */
-  engineKind: EngineKind | null
+  engineKind: EngineKind | null;
   /**
    * The tenant's own activity this was sold under, frozen at the revision it was sold under.
    *
@@ -142,29 +142,29 @@ export interface BookingDoc {
    * that is archived must leave every booking taken under it still readable — which is the
    * whole reason activities are revisioned.
    */
-  activity: { key: string; name: string; nameAr: string; revision: number } | null
-  productName: string
+  activity: { key: string; name: string; nameAr: string; revision: number } | null;
+  productName: string;
   /** The same name in Arabic, so an agent working in Arabic reads the sale in Arabic. */
-  productNameAr?: string
-  baseAmount: number
-  vatAmount: number
-  totalAmount: number
-  vatRate: number
+  productNameAr?: string;
+  baseAmount: number;
+  vatAmount: number;
+  totalAmount: number;
+  vatRate: number;
   /** A platform status, or the key of one of this activity's own states. See `session.status`. */
-  status: BookingStatus
-  bags: BagItem[]
-  session: OperationalSession
-  reservation: AssetReservationEmbed | null
-  assetUnitId: string | null
-  packingPlan: PackingPlanEmbed | null
-  custody: CustodyEvent[]
-  verifications: IdentityVerification[]
-  discount?: BookingDiscount | null
-  refunds: BookingRefund[]
-  transitionLog: TransitionLogEntry[]
-  metadata: Record<string, unknown>
-  createdAt: Date
-  updatedAt: Date
+  status: BookingStatus;
+  bags: BagItem[];
+  session: OperationalSession;
+  reservation: AssetReservationEmbed | null;
+  assetUnitId: string | null;
+  packingPlan: PackingPlanEmbed | null;
+  custody: CustodyEvent[];
+  verifications: IdentityVerification[];
+  discount?: BookingDiscount | null;
+  refunds: BookingRefund[];
+  transitionLog: TransitionLogEntry[];
+  metadata: Record<string, unknown>;
+  createdAt: Date;
+  updatedAt: Date;
 }
 
 /**
@@ -172,26 +172,26 @@ export interface BookingDoc {
  * it can be counted, filtered and reported on — the client asked to see these summed.
  */
 export interface BookingDiscount {
-  amount: number
-  percent: number
-  reasonCode: string
-  reasonLabel: string
-  note?: string
+  amount: number;
+  percent: number;
+  reasonCode: string;
+  reasonLabel: string;
+  note?: string;
   /** Set when the discount came from a printed code rather than the desk's own judgement. */
-  voucherCode?: string | null
-  free: boolean
-  givenBy: string
-  givenByName: string
-  at: Date
+  voucherCode?: string | null;
+  free: boolean;
+  givenBy: string;
+  givenByName: string;
+  at: Date;
 }
 
 export interface BookingRefund {
-  amount: number
-  reason: string
-  refundedBy: string
-  refundedByName: string
-  paymentIds: string[]
-  at: Date
+  amount: number;
+  reason: string;
+  refundedBy: string;
+  refundedByName: string;
+  paymentIds: string[];
+  at: Date;
 }
 
 const discountSchema = new Schema<BookingDiscount>(
@@ -207,8 +207,8 @@ const discountSchema = new Schema<BookingDiscount>(
     givenByName: { type: String, default: '' },
     at: { type: Date, default: Date.now },
   },
-  { _id: false },
-)
+  { _id: false }
+);
 
 const refundSchema = new Schema<BookingRefund>(
   {
@@ -219,8 +219,8 @@ const refundSchema = new Schema<BookingRefund>(
     paymentIds: { type: [String], default: [] },
     at: { type: Date, default: Date.now },
   },
-  { _id: false },
-)
+  { _id: false }
+);
 
 const bagSchema = new Schema<BagItem>(
   {
@@ -237,8 +237,8 @@ const bagSchema = new Schema<BagItem>(
     status: { type: String, default: 'REGISTERED' },
     assignedUnitId: { type: String, default: null },
   },
-  { _id: false },
-)
+  { _id: false }
+);
 
 const sessionSchema = new Schema<OperationalSession>(
   {
@@ -255,8 +255,8 @@ const sessionSchema = new Schema<OperationalSession>(
     paidAt: { type: Date, default: null },
     replacementBonusMin: { type: Number, default: 0 },
   },
-  { _id: false },
-)
+  { _id: false }
+);
 
 const reservationSchema = new Schema<AssetReservationEmbed>(
   {
@@ -264,8 +264,8 @@ const reservationSchema = new Schema<AssetReservationEmbed>(
     expiresAt: { type: Date, required: true },
     status: { type: String, default: 'ACTIVE' },
   },
-  { _id: false },
-)
+  { _id: false }
+);
 
 const transitionLogSchema = new Schema<TransitionLogEntry>(
   {
@@ -276,8 +276,8 @@ const transitionLogSchema = new Schema<TransitionLogEntry>(
     at: { type: Date, default: Date.now },
     reason: { type: String },
   },
-  { _id: false },
-)
+  { _id: false }
+);
 
 const custodySchema = new Schema<CustodyEvent>(
   {
@@ -287,8 +287,8 @@ const custodySchema = new Schema<CustodyEvent>(
     bagIndex: { type: Number },
     note: { type: String },
   },
-  { _id: false },
-)
+  { _id: false }
+);
 
 const verificationSchema = new Schema<IdentityVerification>(
   {
@@ -311,19 +311,25 @@ const verificationSchema = new Schema<IdentityVerification>(
           holderName: { type: String, required: true },
           last4: { type: String, required: true },
         },
-        { _id: false },
+        { _id: false }
       ),
       default: null,
     },
     evidenceId: { type: String, default: null },
   },
-  { _id: false },
-)
+  { _id: false }
+);
 
 const bookingSchema = new Schema<BookingDoc>(
   {
     _id: { type: String, default: () => `bk_${nanoid(10)}` },
-    trackingToken: { type: String, default: () => nanoid(16), index: true, unique: true, sparse: true },
+    trackingToken: {
+      type: String,
+      default: () => nanoid(16),
+      index: true,
+      unique: true,
+      sparse: true,
+    },
     ref: { type: String, required: true, index: true },
     tenantId: { type: String, required: true, index: true },
     stationId: { type: String, required: true, index: true },
@@ -344,7 +350,7 @@ const bookingSchema = new Schema<BookingDoc>(
           nameAr: { type: String, default: '' },
           revision: { type: Number, required: true },
         },
-        { _id: false },
+        { _id: false }
       ),
       default: null,
     },
@@ -367,10 +373,9 @@ const bookingSchema = new Schema<BookingDoc>(
     transitionLog: { type: [transitionLogSchema], default: [] },
     metadata: { type: Schema.Types.Mixed, default: {} },
   },
-  { _id: false, timestamps: true },
-)
+  { _id: false, timestamps: true }
+);
 
+export const BookingSchema = bookingSchema;
 
-export const BookingSchema = bookingSchema
-
-export type BookingHydrated = HydratedDocument<BookingDoc>
+export type BookingHydrated = HydratedDocument<BookingDoc>;

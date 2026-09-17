@@ -1,21 +1,21 @@
-import { Languages } from 'lucide-react'
-import { clsx } from 'clsx'
-import { useTranslation } from 'react-i18next'
+import { Languages } from 'lucide-react';
+import { clsx } from 'clsx';
+import { useTranslation } from 'react-i18next';
 
-import { useAuthStore } from '@/store/auth'
-import { originFromEvent } from '@/lib/viewTransition'
-import { LANGUAGES, type Language } from '@/i18n'
+import { useAuthStore } from '@/store/auth';
+import { originFromEvent } from '@/lib/viewTransition';
+import { LANGUAGES, type Language } from '@/i18n';
 
-const SHORT: Record<Language, string> = { en: 'EN', ar: 'ع' }
+const SHORT: Record<Language, string> = { en: 'EN', ar: 'ع' };
 
 export function LanguageToggle({ compact = false }: { compact?: boolean }) {
-  const { t, i18n } = useTranslation()
-  const language = useAuthStore((s) => s.language)
-  const setLanguage = useAuthStore((s) => s.setLanguage)
-  const current = (language ?? i18n.language) as Language
+  const { t, i18n } = useTranslation();
+  const language = useAuthStore((s) => s.language);
+  const setLanguage = useAuthStore((s) => s.setLanguage);
+  const current = (language ?? i18n.language) as Language;
 
   if (compact) {
-    const next: Language = current === 'en' ? 'ar' : 'en'
+    const next: Language = current === 'en' ? 'ar' : 'en';
     return (
       <button
         onClick={(e) => setLanguage(next, originFromEvent(e))}
@@ -27,7 +27,7 @@ export function LanguageToggle({ compact = false }: { compact?: boolean }) {
         <Languages size={18} />
         {SHORT[next]}
       </button>
-    )
+    );
   }
 
   return (
@@ -45,12 +45,12 @@ export function LanguageToggle({ compact = false }: { compact?: boolean }) {
           aria-pressed={current === code}
           className={clsx(
             'px-2.5 h-7 rounded-md text-xs font-bold transition-colors',
-            current === code ? 'bg-brand text-brand-fg' : 'text-muted hover:text-brand',
+            current === code ? 'bg-brand text-brand-fg' : 'text-muted hover:text-brand'
           )}
         >
           {SHORT[code]}
         </button>
       ))}
     </div>
-  )
+  );
 }

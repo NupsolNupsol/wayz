@@ -1,16 +1,16 @@
-import { useMemo } from 'react'
-import { useTranslation } from 'react-i18next'
-import { useNavigate } from 'react-router-dom'
-import { DoorOpen, PackageOpen } from 'lucide-react'
-import { PageHeader } from '@/components/PageHeader'
-import { Card, EmptyState, Spinner, StatCard, StatusBadge } from '@/components/ui'
-import { DataTable } from '@/components/DataTable'
-import { RefLink } from '@/components/RefLink'
-import { Timer } from '@/components/Timer'
-import { useBookings } from '@/hooks'
-import { useAuthStore } from '@/store/auth'
-import { formatDateTime, money } from '@/utils'
-import type { Booking } from '@/api/types'
+import { useMemo } from 'react';
+import { useTranslation } from 'react-i18next';
+import { useNavigate } from 'react-router-dom';
+import { DoorOpen, PackageOpen } from 'lucide-react';
+import { PageHeader } from '@/components/PageHeader';
+import { Card, EmptyState, Spinner, StatCard, StatusBadge } from '@/components/ui';
+import { DataTable } from '@/components/DataTable';
+import { RefLink } from '@/components/RefLink';
+import { Timer } from '@/components/Timer';
+import { useBookings } from '@/hooks';
+import { useAuthStore } from '@/store/auth';
+import { formatDateTime, money } from '@/utils';
+import type { Booking } from '@/api/types';
 
 /**
  * The locker hall this agent answers for.
@@ -25,10 +25,10 @@ import type { Booking } from '@/api/types'
  * behind them would belong to nobody on screen.
  */
 export function MyGatePage() {
-  const { t } = useTranslation(['agent', 'common'])
-  const navigate = useNavigate()
-  const gate = useAuthStore((s) => s.me?.gate ?? null)
-  const { data: bookings = [], isLoading } = useBookings()
+  const { t } = useTranslation(['agent', 'common']);
+  const navigate = useNavigate();
+  const gate = useAuthStore((s) => s.me?.gate ?? null);
+  const { data: bookings = [], isLoading } = useBookings();
 
   /*
    * The bags in this hall, and only those.
@@ -37,28 +37,32 @@ export function MyGatePage() {
    * they sold at the bay, and the bags standing in their gate — so this narrows it to the second.
    */
   const here = useMemo(
-    () => bookings.filter((b) => !!gate && b.gateId === gate.id && b.engineKind === 'SHOP_AND_DROP'),
-    [bookings, gate],
-  )
+    () =>
+      bookings.filter((b) => !!gate && b.gateId === gate.id && b.engineKind === 'SHOP_AND_DROP'),
+    [bookings, gate]
+  );
 
-  const waiting = here.filter((b) => ['ACTIVE', 'OVERTIME'].includes(b.status))
-  const goingOut = here.filter((b) => b.status === 'RETRIEVAL_IN_PROGRESS')
-  const owed = here.reduce((sum, b) => sum + (b.amountDue ?? 0), 0)
+  const waiting = here.filter((b) => ['ACTIVE', 'OVERTIME'].includes(b.status));
+  const goingOut = here.filter((b) => b.status === 'RETRIEVAL_IN_PROGRESS');
+  const owed = here.reduce((sum, b) => sum + (b.amountDue ?? 0), 0);
 
   if (!gate) {
     return (
       <div data-testid="my-gate-page">
-        <PageHeader title={t('gate.title')} crumbs={[{ label: t('common:crumb.home'), to: '/dashboard' }]} />
+        <PageHeader
+          title={t('gate.title')}
+          crumbs={[{ label: t('common:crumb.home'), to: '/dashboard' }]}
+        />
         <EmptyState
           title={t('gate.noneTitle')}
           message={t('gate.noneBlurb')}
           icon={<DoorOpen size={28} />}
         />
       </div>
-    )
+    );
   }
 
-  if (isLoading) return <Spinner />
+  if (isLoading) return <Spinner />;
 
   return (
     <div data-testid="my-gate-page">
@@ -117,7 +121,9 @@ export function MyGatePage() {
               filter: { kind: 'text', value: (b) => b.customerName },
               render: (b) => (
                 <div className="min-w-0">
-                  <p className="font-semibold text-navy dark:text-dk-texthi truncate">{b.customerName}</p>
+                  <p className="font-semibold text-navy dark:text-dk-texthi truncate">
+                    {b.customerName}
+                  </p>
                   <p className="text-xs text-muted">{b.customerPhone}</p>
                 </div>
               ),
@@ -132,7 +138,14 @@ export function MyGatePage() {
             {
               key: 'status',
               header: t('common:column.status'),
-              filter: { kind: 'select', options: [...new Set(here.map((b) => b.status))].map((s) => ({ label: s, value: s })), value: (b) => b.status },
+              filter: {
+                kind: 'select',
+                options: [...new Set(here.map((b) => b.status))].map((s) => ({
+                  label: s,
+                  value: s,
+                })),
+                value: (b) => b.status,
+              },
               render: (b) => <StatusBadge status={b.status} />,
             },
             {
@@ -174,7 +187,9 @@ export function MyGatePage() {
               sortValue: (b) => new Date(b.session?.startedAt ?? 0).getTime(),
               render: (b) => (
                 <span className="text-muted text-xs">
-                  {formatDateTime(b.session?.startedAt ? new Date(b.session.startedAt).getTime() : null)}
+                  {formatDateTime(
+                    b.session?.startedAt ? new Date(b.session.startedAt).getTime() : null
+                  )}
                 </span>
               ),
             },
@@ -184,5 +199,5 @@ export function MyGatePage() {
 
       <p className="text-xs text-muted mt-3">{t('gate.openOneBlurb')}</p>
     </div>
-  )
+  );
 }

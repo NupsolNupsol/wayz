@@ -1,5 +1,5 @@
-import type { OperationResult, WorkflowContext } from '../shared/types.js'
-import { UNIT_RESTING } from '../shared/status.js'
+import type { OperationResult, WorkflowContext } from '../shared/types.js';
+import { UNIT_RESTING } from '../shared/status.js';
 
 /**
  * What every animal experience does to the animal when it finishes.
@@ -27,15 +27,15 @@ export const REST_MINUTES: Record<string, number> = {
   camel: 30,
   goat: 15,
   deer: 15,
-}
+};
 
-export const DEFAULT_REST_MINUTES = 45
+export const DEFAULT_REST_MINUTES = 45;
 
 /** The rest a particular animal is owed, from the kind of animal it is. */
 export function restMinutesFor(assetTypeId: string | null | undefined): number {
-  if (!assetTypeId) return DEFAULT_REST_MINUTES
-  const species = Object.keys(REST_MINUTES).find((s) => assetTypeId.toLowerCase().includes(s))
-  return species ? REST_MINUTES[species] : DEFAULT_REST_MINUTES
+  if (!assetTypeId) return DEFAULT_REST_MINUTES;
+  const species = Object.keys(REST_MINUTES).find((s) => assetTypeId.toLowerCase().includes(s));
+  return species ? REST_MINUTES[species] : DEFAULT_REST_MINUTES;
 }
 
 /**
@@ -51,14 +51,16 @@ export function restMinutesFor(assetTypeId: string | null | undefined): number {
  * again; a horse cannot.
  */
 export function completeAndRest(result: OperationResult, ctx: WorkflowContext): void {
-  result.booking.session.chargeableEndedAt = ctx.now.toISOString()
+  result.booking.session.chargeableEndedAt = ctx.now.toISOString();
 
-  const unitId = result.booking.assetUnitId
-  if (!unitId) return
+  const unitId = result.booking.assetUnitId;
+  if (!unitId) return;
 
-  const assetTypeId = ctx.assets.byId[unitId]?.assetTypeId ?? (ctx.booking.metadata?.assetTypeId as string | undefined)
-  const minutes = restMinutesFor(assetTypeId)
-  const until = new Date(ctx.now.getTime() + minutes * 60_000)
+  const assetTypeId =
+    ctx.assets.byId[unitId]?.assetTypeId ??
+    (ctx.booking.metadata?.assetTypeId as string | undefined);
+  const minutes = restMinutesFor(assetTypeId);
+  const until = new Date(ctx.now.getTime() + minutes * 60_000);
 
   result.assetIntents.push({
     op: 'SET_STATUS',
@@ -69,13 +71,13 @@ export function completeAndRest(result: OperationResult, ctx: WorkflowContext): 
     note: `Resting until ${until.toISOString()} (${minutes} min after ${result.booking.ref}).`,
     // Machine-readable, so the session sweep can put the animal back to work when this passes.
     restingUntil: until.toISOString(),
-  })
+  });
 
   result.booking.metadata = {
     ...result.booking.metadata,
     restingUntil: until.toISOString(),
     restMinutes: minutes,
-  }
+  };
 }
 
 /**
@@ -88,7 +90,8 @@ export function completeAndRest(result: OperationResult, ctx: WorkflowContext): 
 export function recordHandler(result: OperationResult, ctx: WorkflowContext): void {
   const named =
     (typeof ctx.payload.trainerId === 'string' && ctx.payload.trainerId.trim()) ||
-    (typeof ctx.booking.metadata?.trainerId === 'string' && (ctx.booking.metadata.trainerId as string).trim())
+    (typeof ctx.booking.metadata?.trainerId === 'string' &&
+      (ctx.booking.metadata.trainerId as string).trim());
 
-  if (named) result.booking.metadata = { ...result.booking.metadata, trainerId: named }
+  if (named) result.booking.metadata = { ...result.booking.metadata, trainerId: named };
 }

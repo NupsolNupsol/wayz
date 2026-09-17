@@ -1,4 +1,4 @@
-import type { BookingSnapshot, OperationResult, WorkflowContext } from '../shared/types.js'
+import type { BookingSnapshot, OperationResult, WorkflowContext } from '../shared/types.js';
 
 export function cloneBooking(booking: BookingSnapshot): BookingSnapshot {
   return {
@@ -9,11 +9,11 @@ export function cloneBooking(booking: BookingSnapshot): BookingSnapshot {
     custody: booking.custody.map((c) => ({ ...c })),
     verifications: booking.verifications.map((v) => ({ ...v })),
     metadata: { ...booking.metadata },
-  }
+  };
 }
 
 export function beginOperation(ctx: WorkflowContext): OperationResult {
-  return { errors: [], booking: cloneBooking(ctx.booking), assetIntents: [], audits: [] }
+  return { errors: [], booking: cloneBooking(ctx.booking), assetIntents: [], audits: [] };
 }
 
 export function unknownTransition(ctx: WorkflowContext, transitionCode: string): OperationResult {
@@ -22,5 +22,5 @@ export function unknownTransition(ctx: WorkflowContext, transitionCode: string):
     booking: cloneBooking(ctx.booking),
     assetIntents: [],
     audits: [],
-  }
+  };
 }

@@ -1,4 +1,4 @@
-import { Schema } from 'mongoose'
+import { Schema } from 'mongoose';
 
 /**
  * Moving an animal from one location to another.
@@ -20,55 +20,50 @@ import { Schema } from 'mongoose'
  */
 
 export type AnimalTransferStatus =
-  | 'REQUESTED'
-  | 'APPROVED'
-  | 'IN_TRANSIT'
-  | 'ARRIVED'
-  | 'REJECTED'
-  | 'CANCELLED'
+  'REQUESTED' | 'APPROVED' | 'IN_TRANSIT' | 'ARRIVED' | 'REJECTED' | 'CANCELLED';
 
 /** One thing that happened to this transfer, and who did it. §7.4's "full transfer log". */
 export interface TransferEvent {
-  action: string
-  by: string
-  byName: string
-  role: string
-  at: Date
-  note?: string
+  action: string;
+  by: string;
+  byName: string;
+  role: string;
+  at: Date;
+  note?: string;
 }
 
 export interface AnimalTransferDoc {
-  _id: string
-  tenantId: string
-  ref: string
+  _id: string;
+  tenantId: string;
+  ref: string;
 
   /** The animal being moved, and what it was called at the time. */
-  animalId: string
-  animalIdentifier: string
+  animalId: string;
+  animalIdentifier: string;
 
   /** §7.4: originating and destination location. */
-  fromSiteId: string
-  fromStationId: string
-  toSiteId: string
-  toStationId: string
+  fromSiteId: string;
+  fromStationId: string;
+  toSiteId: string;
+  toStationId: string;
 
   /** §7.4: the transport driver named on the order. */
-  driverId: string | null
-  driverName: string
+  driverId: string | null;
+  driverName: string;
 
   /** §7.4: expected departure and arrival times. */
-  expectedDepartureAt: Date | null
-  expectedArrivalAt: Date | null
-  departedAt: Date | null
-  arrivedAt: Date | null
+  expectedDepartureAt: Date | null;
+  expectedArrivalAt: Date | null;
+  departedAt: Date | null;
+  arrivedAt: Date | null;
 
-  status: AnimalTransferStatus
-  reason: string
+  status: AnimalTransferStatus;
+  reason: string;
 
   /** §7.4: "approver identity" is kept on the record, not only in the log. */
-  requestedBy: string
-  approvedBy: string | null
-  approvedAt: Date | null
+  requestedBy: string;
+  approvedBy: string | null;
+  approvedAt: Date | null;
 
   /**
    * The status the animal returns to on arrival.
@@ -77,11 +72,11 @@ export interface AnimalTransferDoc {
    * two is left to whoever confirms receipt, because the specification offers both without
    * saying when each applies — a long journey may well warrant rest.
    */
-  arriveAs: 'AVAILABLE' | 'RESTING'
+  arriveAs: 'AVAILABLE' | 'RESTING';
 
-  log: TransferEvent[]
-  createdAt: Date
-  updatedAt: Date
+  log: TransferEvent[];
+  createdAt: Date;
+  updatedAt: Date;
 }
 
 const eventSchema = new Schema<TransferEvent>(
@@ -93,8 +88,8 @@ const eventSchema = new Schema<TransferEvent>(
     at: { type: Date, default: Date.now },
     note: { type: String, default: '' },
   },
-  { _id: false },
-)
+  { _id: false }
+);
 
 export const AnimalTransferSchema = new Schema<AnimalTransferDoc>(
   {
@@ -129,8 +124,8 @@ export const AnimalTransferSchema = new Schema<AnimalTransferDoc>(
 
     log: { type: [eventSchema], default: [] },
   },
-  { _id: false, timestamps: true },
-)
+  { _id: false, timestamps: true }
+);
 
 /*
  * An animal has at most one transfer in flight.
@@ -140,5 +135,8 @@ export const AnimalTransferSchema = new Schema<AnimalTransferDoc>(
  */
 AnimalTransferSchema.index(
   { tenantId: 1, animalId: 1 },
-  { unique: true, partialFilterExpression: { status: { $in: ['REQUESTED', 'APPROVED', 'IN_TRANSIT'] } } },
-)
+  {
+    unique: true,
+    partialFilterExpression: { status: { $in: ['REQUESTED', 'APPROVED', 'IN_TRANSIT'] } },
+  }
+);

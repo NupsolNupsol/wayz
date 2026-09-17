@@ -1,21 +1,21 @@
-import nodemailer, { type Transporter } from 'nodemailer'
-import { env } from '../config/env.js'
-import { logger } from '../config/logger.js'
-import { invitationCopy, otpEmailCopy } from '../constants/messages.constants.js'
-import type { EmailMessage, EmailResult, InvitationEmailOptions } from '../interfaces/index.js'
+import nodemailer, { type Transporter } from 'nodemailer';
+import { env } from '../config/env.js';
+import { logger } from '../config/logger.js';
+import { invitationCopy, otpEmailCopy } from '../constants/messages.constants.js';
+import type { EmailMessage, EmailResult, InvitationEmailOptions } from '../interfaces/index.js';
 
 interface SmtpProfile {
-  label: 'primary' | 'fallback'
-  host: string
-  port: number
-  secure: boolean
-  user: string
-  pass: string
-  from: string
+  label: 'primary' | 'fallback';
+  host: string;
+  port: number;
+  secure: boolean;
+  user: string;
+  pass: string;
+  from: string;
 }
 
 function primaryProfile(): SmtpProfile | null {
-  if (!env.MAIL_HOST || !env.SENDER_EMAIL || !env.SENDER_PASSWORD) return null
+  if (!env.MAIL_HOST || !env.SENDER_EMAIL || !env.SENDER_PASSWORD) return null;
   return {
     label: 'primary',
     host: env.MAIL_HOST,
@@ -25,11 +25,12 @@ function primaryProfile(): SmtpProfile | null {
     // App passwords are shown in groups of four; a pasted space is a silent auth failure.
     pass: env.SENDER_PASSWORD.replace(/\s+/g, ''),
     from: env.SENDER_EMAIL,
-  }
+  };
 }
 
 function fallbackProfile(): SmtpProfile | null {
-  if (!env.MAIL_FALLBACK_HOST || !env.MAIL_FALLBACK_USER || !env.MAIL_FALLBACK_PASSWORD) return null
+  if (!env.MAIL_FALLBACK_HOST || !env.MAIL_FALLBACK_USER || !env.MAIL_FALLBACK_PASSWORD)
+    return null;
   return {
     label: 'fallback',
     host: env.MAIL_FALLBACK_HOST,
@@ -38,33 +39,33 @@ function fallbackProfile(): SmtpProfile | null {
     user: env.MAIL_FALLBACK_USER,
     pass: env.MAIL_FALLBACK_PASSWORD.replace(/\s+/g, ''),
     from: env.MAIL_FALLBACK_USER,
-  }
+  };
 }
 
 function profiles(): SmtpProfile[] {
-  return [primaryProfile(), fallbackProfile()].filter((p): p is SmtpProfile => p !== null)
+  return [primaryProfile(), fallbackProfile()].filter((p): p is SmtpProfile => p !== null);
 }
 
 export function isEmailConfigured(): boolean {
-  return profiles().length > 0
+  return profiles().length > 0;
 }
 
 export function maskEmail(email: string): string {
-  const [user, domain] = email.split('@')
-  if (!domain) return '•••'
-  const head = user.slice(0, Math.min(2, user.length))
-  return `${head}${'•'.repeat(Math.max(3, user.length - head.length))}@${domain}`
+  const [user, domain] = email.split('@');
+  if (!domain) return '•••';
+  const head = user.slice(0, Math.min(2, user.length));
+  return `${head}${'•'.repeat(Math.max(3, user.length - head.length))}@${domain}`;
 }
 
 export function looksLikeEmail(value: string): boolean {
-  return /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(value.trim())
+  return /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(value.trim());
 }
 
-const transporters = new Map<string, Transporter>()
+const transporters = new Map<string, Transporter>();
 
 function getTransporter(p: SmtpProfile): Transporter {
-  const existing = transporters.get(p.label)
-  if (existing) return existing
+  const existing = transporters.get(p.label);
+  if (existing) return existing;
   const tx = nodemailer.createTransport({
     host: p.host,
     port: p.port,
@@ -75,17 +76,17 @@ function getTransporter(p: SmtpProfile): Transporter {
     connectionTimeout: 15_000,
     greetingTimeout: 15_000,
     socketTimeout: 20_000,
-  })
-  transporters.set(p.label, tx)
-  return tx
+  });
+  transporters.set(p.label, tx);
+  return tx;
 }
 
 export async function sendEmail(message: EmailMessage): Promise<EmailResult> {
-  const available = profiles()
-  if (!available.length) return { ok: false, error: 'Email provider is not configured.' }
-  if (!looksLikeEmail(message.to)) return { ok: false, error: 'That email address is not valid.' }
+  const available = profiles();
+  if (!available.length) return { ok: false, error: 'Email provider is not configured.' };
+  if (!looksLikeEmail(message.to)) return { ok: false, error: 'That email address is not valid.' };
 
-  const errors: string[] = []
+  const errors: string[] = [];
   for (const profile of available) {
     try {
       await getTransporter(profile).sendMail({
@@ -94,25 +95,36 @@ export async function sendEmail(message: EmailMessage): Promise<EmailResult> {
         subject: message.subject,
         text: message.text,
         html: message.html ?? undefined,
-      })
-      logger.info('Email sent', { to: maskEmail(message.to), via: profile.label, host: profile.host })
-      return { ok: true, via: profile.label }
+      });
+      logger.info('Email sent', {
+        to: maskEmail(message.to),
+        via: profile.label,
+        host: profile.host,
+      });
+      return { ok: true, via: profile.label };
     } catch (err) {
-      const error = err instanceof Error ? err.message : String(err)
-      logger.warn('Email send failed', { to: maskEmail(message.to), via: profile.label, host: profile.host, error })
-      errors.push(`${profile.label}: ${error}`)
+      const error = err instanceof Error ? err.message : String(err);
+      logger.warn('Email send failed', {
+        to: maskEmail(message.to),
+        via: profile.label,
+        host: profile.host,
+        error,
+      });
+      errors.push(`${profile.label}: ${error}`);
     }
   }
-  return { ok: false, error: errors.join(' | ') }
+  return { ok: false, error: errors.join(' | ') };
 }
 
-const NEWLINE = String.fromCharCode(10)
+const NEWLINE = String.fromCharCode(10);
 
-export function invitationEmail(options: InvitationEmailOptions): Pick<EmailMessage, 'subject' | 'text' | 'html'> {
-  const { fullName, roleLabel, tenantName, link, expiresInHours, invitedByName } = options
-  const copy = invitationCopy(tenantName)
-  const subject = copy.subject
-  const invitedBy = invitedByName ?? tenantName
+export function invitationEmail(
+  options: InvitationEmailOptions
+): Pick<EmailMessage, 'subject' | 'text' | 'html'> {
+  const { fullName, roleLabel, tenantName, link, expiresInHours, invitedByName } = options;
+  const copy = invitationCopy(tenantName);
+  const subject = copy.subject;
+  const invitedBy = invitedByName ?? tenantName;
 
   const text = [
     copy.greeting(fullName),
@@ -129,7 +141,7 @@ export function invitationEmail(options: InvitationEmailOptions): Pick<EmailMess
     copy.ignore,
     '',
     `— ${tenantName}`,
-  ].join(NEWLINE)
+  ].join(NEWLINE);
 
   const html = `<!doctype html>
 <html lang="ar" dir="rtl">
@@ -212,24 +224,24 @@ export function invitationEmail(options: InvitationEmailOptions): Pick<EmailMess
     </tr>
   </table>
 </body>
-</html>`
+</html>`;
 
-  return { subject, text, html }
+  return { subject, text, html };
 }
 
 export function otpEmail(
   code: string,
-  options: { brand?: string; purpose?: 'VERIFY' | 'RETRIEVAL'; customerName?: string } = {},
+  options: { brand?: string; purpose?: 'VERIFY' | 'RETRIEVAL'; customerName?: string } = {}
 ): Pick<EmailMessage, 'subject' | 'text' | 'html'> {
-  const brand = options.brand ?? env.MAIL_FROM_NAME
+  const brand = options.brand ?? env.MAIL_FROM_NAME;
   const copy = otpEmailCopy(code, brand, {
     retrieval: options.purpose === 'RETRIEVAL',
     customerName: options.customerName,
-  })
-  const greeting = copy.greeting
-  const reason = copy.reason
+  });
+  const greeting = copy.greeting;
+  const reason = copy.reason;
 
-  const subject = copy.subject
+  const subject = copy.subject;
 
   const text = [
     `${greeting}`,
@@ -244,7 +256,7 @@ export function otpEmail(
     copy.ignore,
     '',
     `— ${brand}`,
-  ].join(NEWLINE)
+  ].join(NEWLINE);
 
   const html = `<!doctype html>
 <html lang="ar" dir="rtl">
@@ -313,7 +325,7 @@ export function otpEmail(
     </tr>
   </table>
 </body>
-</html>`
+</html>`;
 
-  return { subject, text, html }
+  return { subject, text, html };
 }

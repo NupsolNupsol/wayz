@@ -1,22 +1,22 @@
-import { Schema } from 'mongoose'
-import bcrypt from 'bcryptjs'
-import { createHash, randomBytes } from 'node:crypto'
-import type { EngineKind, Role } from '../domain/types.js'
+import { Schema } from 'mongoose';
+import bcrypt from 'bcryptjs';
+import { createHash, randomBytes } from 'node:crypto';
+import type { EngineKind, Role } from '../domain/types.js';
 
-export const INVITE_TTL_HOURS = 72
+export const INVITE_TTL_HOURS = 72;
 
 export interface UserInvite {
-  tokenHash: string
-  expiresAt: Date
-  sentAt: Date
-  invitedBy: string
-  deliveredTo: string
+  tokenHash: string;
+  expiresAt: Date;
+  sentAt: Date;
+  invitedBy: string;
+  deliveredTo: string;
 }
 
 export interface UserDoc {
-  _id: string
-  email: string
-  passwordHash: string | null
+  _id: string;
+  email: string;
+  passwordHash: string | null;
   /**
    * For a seeded or provisioned demonstration account only: the password it was actually
    * given, recorded by whoever created it.
@@ -29,10 +29,10 @@ export interface UserDoc {
    * unless asked for by name, and never returned by any route except the demo-login list,
    * which verifies it against the hash before publishing it.
    */
-  demoCredential: string | null
-  invite: UserInvite | null
-  fullName: string
-  role: Role
+  demoCredential: string | null;
+  invite: UserInvite | null;
+  fullName: string;
+  role: Role;
   /**
    * What this company calls the job, when that differs from the platform's word for it.
    *
@@ -44,12 +44,12 @@ export interface UserDoc {
    *
    * Empty means "use the platform's label for the role", which is right for most people.
    */
-  roleLabel?: string
-  tenantId: string
-  siteId: string
-  zoneId: string | null
-  stationId: string
-  kioskId: string | null
+  roleLabel?: string;
+  tenantId: string;
+  siteId: string;
+  zoneId: string | null;
+  stationId: string;
+  kioskId: string | null;
   /**
    * The gate this member of staff covers.
    *
@@ -57,8 +57,8 @@ export interface UserDoc {
    * at a gate, so they are the one who fetches a customer's bags out of it. Set for the staff who
    * work a gate; null for everyone else.
    */
-  gateId: string | null
-  engineKinds: EngineKind[]
+  gateId: string | null;
+  engineKinds: EngineKind[];
   /**
    * The job this person holds, as their own company defines it.
    *
@@ -70,7 +70,7 @@ export interface UserDoc {
    * Null on a tenant that has not defined its jobs yet, in which case the base role's
    * historical reach applies. See `services/authorisation.service.ts`.
    */
-  roleKey: string | null
+  roleKey: string | null;
   /**
    * The tenant-defined activities this person works, by key.
    *
@@ -79,13 +79,13 @@ export interface UserDoc {
    * their keys exist only in that tenant's own database. Merging the two would mean a tenant
    * could name an activity `MOBILITY` and inherit behaviour nobody granted it.
    */
-  activityKeys: string[]
-  reportsTo: string | null
-  phone: string
-  active: boolean
-  removedAt?: Date | null
-  lastLoginAt?: Date | null
-  comparePassword(candidate: string): Promise<boolean>
+  activityKeys: string[];
+  reportsTo: string | null;
+  phone: string;
+  active: boolean;
+  removedAt?: Date | null;
+  lastLoginAt?: Date | null;
+  comparePassword(candidate: string): Promise<boolean>;
 }
 
 const inviteSchema = new Schema<UserInvite>(
@@ -96,8 +96,8 @@ const inviteSchema = new Schema<UserInvite>(
     invitedBy: { type: String, default: '' },
     deliveredTo: { type: String, default: '' },
   },
-  { _id: false },
-)
+  { _id: false }
+);
 
 const userSchema = new Schema<UserDoc>(
   {
@@ -133,32 +133,31 @@ const userSchema = new Schema<UserDoc>(
     removedAt: { type: Date, default: null },
     lastLoginAt: { type: Date, default: null },
   },
-  { _id: false, timestamps: true },
-)
+  { _id: false, timestamps: true }
+);
 
-userSchema.index({ 'invite.tokenHash': 1 })
+userSchema.index({ 'invite.tokenHash': 1 });
 
 userSchema.methods.comparePassword = function (candidate: string): Promise<boolean> {
-  if (!this.passwordHash) return Promise.resolve(false)
-  return bcrypt.compare(candidate, this.passwordHash)
-}
+  if (!this.passwordHash) return Promise.resolve(false);
+  return bcrypt.compare(candidate, this.passwordHash);
+};
 
 export function hashPassword(plain: string): string {
-  return bcrypt.hashSync(plain, 10)
+  return bcrypt.hashSync(plain, 10);
 }
 
 export function newInviteToken(): { token: string; tokenHash: string; expiresAt: Date } {
-  const token = randomBytes(32).toString('base64url')
+  const token = randomBytes(32).toString('base64url');
   return {
     token,
     tokenHash: hashInviteToken(token),
     expiresAt: new Date(Date.now() + INVITE_TTL_HOURS * 3_600_000),
-  }
+  };
 }
 
 export function hashInviteToken(token: string): string {
-  return createHash('sha256').update(token).digest('hex')
+  return createHash('sha256').update(token).digest('hex');
 }
 
-
-export const UserSchema = userSchema
+export const UserSchema = userSchema;

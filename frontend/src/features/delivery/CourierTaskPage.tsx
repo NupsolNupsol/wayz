@@ -1,7 +1,7 @@
-import { useMemo, useState } from 'react'
-import { formatDateTime } from '@/utils'
-import { useTranslation } from 'react-i18next'
-import { useParams } from 'react-router-dom'
+import { useMemo, useState } from 'react';
+import { formatDateTime } from '@/utils';
+import { useTranslation } from 'react-i18next';
+import { useParams } from 'react-router-dom';
 import {
   Check,
   Hand,
@@ -12,21 +12,26 @@ import {
   TriangleAlert,
   Truck,
   X,
-} from 'lucide-react'
-import { clsx } from 'clsx'
-import { PageHeader } from '@/components/PageHeader'
-import { Badge, Button, Card, Field, SectionTitle, Spinner } from '@/components/ui'
-import { Modal } from '@/components/Modal'
-import { Stepper } from '@/components/Stepper'
-import { Icon } from '@/components/Icon'
-import { useCollectStop, useCourierTransition, useDelivery } from '@/hooks'
-import { ApiError } from '@/api/client'
-import { toast } from '@/state/toastStore'
-import { DELIVERY_STEPS, isStorageRun, jobDestinationLine, jobKindLabel, meta, relativeTime } from './deliveryMeta'
-import type { DeliveryBag, DeliveryDetail } from '@/api/delivery.api'
-import { usePageContext, PAGE_KEYS } from '@/features/assistant/pageContext'
-
-
+} from 'lucide-react';
+import { clsx } from 'clsx';
+import { PageHeader } from '@/components/PageHeader';
+import { Badge, Button, Card, Field, SectionTitle, Spinner } from '@/components/ui';
+import { Modal } from '@/components/Modal';
+import { Stepper } from '@/components/Stepper';
+import { Icon } from '@/components/Icon';
+import { useCollectStop, useCourierTransition, useDelivery } from '@/hooks';
+import { ApiError } from '@/api/client';
+import { toast } from '@/state/toastStore';
+import {
+  DELIVERY_STEPS,
+  isStorageRun,
+  jobDestinationLine,
+  jobKindLabel,
+  meta,
+  relativeTime,
+} from './deliveryMeta';
+import type { DeliveryBag, DeliveryDetail } from '@/api/delivery.api';
+import { usePageContext, PAGE_KEYS } from '@/features/assistant/pageContext';
 
 function BlindScanPanel({
   bags,
@@ -34,54 +39,60 @@ function BlindScanPanel({
   onConfirm,
   pending,
 }: {
-  bags: DeliveryBag[]
-  demoScanner: boolean
-  onConfirm: (barcodes: string[]) => void
-  pending: boolean
+  bags: DeliveryBag[];
+  demoScanner: boolean;
+  onConfirm: (barcodes: string[]) => void;
+  pending: boolean;
 }) {
-  const { t } = useTranslation('delivery')
-  const [scans, setScans] = useState<string[]>([])
-  const [entry, setEntry] = useState('')
+  const { t } = useTranslation('delivery');
+  const [scans, setScans] = useState<string[]>([]);
+  const [entry, setEntry] = useState('');
 
   const add = (raw: string) => {
-    const code = raw.trim()
-    if (!code) return
+    const code = raw.trim();
+    if (!code) return;
     if (scans.includes(code)) {
-      toast('warning', t('task.alreadyScanned'), t('task.scanOnce'))
-      setEntry('')
-      return
+      toast('warning', t('task.alreadyScanned'), t('task.scanOnce'));
+      setEntry('');
+      return;
     }
-    setScans((s) => [...s, code])
-    setEntry('')
-  }
+    setScans((s) => [...s, code]);
+    setEntry('');
+  };
 
   const rowDone = (bag: DeliveryBag, i: number) =>
-    bag.demoScan ? scans.includes(bag.demoScan) : i < scans.length
+    bag.demoScan ? scans.includes(bag.demoScan) : i < scans.length;
 
-  const complete = scans.length === bags.length
+  const complete = scans.length === bags.length;
 
   return (
     <div data-testid="courier-scan-panel">
       <p className="text-sm text-muted mb-3">
-        Scan every bag as you take it out. The kiosk knows which codes belong to this customer —
-        if one does not match, the collection is refused.
+        Scan every bag as you take it out. The kiosk knows which codes belong to this customer — if
+        one does not match, the collection is refused.
       </p>
 
       <div className="flex flex-col gap-2 mb-3">
         {bags.map((b, i) => {
-          const done = rowDone(b, i)
+          const done = rowDone(b, i);
           return (
             <div
               key={b.index}
               className={clsx(
                 'lf-card p-3 flex items-center justify-between gap-3 text-sm',
-                done && 'border-success bg-emerald-50 dark:bg-emerald-900/20',
+                done && 'border-success bg-emerald-50 dark:bg-emerald-900/20'
               )}
               data-testid={`courier-bag-slot-${b.index}`}
             >
               <span className="flex items-center gap-2 min-w-0">
-                {done ? <Check size={16} className="text-success shrink-0" /> : <Package size={16} className="text-muted shrink-0" />}
-                <span className="truncate">Bag {b.index} · {b.description || 'Bag'}</span>
+                {done ? (
+                  <Check size={16} className="text-success shrink-0" />
+                ) : (
+                  <Package size={16} className="text-muted shrink-0" />
+                )}
+                <span className="truncate">
+                  Bag {b.index} · {b.description || 'Bag'}
+                </span>
               </span>
 
               {done ? (
@@ -99,7 +110,7 @@ function BlindScanPanel({
                 <span className="text-xs text-muted shrink-0">waiting</span>
               )}
             </div>
-          )
+          );
         })}
       </div>
 
@@ -107,11 +118,15 @@ function BlindScanPanel({
         <div className="flex flex-wrap items-center gap-2 mb-3">
           <Button
             variant="ghost"
-            onClick={() => bags.forEach((b) => b.demoScan && !scans.includes(b.demoScan) && add(b.demoScan))}
+            onClick={() =>
+              bags.forEach((b) => b.demoScan && !scans.includes(b.demoScan) && add(b.demoScan))
+            }
             disabled={complete}
             data-testid="courier-scan-all"
           >
-            <ScanLine size={15} />{t('task.scanAll')}</Button>
+            <ScanLine size={15} />
+            {t('task.scanAll')}
+          </Button>
           <span className="text-[11px] text-muted">{t('task.demoScanner')}</span>
         </div>
       )}
@@ -125,7 +140,12 @@ function BlindScanPanel({
           placeholder={t('task.scanPlaceholder')}
           data-testid="courier-scan-input"
         />
-        <Button variant="secondary" onClick={() => add(entry)} disabled={!entry.trim()} data-testid="courier-scan-add">
+        <Button
+          variant="secondary"
+          onClick={() => add(entry)}
+          disabled={!entry.trim()}
+          data-testid="courier-scan-add"
+        >
           Add
         </Button>
       </div>
@@ -158,34 +178,45 @@ function BlindScanPanel({
         disabled={!complete}
         data-testid="courier-confirm-pickup"
       >
-        <PackageCheck size={16} />{t('task.confirmCollected')}</Button>
+        <PackageCheck size={16} />
+        {t('task.confirmCollected')}
+      </Button>
     </div>
-  )
+  );
 }
 
 export function CourierTaskPage() {
-  const { t } = useTranslation('delivery')
-  const { id } = useParams<{ id: string }>()
-  const { data, isLoading } = useDelivery(id)
-  const run = useCourierTransition()
-  const collectStop = useCollectStop()
+  const { t } = useTranslation('delivery');
+  const { id } = useParams<{ id: string }>();
+  const { data, isLoading } = useDelivery(id);
+  const run = useCourierTransition();
+  const collectStop = useCollectStop();
 
-  const [failOpen, setFailOpen] = useState(false)
-  const [reason, setReason] = useState('')
+  const [failOpen, setFailOpen] = useState(false);
+  const [reason, setReason] = useState('');
 
-  const fire = (code: string, payload?: Parameters<typeof run.mutate>[0]['payload'], success?: string) => {
-    if (!id) return
+  const fire = (
+    code: string,
+    payload?: Parameters<typeof run.mutate>[0]['payload'],
+    success?: string
+  ) => {
+    if (!id) return;
     run.mutate(
       { id, code, payload },
       {
         onSuccess: () => success && toast('success', success),
-        onError: (e) => toast('danger', t('task.couldNotContinue'), e instanceof ApiError ? (e.errors?.join(' ') ?? e.message) : ''),
-      },
-    )
-  }
+        onError: (e) =>
+          toast(
+            'danger',
+            t('task.couldNotContinue'),
+            e instanceof ApiError ? (e.errors?.join(' ') ?? e.message) : ''
+          ),
+      }
+    );
+  };
 
-  const detail = data as DeliveryDetail | undefined
-  const step = useMemo(() => (detail ? meta(detail.delivery.status).step : 0), [detail])
+  const detail = data as DeliveryDetail | undefined;
+  const step = useMemo(() => (detail ? meta(detail.delivery.status).step : 0), [detail]);
 
   /*
    * What this screen tells the assistant: which delivery *stage* the courier is at, never
@@ -201,8 +232,8 @@ export function CourierTaskPage() {
       entityStatus: detail?.delivery.status,
       facts: { step: String(step) },
     },
-    [detail?.delivery.status, step],
-  )
+    [detail?.delivery.status, step]
+  );
 
   if (isLoading || !detail) {
     return (
@@ -210,46 +241,50 @@ export function CourierTaskPage() {
         <PageHeader title={t('task.title')} subtitle={t('common:state.loading')} />
         <Spinner />
       </div>
-    )
+    );
   }
 
-  const d = detail.delivery
-  const m = meta(d.status)
+  const d = detail.delivery;
+  const m = meta(d.status);
   /** Bags going in, not out: a different job with a different ending. */
-  const storing = isStorageRun(d)
-  const mine = detail.mine !== false
-  const claimed = !!d.assignedTo
-  const can = (code: string) => detail.transitions.some((t) => t.code === code)
-  const stops = detail.stops ?? []
-  const multiStop = stops.length > 1
-  const activeStop = stops.find((s) => s.active) ?? null
-  const stopsLeft = stops.filter((s) => s.status === 'PENDING').length
+  const storing = isStorageRun(d);
+  const mine = detail.mine !== false;
+  const claimed = !!d.assignedTo;
+  const can = (code: string) => detail.transitions.some((t) => t.code === code);
+  const stops = detail.stops ?? [];
+  const multiStop = stops.length > 1;
+  const activeStop = stops.find((s) => s.active) ?? null;
+  const stopsLeft = stops.filter((s) => s.status === 'PENDING').length;
   const bagsCarried = multiStop
     ? stops.filter((s) => s.status === 'COLLECTED').reduce((sum, s) => sum + s.bagCount, 0)
-    : detail.bags.length
-  const kioskLabel = activeStop?.kioskName ?? null
+    : detail.bags.length;
+  const kioskLabel = activeStop?.kioskName ?? null;
 
   const confirmPickup = (barcodes: string[]) => {
     if (!multiStop) {
-      fire('TO_PICKED_UP', { scannedBarcodes: barcodes }, 'Bags collected')
-      return
+      fire('TO_PICKED_UP', { scannedBarcodes: barcodes }, 'Bags collected');
+      return;
     }
     collectStop.mutate(
       { id: d._id, scannedBarcodes: barcodes },
       {
         onSuccess: (next) => {
-          const pending = (next.stops ?? []).find((st) => st.status === 'PENDING')
+          const pending = (next.stops ?? []).find((st) => st.status === 'PENDING');
           toast(
             'success',
             t('task.stopCollected', { kiosk: activeStop?.kioskName ?? '' }),
-            pending ? t('task.nextKiosk', { kiosk: pending.kioskName }) : t('task.allKiosksDone'),
-          )
+            pending ? t('task.nextKiosk', { kiosk: pending.kioskName }) : t('task.allKiosksDone')
+          );
         },
         onError: (e) =>
-          toast('danger', t('task.couldNotContinue'), e instanceof ApiError ? (e.errors?.join(' ') ?? e.message) : ''),
-      },
-    )
-  }
+          toast(
+            'danger',
+            t('task.couldNotContinue'),
+            e instanceof ApiError ? (e.errors?.join(' ') ?? e.message) : ''
+          ),
+      }
+    );
+  };
 
   return (
     <div data-testid="courier-task">
@@ -264,7 +299,9 @@ export function CourierTaskPage() {
         <Card className="p-4 mb-5 border-brand/50 bg-brand/5" data-testid="courier-claim-banner">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div className="min-w-0">
-              <p className="text-sm font-semibold text-navy dark:text-dk-texthi">{t('task.yoursToTake')}</p>
+              <p className="text-sm font-semibold text-navy dark:text-dk-texthi">
+                {t('task.yoursToTake')}
+              </p>
               <p className="text-xs text-muted mt-0.5">{t('task.claimFirst')}</p>
             </div>
             <Button
@@ -283,244 +320,330 @@ export function CourierTaskPage() {
       </Card>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-5 items-start">
-      <div className="lg:col-span-2 flex flex-col gap-5">
-
-      {/*
+        <div className="lg:col-span-2 flex flex-col gap-5">
+          {/*
         Where this job ends, and it is not the same place for the two kinds of job.
         A delivery ends at a person, so it shows an address and a phone to ring. A storage run ends
         at a locker, so it shows the gate and the locker number — and offers no phone, because
         there is nobody to call: the customer walked off the moment they handed their bags over.
       */}
-      <Card className="p-4">
-        <div className="flex items-start gap-3">
-          <Icon name={storing ? 'PackageOpen' : 'MapPin'} size={18} className="text-brand shrink-0 mt-0.5" />
-          <div className="min-w-0 flex-1">
-            <p className="text-xs text-muted mb-0.5">
-              {d.customerName} · {t('common:unit.bags', { count: detail.bags.length })}
-            </p>
-            <p className="font-semibold text-navy dark:text-dk-texthi" data-testid="courier-destination">
-              {jobDestinationLine(d)}
-            </p>
-            {storing && d.stops?.[0]?.kioskName && (
-              <p className="text-sm text-muted mt-1" data-testid="courier-collect-from">
-                {t('kind.collectFrom', { desk: d.stops[0].kioskName, count: d.stops[0].bagCount })}
-              </p>
-            )}
-            {d.destination.notes && <p className="text-sm text-muted mt-1">{d.destination.notes}</p>}
-            <div className="flex items-center gap-3 mt-2 text-sm">
-              {!storing && (
-                <a
-                  href={`tel:${d.destination.contactPhone || d.customerPhone}`}
-                  className="text-brand no-underline flex items-center gap-1.5 hover:underline"
-                  data-testid="courier-call-customer"
+          <Card className="p-4">
+            <div className="flex items-start gap-3">
+              <Icon
+                name={storing ? 'PackageOpen' : 'MapPin'}
+                size={18}
+                className="text-brand shrink-0 mt-0.5"
+              />
+              <div className="min-w-0 flex-1">
+                <p className="text-xs text-muted mb-0.5">
+                  {d.customerName} · {t('common:unit.bags', { count: detail.bags.length })}
+                </p>
+                <p
+                  className="font-semibold text-navy dark:text-dk-texthi"
+                  data-testid="courier-destination"
                 >
-                  <Phone size={14} /> {d.destination.contactPhone || d.customerPhone}
-                </a>
-              )}
-              <Badge tone={storing ? 'info' : 'neutral'} testId="courier-job-kind">
-                <Icon name={storing ? 'PackageOpen' : 'Truck'} size={12} className="me-1 inline" />
-                {jobKindLabel(d)}
-              </Badge>
-              <Badge tone={m.tone}>
-                <Icon name={m.icon} size={12} className="me-1 inline" />
-                {t(m.labelKey)}
-              </Badge>
+                  {jobDestinationLine(d)}
+                </p>
+                {storing && d.stops?.[0]?.kioskName && (
+                  <p className="text-sm text-muted mt-1" data-testid="courier-collect-from">
+                    {t('kind.collectFrom', {
+                      desk: d.stops[0].kioskName,
+                      count: d.stops[0].bagCount,
+                    })}
+                  </p>
+                )}
+                {d.destination.notes && (
+                  <p className="text-sm text-muted mt-1">{d.destination.notes}</p>
+                )}
+                <div className="flex items-center gap-3 mt-2 text-sm">
+                  {!storing && (
+                    <a
+                      href={`tel:${d.destination.contactPhone || d.customerPhone}`}
+                      className="text-brand no-underline flex items-center gap-1.5 hover:underline"
+                      data-testid="courier-call-customer"
+                    >
+                      <Phone size={14} /> {d.destination.contactPhone || d.customerPhone}
+                    </a>
+                  )}
+                  <Badge tone={storing ? 'info' : 'neutral'} testId="courier-job-kind">
+                    <Icon
+                      name={storing ? 'PackageOpen' : 'Truck'}
+                      size={12}
+                      className="me-1 inline"
+                    />
+                    {jobKindLabel(d)}
+                  </Badge>
+                  <Badge tone={m.tone}>
+                    <Icon name={m.icon} size={12} className="me-1 inline" />
+                    {t(m.labelKey)}
+                  </Badge>
+                </div>
+              </div>
             </div>
+          </Card>
+
+          {multiStop && (
+            <div>
+              <SectionTitle className="mb-2">
+                {t('task.stopsTitle', { count: stops.length })}
+              </SectionTitle>
+              <Card className="p-4" data-testid="courier-stops">
+                <p className="text-sm text-muted mb-3">{t('task.stopsBlurb')}</p>
+                <ol className="flex flex-col gap-2">
+                  {stops.map((stop, i) => {
+                    const collected = stop.status === 'COLLECTED';
+                    return (
+                      <li
+                        key={stop.bookingId}
+                        className={clsx(
+                          'lf-card p-3 flex flex-wrap items-center gap-3',
+                          stop.active && 'border-brand ring-1 ring-brand/30 bg-brand/5',
+                          collected && 'opacity-70'
+                        )}
+                        data-testid={`courier-stop-${stop.bookingId}`}
+                      >
+                        <span
+                          className={clsx(
+                            'w-7 h-7 rounded-full shrink-0 flex items-center justify-center text-xs font-bold',
+                            collected
+                              ? 'bg-emerald-100 text-success dark:bg-emerald-900/40'
+                              : stop.active
+                                ? 'bg-brand text-white'
+                                : 'bg-slate-100 text-muted dark:bg-dk-elevated'
+                          )}
+                        >
+                          {collected ? <Check size={14} /> : i + 1}
+                        </span>
+                        <span className="min-w-0 flex-1">
+                          <span className="block font-semibold text-sm text-navy dark:text-dk-texthi truncate">
+                            {stop.kioskName}
+                          </span>
+                          <span className="block text-xs text-muted truncate">
+                            {t('task.stopLine', {
+                              unit: stop.assetUnitIdentifier ?? '—',
+                              count: stop.bagCount,
+                              ref: stop.bookingRef,
+                            })}
+                          </span>
+                        </span>
+                        <Badge
+                          tone={collected ? 'success' : stop.active ? 'info' : 'neutral'}
+                          testId={`courier-stop-state-${stop.bookingId}`}
+                        >
+                          {collected
+                            ? t('task.stopCollectedTag')
+                            : stop.active
+                              ? t('task.stopNow')
+                              : t('task.stopQueued')}
+                        </Badge>
+                      </li>
+                    );
+                  })}
+                </ol>
+              </Card>
+            </div>
+          )}
+
+          <div>
+            <SectionTitle className="mb-2">{t('task.nextStep')}</SectionTitle>
+            <Card className="p-5" data-testid="courier-action-panel">
+              {!mine && (
+                <p className="text-sm text-muted" data-testid="courier-not-mine">
+                  {t('task.notMine')}
+                </p>
+              )}
+
+              {mine && d.status === 'REQUESTED' && (
+                <p className="text-sm text-muted" data-testid="courier-claim-hint">
+                  {t('task.openToEveryone')}
+                </p>
+              )}
+
+              {mine && d.status === 'ASSIGNED' && (
+                <>
+                  <p className="text-sm text-muted mb-1">
+                    {kioskLabel ? (
+                      <>
+                        Go to{' '}
+                        <strong className="text-navy dark:text-dk-texthi">{kioskLabel}</strong>
+                        {d.assetUnitIdentifier ? ` (compartment ${d.assetUnitIdentifier})` : ''} and
+                        ask that agent for the bags.
+                      </>
+                    ) : (
+                      <>
+                        Go to{' '}
+                        <strong className="text-navy dark:text-dk-texthi">
+                          {d.assetUnitIdentifier
+                            ? `compartment ${d.assetUnitIdentifier}`
+                            : 'the kiosk'}
+                        </strong>{' '}
+                        and ask the agent for the bags.
+                      </>
+                    )}
+                  </p>
+                  {multiStop && (
+                    <p
+                      className="text-xs text-brand font-semibold mb-1"
+                      data-testid="courier-stop-progress"
+                    >
+                      {t('task.stopProgress', {
+                        done: stops.length - stopsLeft + 1,
+                        total: stops.length,
+                      })}
+                    </p>
+                  )}
+                  <p className="text-xs text-muted mb-4">{t('task.agentWillCheck')}</p>
+                  <Button
+                    className="w-full"
+                    onClick={() =>
+                      fire('TO_RELEASE_REQUESTED', undefined, 'The agent has been notified')
+                    }
+                    loading={run.isPending}
+                    data-testid="courier-request-release"
+                  >
+                    <Truck size={16} />
+                    {t('task.requestBags')}
+                  </Button>
+                </>
+              )}
+
+              {mine && d.status === 'RELEASE_REQUESTED' && (
+                <div className="text-center py-2" data-testid="courier-waiting">
+                  <div className="inline-flex w-12 h-12 rounded-full bg-amber-50 dark:bg-amber-900/30 items-center justify-center mb-3">
+                    <Truck size={22} className="text-amber-600 dark:text-amber-300" />
+                  </div>
+                  <p className="font-semibold text-navy dark:text-dk-texthi">
+                    {t('task.waitingForAgent')}
+                  </p>
+                  <p className="text-sm text-muted mt-1">{t('task.showThemYourName')}</p>
+                  <p className="text-xs text-muted mt-3">
+                    Requested {relativeTime(d.releaseRequestedAt)}
+                  </p>
+                </div>
+              )}
+
+              {mine && d.status === 'RELEASE_APPROVED' && (
+                <>
+                  <div
+                    className="lf-card p-4 mb-4 border-success/50 bg-emerald-50 dark:bg-emerald-900/20"
+                    data-testid="courier-handed-over"
+                  >
+                    <p className="font-semibold text-success flex items-center gap-2">
+                      <PackageCheck size={16} />{' '}
+                      {t('task.handedOver', { unit: d.assetUnitIdentifier ?? '' })}
+                    </p>
+                    <p className="text-xs text-muted mt-1">{t('task.scanThemNow')}</p>
+                  </div>
+                  <BlindScanPanel
+                    bags={detail.bags}
+                    demoScanner={detail.demoScanner}
+                    pending={run.isPending || collectStop.isPending}
+                    onConfirm={confirmPickup}
+                  />
+                </>
+              )}
+
+              {mine && d.status === 'PICKED_UP' && (
+                <>
+                  <p className="text-sm text-muted mb-4">
+                    {storing
+                      ? t('kind.carryingToGate', {
+                          count: bagsCarried,
+                          gate: d.destination.kioskName || d.destination.address,
+                          unit: d.assetUnitIdentifier ?? '—',
+                        })
+                      : `You are carrying ${bagsCarried} bag${bagsCarried === 1 ? '' : 's'}${multiStop ? ` from ${stops.length} kiosks` : ''}. Hand them to the customer at the address above, then close the task.`}
+                  </p>
+                  <div className="flex flex-col sm:flex-row gap-2">
+                    <Button
+                      className="flex-1"
+                      variant="success"
+                      onClick={() =>
+                        fire(
+                          'TO_DELIVERED',
+                          undefined,
+                          storing ? 'Stored — the clock is running' : 'Delivered — nice work'
+                        )
+                      }
+                      loading={run.isPending}
+                      data-testid="courier-deliver"
+                    >
+                      <PackageCheck size={16} />
+                      {storing ? t('kind.confirmStorage') : t('task.markDelivered')}
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      onClick={() => setFailOpen(true)}
+                      data-testid="courier-report-problem"
+                    >
+                      <TriangleAlert size={16} />
+                      {t('task.reportProblem')}
+                    </Button>
+                  </div>
+                </>
+              )}
+
+              {['DELIVERED', 'FAILED', 'CANCELLED'].includes(d.status) && (
+                <div className="text-center py-2">
+                  <div
+                    className={clsx(
+                      'inline-flex w-12 h-12 rounded-full items-center justify-center mb-3',
+                      d.status === 'DELIVERED'
+                        ? 'bg-emerald-50 dark:bg-emerald-900/30'
+                        : 'bg-slate-100 dark:bg-dk-elevated'
+                    )}
+                  >
+                    <Icon
+                      name={m.icon}
+                      size={22}
+                      className={d.status === 'DELIVERED' ? 'text-success' : 'text-muted'}
+                    />
+                  </div>
+                  <p className="font-semibold text-navy dark:text-dk-texthi">{t(m.labelKey)}</p>
+                  <p className="text-sm text-muted mt-1">{d.failureReason || t(m.hintKey)}</p>
+                </div>
+              )}
+
+              {can('TO_CANCELLED') && (
+                <button
+                  className="w-full mt-4 text-xs text-muted hover:text-danger-strong"
+                  onClick={() => setFailOpen(true)}
+                  data-testid="courier-cancel"
+                >
+                  {t('task.cannotDo')}
+                </button>
+              )}
+            </Card>
           </div>
         </div>
-      </Card>
 
-      {multiStop && (
         <div>
-          <SectionTitle className="mb-2">{t('task.stopsTitle', { count: stops.length })}</SectionTitle>
-          <Card className="p-4" data-testid="courier-stops">
-            <p className="text-sm text-muted mb-3">{t('task.stopsBlurb')}</p>
-            <ol className="flex flex-col gap-2">
-              {stops.map((stop, i) => {
-                const collected = stop.status === 'COLLECTED'
-                return (
-                  <li
-                    key={stop.bookingId}
-                    className={clsx(
-                      'lf-card p-3 flex flex-wrap items-center gap-3',
-                      stop.active && 'border-brand ring-1 ring-brand/30 bg-brand/5',
-                      collected && 'opacity-70',
-                    )}
-                    data-testid={`courier-stop-${stop.bookingId}`}
-                  >
-                    <span
-                      className={clsx(
-                        'w-7 h-7 rounded-full shrink-0 flex items-center justify-center text-xs font-bold',
-                        collected
-                          ? 'bg-emerald-100 text-success dark:bg-emerald-900/40'
-                          : stop.active
-                            ? 'bg-brand text-white'
-                            : 'bg-slate-100 text-muted dark:bg-dk-elevated',
-                      )}
-                    >
-                      {collected ? <Check size={14} /> : i + 1}
-                    </span>
-                    <span className="min-w-0 flex-1">
-                      <span className="block font-semibold text-sm text-navy dark:text-dk-texthi truncate">
-                        {stop.kioskName}
-                      </span>
-                      <span className="block text-xs text-muted truncate">
-                        {t('task.stopLine', {
-                          unit: stop.assetUnitIdentifier ?? '—',
-                          count: stop.bagCount,
-                          ref: stop.bookingRef,
-                        })}
-                      </span>
-                    </span>
-                    <Badge tone={collected ? 'success' : stop.active ? 'info' : 'neutral'} testId={`courier-stop-state-${stop.bookingId}`}>
-                      {collected ? t('task.stopCollectedTag') : stop.active ? t('task.stopNow') : t('task.stopQueued')}
-                    </Badge>
-                  </li>
-                )
-              })}
+          <SectionTitle className="mb-2">{t('task.activity')}</SectionTitle>
+          <Card className="p-4" data-testid="courier-timeline">
+            <ol className="relative border-s border-line dark:border-dk-border ms-2">
+              {d.timeline.map((entry, i) => (
+                <li key={i} className="ms-4 pb-4 last:pb-0">
+                  <span className="absolute -start-[5px] w-2.5 h-2.5 rounded-full bg-brand" />
+                  <p className="text-sm font-medium text-navy dark:text-dk-texthi">
+                    {t(meta(entry.status).labelKey)}
+                  </p>
+                  {entry.note && <p className="text-xs text-muted">{entry.note}</p>}
+                  <p className="text-[11px] text-muted mt-0.5">
+                    {formatDateTime(new Date(entry.at).getTime())}
+                  </p>
+                </li>
+              ))}
             </ol>
           </Card>
         </div>
-      )}
-
-      <div>
-      <SectionTitle className="mb-2">{t('task.nextStep')}</SectionTitle>
-      <Card className="p-5" data-testid="courier-action-panel">
-        {!mine && (
-          <p className="text-sm text-muted" data-testid="courier-not-mine">{t('task.notMine')}</p>
-        )}
-
-        {mine && d.status === 'REQUESTED' && (
-          <p className="text-sm text-muted" data-testid="courier-claim-hint">{t('task.openToEveryone')}</p>
-        )}
-
-        {mine && d.status === 'ASSIGNED' && (
-          <>
-            <p className="text-sm text-muted mb-1">
-              {kioskLabel ? (
-                <>
-                  Go to <strong className="text-navy dark:text-dk-texthi">{kioskLabel}</strong>
-                  {d.assetUnitIdentifier ? ` (compartment ${d.assetUnitIdentifier})` : ''} and ask that agent for the bags.
-                </>
-              ) : (
-                <>
-                  Go to <strong className="text-navy dark:text-dk-texthi">{d.assetUnitIdentifier ? `compartment ${d.assetUnitIdentifier}` : 'the kiosk'}</strong> and ask
-                  the agent for the bags.
-                </>
-              )}
-            </p>
-            {multiStop && (
-              <p className="text-xs text-brand font-semibold mb-1" data-testid="courier-stop-progress">
-                {t('task.stopProgress', { done: stops.length - stopsLeft + 1, total: stops.length })}
-              </p>
-            )}
-            <p className="text-xs text-muted mb-4">{t('task.agentWillCheck')}</p>
-            <Button className="w-full" onClick={() => fire('TO_RELEASE_REQUESTED', undefined, 'The agent has been notified')} loading={run.isPending} data-testid="courier-request-release">
-              <Truck size={16} />{t('task.requestBags')}</Button>
-          </>
-        )}
-
-        {mine && d.status === 'RELEASE_REQUESTED' && (
-          <div className="text-center py-2" data-testid="courier-waiting">
-            <div className="inline-flex w-12 h-12 rounded-full bg-amber-50 dark:bg-amber-900/30 items-center justify-center mb-3">
-              <Truck size={22} className="text-amber-600 dark:text-amber-300" />
-            </div>
-            <p className="font-semibold text-navy dark:text-dk-texthi">{t('task.waitingForAgent')}</p>
-            <p className="text-sm text-muted mt-1">{t('task.showThemYourName')}</p>
-            <p className="text-xs text-muted mt-3">Requested {relativeTime(d.releaseRequestedAt)}</p>
-          </div>
-        )}
-
-        {mine && d.status === 'RELEASE_APPROVED' && (
-          <>
-            <div className="lf-card p-4 mb-4 border-success/50 bg-emerald-50 dark:bg-emerald-900/20" data-testid="courier-handed-over">
-              <p className="font-semibold text-success flex items-center gap-2">
-                <PackageCheck size={16} /> {t('task.handedOver', { unit: d.assetUnitIdentifier ?? '' })}
-              </p>
-              <p className="text-xs text-muted mt-1">{t('task.scanThemNow')}</p>
-            </div>
-            <BlindScanPanel
-              bags={detail.bags}
-              demoScanner={detail.demoScanner}
-              pending={run.isPending || collectStop.isPending}
-              onConfirm={confirmPickup}
-            />
-          </>
-        )}
-
-        {mine && d.status === 'PICKED_UP' && (
-          <>
-            <p className="text-sm text-muted mb-4">
-              {storing
-                ? t('kind.carryingToGate', {
-                    count: bagsCarried,
-                    gate: d.destination.kioskName || d.destination.address,
-                    unit: d.assetUnitIdentifier ?? '—',
-                  })
-                : `You are carrying ${bagsCarried} bag${bagsCarried === 1 ? '' : 's'}${multiStop ? ` from ${stops.length} kiosks` : ''}. Hand them to the customer at the address above, then close the task.`}
-            </p>
-            <div className="flex flex-col sm:flex-row gap-2">
-              <Button
-                className="flex-1"
-                variant="success"
-                onClick={() => fire('TO_DELIVERED', undefined, storing ? 'Stored — the clock is running' : 'Delivered — nice work')}
-                loading={run.isPending}
-                data-testid="courier-deliver"
-              >
-                <PackageCheck size={16} />
-                {storing ? t('kind.confirmStorage') : t('task.markDelivered')}</Button>
-              <Button variant="ghost" onClick={() => setFailOpen(true)} data-testid="courier-report-problem">
-                <TriangleAlert size={16} />{t('task.reportProblem')}</Button>
-            </div>
-          </>
-        )}
-
-        {['DELIVERED', 'FAILED', 'CANCELLED'].includes(d.status) && (
-          <div className="text-center py-2">
-            <div
-              className={clsx(
-                'inline-flex w-12 h-12 rounded-full items-center justify-center mb-3',
-                d.status === 'DELIVERED' ? 'bg-emerald-50 dark:bg-emerald-900/30' : 'bg-slate-100 dark:bg-dk-elevated',
-              )}
-            >
-              <Icon name={m.icon} size={22} className={d.status === 'DELIVERED' ? 'text-success' : 'text-muted'} />
-            </div>
-            <p className="font-semibold text-navy dark:text-dk-texthi">{t(m.labelKey)}</p>
-            <p className="text-sm text-muted mt-1">{d.failureReason || t(m.hintKey)}</p>
-          </div>
-        )}
-
-        {can('TO_CANCELLED') && (
-          <button
-            className="w-full mt-4 text-xs text-muted hover:text-danger-strong"
-            onClick={() => setFailOpen(true)}
-            data-testid="courier-cancel"
-          >{t('task.cannotDo')}</button>
-        )}
-      </Card>
-      </div>
-      </div>
-
-      <div>
-        <SectionTitle className="mb-2">{t('task.activity')}</SectionTitle>
-        <Card className="p-4" data-testid="courier-timeline">
-          <ol className="relative border-s border-line dark:border-dk-border ms-2">
-            {d.timeline.map((entry, i) => (
-              <li key={i} className="ms-4 pb-4 last:pb-0">
-                <span className="absolute -start-[5px] w-2.5 h-2.5 rounded-full bg-brand" />
-                <p className="text-sm font-medium text-navy dark:text-dk-texthi">{t(meta(entry.status).labelKey)}</p>
-                {entry.note && <p className="text-xs text-muted">{entry.note}</p>}
-                <p className="text-[11px] text-muted mt-0.5">{formatDateTime(new Date(entry.at).getTime())}</p>
-              </li>
-            ))}
-          </ol>
-        </Card>
-      </div>
       </div>
 
       <Modal
         open={failOpen}
-        onClose={() => { setFailOpen(false); setReason('') }}
+        onClose={() => {
+          setFailOpen(false);
+          setReason('');
+        }}
         title={d.status === 'PICKED_UP' ? 'Report a problem' : 'Give up this task'}
         subtitle={
           d.status === 'PICKED_UP'
@@ -530,16 +653,28 @@ export function CourierTaskPage() {
         testId="courier-fail-modal"
         footer={
           <>
-            <Button variant="ghost" onClick={() => { setFailOpen(false); setReason('') }}>Back</Button>
+            <Button
+              variant="ghost"
+              onClick={() => {
+                setFailOpen(false);
+                setReason('');
+              }}
+            >
+              Back
+            </Button>
             <Button
               variant="danger"
               disabled={reason.trim().length < 3}
               loading={run.isPending}
               data-testid="courier-fail-submit"
               onClick={() => {
-                fire(d.status === 'PICKED_UP' ? 'TO_FAILED' : 'TO_CANCELLED', { reason: reason.trim() }, 'Recorded')
-                setFailOpen(false)
-                setReason('')
+                fire(
+                  d.status === 'PICKED_UP' ? 'TO_FAILED' : 'TO_CANCELLED',
+                  { reason: reason.trim() },
+                  'Recorded'
+                );
+                setFailOpen(false);
+                setReason('');
               }}
             >
               Submit
@@ -558,5 +693,5 @@ export function CourierTaskPage() {
         </Field>
       </Modal>
     </div>
-  )
+  );
 }

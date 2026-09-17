@@ -1,5 +1,5 @@
-import { Schema } from 'mongoose'
-import type { EngineKind } from '../domain/types.js'
+import { Schema } from 'mongoose';
+import type { EngineKind } from '../domain/types.js';
 
 export const EXPENSE_CATEGORIES = [
   'SUPPLIER',
@@ -12,35 +12,35 @@ export const EXPENSE_CATEGORIES = [
   'ADMIN',
   'BANK_COMMISSION',
   'OTHER',
-] as const
-export type ExpenseCategory = (typeof EXPENSE_CATEGORIES)[number]
+] as const;
+export type ExpenseCategory = (typeof EXPENSE_CATEGORIES)[number];
 
-export const ADMIN_CATEGORIES: ExpenseCategory[] = ['PAYROLL', 'ADMIN']
+export const ADMIN_CATEGORIES: ExpenseCategory[] = ['PAYROLL', 'ADMIN'];
 
-export const SYSTEM_CATEGORIES: ExpenseCategory[] = ['BANK_COMMISSION']
+export const SYSTEM_CATEGORIES: ExpenseCategory[] = ['BANK_COMMISSION'];
 
-export const EXPENSE_STATUSES = ['RECORDED', 'VOID'] as const
-export type ExpenseStatus = (typeof EXPENSE_STATUSES)[number]
+export const EXPENSE_STATUSES = ['RECORDED', 'VOID'] as const;
+export type ExpenseStatus = (typeof EXPENSE_STATUSES)[number];
 
 export interface ExpenseDoc {
-  _id: string
-  tenantId: string
-  category: ExpenseCategory
-  description: string
-  supplier: string
-  reference: string
-  engineKind: EngineKind | null
-  seasonId: string | null
-  amount: number
-  baseAmount: number
-  vatAmount: number
-  vatRate: number
-  incurredAt: Date
-  status: ExpenseStatus
-  voidReason: string | null
-  enteredBy: string
-  createdAt: Date
-  updatedAt: Date
+  _id: string;
+  tenantId: string;
+  category: ExpenseCategory;
+  description: string;
+  supplier: string;
+  reference: string;
+  engineKind: EngineKind | null;
+  seasonId: string | null;
+  amount: number;
+  baseAmount: number;
+  vatAmount: number;
+  vatRate: number;
+  incurredAt: Date;
+  status: ExpenseStatus;
+  voidReason: string | null;
+  enteredBy: string;
+  createdAt: Date;
+  updatedAt: Date;
 }
 
 const expenseSchema = new Schema<ExpenseDoc>(
@@ -62,22 +62,22 @@ const expenseSchema = new Schema<ExpenseDoc>(
     voidReason: { type: String, default: null },
     enteredBy: { type: String, required: true },
   },
-  { _id: false, timestamps: true },
-)
+  { _id: false, timestamps: true }
+);
 
-expenseSchema.index({ tenantId: 1, incurredAt: -1 })
+expenseSchema.index({ tenantId: 1, incurredAt: -1 });
 
-export const ExpenseSchema = expenseSchema
+export const ExpenseSchema = expenseSchema;
 
 export interface SeasonDoc {
-  _id: string
-  tenantId: string
-  name: string
-  startsAt: Date
-  endsAt: Date
-  active: boolean
-  createdAt: Date
-  updatedAt: Date
+  _id: string;
+  tenantId: string;
+  name: string;
+  startsAt: Date;
+  endsAt: Date;
+  active: boolean;
+  createdAt: Date;
+  updatedAt: Date;
 }
 
 const seasonSchema = new Schema<SeasonDoc>(
@@ -89,7 +89,7 @@ const seasonSchema = new Schema<SeasonDoc>(
     endsAt: { type: Date, required: true },
     active: { type: Boolean, default: true },
   },
-  { _id: false, timestamps: true },
-)
+  { _id: false, timestamps: true }
+);
 
-export const SeasonSchema = seasonSchema
+export const SeasonSchema = seasonSchema;

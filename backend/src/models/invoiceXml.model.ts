@@ -1,19 +1,19 @@
-import { Schema } from 'mongoose'
-import { nanoid } from 'nanoid'
+import { Schema } from 'mongoose';
+import { nanoid } from 'nanoid';
 
 export interface InvoiceXmlDoc {
-  _id: string
-  tenantId: string
-  bookingId: string
-  orderId: string
-  invoiceNumber: string
-  uuid: string
-  invoiceCounter: number
-  previousInvoiceHash: string
-  invoiceHash: string
-  filePath: string
-  createdAt: Date
-  updatedAt: Date
+  _id: string;
+  tenantId: string;
+  bookingId: string;
+  orderId: string;
+  invoiceNumber: string;
+  uuid: string;
+  invoiceCounter: number;
+  previousInvoiceHash: string;
+  invoiceHash: string;
+  filePath: string;
+  createdAt: Date;
+  updatedAt: Date;
 }
 
 const invoiceXmlSchema = new Schema<InvoiceXmlDoc>(
@@ -29,10 +29,10 @@ const invoiceXmlSchema = new Schema<InvoiceXmlDoc>(
     invoiceHash: { type: String, required: true },
     filePath: { type: String, required: true },
   },
-  { _id: false, timestamps: true },
-)
+  { _id: false, timestamps: true }
+);
 
-invoiceXmlSchema.index({ tenantId: 1, invoiceCounter: -1 })
-invoiceXmlSchema.index({ tenantId: 1, createdAt: -1 })
+invoiceXmlSchema.index({ tenantId: 1, invoiceCounter: -1 });
+invoiceXmlSchema.index({ tenantId: 1, createdAt: -1 });
 
-export const InvoiceXmlSchema = invoiceXmlSchema
+export const InvoiceXmlSchema = invoiceXmlSchema;

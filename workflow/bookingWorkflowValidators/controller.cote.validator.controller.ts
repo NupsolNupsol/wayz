@@ -1,26 +1,29 @@
-import type { ValidationResult, WorkflowContext } from '../shared/types.js'
+import type { ValidationResult, WorkflowContext } from '../shared/types.js';
 
-export const useCoteValidator = (transitionCode: string, _ctx: WorkflowContext): ValidationResult => {
-  const errors: string[] = []
+export const useCoteValidator = (
+  transitionCode: string,
+  _ctx: WorkflowContext
+): ValidationResult => {
+  const errors: string[] = [];
 
   switch (transitionCode) {
     case 'TO_CONFIRMED': {
-      break
+      break;
     }
 
     case 'TO_SERVED': {
-      break
+      break;
     }
 
     case 'TO_CANCELLED': {
-      break
+      break;
     }
 
     default: {
-      errors.push(`Unknown transition code: ${transitionCode}`)
-      break
+      errors.push(`Unknown transition code: ${transitionCode}`);
+      break;
     }
   }
 
-  return { errors }
-}
+  return { errors };
+};

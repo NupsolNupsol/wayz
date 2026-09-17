@@ -1,45 +1,45 @@
-import { Schema } from 'mongoose'
-import { nanoid } from 'nanoid'
+import { Schema } from 'mongoose';
+import { nanoid } from 'nanoid';
 
 export interface OrderLine {
-  productId: string
-  name: string
+  productId: string;
+  name: string;
   /** What the customer reads on the printed invoice; the English `name` stays for staff screens. */
-  nameAr?: string
-  quantity: number
-  unitPrice: number
-  isDeposit: boolean
-  taxable: boolean
+  nameAr?: string;
+  quantity: number;
+  unitPrice: number;
+  isDeposit: boolean;
+  taxable: boolean;
 }
 
 export interface ResourceHold {
-  assetTypeId: string
-  quantityRequired: number
-  expiresAt: Date
-  status: 'ACTIVE' | 'CONSUMED' | 'EXPIRED'
+  assetTypeId: string;
+  quantityRequired: number;
+  expiresAt: Date;
+  status: 'ACTIVE' | 'CONSUMED' | 'EXPIRED';
 }
 
 export interface OrderDoc {
-  _id: string
-  ref: string
-  tenantId: string
-  stationId: string
-  kioskId: string | null
-  agentId: string
-  customerId: string
+  _id: string;
+  ref: string;
+  tenantId: string;
+  stationId: string;
+  kioskId: string | null;
+  agentId: string;
+  customerId: string;
   /** The built-in engine, for a tenant that runs them. Null for a tenant's own activity. */
-  engineKind: string | null
+  engineKind: string | null;
   /** The tenant's own activity this order was raised for. */
-  activityKey: string | null
-  lines: OrderLine[]
-  hold: ResourceHold | null
-  status: 'DRAFT' | 'AWAITING_PAYMENT' | 'PAID' | 'CANCELLED'
-  subtotal: number
-  vat: number
-  depositTotal: number
-  total: number
-  createdAt: Date
-  updatedAt: Date
+  activityKey: string | null;
+  lines: OrderLine[];
+  hold: ResourceHold | null;
+  status: 'DRAFT' | 'AWAITING_PAYMENT' | 'PAID' | 'CANCELLED';
+  subtotal: number;
+  vat: number;
+  depositTotal: number;
+  total: number;
+  createdAt: Date;
+  updatedAt: Date;
 }
 
 const lineSchema = new Schema<OrderLine>(
@@ -52,8 +52,8 @@ const lineSchema = new Schema<OrderLine>(
     isDeposit: { type: Boolean, default: false },
     taxable: { type: Boolean, default: true },
   },
-  { _id: false },
-)
+  { _id: false }
+);
 
 const holdSchema = new Schema<ResourceHold>(
   {
@@ -62,8 +62,8 @@ const holdSchema = new Schema<ResourceHold>(
     expiresAt: { type: Date, required: true },
     status: { type: String, default: 'ACTIVE' },
   },
-  { _id: false },
-)
+  { _id: false }
+);
 
 const orderSchema = new Schema<OrderDoc>(
   {
@@ -84,7 +84,7 @@ const orderSchema = new Schema<OrderDoc>(
     depositTotal: { type: Number, default: 0 },
     total: { type: Number, default: 0 },
   },
-  { _id: false, timestamps: true },
-)
+  { _id: false, timestamps: true }
+);
 
-export const OrderSchema = orderSchema
+export const OrderSchema = orderSchema;

@@ -1,20 +1,20 @@
-import { Schema, type HydratedDocument } from 'mongoose'
-import { nanoid } from 'nanoid'
-import type { PaymentKind, PaymentMethod } from '../domain/types.js'
-import type { CardScheme } from '../domain/commission.js'
+import { Schema, type HydratedDocument } from 'mongoose';
+import { nanoid } from 'nanoid';
+import type { PaymentKind, PaymentMethod } from '../domain/types.js';
+import type { CardScheme } from '../domain/commission.js';
 
 export interface PaymentDoc {
-  _id: string
-  tenantId: string
-  stationId: string
-  kioskId: string | null
-  orderId: string
-  bookingId?: string | null
-  amount: number
-  baseAmount: number
-  vatAmount: number
-  vatRate: number
-  engineKind: string | null
+  _id: string;
+  tenantId: string;
+  stationId: string;
+  kioskId: string | null;
+  orderId: string;
+  bookingId?: string | null;
+  amount: number;
+  baseAmount: number;
+  vatAmount: number;
+  vatRate: number;
+  engineKind: string | null;
   /**
    * The tenant's own activity this money was taken for.
    *
@@ -22,7 +22,7 @@ export interface PaymentDoc {
    * the same dimension for an installation that runs the built-in engines, and accounting
    * reads whichever is set — so one statement serves both without either being rewritten.
    */
-  activityKey: string | null
+  activityKey: string | null;
   /**
    * Who handed the money over.
    *
@@ -30,16 +30,16 @@ export interface PaymentDoc {
    * paying half a rental — and each half has to be attributable to the person who actually paid
    * it, for the receipt, the refund and the books.
    */
-  payerId: string | null
-  payerName: string
-  method: PaymentMethod
-  cardScheme: CardScheme | null
-  kind: PaymentKind
-  status: 'PENDING' | 'CAPTURED' | 'REFUNDED'
-  takenBy: string
-  shiftId: string | null
-  createdAt: Date
-  updatedAt: Date
+  payerId: string | null;
+  payerName: string;
+  method: PaymentMethod;
+  cardScheme: CardScheme | null;
+  kind: PaymentKind;
+  status: 'PENDING' | 'CAPTURED' | 'REFUNDED';
+  takenBy: string;
+  shiftId: string | null;
+  createdAt: Date;
+  updatedAt: Date;
 }
 
 const paymentSchema = new Schema<PaymentDoc>(
@@ -65,9 +65,9 @@ const paymentSchema = new Schema<PaymentDoc>(
     takenBy: { type: String, default: '' },
     shiftId: { type: String, default: null, index: true },
   },
-  { _id: false, timestamps: true },
-)
+  { _id: false, timestamps: true }
+);
 
-export const PaymentSchema = paymentSchema
+export const PaymentSchema = paymentSchema;
 
-export type PaymentHydrated = HydratedDocument<PaymentDoc>
+export type PaymentHydrated = HydratedDocument<PaymentDoc>;

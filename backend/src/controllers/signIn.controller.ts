@@ -1,8 +1,8 @@
-import { asyncHandler } from '../utils/asyncHandler.js'
-import { env } from '../config/env.js'
-import { appDb } from '../platform/connections.js'
-import { runAcrossOrganisations } from '../platform/orgScope.js'
-import { seededDemoLoginsFor, type DemoCandidate } from '../platform/demoLogins.js'
+import { asyncHandler } from '../utils/asyncHandler.js';
+import { env } from '../config/env.js';
+import { appDb } from '../platform/connections.js';
+import { runAcrossOrganisations } from '../platform/orgScope.js';
+import { seededDemoLoginsFor, type DemoCandidate } from '../platform/demoLogins.js';
 
 /**
  * What the sign-in page may show before anybody has signed in.
@@ -32,19 +32,19 @@ import { seededDemoLoginsFor, type DemoCandidate } from '../platform/demoLogins.
  * make it free without making it stale: a new demonstration account appears within half a
  * minute, and the verification it depends on still happens.
  */
-const ADVERTISED_TTL_MS = 30_000
-let advertised: { at: number; organisations: unknown[] } | null = null
+const ADVERTISED_TTL_MS = 30_000;
+let advertised: { at: number; organisations: unknown[] } | null = null;
 
 export const signInController = {
   demoLogins: asyncHandler(async (_req, res) => {
     if (!env.DEMO_LOGINS) {
-      res.json({ success: true, data: { organisations: [] } })
-      return
+      res.json({ success: true, data: { organisations: [] } });
+      return;
     }
 
     if (advertised && Date.now() - advertised.at < ADVERTISED_TTL_MS) {
-      res.json({ success: true, data: { organisations: advertised.organisations } })
-      return
+      res.json({ success: true, data: { organisations: advertised.organisations } });
+      return;
     }
 
     /*
@@ -55,21 +55,39 @@ export const signInController = {
      * move between them without knowing an address.
      */
     const organisations = await runAcrossOrganisations(async () => {
-      const { Tenant, User } = appDb()
+      const { Tenant, User } = appDb();
 
       const [companies, people] = await Promise.all([
         Tenant.find({}, { name: 1, branding: 1, enabledEngines: 1 }).lean<
-          { _id: string; name: string; branding?: Record<string, unknown>; enabledEngines?: string[] }[]
+          {
+            _id: string;
+            name: string;
+            branding?: Record<string, unknown>;
+            enabledEngines?: string[];
+          }[]
         >(),
         User.find(
           { active: true },
-          { email: 1, fullName: 1, role: 1, roleLabel: 1, tenantId: 1, kioskId: 1, engineKinds: 1, demoCredential: 1, passwordHash: 1 },
+          {
+            email: 1,
+            fullName: 1,
+            role: 1,
+            roleLabel: 1,
+            tenantId: 1,
+            kioskId: 1,
+            engineKinds: 1,
+            demoCredential: 1,
+            passwordHash: 1,
+          }
         ).lean<(DemoCandidate & { tenantId: string })[]>(),
-      ])
+      ]);
 
-      const byOrganisation = new Map<string, (DemoCandidate & { tenantId: string })[]>()
+      const byOrganisation = new Map<string, (DemoCandidate & { tenantId: string })[]>();
       for (const person of people) {
-        byOrganisation.set(person.tenantId, [...(byOrganisation.get(person.tenantId) ?? []), person])
+        byOrganisation.set(person.tenantId, [
+          ...(byOrganisation.get(person.tenantId) ?? []),
+          person,
+        ]);
       }
 
       return Promise.all(
@@ -79,13 +97,13 @@ export const signInController = {
           branding: company.branding ?? {},
           activities: company.enabledEngines ?? [],
           logins: await seededDemoLoginsFor(byOrganisation.get(company._id) ?? []),
-        })),
-      )
-    })
+        }))
+      );
+    });
 
     // A company with no advertisable account is noise on a sign-in page.
-    const listed = organisations.filter((o) => o.logins.length > 0)
-    advertised = { at: Date.now(), organisations: listed }
-    res.json({ success: true, data: { organisations: listed } })
+    const listed = organisations.filter((o) => o.logins.length > 0);
+    advertised = { at: Date.now(), organisations: listed };
+    res.json({ success: true, data: { organisations: listed } });
   }),
-}
+};

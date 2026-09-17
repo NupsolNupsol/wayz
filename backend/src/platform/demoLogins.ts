@@ -1,7 +1,7 @@
-import bcrypt from 'bcryptjs'
+import bcrypt from 'bcryptjs';
 
-import { ROLE_LABELS } from '../constants/labels.constants.js'
-import type { Role } from '../domain/types.js'
+import { ROLE_LABELS } from '../constants/labels.constants.js';
+import type { Role } from '../domain/types.js';
 
 /**
  * The demo accounts a tenant's sign-in screen may advertise.
@@ -49,25 +49,25 @@ const ENGINE_LABELS: Record<string, string> = {
   ANIMAL_FEEDING: 'Animal Feeding Session',
   PHOTOGRAPHY: 'Professional Photo Session',
   GROUP_PACKAGE: 'Group Package',
-}
+};
 
 /** Seeded demo accounts are the ones on the demo domain; anybody hired since is not listed. */
-const DEMO_DOMAIN = '@lockerflow.demo'
+const DEMO_DOMAIN = '@lockerflow.demo';
 
 export interface DemoLogin {
-  label: string
-  email: string
-  password: string
-  role: Role
+  label: string;
+  email: string;
+  password: string;
+  role: Role;
 }
 
 export interface DemoCandidate {
-  email: string
-  fullName: string
-  role: Role
-  kioskName?: string | null
+  email: string;
+  fullName: string;
+  role: Role;
+  kioskName?: string | null;
   /** The activities this person works. What makes one kiosk agent different from another. */
-  engineKinds?: string[] | null
+  engineKinds?: string[] | null;
   /**
    * What this person's own company calls their job.
    *
@@ -75,11 +75,11 @@ export interface DemoCandidate {
    * and its purchasing agent are both `ACCOUNTANT` underneath, and listing them both as
    * "Accountant" tells nobody which is which — the base role is a shape, not a job title.
    */
-  roleLabel?: string | null
+  roleLabel?: string | null;
   /** What the creator of this account recorded. Absent for anybody not created as a demo. */
-  demoCredential?: string | null
+  demoCredential?: string | null;
   /** What the database will actually check a sign-in against. */
-  passwordHash?: string | null
+  passwordHash?: string | null;
 }
 
 /**
@@ -91,8 +91,8 @@ export interface DemoCandidate {
  */
 export async function seededDemoLoginsFor(users: DemoCandidate[]): Promise<DemoLogin[]> {
   const candidates = users.filter(
-    (u) => u.email.endsWith(DEMO_DOMAIN) && !!u.demoCredential && !!u.passwordHash,
-  )
+    (u) => u.email.endsWith(DEMO_DOMAIN) && !!u.demoCredential && !!u.passwordHash
+  );
 
   const verified = await Promise.all(
     candidates.map(async (u) => {
@@ -104,12 +104,14 @@ export async function seededDemoLoginsFor(users: DemoCandidate[]): Promise<DemoL
        * accounts a tenant has — tens, not thousands — and it only ever runs on a deployment
        * that has declared itself a demonstration.
        */
-      const works = await bcrypt.compare(u.demoCredential as string, u.passwordHash as string).catch(() => false)
-      return works ? u : null
-    }),
-  )
+      const works = await bcrypt
+        .compare(u.demoCredential as string, u.passwordHash as string)
+        .catch(() => false);
+      return works ? u : null;
+    })
+  );
 
-  const real = verified.filter((u): u is DemoCandidate => u !== null)
+  const real = verified.filter((u): u is DemoCandidate => u !== null);
 
   /*
    * Say the job, then the activity, then the desk — and stop as soon as the row is unambiguous.
@@ -124,39 +126,40 @@ export async function seededDemoLoginsFor(users: DemoCandidate[]): Promise<DemoL
    * is added only where the activity still leaves two rows the same.
    */
   /** What the company calls this job, falling back to the platform's shape for a tenant with none. */
-  const jobTitle = (u: DemoCandidate): string => u.roleLabel?.trim() || ROLE_LABELS[u.role] || u.role
+  const jobTitle = (u: DemoCandidate): string =>
+    u.roleLabel?.trim() || ROLE_LABELS[u.role] || u.role;
 
   const activityOf = (u: DemoCandidate): string => {
-    const engines = [...new Set(u.engineKinds ?? [])]
-    if (engines.length === 0) return ''
-    if (engines.length > 2) return 'every activity'
-    return engines.map((e) => ENGINE_LABELS[e] ?? e).join(' & ')
-  }
+    const engines = [...new Set(u.engineKinds ?? [])];
+    if (engines.length === 0) return '';
+    if (engines.length > 2) return 'every activity';
+    return engines.map((e) => ENGINE_LABELS[e] ?? e).join(' & ');
+  };
 
   const jobAndActivity = (u: DemoCandidate): string => {
-    const job = jobTitle(u)
-    const activity = activityOf(u)
-    return activity ? `${job} · ${activity}` : job
-  }
+    const job = jobTitle(u);
+    const activity = activityOf(u);
+    return activity ? `${job} · ${activity}` : job;
+  };
 
-  const shared = new Map<string, number>()
+  const shared = new Map<string, number>();
   for (const u of real) {
-    const key = jobAndActivity(u)
-    shared.set(key, (shared.get(key) ?? 0) + 1)
+    const key = jobAndActivity(u);
+    shared.set(key, (shared.get(key) ?? 0) + 1);
   }
 
   return real
     .map((u) => {
-      const base = jobAndActivity(u)
-      const qualifier = u.kioskName || u.fullName
-      const ambiguous = (shared.get(base) ?? 0) > 1
+      const base = jobAndActivity(u);
+      const qualifier = u.kioskName || u.fullName;
+      const ambiguous = (shared.get(base) ?? 0) > 1;
 
       return {
         label: ambiguous && qualifier ? `${base} · ${qualifier}` : base,
         email: u.email,
         password: u.demoCredential as string,
         role: u.role,
-      }
+      };
     })
-    .sort((a, b) => a.label.localeCompare(b.label))
+    .sort((a, b) => a.label.localeCompare(b.label));
 }

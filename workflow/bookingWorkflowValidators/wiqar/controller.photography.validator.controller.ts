@@ -1,6 +1,10 @@
-import type { ValidationResult, WorkflowContext } from '../../shared/types.js'
-import { requirePaid, requirePositiveDuration } from '../shared.validators.js'
-import { requireConsent, requireWithinSlotGrace, requireWorkableAnimal } from '../shared.animal.validators.js'
+import type { ValidationResult, WorkflowContext } from '../../shared/types.js';
+import { requirePaid, requirePositiveDuration } from '../shared.validators.js';
+import {
+  requireConsent,
+  requireWithinSlotGrace,
+  requireWorkableAnimal,
+} from '../shared.animal.validators.js';
 
 /**
  * What Professional Photo Session refuses, and why.
@@ -11,17 +15,17 @@ import { requireConsent, requireWithinSlotGrace, requireWorkableAnimal } from '.
  * is only what makes this experience different from the other six.
  */
 
-export const usePhotographyValidator = (transitionCode: string, ctx: WorkflowContext): ValidationResult => {
-  const errors: string[] = []
+export const usePhotographyValidator = (
+  transitionCode: string,
+  ctx: WorkflowContext
+): ValidationResult => {
+  const errors: string[] = [];
 
   switch (transitionCode) {
     case 'TO_CONFIRMED': {
       // No trainer is asked for: the specification names one for riding and care sessions, and a studio session is neither.
-      errors.push(
-        ...requireConsent(ctx),
-        ...requireWorkableAnimal(ctx),
-      )
-      break
+      errors.push(...requireConsent(ctx), ...requireWorkableAnimal(ctx));
+      break;
     }
 
     case 'TO_STARTED': {
@@ -31,24 +35,24 @@ export const usePhotographyValidator = (transitionCode: string, ctx: WorkflowCon
         // §4.1 gives this experience a duration of 20 min.
         ...requirePositiveDuration(ctx),
         ...requireWithinSlotGrace(ctx),
-        ...requireWorkableAnimal(ctx),
-      )
-      break
+        ...requireWorkableAnimal(ctx)
+      );
+      break;
     }
 
     case 'TO_COMPLETED': {
-      break
+      break;
     }
 
     case 'TO_CANCELLED': {
-      break
+      break;
     }
 
     default: {
-      errors.push(`Unknown transition code: ${transitionCode}`)
-      break
+      errors.push(`Unknown transition code: ${transitionCode}`);
+      break;
     }
   }
 
-  return { errors }
-}
+  return { errors };
+};

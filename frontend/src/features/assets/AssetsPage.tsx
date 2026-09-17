@@ -1,32 +1,32 @@
-import { useMemo, useState } from 'react'
-import { useTranslation } from 'react-i18next'
-import { useNavigate } from 'react-router-dom'
-import { Boxes, Pencil, Plus, Trash2 } from 'lucide-react'
-import { clsx } from 'clsx'
-import { PageHeader } from '@/components/PageHeader'
-import { Badge, Button, Card, EmptyState, Field, Spinner, StatCard } from '@/components/ui'
-import { DataTable, type Column } from '@/components/DataTable'
-import { Modal } from '@/components/Modal'
-import { Select } from '@/components/Select'
-import { NumberInput } from '@/components/NumberInput'
-import { useAddAssetUnits, useAssetEstate, useManagerPricing, useRemoveAssetKind } from '@/hooks'
-import { can } from '@/permissions/permissions'
-import { useAuthStore } from '@/store/auth'
-import { engineLabel } from '@/config/engineMeta'
-import { useTenantEngines } from '@/hooks/useTenantEngines'
-import { ApiError } from '@/api/client'
-import { toast } from '@/state/toastStore'
-import { money } from '@/utils'
-import { NewAssetKindModal } from './NewAssetKindModal'
-import { KindEditorModal } from './KindEditorModal'
-import type { PricingProduct } from '@/api/manager.api'
-import { type AssetTypeRow } from '@/api/asset.api'
-import type { EngineKind } from '@/api/types'
+import { useMemo, useState } from 'react';
+import { useTranslation } from 'react-i18next';
+import { useNavigate } from 'react-router-dom';
+import { Boxes, Pencil, Plus, Trash2 } from 'lucide-react';
+import { clsx } from 'clsx';
+import { PageHeader } from '@/components/PageHeader';
+import { Badge, Button, Card, EmptyState, Field, Spinner, StatCard } from '@/components/ui';
+import { DataTable, type Column } from '@/components/DataTable';
+import { Modal } from '@/components/Modal';
+import { Select } from '@/components/Select';
+import { NumberInput } from '@/components/NumberInput';
+import { useAddAssetUnits, useAssetEstate, useManagerPricing, useRemoveAssetKind } from '@/hooks';
+import { can } from '@/permissions/permissions';
+import { useAuthStore } from '@/store/auth';
+import { engineLabel } from '@/config/engineMeta';
+import { useTenantEngines } from '@/hooks/useTenantEngines';
+import { ApiError } from '@/api/client';
+import { toast } from '@/state/toastStore';
+import { money } from '@/utils';
+import { NewAssetKindModal } from './NewAssetKindModal';
+import { KindEditorModal } from './KindEditorModal';
+import type { PricingProduct } from '@/api/manager.api';
+import { type AssetTypeRow } from '@/api/asset.api';
+import type { EngineKind } from '@/api/types';
 
-type Filter = EngineKind | 'ALL'
+type Filter = EngineKind | 'ALL';
 
 export function AssetsPage() {
-  const { t } = useTranslation(['assets', 'common'])
+  const { t } = useTranslation(['assets', 'common']);
   /*
    * What this organisation runs, not the whole coded catalogue.
    *
@@ -34,30 +34,29 @@ export function AssetsPage() {
    * the subset this company took up on the Activities page. Offering the catalogue showed
    * every company WAYZ's three and none of its own.
    */
-  const adoptedActivities = useTenantEngines()
-  const navigate = useNavigate()
-  const role = useAuthStore((s) => s.me?.role)
-  const mayManage = can(role, 'assets.manage')
+  const adoptedActivities = useTenantEngines();
+  const navigate = useNavigate();
+  const role = useAuthStore((s) => s.me?.role);
+  const mayManage = can(role, 'assets.manage');
 
-  const [filter, setFilter] = useState<Filter>('ALL')
-  const { data, isLoading } = useAssetEstate()
-  const addUnits = useAddAssetUnits()
-  const removeKind = useRemoveAssetKind()
+  const [filter, setFilter] = useState<Filter>('ALL');
+  const { data, isLoading } = useAssetEstate();
+  const addUnits = useAddAssetUnits();
+  const removeKind = useRemoveAssetKind();
 
-  const [newKindOpen, setNewKindOpen] = useState(false)
-  const [editing, setEditing] = useState<AssetTypeRow | null>(null)
-  const [deleting, setDeleting] = useState<AssetTypeRow | null>(null)
+  const [newKindOpen, setNewKindOpen] = useState(false);
+  const [editing, setEditing] = useState<AssetTypeRow | null>(null);
+  const [deleting, setDeleting] = useState<AssetTypeRow | null>(null);
 
-  const [addFor, setAddFor] = useState<AssetTypeRow | null>(null)
-  const [stationId, setStationId] = useState('')
-  const [kioskId, setKioskId] = useState('')
-  const [count, setCount] = useState(4)
-
+  const [addFor, setAddFor] = useState<AssetTypeRow | null>(null);
+  const [stationId, setStationId] = useState('');
+  const [kioskId, setKioskId] = useState('');
+  const [count, setCount] = useState(4);
 
   const rows = useMemo(
     () => (data?.assetTypes ?? []).filter((r) => filter === 'ALL' || r.engineKind === filter),
-    [data, filter],
-  )
+    [data, filter]
+  );
 
   const totals = useMemo(
     () =>
@@ -68,19 +67,24 @@ export function AssetsPage() {
           available: acc.available + r.available,
           outOfService: acc.outOfService + r.outOfService,
         }),
-        { total: 0, inUse: 0, available: 0, outOfService: 0 },
+        { total: 0, inUse: 0, available: 0, outOfService: 0 }
       ),
-    [rows],
-  )
+    [rows]
+  );
 
   const openAdd = (row: AssetTypeRow) => {
-    setAddFor(row)
+    setAddFor(row);
     // A desk that runs this activity is the only place these can live.
-    const desk = (data?.kiosks ?? []).find((k) => !k.engineKind || k.engineKind === row.engineKind)
-    setStationId(desk?.stationId ?? data?.stations.find((s) => s.engineKinds.includes(row.engineKind))?._id ?? data?.stations[0]?._id ?? '')
-    setKioskId(desk?._id ?? '')
-    setCount(4)
-  }
+    const desk = (data?.kiosks ?? []).find((k) => !k.engineKind || k.engineKind === row.engineKind);
+    setStationId(
+      desk?.stationId ??
+        data?.stations.find((s) => s.engineKinds.includes(row.engineKind))?._id ??
+        data?.stations[0]?._id ??
+        ''
+    );
+    setKioskId(desk?._id ?? '');
+    setCount(4);
+  };
 
   /**
    * Where a kind of asset can be put, which depends on what it is.
@@ -89,32 +93,49 @@ export function AssetsPage() {
    * compartments at all, so offering one here would create stock nothing could ever reach. The
    * server enforces the same rule; this is the form agreeing with it.
    */
-  const atAGate = (row: AssetTypeRow | null) => row?.kind === 'COMPARTMENT'
+  const atAGate = (row: AssetTypeRow | null) => row?.kind === 'COMPARTMENT';
   /* An animal belongs to its area; a desk is optional. The server applies the same rule. */
-  const heldByArea = (row: AssetTypeRow | null) => row?.kind === 'ANIMAL'
+  const heldByArea = (row: AssetTypeRow | null) => row?.kind === 'ANIMAL';
 
   const desksFor = (row: AssetTypeRow | null, station: string) =>
     atAGate(row)
       ? (data?.gates ?? []).filter((g) => g.stationId === station)
       : (data?.kiosks ?? []).filter(
-          (k) => k.stationId === station && (!k.engineKind || !row || k.engineKind === row.engineKind),
-        )
+          (k) =>
+            k.stationId === station && (!k.engineKind || !row || k.engineKind === row.engineKind)
+        );
 
   const submitAdd = () => {
-    if (!addFor) return
+    if (!addFor) return;
     addUnits.mutate(
-      { id: addFor._id, body: { stationId, ...(atAGate(addFor) ? { gateId: kioskId } : { kioskId: kioskId || null }), count } },
+      {
+        id: addFor._id,
+        body: {
+          stationId,
+          ...(atAGate(addFor) ? { gateId: kioskId } : { kioskId: kioskId || null }),
+          count,
+        },
+      },
       {
         onSuccess: (r) => {
-          toast('success', t('toast.added', { count: r.created }), r.identifiers.slice(0, 6).join(', '))
-          setAddFor(null)
+          toast(
+            'success',
+            t('toast.added', { count: r.created }),
+            r.identifiers.slice(0, 6).join(', ')
+          );
+          setAddFor(null);
         },
-        onError: (e) => toast('danger', t('toast.couldNotAdd'), e instanceof ApiError ? (e.errors?.join(' ') ?? e.message) : ''),
-      },
-    )
-  }
+        onError: (e) =>
+          toast(
+            'danger',
+            t('toast.couldNotAdd'),
+            e instanceof ApiError ? (e.errors?.join(' ') ?? e.message) : ''
+          ),
+      }
+    );
+  };
 
-  const pricing = useManagerPricing()
+  const pricing = useManagerPricing();
 
   /**
    * One editor for a kind, opened from two places.
@@ -123,18 +144,23 @@ export function AssetsPage() {
    * estate list and the kind's own page each had their own version of the form. Both open this
    * one now; it reads the kind and its product for itself rather than being handed a copy.
    */
-  const openEdit = (row: AssetTypeRow) => setEditing(row)
+  const openEdit = (row: AssetTypeRow) => setEditing(row);
 
   const submitDelete = () => {
-    if (!deleting) return
+    if (!deleting) return;
     removeKind.mutate(deleting._id, {
       onSuccess: (r) => {
-        toast('warning', t('toast.kindRemoved', { name: r.name }))
-        setDeleting(null)
+        toast('warning', t('toast.kindRemoved', { name: r.name }));
+        setDeleting(null);
       },
-      onError: (e) => toast('danger', t('toast.couldNotRemoveKind'), e instanceof ApiError ? (e.errors?.join(' ') ?? e.message) : ''),
-    })
-  }
+      onError: (e) =>
+        toast(
+          'danger',
+          t('toast.couldNotRemoveKind'),
+          e instanceof ApiError ? (e.errors?.join(' ') ?? e.message) : ''
+        ),
+    });
+  };
 
   const columns: Column<AssetTypeRow>[] = [
     {
@@ -169,8 +195,14 @@ export function AssetsPage() {
       key: 'engine',
       header: t('common:column.activity'),
       sortValue: (r) => r.engineKind,
-      filter: { kind: 'select', options: adoptedActivities.map((k) => ({ label: engineLabel(k), value: k })), value: (r) => r.engineKind },
-      render: (r) => <span className="text-muted whitespace-nowrap">{engineLabel(r.engineKind)}</span>,
+      filter: {
+        kind: 'select',
+        options: adoptedActivities.map((k) => ({ label: engineLabel(k), value: k })),
+        value: (r) => r.engineKind,
+      },
+      render: (r) => (
+        <span className="text-muted whitespace-nowrap">{engineLabel(r.engineKind)}</span>
+      ),
     },
     {
       key: 'total',
@@ -199,7 +231,12 @@ export function AssetsPage() {
       align: 'right',
       sortValue: (r) => r.outOfService,
       render: (r) => (
-        <span className={clsx('tabular-nums', r.outOfService ? 'text-danger-strong font-medium' : 'text-muted')}>
+        <span
+          className={clsx(
+            'tabular-nums',
+            r.outOfService ? 'text-danger-strong font-medium' : 'text-muted'
+          )}
+        >
           {r.outOfService}
         </span>
       ),
@@ -210,7 +247,9 @@ export function AssetsPage() {
       align: 'right',
       sortValue: (r) => r.utilisationPct,
       render: (r) => (
-        <Badge tone={r.utilisationPct > 80 ? 'danger' : r.utilisationPct > 50 ? 'warning' : 'success'}>
+        <Badge
+          tone={r.utilisationPct > 80 ? 'danger' : r.utilisationPct > 50 ? 'warning' : 'success'}
+        >
           {r.utilisationPct}%
         </Badge>
       ),
@@ -246,7 +285,7 @@ export function AssetsPage() {
           <span className="text-muted">—</span>
         ),
     },
-  ]
+  ];
 
   if (mayManage) {
     columns.push({
@@ -275,12 +314,18 @@ export function AssetsPage() {
               <Trash2 size={15} />
             </Button>
           )}
-          <Button variant="secondary" onClick={() => openAdd(r)} title={t('action.add')} aria-label={t('action.add')} data-testid={`asset-add-${r._id}`}>
+          <Button
+            variant="secondary"
+            onClick={() => openAdd(r)}
+            title={t('action.add')}
+            aria-label={t('action.add')}
+            data-testid={`asset-add-${r._id}`}
+          >
             <Plus size={15} />
           </Button>
         </div>
       ),
-    })
+    });
   }
 
   if (isLoading || !data) {
@@ -289,7 +334,7 @@ export function AssetsPage() {
         <PageHeader title={t('title')} subtitle={t('common:state.loading')} />
         <Spinner />
       </div>
-    )
+    );
   }
 
   return (
@@ -302,24 +347,55 @@ export function AssetsPage() {
         actions={
           mayManage ? (
             <Button onClick={() => setNewKindOpen(true)} data-testid="asset-new-kind">
-              <Plus size={16} />{t('action.newKind')}</Button>
+              <Plus size={16} />
+              {t('action.newKind')}
+            </Button>
           ) : undefined
         }
       />
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-5">
-        <StatCard label={t('table.total')} value={totals.total} icon={<Boxes size={18} />} testId="asset-stat-total" />
-        <StatCard label={t('table.inUse')} value={totals.inUse} tone="info" testId="asset-stat-inuse" />
-        <StatCard label={t('table.free')} value={totals.available} tone="success" testId="asset-stat-free" />
-        <StatCard label={t('table.down')} value={totals.outOfService} tone={totals.outOfService ? 'danger' : 'neutral'} testId="asset-stat-down" />
+        <StatCard
+          label={t('table.total')}
+          value={totals.total}
+          icon={<Boxes size={18} />}
+          testId="asset-stat-total"
+        />
+        <StatCard
+          label={t('table.inUse')}
+          value={totals.inUse}
+          tone="info"
+          testId="asset-stat-inuse"
+        />
+        <StatCard
+          label={t('table.free')}
+          value={totals.available}
+          tone="success"
+          testId="asset-stat-free"
+        />
+        <StatCard
+          label={t('table.down')}
+          value={totals.outOfService}
+          tone={totals.outOfService ? 'danger' : 'neutral'}
+          testId="asset-stat-down"
+        />
       </div>
 
       <div className="flex flex-wrap gap-2 mb-4" data-testid="asset-engine-filters">
-        <FilterButton active={filter === 'ALL'} onClick={() => setFilter('ALL')} testId="asset-filter-ALL">
+        <FilterButton
+          active={filter === 'ALL'}
+          onClick={() => setFilter('ALL')}
+          testId="asset-filter-ALL"
+        >
           {t('common:table.all')}
         </FilterButton>
         {adoptedActivities.map((kind) => (
-          <FilterButton key={kind} active={filter === kind} onClick={() => setFilter(kind)} testId={`asset-filter-${kind}`}>
+          <FilterButton
+            key={kind}
+            active={filter === kind}
+            onClick={() => setFilter(kind)}
+            testId={`asset-filter-${kind}`}
+          >
             {engineLabel(kind)}
           </FilterButton>
         ))}
@@ -334,7 +410,9 @@ export function AssetsPage() {
             action={
               mayManage ? (
                 <Button onClick={() => setNewKindOpen(true)} data-testid="asset-new-kind-empty">
-                  <Plus size={15} />{t('action.newKind')}</Button>
+                  <Plus size={15} />
+                  {t('action.newKind')}
+                </Button>
               ) : undefined
             }
           />
@@ -372,7 +450,13 @@ export function AssetsPage() {
         open={!!editing}
         onClose={() => setEditing(null)}
         kind={editing}
-        product={editing ? (pricing.data?.products ?? []).find((pr: PricingProduct) => pr.assetTypeId === editing._id) ?? null : null}
+        product={
+          editing
+            ? ((pricing.data?.products ?? []).find(
+                (pr: PricingProduct) => pr.assetTypeId === editing._id
+              ) ?? null)
+            : null
+        }
       />
 
       <Modal
@@ -383,8 +467,15 @@ export function AssetsPage() {
         testId="asset-delete-kind-modal"
         footer={
           <>
-            <Button variant="ghost" onClick={() => setDeleting(null)}>{t('common:action.cancel')}</Button>
-            <Button variant="danger" onClick={submitDelete} loading={removeKind.isPending} data-testid="asset-delete-kind-submit">
+            <Button variant="ghost" onClick={() => setDeleting(null)}>
+              {t('common:action.cancel')}
+            </Button>
+            <Button
+              variant="danger"
+              onClick={submitDelete}
+              loading={removeKind.isPending}
+              data-testid="asset-delete-kind-submit"
+            >
               {t('common:action.delete')}
             </Button>
           </>
@@ -401,8 +492,15 @@ export function AssetsPage() {
         testId="asset-add-modal"
         footer={
           <>
-            <Button variant="ghost" onClick={() => setAddFor(null)}>{t('common:action.cancel')}</Button>
-            <Button onClick={submitAdd} loading={addUnits.isPending} disabled={!stationId || (!kioskId && !heldByArea(addFor)) || count < 1} data-testid="asset-add-submit">
+            <Button variant="ghost" onClick={() => setAddFor(null)}>
+              {t('common:action.cancel')}
+            </Button>
+            <Button
+              onClick={submitAdd}
+              loading={addUnits.isPending}
+              disabled={!stationId || (!kioskId && !heldByArea(addFor)) || count < 1}
+              data-testid="asset-add-submit"
+            >
               {t('add.submit', { count })}
             </Button>
           </>
@@ -412,8 +510,8 @@ export function AssetsPage() {
           <Select
             value={stationId}
             onChange={(v) => {
-              setStationId(v)
-              setKioskId(heldByArea(addFor) ? '' : (desksFor(addFor, v)[0]?._id ?? ''))
+              setStationId(v);
+              setKioskId(heldByArea(addFor) ? '' : (desksFor(addFor, v)[0]?._id ?? ''));
             }}
             options={data.stations.map((s) => ({ label: s.name, value: s._id }))}
             testId="asset-add-station"
@@ -430,14 +528,23 @@ export function AssetsPage() {
               onChange={setKioskId}
               options={[
                 heldByArea(addFor)
-                  ? { label: t('newKind.heldByArea', { defaultValue: 'The whole area — every counter here can sell it' }), value: '' }
+                  ? {
+                      label: t('newKind.heldByArea', {
+                        defaultValue: 'The whole area — every counter here can sell it',
+                      }),
+                      value: '',
+                    }
                   : { label: atAGate(addFor) ? t('add.pickGate') : t('add.pickKiosk'), value: '' },
                 ...desksFor(addFor, stationId).map((k) => ({ label: k.name, value: k._id })),
               ]}
               testId="asset-add-kiosk"
             />
           ) : heldByArea(addFor) ? (
-            <p className="text-xs text-muted" data-testid="asset-add-area">{t('newKind.heldByArea', { defaultValue: 'The whole area — every counter here can sell it' })}</p>
+            <p className="text-xs text-muted" data-testid="asset-add-area">
+              {t('newKind.heldByArea', {
+                defaultValue: 'The whole area — every counter here can sell it',
+              })}
+            </p>
           ) : (
             <p className="text-xs text-danger-strong" data-testid="asset-add-no-kiosk">
               {atAGate(addFor) ? t('add.noGateHere') : t('add.noKioskHere')}
@@ -445,12 +552,17 @@ export function AssetsPage() {
           )}
         </Field>
         <Field label={t('add.howMany')} required hint={t('add.identifierNote')}>
-          <NumberInput min={1} max={200} value={count} onChange={setCount} testId="asset-add-count" />
+          <NumberInput
+            min={1}
+            max={200}
+            value={count}
+            onChange={setCount}
+            testId="asset-add-count"
+          />
         </Field>
       </Modal>
-
     </div>
-  )
+  );
 }
 
 function FilterButton({
@@ -459,10 +571,10 @@ function FilterButton({
   children,
   testId,
 }: {
-  active: boolean
-  onClick: () => void
-  children: React.ReactNode
-  testId: string
+  active: boolean;
+  onClick: () => void;
+  children: React.ReactNode;
+  testId: string;
 }) {
   return (
     <button
@@ -474,10 +586,10 @@ function FilterButton({
         'px-3.5 py-1.5 rounded-full text-sm font-semibold border transition-colors',
         active
           ? 'bg-brand text-white border-brand'
-          : 'bg-white text-muted border-line hover:border-brand hover:text-brand dark:bg-dk-elevated dark:border-dk-border',
+          : 'bg-white text-muted border-line hover:border-brand hover:text-brand dark:bg-dk-elevated dark:border-dk-border'
       )}
     >
       {children}
     </button>
-  )
+  );
 }

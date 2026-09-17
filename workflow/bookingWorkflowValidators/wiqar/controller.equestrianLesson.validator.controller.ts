@@ -1,12 +1,16 @@
-import type { ValidationResult, WorkflowContext } from '../../shared/types.js'
-import { requireAvailableUnit, requirePaid, requirePositiveDuration } from '../shared.validators.js'
+import type { ValidationResult, WorkflowContext } from '../../shared/types.js';
+import {
+  requireAvailableUnit,
+  requirePaid,
+  requirePositiveDuration,
+} from '../shared.validators.js';
 import {
   LESSON_LEVELS,
   requireConsent,
   requireNamedTrainer,
   requireWithinSlotGrace,
   requireWorkableAnimal,
-} from '../shared.animal.validators.js'
+} from '../shared.animal.validators.js';
 
 /**
  * What Equestrian Lesson refuses, and why.
@@ -24,15 +28,20 @@ import {
  * the trainer prepares, so a lesson booked without one is a lesson nobody can plan.
  */
 function requireLevel(ctx: WorkflowContext): string[] {
-  const level = String(ctx.booking.metadata?.level ?? ctx.payload.level ?? '').trim().toUpperCase()
-  if (!level) return ['Choose the level this lesson is booked at.']
+  const level = String(ctx.booking.metadata?.level ?? ctx.payload.level ?? '')
+    .trim()
+    .toUpperCase();
+  if (!level) return ['Choose the level this lesson is booked at.'];
   return (LESSON_LEVELS as readonly string[]).includes(level)
     ? []
-    : [`"${level}" is not a level this lesson is taught at.`]
+    : [`"${level}" is not a level this lesson is taught at.`];
 }
 
-export const useEquestrianLessonValidator = (transitionCode: string, ctx: WorkflowContext): ValidationResult => {
-  const errors: string[] = []
+export const useEquestrianLessonValidator = (
+  transitionCode: string,
+  ctx: WorkflowContext
+): ValidationResult => {
+  const errors: string[] = [];
 
   switch (transitionCode) {
     case 'TO_CONFIRMED': {
@@ -42,9 +51,9 @@ export const useEquestrianLessonValidator = (transitionCode: string, ctx: Workfl
         // §11.1 — a riding session must have a named trainer.
         ...requireNamedTrainer(ctx),
         ...requireWorkableAnimal(ctx),
-        ...requireLevel(ctx),
-      )
-      break
+        ...requireLevel(ctx)
+      );
+      break;
     }
 
     case 'TO_STARTED': {
@@ -55,24 +64,24 @@ export const useEquestrianLessonValidator = (transitionCode: string, ctx: Workfl
         ...requireWorkableAnimal(ctx),
         ...requireAvailableUnit(ctx),
         // §4.1 gives this experience a duration of 45–60 min.
-        ...requirePositiveDuration(ctx),
-      )
-      break
+        ...requirePositiveDuration(ctx)
+      );
+      break;
     }
 
     case 'TO_COMPLETED': {
-      break
+      break;
     }
 
     case 'TO_CANCELLED': {
-      break
+      break;
     }
 
     default: {
-      errors.push(`Unknown transition code: ${transitionCode}`)
-      break
+      errors.push(`Unknown transition code: ${transitionCode}`);
+      break;
     }
   }
 
-  return { errors }
-}
+  return { errors };
+};

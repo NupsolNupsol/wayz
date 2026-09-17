@@ -1,8 +1,13 @@
-import { OPS, TILL } from '../../shared/access.js'
-import { ACTIVE, CANCELLED, COMPLETED, CONFIRMED, DRAFT, OVERTIME } from '../../shared/status.js'
-import type { EngineWorkflow, OperationResult, ValidationResult, WorkflowContext } from '../../shared/types.js'
-import { useCamelTourValidator } from '../../bookingWorkflowValidators/wiqar/controller.camelTour.validator.controller.js'
-import { useCamelTourOperation } from '../../bookingWorkflowOperations/wiqar/controller.camelTour.operation.controller.js'
+import { OPS, TILL } from '../../shared/access.js';
+import { ACTIVE, CANCELLED, COMPLETED, CONFIRMED, DRAFT, OVERTIME } from '../../shared/status.js';
+import type {
+  EngineWorkflow,
+  OperationResult,
+  ValidationResult,
+  WorkflowContext,
+} from '../../shared/types.js';
+import { useCamelTourValidator } from '../../bookingWorkflowValidators/wiqar/controller.camelTour.validator.controller.js';
+import { useCamelTourOperation } from '../../bookingWorkflowOperations/wiqar/controller.camelTour.operation.controller.js';
 
 /**
  * Camel Tour.
@@ -55,14 +60,14 @@ export const camelTourWorkflow: EngineWorkflow = {
       style: { backgroundColor: '#db5d5d' },
     },
   ],
-}
+};
 
 export const LaunchCamelTourControl = async (
   transitionCode: string,
-  ctx: WorkflowContext,
-): Promise<ValidationResult> => useCamelTourValidator(transitionCode, ctx)
+  ctx: WorkflowContext
+): Promise<ValidationResult> => useCamelTourValidator(transitionCode, ctx);
 
 export const LaunchCamelTourOperation = async (
   transitionCode: string,
-  ctx: WorkflowContext,
-): Promise<OperationResult> => useCamelTourOperation(transitionCode, ctx)
+  ctx: WorkflowContext
+): Promise<OperationResult> => useCamelTourOperation(transitionCode, ctx);

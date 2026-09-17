@@ -1,36 +1,39 @@
-import type { ValidationResult, WorkflowContext } from '../shared/types.js'
-import { requireAvailableUnit, requireFlag, requirePaid } from './shared.validators.js'
+import type { ValidationResult, WorkflowContext } from '../shared/types.js';
+import { requireAvailableUnit, requireFlag, requirePaid } from './shared.validators.js';
 
-export const useLagoonValidator = (transitionCode: string, ctx: WorkflowContext): ValidationResult => {
-  const errors: string[] = []
+export const useLagoonValidator = (
+  transitionCode: string,
+  ctx: WorkflowContext
+): ValidationResult => {
+  const errors: string[] = [];
 
   switch (transitionCode) {
     case 'TO_CONFIRMED': {
-      break
+      break;
     }
 
     case 'TO_STARTED': {
       errors.push(
         ...requirePaid(ctx),
         ...requireFlag(ctx, 'boardingVerified', 'Boarding count must be verified before dispatch.'),
-        ...requireAvailableUnit(ctx),
-      )
-      break
+        ...requireAvailableUnit(ctx)
+      );
+      break;
     }
 
     case 'TO_COMPLETED': {
-      break
+      break;
     }
 
     case 'TO_CANCELLED': {
-      break
+      break;
     }
 
     default: {
-      errors.push(`Unknown transition code: ${transitionCode}`)
-      break
+      errors.push(`Unknown transition code: ${transitionCode}`);
+      break;
     }
   }
 
-  return { errors }
-}
+  return { errors };
+};

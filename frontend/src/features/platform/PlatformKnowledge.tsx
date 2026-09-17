@@ -1,12 +1,12 @@
-import { useRef, useState } from 'react'
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { BookOpen, Globe, RefreshCw, Trash2, Upload } from 'lucide-react'
+import { useRef, useState } from 'react';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { BookOpen, Globe, RefreshCw, Trash2, Upload } from 'lucide-react';
 
-import { PageHeader } from '@/components/PageHeader'
-import { Badge, Button, Card, EmptyState, Field, SectionTitle, Spinner } from '@/components/ui'
-import { DataTable } from '@/components/DataTable'
-import { Select } from '@/components/Select'
-import { platformApi, type KnowledgeDocument } from '@/api/platform.api'
+import { PageHeader } from '@/components/PageHeader';
+import { Badge, Button, Card, EmptyState, Field, SectionTitle, Spinner } from '@/components/ui';
+import { DataTable } from '@/components/DataTable';
+import { Select } from '@/components/Select';
+import { platformApi, type KnowledgeDocument } from '@/api/platform.api';
 
 /**
  * What the assistant has been given to read.
@@ -33,25 +33,28 @@ import { platformApi, type KnowledgeDocument } from '@/api/platform.api'
  * proxies an upload stream.
  */
 
-const READABLE = ['.txt', '.md', '.csv', '.json'] as const
+const READABLE = ['.txt', '.md', '.csv', '.json'] as const;
 
 export function PlatformKnowledge() {
-  const qc = useQueryClient()
-  const fileInput = useRef<HTMLInputElement>(null)
+  const qc = useQueryClient();
+  const fileInput = useRef<HTMLInputElement>(null);
 
-  const [title, setTitle] = useState('')
-  const [organizationId, setOrganizationId] = useState('')
-  const [text, setText] = useState('')
-  const [filename, setFilename] = useState('')
-  const [error, setError] = useState('')
+  const [title, setTitle] = useState('');
+  const [organizationId, setOrganizationId] = useState('');
+  const [text, setText] = useState('');
+  const [filename, setFilename] = useState('');
+  const [error, setError] = useState('');
 
-  const documents = useQuery({ queryKey: ['platform', 'knowledge'], queryFn: () => platformApi.knowledge() })
+  const documents = useQuery({
+    queryKey: ['platform', 'knowledge'],
+    queryFn: () => platformApi.knowledge(),
+  });
   const organisations = useQuery({
     queryKey: ['platform', 'organisations'],
     queryFn: () => platformApi.organisations(),
-  })
+  });
 
-  const refresh = () => qc.invalidateQueries({ queryKey: ['platform', 'knowledge'] })
+  const refresh = () => qc.invalidateQueries({ queryKey: ['platform', 'knowledge'] });
 
   const upload = useMutation({
     mutationFn: () =>
@@ -62,34 +65,43 @@ export function PlatformKnowledge() {
         ...(organizationId ? { organizationId } : {}),
       }),
     onSuccess: () => {
-      setTitle('')
-      setText('')
-      setFilename('')
-      setError('')
-      if (fileInput.current) fileInput.current.value = ''
-      void refresh()
+      setTitle('');
+      setText('');
+      setFilename('');
+      setError('');
+      if (fileInput.current) fileInput.current.value = '';
+      void refresh();
     },
-    onError: (e: unknown) => setError(e instanceof Error ? e.message : 'Could not index that document.'),
-  })
+    onError: (e: unknown) =>
+      setError(e instanceof Error ? e.message : 'Could not index that document.'),
+  });
 
-  const reindex = useMutation({ mutationFn: (id: string) => platformApi.reindexKnowledge(id), onSuccess: refresh })
-  const remove = useMutation({ mutationFn: (id: string) => platformApi.removeKnowledge(id), onSuccess: refresh })
+  const reindex = useMutation({
+    mutationFn: (id: string) => platformApi.reindexKnowledge(id),
+    onSuccess: refresh,
+  });
+  const remove = useMutation({
+    mutationFn: (id: string) => platformApi.removeKnowledge(id),
+    onSuccess: refresh,
+  });
 
   /** Reads the chosen file in the browser. Text formats only — this is not a document converter. */
   const readFile = async (file: File) => {
-    const ok = READABLE.some((ext) => file.name.toLowerCase().endsWith(ext))
+    const ok = READABLE.some((ext) => file.name.toLowerCase().endsWith(ext));
     if (!ok) {
-      setError(`The assistant reads plain text. Convert it first, or paste the contents (${READABLE.join(', ')}).`)
-      return
+      setError(
+        `The assistant reads plain text. Convert it first, or paste the contents (${READABLE.join(', ')}).`
+      );
+      return;
     }
-    setError('')
-    setFilename(file.name)
-    if (!title) setTitle(file.name.replace(/\.[^.]+$/, ''))
-    setText(await file.text())
-  }
+    setError('');
+    setFilename(file.name);
+    if (!title) setTitle(file.name.replace(/\.[^.]+$/, ''));
+    setText(await file.text());
+  };
 
-  const rows = documents.data?.documents ?? []
-  const companies = organisations.data?.organisations ?? []
+  const rows = documents.data?.documents ?? [];
+  const companies = organisations.data?.organisations ?? [];
 
   return (
     <div data-testid="platform-knowledge">
@@ -133,13 +145,16 @@ export function PlatformKnowledge() {
                 data-testid="knowledge-file"
                 className="lf-input py-1.5"
                 onChange={(e) => {
-                  const file = e.target.files?.[0]
-                  if (file) void readFile(file)
+                  const file = e.target.files?.[0];
+                  if (file) void readFile(file);
                 }}
               />
             </Field>
 
-            <Field label="Or paste the text" hint={text ? `${text.length.toLocaleString()} characters` : undefined}>
+            <Field
+              label="Or paste the text"
+              hint={text ? `${text.length.toLocaleString()} characters` : undefined}
+            >
               <textarea
                 className="lf-input min-h-[120px] py-2"
                 data-testid="knowledge-text"
@@ -150,7 +165,10 @@ export function PlatformKnowledge() {
             </Field>
 
             {error && (
-              <div className="rounded-lg bg-danger/10 px-3 py-2 text-[12.5px] text-danger" data-testid="knowledge-error">
+              <div
+                className="rounded-lg bg-danger/10 px-3 py-2 text-[12.5px] text-danger"
+                data-testid="knowledge-error"
+              >
                 {error}
               </div>
             )}
@@ -197,7 +215,12 @@ export function PlatformKnowledge() {
                 pageSize={15}
                 empty={{ title: 'Nothing indexed yet.' }}
                 columns={[
-                  { key: 'title', header: 'Document', sortValue: (d) => d.title, render: (d) => d.title },
+                  {
+                    key: 'title',
+                    header: 'Document',
+                    sortValue: (d) => d.title,
+                    render: (d) => d.title,
+                  },
                   {
                     key: 'scope',
                     header: 'Reaches',
@@ -217,13 +240,21 @@ export function PlatformKnowledge() {
                     sortValue: (d) => d.status,
                     render: (d) => (
                       <span title={d.error ?? undefined}>
-                        <Badge tone={d.status === 'INDEXED' ? 'success' : d.error ? 'danger' : 'warning'}>
+                        <Badge
+                          tone={d.status === 'INDEXED' ? 'success' : d.error ? 'danger' : 'warning'}
+                        >
                           {d.status.toLowerCase()}
                         </Badge>
                       </span>
                     ),
                   },
-                  { key: 'chunks', header: 'Passages', align: 'right', sortValue: (d) => d.chunks, render: (d) => d.chunks },
+                  {
+                    key: 'chunks',
+                    header: 'Passages',
+                    align: 'right',
+                    sortValue: (d) => d.chunks,
+                    render: (d) => d.chunks,
+                  },
                   {
                     key: 'actions',
                     header: '',
@@ -258,5 +289,5 @@ export function PlatformKnowledge() {
         </div>
       </div>
     </div>
-  )
+  );
 }

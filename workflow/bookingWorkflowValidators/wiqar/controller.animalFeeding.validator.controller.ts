@@ -1,11 +1,15 @@
-import type { ValidationResult, WorkflowContext } from '../../shared/types.js'
-import { requireAvailableUnit, requirePaid, requirePositiveDuration } from '../shared.validators.js'
+import type { ValidationResult, WorkflowContext } from '../../shared/types.js';
+import {
+  requireAvailableUnit,
+  requirePaid,
+  requirePositiveDuration,
+} from '../shared.validators.js';
 import {
   requireConsent,
   requireFeedPurchased,
   requireWithinSlotGrace,
   requireWorkableAnimal,
-} from '../shared.animal.validators.js'
+} from '../shared.animal.validators.js';
 
 /**
  * What Animal Feeding Session refuses, and why.
@@ -16,8 +20,11 @@ import {
  * is only what makes this experience different from the other six.
  */
 
-export const useAnimalFeedingValidator = (transitionCode: string, ctx: WorkflowContext): ValidationResult => {
-  const errors: string[] = []
+export const useAnimalFeedingValidator = (
+  transitionCode: string,
+  ctx: WorkflowContext
+): ValidationResult => {
+  const errors: string[] = [];
 
   switch (transitionCode) {
     case 'TO_CONFIRMED': {
@@ -25,9 +32,9 @@ export const useAnimalFeedingValidator = (transitionCode: string, ctx: WorkflowC
       errors.push(
         ...requireConsent(ctx),
         ...requireWorkableAnimal(ctx),
-        ...requireFeedPurchased(ctx),
-      )
-      break
+        ...requireFeedPurchased(ctx)
+      );
+      break;
     }
 
     case 'TO_STARTED': {
@@ -39,24 +46,24 @@ export const useAnimalFeedingValidator = (transitionCode: string, ctx: WorkflowC
         ...requireFeedPurchased(ctx),
         ...requireAvailableUnit(ctx),
         // §4.1 gives this experience a duration of 15 min.
-        ...requirePositiveDuration(ctx),
-      )
-      break
+        ...requirePositiveDuration(ctx)
+      );
+      break;
     }
 
     case 'TO_COMPLETED': {
-      break
+      break;
     }
 
     case 'TO_CANCELLED': {
-      break
+      break;
     }
 
     default: {
-      errors.push(`Unknown transition code: ${transitionCode}`)
-      break
+      errors.push(`Unknown transition code: ${transitionCode}`);
+      break;
     }
   }
 
-  return { errors }
-}
+  return { errors };
+};

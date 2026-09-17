@@ -1,13 +1,13 @@
-import { Router } from 'express'
-import { authenticate } from '../middlewares/auth.js'
-import { notificationController } from '../controllers/notification.controller.js'
+import { Router } from 'express';
+import { authenticate } from '../middlewares/auth.js';
+import { notificationController } from '../controllers/notification.controller.js';
 
-const router = Router()
+const router = Router();
 
-router.use(authenticate)
+router.use(authenticate);
 
-router.get('/', notificationController.list)
-router.post('/read-all', notificationController.readAll)
-router.post('/:id/read', notificationController.read)
+router.get('/', notificationController.list);
+router.post('/read-all', notificationController.readAll);
+router.post('/:id/read', notificationController.read);
 
-export default router
+export default router;

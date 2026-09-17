@@ -1,8 +1,13 @@
-import { OPS, TILL } from '../../shared/access.js'
-import { ACTIVE, CANCELLED, COMPLETED, CONFIRMED, DRAFT, OVERTIME } from '../../shared/status.js'
-import type { EngineWorkflow, OperationResult, ValidationResult, WorkflowContext } from '../../shared/types.js'
-import { useAnimalCareValidator } from '../../bookingWorkflowValidators/wiqar/controller.animalCare.validator.controller.js'
-import { useAnimalCareOperation } from '../../bookingWorkflowOperations/wiqar/controller.animalCare.operation.controller.js'
+import { OPS, TILL } from '../../shared/access.js';
+import { ACTIVE, CANCELLED, COMPLETED, CONFIRMED, DRAFT, OVERTIME } from '../../shared/status.js';
+import type {
+  EngineWorkflow,
+  OperationResult,
+  ValidationResult,
+  WorkflowContext,
+} from '../../shared/types.js';
+import { useAnimalCareValidator } from '../../bookingWorkflowValidators/wiqar/controller.animalCare.validator.controller.js';
+import { useAnimalCareOperation } from '../../bookingWorkflowOperations/wiqar/controller.animalCare.operation.controller.js';
 
 /**
  * Animal Care Pack.
@@ -55,14 +60,14 @@ export const animalCareWorkflow: EngineWorkflow = {
       style: { backgroundColor: '#db5d5d' },
     },
   ],
-}
+};
 
 export const LaunchAnimalCareControl = async (
   transitionCode: string,
-  ctx: WorkflowContext,
-): Promise<ValidationResult> => useAnimalCareValidator(transitionCode, ctx)
+  ctx: WorkflowContext
+): Promise<ValidationResult> => useAnimalCareValidator(transitionCode, ctx);
 
 export const LaunchAnimalCareOperation = async (
   transitionCode: string,
-  ctx: WorkflowContext,
-): Promise<OperationResult> => useAnimalCareOperation(transitionCode, ctx)
+  ctx: WorkflowContext
+): Promise<OperationResult> => useAnimalCareOperation(transitionCode, ctx);

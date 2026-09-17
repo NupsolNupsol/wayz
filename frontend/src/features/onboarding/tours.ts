@@ -1,4 +1,4 @@
-import type { Role } from '@/models'
+import type { Role } from '@/models';
 
 /**
  * The guided tours, as data.
@@ -14,17 +14,17 @@ import type { Role } from '@/models'
  */
 
 export interface TourStep {
-  id: string
+  id: string;
   /** Looked up in the `onboarding` namespace as `step.<id>.title` / `.body`. */
-  target?: string
+  target?: string;
   /** Where the step goes before it is shown, when the thing it points at is elsewhere. */
-  route?: string
-  placement?: 'auto' | 'center'
+  route?: string;
+  placement?: 'auto' | 'center';
 }
 
 export interface Tour {
-  key: string
-  steps: TourStep[]
+  key: string;
+  steps: TourStep[];
 }
 
 /** Every tour ends the same way: where help lives, so nobody is left without a next move. */
@@ -32,7 +32,7 @@ const FINISH: TourStep[] = [
   { id: 'assistant', target: '[data-testid="assistant-launcher"]' },
   { id: 'training', target: '[data-testid="nav-training"]' },
   { id: 'done', placement: 'center' },
-]
+];
 
 export const TOURS: Record<string, Tour> = {
   agent: {
@@ -59,7 +59,11 @@ export const TOURS: Record<string, Tour> = {
     key: 'captain',
     steps: [
       { id: 'welcome', placement: 'center' },
-      { id: 'captain.board', target: '[data-testid="nav-lagoon-captain"]', route: '/lagoon/captain' },
+      {
+        id: 'captain.board',
+        target: '[data-testid="nav-lagoon-captain"]',
+        route: '/lagoon/captain',
+      },
       { id: 'captain.voyage', target: '[data-testid="nav-lagoon-voyage"]' },
       ...FINISH,
     ],
@@ -107,7 +111,7 @@ export const TOURS: Record<string, Tour> = {
       ...FINISH,
     ],
   },
-}
+};
 
 /**
  * Which tour a role gets.
@@ -126,7 +130,7 @@ const TOUR_BY_ROLE: Record<Role, string> = {
   HR: 'hr',
   ACCOUNTANT: 'accountant',
   TENANT_ADMIN: 'admin',
-}
+};
 
 export const tourFor = (role: Role | undefined): Tour | null =>
-  role ? (TOURS[TOUR_BY_ROLE[role]] ?? null) : null
+  role ? (TOURS[TOUR_BY_ROLE[role]] ?? null) : null;

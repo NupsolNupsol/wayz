@@ -1,4 +1,4 @@
-import { Schema } from 'mongoose'
+import { Schema } from 'mongoose';
 
 /**
  * What a member of staff has already been shown.
@@ -14,9 +14,9 @@ import { Schema } from 'mongoose'
 
 export interface LearningProgressDoc {
   /** The user id. One row per person, so the row is found without an index scan. */
-  _id: string
+  _id: string;
   /** The organisation this person belongs to. */
-  tenantId: string
+  tenantId: string;
   /**
    * The tour that was assigned, by key.
    *
@@ -24,18 +24,18 @@ export interface LearningProgressDoc {
    * supervisor has not seen the supervisor tour, and "completed" should not follow them into
    * a job they have not been shown.
    */
-  tourKey: string
-  role: string
-  status: 'PENDING' | 'IN_PROGRESS' | 'COMPLETED' | 'SKIPPED'
+  tourKey: string;
+  role: string;
+  status: 'PENDING' | 'IN_PROGRESS' | 'COMPLETED' | 'SKIPPED';
   /** The furthest step reached, so a tour resumes where it stopped rather than restarting. */
-  stepIndex: number
-  completedSteps: string[]
-  startedAt: Date | null
-  completedAt: Date | null
+  stepIndex: number;
+  completedSteps: string[];
+  startedAt: Date | null;
+  completedAt: Date | null;
   /** How many times the person asked for the tour again from the training page. */
-  restarts: number
-  createdAt: Date
-  updatedAt: Date
+  restarts: number;
+  createdAt: Date;
+  updatedAt: Date;
 }
 
 export const LearningProgressSchema = new Schema<LearningProgressDoc>(
@@ -65,5 +65,5 @@ export const LearningProgressSchema = new Schema<LearningProgressDoc>(
     completedAt: { type: Date, default: null },
     restarts: { type: Number, default: 0 },
   },
-  { _id: false, timestamps: true },
-)
+  { _id: false, timestamps: true }
+);

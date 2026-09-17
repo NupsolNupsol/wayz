@@ -1,12 +1,12 @@
-import { useEffect, useState } from 'react'
-import { useTranslation } from 'react-i18next'
-import { ShieldCheck, Send, Copy, MessageCircle, MessageSquare, Mail } from 'lucide-react'
-import { clsx } from 'clsx'
-import { otpApi, type OtpIntent } from '@/api/otp.api'
-import { Button } from './ui'
-import { toast } from '@/state/toastStore'
-import { useAuthStore } from '@/store/auth'
-import type { OtpChannel } from '@/api/types'
+import { useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
+import { ShieldCheck, Send, Copy, MessageCircle, MessageSquare, Mail } from 'lucide-react';
+import { clsx } from 'clsx';
+import { otpApi, type OtpIntent } from '@/api/otp.api';
+import { Button } from './ui';
+import { toast } from '@/state/toastStore';
+import { useAuthStore } from '@/store/auth';
+import type { OtpChannel } from '@/api/types';
 
 export function OtpBox({
   phone,
@@ -16,60 +16,62 @@ export function OtpBox({
   onVerified,
   disabled,
 }: {
-  phone: string
-  email?: string
-  intent?: OtpIntent
-  verified: boolean
-  onVerified: (ok: boolean) => void
-  disabled?: boolean
+  phone: string;
+  email?: string;
+  intent?: OtpIntent;
+  verified: boolean;
+  onVerified: (ok: boolean) => void;
+  disabled?: boolean;
 }) {
-  const { t } = useTranslation('ui')
-  const [channel, setChannel] = useState<OtpChannel>('WHATSAPP')
-  const [sent, setSent] = useState(false)
-  const [demoCode, setDemoCode] = useState('')
-  const [code, setCode] = useState('')
-  const [busy, setBusy] = useState(false)
-  const [verifiedAt, setVerifiedAt] = useState<number | null>(null)
-  const ttlMin = useAuthStore((s) => s.me?.tenant?.phoneProofTtlMin ?? 30)
+  const { t } = useTranslation('ui');
+  const [channel, setChannel] = useState<OtpChannel>('WHATSAPP');
+  const [sent, setSent] = useState(false);
+  const [demoCode, setDemoCode] = useState('');
+  const [code, setCode] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [verifiedAt, setVerifiedAt] = useState<number | null>(null);
+  const ttlMin = useAuthStore((s) => s.me?.tenant?.phoneProofTtlMin ?? 30);
 
   // WhatsApp and SMS both go to the phone; only email goes anywhere else.
-  const destination = channel === 'EMAIL' ? (email ?? '') : phone
-  const canSend = !!destination
+  const destination = channel === 'EMAIL' ? (email ?? '') : phone;
+  const canSend = !!destination;
 
   const switchChannel = (next: OtpChannel) => {
-    if (next === channel) return
-    setChannel(next)
-    setSent(false)
-    setDemoCode('')
-    setCode('')
-  }
+    if (next === channel) return;
+    setChannel(next);
+    setSent(false);
+    setDemoCode('');
+    setCode('');
+  };
 
   const doSend = async () => {
-    setBusy(true)
+    setBusy(true);
     try {
-      const { code: c, error } = await otpApi.send(destination, intent, channel)
-      setDemoCode(c ?? '')
-      setSent(true)
-      const via = channel === 'EMAIL' ? 'email' : 'WhatsApp'
-      if (c && error) toast('warning', `${via} delivery failed — using fallback code`, error.slice(0, 120))
-      else if (c) toast('info', t('otp.sent'), `Code ${c} — copy it into the field`)
-      else toast('success', `OTP sent via ${via}`, `The customer receives the code at ${destination}`)
+      const { code: c, error } = await otpApi.send(destination, intent, channel);
+      setDemoCode(c ?? '');
+      setSent(true);
+      const via = channel === 'EMAIL' ? 'email' : 'WhatsApp';
+      if (c && error)
+        toast('warning', `${via} delivery failed — using fallback code`, error.slice(0, 120));
+      else if (c) toast('info', t('otp.sent'), `Code ${c} — copy it into the field`);
+      else
+        toast('success', `OTP sent via ${via}`, `The customer receives the code at ${destination}`);
     } finally {
-      setBusy(false)
+      setBusy(false);
     }
-  }
+  };
 
   const doVerify = async () => {
-    setBusy(true)
+    setBusy(true);
     try {
-      const { verified: ok } = await otpApi.verify(destination, intent, code)
-      onVerified(ok)
-      if (ok) setVerifiedAt(Date.now())
-      toast(ok ? 'success' : 'danger', ok ? 'Identity verified' : 'Incorrect code')
+      const { verified: ok } = await otpApi.verify(destination, intent, code);
+      onVerified(ok);
+      if (ok) setVerifiedAt(Date.now());
+      toast(ok ? 'success' : 'danger', ok ? 'Identity verified' : 'Incorrect code');
     } finally {
-      setBusy(false)
+      setBusy(false);
     }
-  }
+  };
 
   /**
    * The server only honours a confirmation for so long. Letting the tick box stay green past that
@@ -77,24 +79,24 @@ export function OtpBox({
    * the box goes back to asking, a minute before the proof actually lapses.
    */
   useEffect(() => {
-    if (!verified || !verifiedAt) return
-    const lapsesIn = Math.max(0, (ttlMin - 1) * 60_000 - (Date.now() - verifiedAt))
+    if (!verified || !verifiedAt) return;
+    const lapsesIn = Math.max(0, (ttlMin - 1) * 60_000 - (Date.now() - verifiedAt));
     const id = window.setTimeout(() => {
-      onVerified(false)
-      setSent(false)
-      setCode('')
-      setVerifiedAt(null)
-      toast('warning', t('otp.lapsed'), t('otp.lapsedDetail'))
-    }, lapsesIn)
-    return () => window.clearTimeout(id)
-  }, [verified, verifiedAt, ttlMin, onVerified, t])
+      onVerified(false);
+      setSent(false);
+      setCode('');
+      setVerifiedAt(null);
+      toast('warning', t('otp.lapsed'), t('otp.lapsedDetail'));
+    }, lapsesIn);
+    return () => window.clearTimeout(id);
+  }, [verified, verifiedAt, ttlMin, onVerified, t]);
 
   if (verified) {
     return (
       <div className="lf-card p-3 flex items-center gap-2 text-success" data-testid="otp-verified">
         <ShieldCheck size={18} /> <span className="text-sm font-semibold">{t('otp.verified')}</span>
       </div>
-    )
+    );
   }
 
   return (
@@ -107,16 +109,42 @@ export function OtpBox({
         screen or editing the customer.
       */}
       <div className="flex gap-2 mb-3" role="tablist" aria-label={t('otp.channel')}>
-        <ChannelTab active={channel === 'WHATSAPP'} onClick={() => switchChannel('WHATSAPP')} icon={<MessageCircle size={14} />} testId="otp-channel-whatsapp">{t('otp.whatsapp')}</ChannelTab>
-        <ChannelTab active={channel === 'SMS'} onClick={() => switchChannel('SMS')} icon={<MessageSquare size={14} />} testId="otp-channel-sms">{t('otp.sms')}</ChannelTab>
+        <ChannelTab
+          active={channel === 'WHATSAPP'}
+          onClick={() => switchChannel('WHATSAPP')}
+          icon={<MessageCircle size={14} />}
+          testId="otp-channel-whatsapp"
+        >
+          {t('otp.whatsapp')}
+        </ChannelTab>
+        <ChannelTab
+          active={channel === 'SMS'}
+          onClick={() => switchChannel('SMS')}
+          icon={<MessageSquare size={14} />}
+          testId="otp-channel-sms"
+        >
+          {t('otp.sms')}
+        </ChannelTab>
         {email && (
-          <ChannelTab active={channel === 'EMAIL'} onClick={() => switchChannel('EMAIL')} icon={<Mail size={14} />} testId="otp-channel-email">{t('otp.email')}</ChannelTab>
+          <ChannelTab
+            active={channel === 'EMAIL'}
+            onClick={() => switchChannel('EMAIL')}
+            icon={<Mail size={14} />}
+            testId="otp-channel-email"
+          >
+            {t('otp.email')}
+          </ChannelTab>
         )}
       </div>
 
       {!sent ? (
         <>
-          <Button onClick={doSend} loading={busy} disabled={disabled || !canSend} data-testid="otp-send">
+          <Button
+            onClick={doSend}
+            loading={busy}
+            disabled={disabled || !canSend}
+            data-testid="otp-send"
+          >
             <Send size={15} /> Send code to {destination || 'customer'}
           </Button>
           <p className="mt-2 text-xs text-muted">{t('otp.mustVerify')}</p>
@@ -131,12 +159,16 @@ export function OtpBox({
           {demoCode ? (
             <button
               type="button"
-              onClick={() => { navigator.clipboard?.writeText(demoCode); setCode(demoCode) }}
+              onClick={() => {
+                navigator.clipboard?.writeText(demoCode);
+                setCode(demoCode);
+              }}
               className="mb-2 inline-flex items-center gap-2 rounded-lg bg-switchc/10 text-navy px-3 py-1.5 text-sm"
               data-testid="otp-demo-code"
               title={t('otp.mock')}
             >
-              <Copy size={14} /> Mock OTP: <strong className="font-mono tracking-widest">{demoCode}</strong>
+              <Copy size={14} /> Mock OTP:{' '}
+              <strong className="font-mono tracking-widest">{demoCode}</strong>
             </button>
           ) : (
             <p className="mb-2 text-xs text-success" data-testid="otp-whatsapp-sent">
@@ -161,16 +193,37 @@ export function OtpBox({
               placeholder={t('otp.code')}
               className="lf-input tracking-[0.4em] text-center font-mono w-40"
             />
-            <Button onClick={doVerify} loading={busy} disabled={code.length < 4} data-testid="otp-verify">{t('otp.verify')}</Button>
-            <button className="text-xs text-brand" onClick={doSend} type="button">{t('otp.resend')}</button>
+            <Button
+              onClick={doVerify}
+              loading={busy}
+              disabled={code.length < 4}
+              data-testid="otp-verify"
+            >
+              {t('otp.verify')}
+            </Button>
+            <button className="text-xs text-brand" onClick={doSend} type="button">
+              {t('otp.resend')}
+            </button>
           </div>
         </div>
       )}
     </div>
-  )
+  );
 }
 
-function ChannelTab({ active, onClick, children, icon, testId }: { active: boolean; onClick: () => void; children: React.ReactNode; icon: React.ReactNode; testId: string }) {
+function ChannelTab({
+  active,
+  onClick,
+  children,
+  icon,
+  testId,
+}: {
+  active: boolean;
+  onClick: () => void;
+  children: React.ReactNode;
+  icon: React.ReactNode;
+  testId: string;
+}) {
   return (
     <button
       type="button"
@@ -180,10 +233,12 @@ function ChannelTab({ active, onClick, children, icon, testId }: { active: boole
       data-testid={testId}
       className={clsx(
         'lf-chip !px-3 !py-1.5 border transition-colors',
-        active ? 'border-brand bg-brand/10 text-brand font-semibold' : 'border-line text-muted hover:border-brand',
+        active
+          ? 'border-brand bg-brand/10 text-brand font-semibold'
+          : 'border-line text-muted hover:border-brand'
       )}
     >
       {icon} {children}
     </button>
-  )
+  );
 }

@@ -1,100 +1,125 @@
-import { http, unwrap } from './client'
-import type { SaleType, SaleUnit } from './asset.api'
-import type { BillingModel, EngineKind, Incident, Role, Shift } from './types'
+import { http, unwrap } from './client';
+import type { SaleType, SaleUnit } from './asset.api';
+import type { BillingModel, EngineKind, Incident, Role, Shift } from './types';
 
 export interface ManagerOverview {
-  revenue: { today: number; last7Days: number; last30Days: number }
+  revenue: { today: number; last7Days: number; last30Days: number };
   /** Money the desk chose not to take — free rides and discounts, summed for the dashboard. */
   discounts?: {
-    today: number
-    todayCount: number
-    todayFreeRides: number
-    last30Days: number
-    last30DaysCount: number
-    last30DaysFreeRides: number
-  }
-  transactionsToday: number
-  activeSessions: number
-  overdueSessions: number
-  openIncidents: number
-  pendingVariances: number
-  staffCount: number
+    today: number;
+    todayCount: number;
+    todayFreeRides: number;
+    last30Days: number;
+    last30DaysCount: number;
+    last30DaysFreeRides: number;
+  };
+  transactionsToday: number;
+  activeSessions: number;
+  overdueSessions: number;
+  openIncidents: number;
+  pendingVariances: number;
+  staffCount: number;
   estate: {
-    totalUnits: number
-    inUse: number
-    available: number
-    outOfService: number
-    utilisationPct: number
-    byStatus: Record<string, number>
-  }
-  byEngine: { engineKind: EngineKind; revenue: number; payments: number }[]
-  byStation: { stationId: string; name: string; bookings: number; active: number }[]
-  revenueTrend: { date: string; total: number; count: number }[]
+    totalUnits: number;
+    inUse: number;
+    available: number;
+    outOfService: number;
+    utilisationPct: number;
+    byStatus: Record<string, number>;
+  };
+  byEngine: { engineKind: EngineKind; revenue: number; payments: number }[];
+  byStation: { stationId: string; name: string; bookings: number; active: number }[];
+  revenueTrend: { date: string; total: number; count: number }[];
 }
 
 export interface ManagerLiveSession {
-  _id: string
-  ref: string
-  engineKind: EngineKind
-  status: string
-  productName: string
-  customerName: string
-  stationName: string
-  expectedEndAt: string | null
-  remainingMs: number | null
+  _id: string;
+  ref: string;
+  engineKind: EngineKind;
+  status: string;
+  productName: string;
+  customerName: string;
+  stationName: string;
+  expectedEndAt: string | null;
+  remainingMs: number | null;
   /** The tenant's grace rule, so a live clock can tell late apart from charged. */
-  gracePeriodMin: number
-  isOvertime: boolean
-  penaltyAmount: number
+  gracePeriodMin: number;
+  isOvertime: boolean;
+  penaltyAmount: number;
 }
 
 export interface ManagerRental extends ManagerLiveSession {
-  customerId: string
-  customerPhone: string
-  agentName: string
-  bagCount: number
-  startedAt: string | null
-  createdAt: string
+  customerId: string;
+  customerPhone: string;
+  agentName: string;
+  bagCount: number;
+  startedAt: string | null;
+  createdAt: string;
 }
 
 export interface ManagerRentalDetail {
-  booking: Record<string, unknown> & { ref: string; overtime: { penaltyAmount: number; phase: string } }
-  order: { ref: string; lines: { name: string; quantity: number; unitPrice: number }[]; total: number; subtotal: number; vat: number; status: string } | null
-  payments: { _id: string; amount: number; method: string; kind: string; status: string; createdAt: string }[]
-  stationName: string
-  agentName: string
+  booking: Record<string, unknown> & {
+    ref: string;
+    overtime: { penaltyAmount: number; phase: string };
+  };
+  order: {
+    ref: string;
+    lines: { name: string; quantity: number; unitPrice: number }[];
+    total: number;
+    subtotal: number;
+    vat: number;
+    status: string;
+  } | null;
+  payments: {
+    _id: string;
+    amount: number;
+    method: string;
+    kind: string;
+    status: string;
+    createdAt: string;
+  }[];
+  stationName: string;
+  agentName: string;
 }
 
 export interface ManagerCustomer {
-  _id: string
-  name: string
-  phone: string
-  email: string
-  createdAt: string
-  bookings: number
-  completed: number
-  lastBookingAt: string | null
+  _id: string;
+  name: string;
+  phone: string;
+  email: string;
+  createdAt: string;
+  bookings: number;
+  completed: number;
+  lastBookingAt: string | null;
 }
 
 export interface ManagerCustomerDetail {
-  customer: ManagerCustomer
-  lifetimeValue: number
-  bookings: { _id: string; ref: string; engineKind: EngineKind; status: string; productName: string; createdAt: string; penaltyAmount: number }[]
+  customer: ManagerCustomer;
+  lifetimeValue: number;
+  bookings: {
+    _id: string;
+    ref: string;
+    engineKind: EngineKind;
+    status: string;
+    productName: string;
+    createdAt: string;
+    penaltyAmount: number;
+  }[];
 }
 
 export interface OrgKiosk {
-  _id: string
-  name: string
-  code?: string
-  location?: string
-  stationId: string
-  engineKind: EngineKind
+  _id: string;
+  name: string;
+  code?: string;
+  location?: string;
+  stationId: string;
+  engineKind: EngineKind;
   /** Desks customers collect bags from, offered as a destination when sending bags out. */
-  isExitGate?: boolean
-  active: boolean
-  total: number
-  available: number
-  inUse: number
+  isExitGate?: boolean;
+  active: boolean;
+  total: number;
+  available: number;
+  inUse: number;
 }
 /**
  * A gate: a place at a station that holds lockers.
@@ -103,246 +128,281 @@ export interface OrgKiosk {
  * counter sells storage and holds none, and the bags are carried here to be stored.
  */
 export interface OrgGate {
-  _id: string
-  name: string
-  code?: string
-  location?: string
-  stationId: string
-  active: boolean
-  total: number
-  available: number
-  inUse: number
+  _id: string;
+  name: string;
+  code?: string;
+  location?: string;
+  stationId: string;
+  active: boolean;
+  total: number;
+  available: number;
+  inUse: number;
 }
 export interface OrgStation {
-  _id: string
-  name: string
-  code?: string
-  siteId: string
-  engineKinds: EngineKind[]
-  openingTime?: string
-  closingTime?: string
-  contactPhone?: string
-  active: boolean
-  total: number
-  available: number
-  inUse: number
-  activeSessions: number
-  kiosks: OrgKiosk[]
-  gates: OrgGate[]
+  _id: string;
+  name: string;
+  code?: string;
+  siteId: string;
+  engineKinds: EngineKind[];
+  openingTime?: string;
+  closingTime?: string;
+  contactPhone?: string;
+  active: boolean;
+  total: number;
+  available: number;
+  inUse: number;
+  activeSessions: number;
+  kiosks: OrgKiosk[];
+  gates: OrgGate[];
 }
 export interface OrgSite {
-  _id: string
-  name: string
-  city: string
-  venueType?: string
-  address?: string
-  contactPhone?: string
-  active: boolean
-  stations: OrgStation[]
+  _id: string;
+  name: string;
+  city: string;
+  venueType?: string;
+  address?: string;
+  contactPhone?: string;
+  active: boolean;
+  stations: OrgStation[];
 }
 export interface OrgTree {
-  venueTypes: string[]
-  sites: OrgSite[]
+  venueTypes: string[];
+  sites: OrgSite[];
 }
 
 export interface StaffInvitation {
-  emailed: boolean
-  deliveredTo: string
-  expiresAt: string
-  reason?: string
-  link?: string
+  emailed: boolean;
+  deliveredTo: string;
+  expiresAt: string;
+  reason?: string;
+  link?: string;
 }
 
 export interface ManagerStaff {
-  _id: string
-  fullName: string
-  email: string
-  role: Role
+  _id: string;
+  fullName: string;
+  email: string;
+  role: Role;
   /** What this company calls the job, when it differs from the platform's word. Often empty. */
-  roleLabel?: string
-  phone: string
-  active: boolean
-  setUp: boolean
-  invitePending: boolean
-  inviteExpiresAt: string | null
-  invitation?: StaffInvitation
-  stationId: string
-  stationName: string
-  kioskId: string | null
-  kioskName: string | null
+  roleLabel?: string;
+  phone: string;
+  active: boolean;
+  setUp: boolean;
+  invitePending: boolean;
+  inviteExpiresAt: string | null;
+  invitation?: StaffInvitation;
+  stationId: string;
+  stationName: string;
+  kioskId: string | null;
+  kioskName: string | null;
   /** The locker hall a mobility agent answers for — not the same place as their desk. */
-  gateId: string | null
-  gateName: string | null
-  engineKinds: EngineKind[]
-  reportsTo: string | null
-  reportsToName: string | null
-  lastLoginAt: string | null
-  hasOpenShift: boolean
-  shiftStatus: string | null
-  bookingsHandled: number
+  gateId: string | null;
+  gateName: string | null;
+  engineKinds: EngineKind[];
+  reportsTo: string | null;
+  reportsToName: string | null;
+  lastLoginAt: string | null;
+  hasOpenShift: boolean;
+  shiftStatus: string | null;
+  bookingsHandled: number;
 }
 
 export interface PricingProduct {
-  _id: string
-  name: string
-  nameAr?: string
-  engineKind: EngineKind
-  category: string
-  basePrice: number
-  hourlyPrice: number | null
-  tourPrice: number | null
-  tourMinutes: number | null
-  overtimeHourlyRate: number | null
-  effectiveOvertimeRate: number
-  depositRequired: number
+  _id: string;
+  name: string;
+  nameAr?: string;
+  engineKind: EngineKind;
+  category: string;
+  basePrice: number;
+  hourlyPrice: number | null;
+  tourPrice: number | null;
+  tourMinutes: number | null;
+  overtimeHourlyRate: number | null;
+  effectiveOvertimeRate: number;
+  depositRequired: number;
   /** How it is sold and charged. The server has always sent these; the form needs them to edit. */
-  saleUnit: SaleUnit
-  saleType: SaleType
-  penaltyPrice: number
-  assetTypeId: string | null
-  assetTypeName: string | null
+  saleUnit: SaleUnit;
+  saleType: SaleType;
+  penaltyPrice: number;
+  assetTypeId: string | null;
+  assetTypeName: string | null;
   /** Where this product is sold. Null means every desk running the activity. */
-  stationId?: string | null
-  stationName?: string | null
-  kioskId?: string | null
-  kioskName?: string | null
+  stationId?: string | null;
+  stationName?: string | null;
+  kioskId?: string | null;
+  kioskName?: string | null;
   /** How many of them stand at this product's own desk right now. */
-  unitsHere?: number | null
+  unitsHere?: number | null;
   /** Where the things behind it actually sit — an asset type can be stocked at several desks. */
-  stockedAt?: { stationId: string; stationName: string; kioskId: string | null; kioskName: string; count: number }[]
-  billingModel: BillingModel
-  durationUnit: string | null
-  emoji: string
-  active: boolean
-  bookingsAllTime: number
+  stockedAt?: {
+    stationId: string;
+    stationName: string;
+    kioskId: string | null;
+    kioskName: string;
+    count: number;
+  }[];
+  billingModel: BillingModel;
+  durationUnit: string | null;
+  emoji: string;
+  active: boolean;
+  bookingsAllTime: number;
 }
 export interface PricingCatalogue {
-  currency: string
-  vatRate: number
-  billingModels: BillingModel[]
+  currency: string;
+  vatRate: number;
+  billingModels: BillingModel[];
   /** What each activity may be charged by — a lagoon trip is a trip, not an hour or a bag. */
-  billingByEngine?: Partial<Record<EngineKind, BillingModel[]>>
-  stations?: { _id: string; name: string; engineKinds: EngineKind[] }[]
-  kiosks?: { _id: string; name: string; stationId: string; engineKind: EngineKind }[]
-  durationUnits: string[]
-  assetTypes: { _id: string; name: string; kind: string; engineKind: EngineKind; seats?: number | null }[]
-  products: PricingProduct[]
+  billingByEngine?: Partial<Record<EngineKind, BillingModel[]>>;
+  stations?: { _id: string; name: string; engineKinds: EngineKind[] }[];
+  kiosks?: { _id: string; name: string; stationId: string; engineKind: EngineKind }[];
+  durationUnits: string[];
+  assetTypes: {
+    _id: string;
+    name: string;
+    kind: string;
+    engineKind: EngineKind;
+    seats?: number | null;
+  }[];
+  products: PricingProduct[];
 }
 
 export interface TenantSettings {
-  _id: string
-  name: string
-  legalName: string
-  crNumber: string
-  vatNumber: string
-  vatRate: number
-  currency: string
-  enabledEngines: EngineKind[]
-  company: { address?: string; city?: string; country?: string; phone?: string; email?: string; website?: string }
+  _id: string;
+  name: string;
+  legalName: string;
+  crNumber: string;
+  vatNumber: string;
+  vatRate: number;
+  currency: string;
+  enabledEngines: EngineKind[];
+  company: {
+    address?: string;
+    city?: string;
+    country?: string;
+    phone?: string;
+    email?: string;
+    website?: string;
+  };
   settings: {
-    timezone?: string
-    locale?: string
-    gracePeriodMin?: number
-    overtimeBlockMinutes?: number
-    expiryWarningMinutes?: number
-    paymentMethods?: string[]
-    verificationChannels?: string[]
-  }
+    timezone?: string;
+    locale?: string;
+    gracePeriodMin?: number;
+    overtimeBlockMinutes?: number;
+    expiryWarningMinutes?: number;
+    paymentMethods?: string[];
+    verificationChannels?: string[];
+  };
 }
 
 export interface ManagerPayment {
-  _id: string
-  amount: number
-  method: string
-  kind: string
-  status: string
-  createdAt: string
-  bookingId: string | null
-  bookingRef: string | null
-  customerName: string | null
-  engineKind: EngineKind | null
-  stationName: string
+  _id: string;
+  amount: number;
+  method: string;
+  kind: string;
+  status: string;
+  createdAt: string;
+  bookingId: string | null;
+  bookingRef: string | null;
+  customerName: string | null;
+  engineKind: EngineKind | null;
+  stationName: string;
 }
 
 export interface DiscountsReport {
-  from: string
-  to: string
-  given: number
-  count: number
-  freeRides: number
-  byReason: { key: string; total: number; count: number }[]
-  byAgent: { key: string; total: number; count: number }[]
-  byEngine: { engineKind: EngineKind; total: number; count: number }[]
-  daily: { date: string; total: number; count: number }[]
+  from: string;
+  to: string;
+  given: number;
+  count: number;
+  freeRides: number;
+  byReason: { key: string; total: number; count: number }[];
+  byAgent: { key: string; total: number; count: number }[];
+  byEngine: { engineKind: EngineKind; total: number; count: number }[];
+  daily: { date: string; total: number; count: number }[];
   rows: {
-    bookingId: string
-    ref: string
-    engineKind: EngineKind
-    customerName: string
-    amount: number
-    percent: number
-    free: boolean
-    reason: string
-    note: string
-    voucherCode: string | null
-    givenBy: string
-    at: string
-    charged: number
-  }[]
+    bookingId: string;
+    ref: string;
+    engineKind: EngineKind;
+    customerName: string;
+    amount: number;
+    percent: number;
+    free: boolean;
+    reason: string;
+    note: string;
+    voucherCode: string | null;
+    givenBy: string;
+    at: string;
+    charged: number;
+  }[];
 }
 
 export interface RevenueReport {
-  from: string
-  to: string
-  gross: number
-  overtimeRevenue: number
-  transactions: number
-  daily: { date: string; total: number; count: number }[]
-  byMethod: { method: string; total: number; count: number }[]
-  byKind: { kind: string; total: number; count: number }[]
-  byEngine: { engineKind: EngineKind; total: number }[]
-  byStation: { stationId: string; name: string; total: number }[]
+  from: string;
+  to: string;
+  gross: number;
+  overtimeRevenue: number;
+  transactions: number;
+  daily: { date: string; total: number; count: number }[];
+  byMethod: { method: string; total: number; count: number }[];
+  byKind: { kind: string; total: number; count: number }[];
+  byEngine: { engineKind: EngineKind; total: number }[];
+  byStation: { stationId: string; name: string; total: number }[];
 }
 export interface OccupancyReport {
-  byAssetType: { assetTypeId: string; name: string; kind: string; total: number; inUse: number; outOfService: number; utilisationPct: number }[]
-  byStation: { stationId: string; name: string; total: number; inUse: number; utilisationPct: number }[]
+  byAssetType: {
+    assetTypeId: string;
+    name: string;
+    kind: string;
+    total: number;
+    inUse: number;
+    outOfService: number;
+    utilisationPct: number;
+  }[];
+  byStation: {
+    stationId: string;
+    name: string;
+    total: number;
+    inUse: number;
+    utilisationPct: number;
+  }[];
 }
 export interface RentalsReport {
-  from: string
-  to: string
-  total: number
-  completed: number
-  cancelled: number
-  live: number
-  overdueNow: number
-  penaltyAccruing: number
-  averageDurationMin: number
-  byStatus: { status: string; count: number }[]
-  byEngine: { engineKind: EngineKind; count: number }[]
+  from: string;
+  to: string;
+  total: number;
+  completed: number;
+  cancelled: number;
+  live: number;
+  overdueNow: number;
+  penaltyAccruing: number;
+  averageDurationMin: number;
+  byStatus: { status: string; count: number }[];
+  byEngine: { engineKind: EngineKind; count: number }[];
 }
 
 export interface ActivityEntry {
-  _id: string
-  action: string
-  entity: string
-  entityId: string
-  actorId: string
-  reason: string | null
-  detail: string | null
-  at: string
+  _id: string;
+  action: string;
+  entity: string;
+  entityId: string;
+  actorId: string;
+  reason: string | null;
+  detail: string | null;
+  at: string;
 }
 
 export interface ManagerIncident extends Incident {
-  stationName: string
+  stationName: string;
 }
 export interface ManagerShift extends Shift {
-  stationName: string
-  kioskName: string | null
-  agentName: string
+  stationName: string;
+  kioskName: string | null;
+  agentName: string;
 }
 
 const qs = (r?: { from?: string; to?: string }) =>
-  r?.from || r?.to ? `?${new URLSearchParams(Object.entries(r).filter(([, v]) => v) as [string, string][])}` : ''
+  r?.from || r?.to
+    ? `?${new URLSearchParams(Object.entries(r).filter(([, v]) => v) as [string, string][])}`
+    : '';
 
 export const managerApi = {
   overview: () => unwrap<ManagerOverview>(http.get('/manager/overview')),
@@ -353,52 +413,73 @@ export const managerApi = {
   rentalDetail: (id: string) => unwrap<ManagerRentalDetail>(http.get(`/manager/rentals/${id}`)),
 
   customers: () => unwrap<ManagerCustomer[]>(http.get('/manager/customers')),
-  customerDetail: (id: string) => unwrap<ManagerCustomerDetail>(http.get(`/manager/customers/${id}`)),
+  customerDetail: (id: string) =>
+    unwrap<ManagerCustomerDetail>(http.get(`/manager/customers/${id}`)),
 
   org: () => unwrap<OrgTree>(http.get('/manager/org')),
   createSite: (d: Record<string, unknown>) => unwrap<OrgSite>(http.post('/manager/org/sites', d)),
-  updateSite: (id: string, d: Record<string, unknown>) => unwrap<OrgSite>(http.patch(`/manager/org/sites/${id}`, d)),
-  createStation: (d: Record<string, unknown>) => unwrap<OrgStation>(http.post('/manager/org/stations', d)),
-  updateStation: (id: string, d: Record<string, unknown>) => unwrap<OrgStation>(http.patch(`/manager/org/stations/${id}`, d)),
-  createKiosk: (d: Record<string, unknown>) => unwrap<OrgKiosk>(http.post('/manager/org/kiosks', d)),
-  updateKiosk: (id: string, d: Record<string, unknown>) => unwrap<OrgKiosk>(http.patch(`/manager/org/kiosks/${id}`, d)),
-  removeKiosk: (id: string) => unwrap<{ removed: string; name: string }>(http.delete(`/manager/org/kiosks/${id}`)),
+  updateSite: (id: string, d: Record<string, unknown>) =>
+    unwrap<OrgSite>(http.patch(`/manager/org/sites/${id}`, d)),
+  createStation: (d: Record<string, unknown>) =>
+    unwrap<OrgStation>(http.post('/manager/org/stations', d)),
+  updateStation: (id: string, d: Record<string, unknown>) =>
+    unwrap<OrgStation>(http.patch(`/manager/org/stations/${id}`, d)),
+  createKiosk: (d: Record<string, unknown>) =>
+    unwrap<OrgKiosk>(http.post('/manager/org/kiosks', d)),
+  updateKiosk: (id: string, d: Record<string, unknown>) =>
+    unwrap<OrgKiosk>(http.patch(`/manager/org/kiosks/${id}`, d)),
+  removeKiosk: (id: string) =>
+    unwrap<{ removed: string; name: string }>(http.delete(`/manager/org/kiosks/${id}`)),
   createGate: (d: Record<string, unknown>) => unwrap<OrgGate>(http.post('/manager/org/gates', d)),
-  updateGate: (id: string, d: Record<string, unknown>) => unwrap<OrgGate>(http.patch(`/manager/org/gates/${id}`, d)),
-  removeGate: (id: string) => unwrap<{ removed: string; name: string }>(http.delete(`/manager/org/gates/${id}`)),
-  removeStation: (id: string) => unwrap<{ removed: string; name: string }>(http.delete(`/manager/org/stations/${id}`)),
-  removeSite: (id: string) => unwrap<{ removed: string; name: string }>(http.delete(`/manager/org/sites/${id}`)),
+  updateGate: (id: string, d: Record<string, unknown>) =>
+    unwrap<OrgGate>(http.patch(`/manager/org/gates/${id}`, d)),
+  removeGate: (id: string) =>
+    unwrap<{ removed: string; name: string }>(http.delete(`/manager/org/gates/${id}`)),
+  removeStation: (id: string) =>
+    unwrap<{ removed: string; name: string }>(http.delete(`/manager/org/stations/${id}`)),
+  removeSite: (id: string) =>
+    unwrap<{ removed: string; name: string }>(http.delete(`/manager/org/sites/${id}`)),
 
   provision: (d: { assetTypeId: string; stationId: string; kioskId?: string; count: number }) =>
     unwrap<{ created: number }>(http.post('/manager/estate/provision', d)),
 
   payments: () => unwrap<ManagerPayment[]>(http.get('/manager/payments')),
   incidents: () => unwrap<ManagerIncident[]>(http.get('/manager/incidents')),
-  updateIncident: (id: string, status: string) => unwrap<Incident>(http.patch(`/manager/incidents/${id}`, { status })),
+  updateIncident: (id: string, status: string) =>
+    unwrap<Incident>(http.patch(`/manager/incidents/${id}`, { status })),
   shifts: () => unwrap<ManagerShift[]>(http.get('/manager/shifts')),
   shift: (id: string) => unwrap<ManagerShift>(http.get(`/manager/shifts/${id}`)),
 
   staff: () => unwrap<ManagerStaff[]>(http.get('/manager/staff')),
   createStaff: (d: Record<string, unknown>) => unwrap<ManagerStaff>(http.post('/manager/staff', d)),
   reinvite: (id: string) => unwrap<ManagerStaff>(http.post(`/manager/staff/${id}/invite`)),
-  updateStaff: (id: string, d: Record<string, unknown>) => unwrap<ManagerStaff>(http.patch(`/manager/staff/${id}`, d)),
-  resetPassword: (id: string, password: string) => unwrap<{ ok: boolean }>(http.post(`/manager/staff/${id}/password`, { password })),
-  removeStaff: (id: string) => unwrap<{ removed: string; name: string }>(http.delete(`/manager/staff/${id}`)),
+  updateStaff: (id: string, d: Record<string, unknown>) =>
+    unwrap<ManagerStaff>(http.patch(`/manager/staff/${id}`, d)),
+  resetPassword: (id: string, password: string) =>
+    unwrap<{ ok: boolean }>(http.post(`/manager/staff/${id}/password`, { password })),
+  removeStaff: (id: string) =>
+    unwrap<{ removed: string; name: string }>(http.delete(`/manager/staff/${id}`)),
 
   pricing: () => unwrap<PricingCatalogue>(http.get('/pricing')),
-  createProduct: (d: Record<string, unknown>) => unwrap<PricingProduct>(http.post('/pricing/products', d)),
-  updateProduct: (id: string, d: Record<string, unknown>) => unwrap<PricingProduct>(http.patch(`/pricing/products/${id}`, d)),
+  createProduct: (d: Record<string, unknown>) =>
+    unwrap<PricingProduct>(http.post('/pricing/products', d)),
+  updateProduct: (id: string, d: Record<string, unknown>) =>
+    unwrap<PricingProduct>(http.patch(`/pricing/products/${id}`, d)),
 
   settings: () => unwrap<TenantSettings>(http.get('/manager/settings')),
-  updateSettings: (d: Record<string, unknown>) => unwrap<TenantSettings>(http.patch('/manager/settings', d)),
+  updateSettings: (d: Record<string, unknown>) =>
+    unwrap<TenantSettings>(http.patch('/manager/settings', d)),
 
-  reportRevenue: (r?: { from?: string; to?: string }) => unwrap<RevenueReport>(http.get(`/manager/reports/revenue${qs(r)}`)),
+  reportRevenue: (r?: { from?: string; to?: string }) =>
+    unwrap<RevenueReport>(http.get(`/manager/reports/revenue${qs(r)}`)),
   reportOccupancy: () => unwrap<OccupancyReport>(http.get('/manager/reports/occupancy')),
-  reportRentals: (r?: { from?: string; to?: string }) => unwrap<RentalsReport>(http.get(`/manager/reports/rentals${qs(r)}`)),
+  reportRentals: (r?: { from?: string; to?: string }) =>
+    unwrap<RentalsReport>(http.get(`/manager/reports/rentals${qs(r)}`)),
   reportDiscounts: (r?: { from?: string; to?: string }) =>
     unwrap<DiscountsReport>(http.get(`/manager/reports/discounts${qs(r)}`)),
 
   activity: () => unwrap<ActivityEntry[]>(http.get('/manager/activity')),
 
-  exportUrl: (kind: string, r?: { from?: string; to?: string }) => `/api/manager/reports/export/${kind}${qs(r)}`,
-}
+  exportUrl: (kind: string, r?: { from?: string; to?: string }) =>
+    `/api/manager/reports/export/${kind}${qs(r)}`,
+};

@@ -1,12 +1,12 @@
-import { z } from "zod";
-import { asyncHandler } from "../utils/asyncHandler.js";
-import { ApiError } from "../utils/ApiError.js";
-import { env } from "../config/env.js";
-import { peekOtp, sendOtp, verifyOtp } from "../services/otp.service.js";
-import { rememberPhoneVerified } from "../services/customer.service.js";
+import { z } from 'zod';
+import { asyncHandler } from '../utils/asyncHandler.js';
+import { ApiError } from '../utils/ApiError.js';
+import { env } from '../config/env.js';
+import { peekOtp, sendOtp, verifyOtp } from '../services/otp.service.js';
+import { rememberPhoneVerified } from '../services/customer.service.js';
 
-const intent = z.enum(["VERIFY_PHONE", "HANDOVER_BAG"]);
-const channel = z.enum(["WHATSAPP", "SMS", "EMAIL"]).default("WHATSAPP");
+const intent = z.enum(['VERIFY_PHONE', 'HANDOVER_BAG']);
+const channel = z.enum(['WHATSAPP', 'SMS', 'EMAIL']).default('WHATSAPP');
 
 export const otpController = {
   send: asyncHandler(async (req, res) => {
@@ -29,7 +29,7 @@ export const otpController = {
   }),
 
   peek: asyncHandler(async (req, res) => {
-    if (!env.OTP_TEST_PEEK) throw ApiError.forbidden("OTP peek is disabled.");
+    if (!env.OTP_TEST_PEEK) throw ApiError.forbidden('OTP peek is disabled.');
     const body = z.object({ phone: z.string().min(3), intent }).parse(req.body);
     res.json({
       success: true,

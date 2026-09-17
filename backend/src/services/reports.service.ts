@@ -1,26 +1,32 @@
-import { Audit, AssetUnit, Booking, Customer, Payment, Station, User } from '../models/index.js'
-import { tenantEngines } from './catalogue.service.js'
-import { computeOvertime } from '../domain/overtime.js'
-import { round2 } from '../utils/helpers.js'
+import { Audit, AssetUnit, Booking, Customer, Payment, Station, User } from '../models/index.js';
+import { tenantEngines } from './catalogue.service.js';
+import { computeOvertime } from '../domain/overtime.js';
+import { round2 } from '../utils/helpers.js';
 
-import type { ReportRange } from '../interfaces/index.js'
-import type { ManagerScope } from '../interfaces/index.js'
+import type { ReportRange } from '../interfaces/index.js';
+import type { ManagerScope } from '../interfaces/index.js';
 
 function resolveRange(range: ReportRange): { from: Date; to: Date } {
-  const to = range.to ? new Date(`${range.to}T23:59:59.999Z`) : new Date()
-  const from = range.from ? new Date(`${range.from}T00:00:00.000Z`) : new Date(Date.now() - 29 * 86_400_000)
+  const to = range.to ? new Date(`${range.to}T23:59:59.999Z`) : new Date();
+  const from = range.from
+    ? new Date(`${range.from}T00:00:00.000Z`)
+    : new Date(Date.now() - 29 * 86_400_000);
   if (Number.isNaN(from.getTime()) || Number.isNaN(to.getTime())) {
-    throw new Error('Invalid date range')
+    throw new Error('Invalid date range');
   }
-  return { from, to }
+  return { from, to };
 }
 
-const LIVE = ['ACTIVE', 'OVERTIME', 'RETRIEVAL_IN_PROGRESS']
+const LIVE = ['ACTIVE', 'OVERTIME', 'RETRIEVAL_IN_PROGRESS'];
 
 export async function revenueReport(scope: ManagerScope, range: ReportRange) {
-  const engines = await tenantEngines(scope.tenantId)
-  const { from, to } = resolveRange(range)
-  const match = { tenantId: scope.tenantId, status: 'CAPTURED', createdAt: { $gte: from, $lte: to } }
+  const engines = await tenantEngines(scope.tenantId);
+  const { from, to } = resolveRange(range);
+  const match = {
+    tenantId: scope.tenantId,
+    status: 'CAPTURED',
+    createdAt: { $gte: from, $lte: to },
+  };
 
   const [daily, byMethod, byKind, byEngineStation, stations] = await Promise.all([
     Payment.aggregate([
@@ -34,27 +40,45 @@ export async function revenueReport(scope: ManagerScope, range: ReportRange) {
       },
       { $sort: { _id: 1 } },
     ]),
-    Payment.aggregate([{ $match: match }, { $group: { _id: '$method', total: { $sum: '$amount' }, count: { $sum: 1 } } }]),
-    Payment.aggregate([{ $match: match }, { $group: { _id: '$kind', total: { $sum: '$amount' }, count: { $sum: 1 } } }]),
+    Payment.aggregate([
+      { $match: match },
+      { $group: { _id: '$method', total: { $sum: '$amount' }, count: { $sum: 1 } } },
+    ]),
+    Payment.aggregate([
+      { $match: match },
+      { $group: { _id: '$kind', total: { $sum: '$amount' }, count: { $sum: 1 } } },
+    ]),
     Payment.aggregate([
       { $match: match },
       { $lookup: { from: 'bookings', localField: 'bookingId', foreignField: '_id', as: 'b' } },
       { $unwind: { path: '$b', preserveNullAndEmptyArrays: true } },
-      { $group: { _id: { engine: '$b.engineKind', station: '$stationId' }, total: { $sum: '$amount' }, count: { $sum: 1 } } },
+      {
+        $group: {
+          _id: { engine: '$b.engineKind', station: '$stationId' },
+          total: { $sum: '$amount' },
+          count: { $sum: 1 },
+        },
+      },
     ]),
     Station.find({ tenantId: scope.tenantId }).lean(),
-  ])
+  ]);
 
-  const stationName = new Map(stations.map((s) => [s._id, s.name]))
-  const engineTotals = new Map<string, number>()
-  const stationTotals = new Map<string, number>()
-  for (const row of byEngineStation as { _id: { engine?: string; station?: string }; total: number }[]) {
-    if (row._id.engine) engineTotals.set(row._id.engine, (engineTotals.get(row._id.engine) ?? 0) + row.total)
-    if (row._id.station) stationTotals.set(row._id.station, (stationTotals.get(row._id.station) ?? 0) + row.total)
+  const stationName = new Map(stations.map((s) => [s._id, s.name]));
+  const engineTotals = new Map<string, number>();
+  const stationTotals = new Map<string, number>();
+  for (const row of byEngineStation as {
+    _id: { engine?: string; station?: string };
+    total: number;
+  }[]) {
+    if (row._id.engine)
+      engineTotals.set(row._id.engine, (engineTotals.get(row._id.engine) ?? 0) + row.total);
+    if (row._id.station)
+      stationTotals.set(row._id.station, (stationTotals.get(row._id.station) ?? 0) + row.total);
   }
 
-  const gross = daily.reduce((s: number, d: { total: number }) => s + d.total, 0)
-  const overtime = (byKind as { _id: string; total: number }[]).find((k) => k._id === 'OVERTIME')?.total ?? 0
+  const gross = daily.reduce((s: number, d: { total: number }) => s + d.total, 0);
+  const overtime =
+    (byKind as { _id: string; total: number }[]).find((k) => k._id === 'OVERTIME')?.total ?? 0;
 
   return {
     from: from.toISOString().slice(0, 10),
@@ -83,12 +107,16 @@ export async function revenueReport(scope: ManagerScope, range: ReportRange) {
       name: stationName.get(id) ?? id,
       total: round2(total),
     })),
-  }
+  };
 }
 
 export async function agentRevenueReport(scope: ManagerScope, range: ReportRange) {
-  const { from, to } = resolveRange(range)
-  const match = { tenantId: scope.tenantId, status: 'CAPTURED', createdAt: { $gte: from, $lte: to } }
+  const { from, to } = resolveRange(range);
+  const match = {
+    tenantId: scope.tenantId,
+    status: 'CAPTURED',
+    createdAt: { $gte: from, $lte: to },
+  };
 
   const [rows, staff, stations] = await Promise.all([
     Payment.aggregate([
@@ -110,27 +138,33 @@ export async function agentRevenueReport(scope: ManagerScope, range: ReportRange
     ]),
     User.find({ tenantId: scope.tenantId }, { fullName: 1 }).lean(),
     Station.find({ tenantId: scope.tenantId }, { name: 1 }).lean(),
-  ])
+  ]);
 
-  const agentName = new Map(staff.map((u) => [u._id, u.fullName]))
-  const stationName = new Map(stations.map((st) => [st._id, st.name]))
+  const agentName = new Map(staff.map((u) => [u._id, u.fullName]));
+  const stationName = new Map(stations.map((st) => [st._id, st.name]));
 
-  type Key = { day: string; agentId: string; stationId: string; engineKind?: string; method: string }
+  type Key = {
+    day: string;
+    agentId: string;
+    stationId: string;
+    engineKind?: string;
+    method: string;
+  };
   type Line = {
-    day: string
-    agentId: string
-    agentName: string
-    stationId: string
-    stationName: string
-    engineKind: string
-    total: number
-    count: number
-    byMethod: Record<string, number>
-  }
+    day: string;
+    agentId: string;
+    agentName: string;
+    stationId: string;
+    stationName: string;
+    engineKind: string;
+    total: number;
+    count: number;
+    byMethod: Record<string, number>;
+  };
 
-  const lines = new Map<string, Line>()
+  const lines = new Map<string, Line>();
   for (const row of rows as { _id: Key; total: number; count: number }[]) {
-    const key = `${row._id.day}|${row._id.agentId}|${row._id.stationId}|${row._id.engineKind ?? '—'}`
+    const key = `${row._id.day}|${row._id.agentId}|${row._id.stationId}|${row._id.engineKind ?? '—'}`;
     const line = lines.get(key) ?? {
       day: row._id.day,
       agentId: row._id.agentId,
@@ -141,21 +175,25 @@ export async function agentRevenueReport(scope: ManagerScope, range: ReportRange
       total: 0,
       count: 0,
       byMethod: {},
-    }
-    line.total = round2(line.total + row.total)
-    line.count += row.count
-    line.byMethod[row._id.method ?? 'UNKNOWN'] = round2((line.byMethod[row._id.method ?? 'UNKNOWN'] ?? 0) + row.total)
-    lines.set(key, line)
+    };
+    line.total = round2(line.total + row.total);
+    line.count += row.count;
+    line.byMethod[row._id.method ?? 'UNKNOWN'] = round2(
+      (line.byMethod[row._id.method ?? 'UNKNOWN'] ?? 0) + row.total
+    );
+    lines.set(key, line);
   }
 
-  const rowsOut = [...lines.values()].sort((a, b) => (a.day === b.day ? a.agentName.localeCompare(b.agentName) : b.day.localeCompare(a.day)))
+  const rowsOut = [...lines.values()].sort((a, b) =>
+    a.day === b.day ? a.agentName.localeCompare(b.agentName) : b.day.localeCompare(a.day)
+  );
 
   return {
     from: from.toISOString().slice(0, 10),
     to: to.toISOString().slice(0, 10),
     gross: round2(rowsOut.reduce((sum, r) => sum + r.total, 0)),
     rows: rowsOut,
-  }
+  };
 }
 
 export async function occupancyReport(scope: ManagerScope) {
@@ -168,8 +206,16 @@ export async function occupancyReport(scope: ManagerScope) {
         $group: {
           _id: { id: '$assetTypeId', name: '$t.name', kind: '$t.kind' },
           total: { $sum: 1 },
-          inUse: { $sum: { $cond: [{ $in: ['$status', ['OCCUPIED', 'RESERVED', 'RETRIEVAL_PENDING']] }, 1, 0] } },
-          outOfService: { $sum: { $cond: [{ $in: ['$status', ['MAINTENANCE', 'OUT_OF_SERVICE', 'BLOCKED']] }, 1, 0] } },
+          inUse: {
+            $sum: {
+              $cond: [{ $in: ['$status', ['OCCUPIED', 'RESERVED', 'RETRIEVAL_PENDING']] }, 1, 0],
+            },
+          },
+          outOfService: {
+            $sum: {
+              $cond: [{ $in: ['$status', ['MAINTENANCE', 'OUT_OF_SERVICE', 'BLOCKED']] }, 1, 0],
+            },
+          },
         },
       },
     ]),
@@ -179,18 +225,29 @@ export async function occupancyReport(scope: ManagerScope) {
         $group: {
           _id: '$stationId',
           total: { $sum: 1 },
-          inUse: { $sum: { $cond: [{ $in: ['$status', ['OCCUPIED', 'RESERVED', 'RETRIEVAL_PENDING']] }, 1, 0] } },
+          inUse: {
+            $sum: {
+              $cond: [{ $in: ['$status', ['OCCUPIED', 'RESERVED', 'RETRIEVAL_PENDING']] }, 1, 0],
+            },
+          },
         },
       },
     ]),
     Station.find({ tenantId: scope.tenantId }).lean(),
-  ])
+  ]);
 
-  const stationName = new Map(stations.map((s) => [s._id, s.name]))
-  const pct = (a: number, b: number) => (b ? Math.round((a / b) * 100) : 0)
+  const stationName = new Map(stations.map((s) => [s._id, s.name]));
+  const pct = (a: number, b: number) => (b ? Math.round((a / b) * 100) : 0);
 
   return {
-    byAssetType: (byType as { _id: { id: string; name?: string; kind?: string }; total: number; inUse: number; outOfService: number }[]).map((t) => ({
+    byAssetType: (
+      byType as {
+        _id: { id: string; name?: string; kind?: string };
+        total: number;
+        inUse: number;
+        outOfService: number;
+      }[]
+    ).map((t) => ({
       assetTypeId: t._id.id,
       name: t._id.name ?? t._id.id,
       kind: t._id.kind ?? '—',
@@ -206,33 +263,45 @@ export async function occupancyReport(scope: ManagerScope) {
       inUse: s.inUse,
       utilisationPct: pct(s.inUse, s.total),
     })),
-  }
+  };
 }
 
 export async function rentalsReport(scope: ManagerScope, range: ReportRange) {
-  const engines = await tenantEngines(scope.tenantId)
-  const { from, to } = resolveRange(range)
-  const match = { tenantId: scope.tenantId, createdAt: { $gte: from, $lte: to } }
+  const engines = await tenantEngines(scope.tenantId);
+  const { from, to } = resolveRange(range);
+  const match = { tenantId: scope.tenantId, createdAt: { $gte: from, $lte: to } };
 
   const [byStatus, byEngine, durations, live] = await Promise.all([
     Booking.aggregate([{ $match: match }, { $group: { _id: '$status', count: { $sum: 1 } } }]),
     Booking.aggregate([{ $match: match }, { $group: { _id: '$engineKind', count: { $sum: 1 } } }]),
     Booking.aggregate([
-      { $match: { ...match, 'session.startedAt': { $ne: null }, 'session.chargeableEndedAt': { $ne: null } } },
+      {
+        $match: {
+          ...match,
+          'session.startedAt': { $ne: null },
+          'session.chargeableEndedAt': { $ne: null },
+        },
+      },
       {
         $group: {
           _id: null,
-          avgMinutes: { $avg: { $divide: [{ $subtract: ['$session.chargeableEndedAt', '$session.startedAt'] }, 60000] } },
+          avgMinutes: {
+            $avg: {
+              $divide: [{ $subtract: ['$session.chargeableEndedAt', '$session.startedAt'] }, 60000],
+            },
+          },
           completed: { $sum: 1 },
         },
       },
     ]),
     Booking.find({ tenantId: scope.tenantId, status: { $in: LIVE } }).lean(),
-  ])
+  ]);
 
-  const overdue = live.filter((b) => computeOvertime(b.session).isOvertime)
-  const accruing = overdue.reduce((sum, b) => sum + computeOvertime(b.session).penaltyAmount, 0)
-  const statusMap = new Map((byStatus as { _id: string; count: number }[]).map((s) => [s._id, s.count]))
+  const overdue = live.filter((b) => computeOvertime(b.session).isOvertime);
+  const accruing = overdue.reduce((sum, b) => sum + computeOvertime(b.session).penaltyAmount, 0);
+  const statusMap = new Map(
+    (byStatus as { _id: string; count: number }[]).map((s) => [s._id, s.count])
+  );
 
   return {
     from: from.toISOString().slice(0, 10),
@@ -249,7 +318,7 @@ export async function rentalsReport(scope: ManagerScope, range: ReportRange) {
       engineKind: e,
       count: (byEngine as { _id: string; count: number }[]).find((x) => x._id === e)?.count ?? 0,
     })),
-  }
+  };
 }
 
 export async function customersReport(scope: ManagerScope) {
@@ -261,8 +330,8 @@ export async function customersReport(scope: ManagerScope) {
       { $sort: { bookings: -1 } },
       { $limit: 10 },
     ]),
-  ])
-  const repeat = (byCustomer as { bookings: number }[]).filter((c) => c.bookings > 1).length
+  ]);
+  const repeat = (byCustomer as { bookings: number }[]).filter((c) => c.bookings > 1).length;
   return {
     totalCustomers: total,
     repeatCustomers: repeat,
@@ -271,28 +340,35 @@ export async function customersReport(scope: ManagerScope) {
       name: c.name,
       bookings: c.bookings,
     })),
-  }
+  };
 }
 
 export function toCsv(rows: Record<string, unknown>[]): string {
-  if (!rows.length) return ''
-  const headers = Object.keys(rows[0])
+  if (!rows.length) return '';
+  const headers = Object.keys(rows[0]);
   const cell = (v: unknown) => {
-    const raw = v == null ? '' : String(v)
-    const safe = /^[=+\-@]/.test(raw) ? `'${raw}` : raw
-    return `"${safe.replace(/"/g, '""')}"`
-  }
-  return [headers.map(cell).join(','), ...rows.map((r) => headers.map((h) => cell(r[h])).join(','))].join('\r\n')
+    const raw = v == null ? '' : String(v);
+    const safe = /^[=+\-@]/.test(raw) ? `'${raw}` : raw;
+    return `"${safe.replace(/"/g, '""')}"`;
+  };
+  return [
+    headers.map(cell).join(','),
+    ...rows.map((r) => headers.map((h) => cell(r[h])).join(',')),
+  ].join('\r\n');
 }
 
-export async function reportRows(scope: ManagerScope, kind: string, range: ReportRange): Promise<Record<string, unknown>[]> {
+export async function reportRows(
+  scope: ManagerScope,
+  kind: string,
+  range: ReportRange
+): Promise<Record<string, unknown>[]> {
   switch (kind) {
     case 'revenue': {
-      const r = await revenueReport(scope, range)
-      return r.daily.map((d) => ({ date: d.date, transactions: d.count, revenue: d.total }))
+      const r = await revenueReport(scope, range);
+      return r.daily.map((d) => ({ date: d.date, transactions: d.count, revenue: d.total }));
     }
     case 'occupancy': {
-      const r = await occupancyReport(scope)
+      const r = await occupancyReport(scope);
       return r.byAssetType.map((t) => ({
         assetType: t.name,
         kind: t.kind,
@@ -300,18 +376,18 @@ export async function reportRows(scope: ManagerScope, kind: string, range: Repor
         inUse: t.inUse,
         outOfService: t.outOfService,
         utilisationPct: t.utilisationPct,
-      }))
+      }));
     }
     case 'rentals': {
-      const r = await rentalsReport(scope, range)
-      return r.byEngine.map((e) => ({ service: e.engineKind, bookings: e.count }))
+      const r = await rentalsReport(scope, range);
+      return r.byEngine.map((e) => ({ service: e.engineKind, bookings: e.count }));
     }
     case 'payments': {
-      const r = await revenueReport(scope, range)
-      return r.byMethod.map((m) => ({ method: m.method, transactions: m.count, total: m.total }))
+      const r = await revenueReport(scope, range);
+      return r.byMethod.map((m) => ({ method: m.method, transactions: m.count, total: m.total }));
     }
     case 'discounts': {
-      const r = await discountsReport(scope, range)
+      const r = await discountsReport(scope, range);
       return r.rows.map((row) => ({
         date: row.at ? new Date(row.at).toISOString().slice(0, 10) : '',
         booking: row.ref,
@@ -323,10 +399,10 @@ export async function reportRows(scope: ManagerScope, kind: string, range: Repor
         given: row.amount,
         charged: row.charged,
         by: row.givenBy,
-      }))
+      }));
     }
     case 'agents': {
-      const r = await agentRevenueReport(scope, range)
+      const r = await agentRevenueReport(scope, range);
       return r.rows.map((row) => ({
         date: row.day,
         agent: row.agentName,
@@ -336,10 +412,10 @@ export async function reportRows(scope: ManagerScope, kind: string, range: Repor
         cash: row.byMethod.CASH ?? 0,
         card: row.byMethod.CARD ?? 0,
         total: row.total,
-      }))
+      }));
     }
     default:
-      throw new Error(`Unknown report "${kind}"`)
+      throw new Error(`Unknown report "${kind}"`);
   }
 }
 
@@ -347,8 +423,8 @@ export async function activityLog(scope: ManagerScope, limit = 500) {
   const [entries, stations] = await Promise.all([
     Audit.find({ tenantId: scope.tenantId }).sort({ at: -1 }).limit(limit).lean(),
     Station.find({ tenantId: scope.tenantId }).lean(),
-  ])
-  void stations
+  ]);
+  void stations;
   return entries.map((e) => ({
     _id: e._id,
     action: e.action,
@@ -358,7 +434,7 @@ export async function activityLog(scope: ManagerScope, limit = 500) {
     reason: e.reason ?? null,
     detail: e.detail ?? null,
     at: e.at,
-  }))
+  }));
 }
 
 /**
@@ -366,12 +442,12 @@ export async function activityLog(scope: ManagerScope, limit = 500) {
  * The client asked for these to be tracked and summed — they happen often enough to matter.
  */
 export async function discountsReport(scope: ManagerScope, range: ReportRange) {
-  const { from, to } = resolveRange(range)
+  const { from, to } = resolveRange(range);
   const match = {
     tenantId: scope.tenantId,
     discount: { $ne: null },
     'discount.at': { $gte: from, $lte: to },
-  }
+  };
 
   const [rows, staff, engines] = await Promise.all([
     Booking.find(match, {
@@ -389,26 +465,26 @@ export async function discountsReport(scope: ManagerScope, range: ReportRange) {
       .lean(),
     User.find({ tenantId: scope.tenantId }, { fullName: 1 }).lean(),
     tenantEngines(scope.tenantId),
-  ])
+  ]);
 
-  const nameOf = new Map(staff.map((u) => [u._id, u.fullName]))
+  const nameOf = new Map(staff.map((u) => [u._id, u.fullName]));
 
-  const given = round2(rows.reduce((sum, b) => sum + (b.discount?.amount ?? 0), 0))
-  const freeRides = rows.filter((b) => b.discount?.free).length
+  const given = round2(rows.reduce((sum, b) => sum + (b.discount?.amount ?? 0), 0));
+  const freeRides = rows.filter((b) => b.discount?.free).length;
 
   const bucket = (key: (b: (typeof rows)[number]) => string) => {
-    const totals = new Map<string, { total: number; count: number }>()
+    const totals = new Map<string, { total: number; count: number }>();
     for (const b of rows) {
-      const k = key(b)
-      const cur = totals.get(k) ?? { total: 0, count: 0 }
-      cur.total += b.discount?.amount ?? 0
-      cur.count += 1
-      totals.set(k, cur)
+      const k = key(b);
+      const cur = totals.get(k) ?? { total: 0, count: 0 };
+      cur.total += b.discount?.amount ?? 0;
+      cur.count += 1;
+      totals.set(k, cur);
     }
     return [...totals.entries()]
       .map(([k, v]) => ({ key: k, total: round2(v.total), count: v.count }))
-      .sort((a, b) => b.total - a.total)
-  }
+      .sort((a, b) => b.total - a.total);
+  };
 
   return {
     from: from.toISOString().slice(0, 10),
@@ -417,14 +493,16 @@ export async function discountsReport(scope: ManagerScope, range: ReportRange) {
     count: rows.length,
     freeRides,
     byReason: bucket((b) => b.discount?.reasonLabel || b.discount?.reasonCode || 'Unknown'),
-    byAgent: bucket((b) => b.discount?.givenByName || nameOf.get(b.discount?.givenBy ?? '') || 'Unknown'),
+    byAgent: bucket(
+      (b) => b.discount?.givenByName || nameOf.get(b.discount?.givenBy ?? '') || 'Unknown'
+    ),
     byEngine: engines.map((engine) => {
-      const mine = rows.filter((b) => b.engineKind === engine)
+      const mine = rows.filter((b) => b.engineKind === engine);
       return {
         engineKind: engine,
         total: round2(mine.reduce((sum, b) => sum + (b.discount?.amount ?? 0), 0)),
         count: mine.length,
-      }
+      };
     }),
     daily: bucket((b) => new Date(b.discount!.at).toISOString().slice(0, 10))
       .map((d) => ({ date: d.key, total: d.total, count: d.count }))
@@ -444,5 +522,5 @@ export async function discountsReport(scope: ManagerScope, range: ReportRange) {
       at: b.discount?.at,
       charged: round2(b.totalAmount ?? 0),
     })),
-  }
+  };
 }

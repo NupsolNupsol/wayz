@@ -1,8 +1,8 @@
-import { Select } from '@/components/Select'
-import { useTranslation } from 'react-i18next'
-import { CARD_SCHEMES } from '@/config/cardSchemes'
-import type { CardScheme } from '@/config/cardSchemes'
-import { schemeLabel } from './settlement'
+import { Select } from '@/components/Select';
+import { useTranslation } from 'react-i18next';
+import { CARD_SCHEMES } from '@/config/cardSchemes';
+import type { CardScheme } from '@/config/cardSchemes';
+import { schemeLabel } from './settlement';
 
 export function PeriodBar({
   from,
@@ -14,20 +14,22 @@ export function PeriodBar({
   testId,
   children,
 }: {
-  from: string
-  to: string
-  onFrom: (v: string) => void
-  onTo: (v: string) => void
-  scheme?: '' | CardScheme
-  onScheme?: (v: '' | CardScheme) => void
-  testId: string
-  children?: React.ReactNode
+  from: string;
+  to: string;
+  onFrom: (v: string) => void;
+  onTo: (v: string) => void;
+  scheme?: '' | CardScheme;
+  onScheme?: (v: '' | CardScheme) => void;
+  testId: string;
+  children?: React.ReactNode;
 }) {
-  const { t } = useTranslation(['accounting', 'common'])
+  const { t } = useTranslation(['accounting', 'common']);
   return (
     <div className="flex flex-wrap items-center gap-x-4 gap-y-3" data-testid={testId}>
       <div className="flex items-center gap-2">
-        <span className="text-xs font-semibold uppercase tracking-wide text-muted">{t('period.label')}</span>
+        <span className="text-xs font-semibold uppercase tracking-wide text-muted">
+          {t('period.label')}
+        </span>
         <input
           type="date"
           className="lf-input h-9 w-[150px]"
@@ -61,5 +63,5 @@ export function PeriodBar({
 
       {children}
     </div>
-  )
+  );
 }

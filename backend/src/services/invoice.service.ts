@@ -1,105 +1,133 @@
-import { AssetUnit, Gate, InvoiceDoc, Kiosk, Order, Payment, Receipt, Station, Tenant, User } from '../models/index.js'
-import { ApiError } from '../utils/ApiError.js'
-import { round2 } from '../utils/helpers.js'
-import { SCHEME_LABELS } from '../constants/labels.constants.js'
-import { invoiceWhatsApp } from '../constants/messages.constants.js'
-import type { BookingHydrated } from '../models/booking.model.js'
-import type { PaymentMethod } from '../domain/types.js'
-import type { CardScheme } from '../domain/commission.js'
-import { env } from '../config/env.js'
-import { isPubliclyFetchable, sendFile, sendTextVia, isChannelConfigured } from './vonage.service.js'
-import type { Scope } from '../interfaces/index.js'
+import {
+  AssetUnit,
+  Gate,
+  InvoiceDoc,
+  Kiosk,
+  Order,
+  Payment,
+  Receipt,
+  Station,
+  Tenant,
+  User,
+} from '../models/index.js';
+import { ApiError } from '../utils/ApiError.js';
+import { round2 } from '../utils/helpers.js';
+import { SCHEME_LABELS } from '../constants/labels.constants.js';
+import { invoiceWhatsApp } from '../constants/messages.constants.js';
+import type { BookingHydrated } from '../models/booking.model.js';
+import type { PaymentMethod } from '../domain/types.js';
+import type { CardScheme } from '../domain/commission.js';
+import { env } from '../config/env.js';
+import {
+  isPubliclyFetchable,
+  sendFile,
+  sendTextVia,
+  isChannelConfigured,
+} from './vonage.service.js';
+import type { Scope } from '../interfaces/index.js';
 
-export type InvoiceLineKind = 'ITEM' | 'PENALTY' | 'OVERTIME' | 'DELIVERY' | 'DEPOSIT'
+export type InvoiceLineKind = 'ITEM' | 'PENALTY' | 'OVERTIME' | 'DELIVERY' | 'DEPOSIT';
 
 export interface InvoiceLine {
-  index: number
-  name: string
+  index: number;
+  name: string;
   /** The slip prints in Arabic whatever the agent's screen language is. */
-  nameAr: string
-  quantity: number
+  nameAr: string;
+  quantity: number;
   /** The quantity as the customer was charged it — "1h" for an hour, "2" for two items. */
-  quantityLabel: string
-  unitPrice: number
-  total: number
-  isDeposit: boolean
-  kind: InvoiceLineKind
+  quantityLabel: string;
+  unitPrice: number;
+  total: number;
+  isDeposit: boolean;
+  kind: InvoiceLineKind;
 }
 
 export interface InvoicePaymentLine {
-  label: { en: string; ar: string }
-  method: PaymentMethod
-  amount: number
+  label: { en: string; ar: string };
+  method: PaymentMethod;
+  amount: number;
 }
 
 export interface Invoice {
-  number: string
-  issuedAt: string
+  number: string;
+  issuedAt: string;
   seller: {
-    name: string
-    legalName: string
-    crNumber: string
-    vatNumber: string
-    currency: string
-  }
-  branch: string
-  desk: string | null
+    name: string;
+    legalName: string;
+    crNumber: string;
+    vatNumber: string;
+    currency: string;
+  };
+  branch: string;
+  desk: string | null;
   /** The gate the customer collects from, when that differs from the desk. */
-  gate: string | null
+  gate: string | null;
   /** The window the customer is charged for. `startedAt` is null until the session begins. */
-  session: { startedAt: string | null; endsAt: string | null }
-  servedBy: string
-  customer: { name: string; phone: string }
-  lines: InvoiceLine[]
-  payments: InvoicePaymentLine[]
-  totals: { base: number; vat: number; vatRate: number; total: number; deposit: number }
-  qrPayload: string
-  barcode: string
-  status: string
+  session: { startedAt: string | null; endsAt: string | null };
+  servedBy: string;
+  customer: { name: string; phone: string };
+  lines: InvoiceLine[];
+  payments: InvoicePaymentLine[];
+  totals: { base: number; vat: number; vatRate: number; total: number; deposit: number };
+  qrPayload: string;
+  barcode: string;
+  status: string;
 }
 
 /** The name of the place a booking is collected from and returned to, if there is one. */
-async function handoverPoint(tenantId: string, booking: { gateId?: string | null; session?: { assetUnitId?: string | null } }) {
+async function handoverPoint(
+  tenantId: string,
+  booking: { gateId?: string | null; session?: { assetUnitId?: string | null } }
+) {
   if (booking.gateId) {
-    return (await Gate.findOne({ _id: booking.gateId, tenantId }, { name: 1 }).lean())?.name ?? null
+    return (
+      (await Gate.findOne({ _id: booking.gateId, tenantId }, { name: 1 }).lean())?.name ?? null
+    );
   }
 
-  const unitId = booking.session?.assetUnitId
-  if (!unitId) return null
+  const unitId = booking.session?.assetUnitId;
+  if (!unitId) return null;
 
-  const unit = await AssetUnit.findOne({ _id: unitId, tenantId }, { gateId: 1, kioskId: 1 }).lean()
-  if (unit?.gateId) return (await Gate.findOne({ _id: unit.gateId, tenantId }, { name: 1 }).lean())?.name ?? null
-  if (unit?.kioskId) return (await Kiosk.findOne({ _id: unit.kioskId, tenantId }, { name: 1 }).lean())?.name ?? null
-  return null
+  const unit = await AssetUnit.findOne({ _id: unitId, tenantId }, { gateId: 1, kioskId: 1 }).lean();
+  if (unit?.gateId)
+    return (await Gate.findOne({ _id: unit.gateId, tenantId }, { name: 1 }).lean())?.name ?? null;
+  if (unit?.kioskId)
+    return (await Kiosk.findOne({ _id: unit.kioskId, tenantId }, { name: 1 }).lean())?.name ?? null;
+  return null;
 }
 
 const EXTRA_LINES: Record<string, InvoiceLineKind> = {
   OVERTIME_PENALTY: 'OVERTIME',
   WRONG_STATION_PENALTY: 'PENALTY',
   DELIVERY_FEE: 'DELIVERY',
-}
+};
 
 function lineKind(line: { productId: string; isDeposit: boolean }): InvoiceLineKind {
-  if (line.isDeposit) return 'DEPOSIT'
-  return EXTRA_LINES[line.productId] ?? 'ITEM'
+  if (line.isDeposit) return 'DEPOSIT';
+  return EXTRA_LINES[line.productId] ?? 'ITEM';
 }
 
-const CASH_LABEL = { en: 'Cash', ar: 'نقدًا' }
-const CARD_LABEL = { en: 'Card', ar: 'بطاقة' }
+const CASH_LABEL = { en: 'Cash', ar: 'نقدًا' };
+const CARD_LABEL = { en: 'Card', ar: 'بطاقة' };
 
-function paymentLabel(method: PaymentMethod, cardScheme: CardScheme | null): { en: string; ar: string } {
-  if (method === 'CASH') return CASH_LABEL
-  return cardScheme ? (SCHEME_LABELS[cardScheme] ?? CARD_LABEL) : CARD_LABEL
+function paymentLabel(
+  method: PaymentMethod,
+  cardScheme: CardScheme | null
+): { en: string; ar: string } {
+  if (method === 'CASH') return CASH_LABEL;
+  return cardScheme ? (SCHEME_LABELS[cardScheme] ?? CARD_LABEL) : CARD_LABEL;
 }
 
 export async function buildInvoice(scope: Scope, booking: BookingHydrated): Promise<Invoice> {
-  const order = await Order.findById(booking.orderId).lean()
-  if (!order) throw ApiError.notFound('Order not found.')
+  const order = await Order.findById(booking.orderId).lean();
+  if (!order) throw ApiError.notFound('Order not found.');
 
   const [tenant, station, kiosk, gate, agent, payments, receipt] = await Promise.all([
     Tenant.findById(scope.tenantId).lean(),
     Station.findOne({ _id: booking.stationId, tenantId: scope.tenantId }).lean(),
-    booking.kioskId ? Kiosk.findOne({ _id: booking.kioskId, tenantId: scope.tenantId }).lean() : null,
+    booking.kioskId
+      ? Kiosk.findOne({ _id: booking.kioskId, tenantId: scope.tenantId }).lean()
+      : null,
     /*
      * Where the customer collects and returns it.
      *
@@ -114,8 +142,8 @@ export async function buildInvoice(scope: Scope, booking: BookingHydrated): Prom
       .sort({ createdAt: 1 })
       .lean(),
     Receipt.findOne({ orderId: order._id, tenantId: scope.tenantId }).lean(),
-  ])
-  if (!tenant) throw ApiError.notFound('Tenant not found.')
+  ]);
+  if (!tenant) throw ApiError.notFound('Tenant not found.');
 
   /*
    * A tax invoice has to name who is issuing it.
@@ -129,20 +157,21 @@ export async function buildInvoice(scope: Scope, booking: BookingHydrated): Prom
     !tenant.legalName?.trim() && 'the registered legal name',
     !tenant.crNumber?.trim() && 'the commercial registration number',
     !tenant.vatNumber?.trim() && 'the VAT number',
-  ].filter(Boolean) as string[]
+  ].filter(Boolean) as string[];
 
   if (missing.length > 0) {
-    throw ApiError.unprocessable(`This company cannot issue a tax invoice yet — it is missing ${missing.join(', ')}.`, [
-      'An administrator can add them under Company details.',
-    ])
+    throw ApiError.unprocessable(
+      `This company cannot issue a tax invoice yet — it is missing ${missing.join(', ')}.`,
+      ['An administrator can add them under Company details.']
+    );
   }
 
-  const byLabel = new Map<string, InvoicePaymentLine>()
+  const byLabel = new Map<string, InvoicePaymentLine>();
   for (const p of payments) {
-    const label = paymentLabel(p.method, p.cardScheme)
-    const line = byLabel.get(label.en) ?? { label, method: p.method, amount: 0 }
-    line.amount = round2(line.amount + (p.kind === 'REFUND' ? -p.amount : p.amount))
-    byLabel.set(label.en, line)
+    const label = paymentLabel(p.method, p.cardScheme);
+    const line = byLabel.get(label.en) ?? { label, method: p.method, amount: 0 };
+    line.amount = round2(line.amount + (p.kind === 'REFUND' ? -p.amount : p.amount));
+    byLabel.set(label.en, line);
   }
 
   /*
@@ -156,23 +185,23 @@ export async function buildInvoice(scope: Scope, booking: BookingHydrated): Prom
    * A session always has a window; a duration of zero means nothing was booked for time.
    * Every session kind the platform has is timed, so the duration itself is the test.
    */
-  const bookedMinutes = booking.session?.requestedDurationMin ?? 0
-  const soldByTime = bookedMinutes > 0
+  const bookedMinutes = booking.session?.requestedDurationMin ?? 0;
+  const soldByTime = bookedMinutes > 0;
 
   const quantityLabel = (line: (typeof order.lines)[number], kind: InvoiceLineKind): string => {
     /*
      * Only the thing that was rented reads as time. A penalty, a delivery fee or a deposit on
      * the same slip is a count, and labelling those "1h" would be nonsense.
      */
-    if (!soldByTime || kind !== 'ITEM' || line.isDeposit) return String(line.quantity)
+    if (!soldByTime || kind !== 'ITEM' || line.isDeposit) return String(line.quantity);
 
-    const total = bookedMinutes * line.quantity
-    const hours = Math.floor(total / 60)
-    const minutes = total % 60
-    if (hours && minutes) return `${hours}h ${minutes}m`
-    if (hours) return `${hours}h`
-    return `${minutes}m`
-  }
+    const total = bookedMinutes * line.quantity;
+    const hours = Math.floor(total / 60);
+    const minutes = total % 60;
+    if (hours && minutes) return `${hours}h ${minutes}m`;
+    if (hours) return `${hours}h`;
+    return `${minutes}m`;
+  };
 
   const lines: InvoiceLine[] = order.lines.map((line, i) => ({
     index: i + 1,
@@ -184,7 +213,7 @@ export async function buildInvoice(scope: Scope, booking: BookingHydrated): Prom
     total: round2(line.unitPrice * line.quantity),
     isDeposit: line.isDeposit,
     kind: lineKind(line),
-  }))
+  }));
 
   return {
     number: order.ref,
@@ -208,8 +237,12 @@ export async function buildInvoice(scope: Scope, booking: BookingHydrated): Prom
      * a bag dropped but not yet started has an end and no beginning, which is honest.
      */
     session: {
-      startedAt: booking.session?.startedAt ? new Date(booking.session.startedAt).toISOString() : null,
-      endsAt: booking.session?.expectedEndAt ? new Date(booking.session.expectedEndAt).toISOString() : null,
+      startedAt: booking.session?.startedAt
+        ? new Date(booking.session.startedAt).toISOString()
+        : null,
+      endsAt: booking.session?.expectedEndAt
+        ? new Date(booking.session.expectedEndAt).toISOString()
+        : null,
     },
     servedBy: agent?.fullName ?? booking.agentId,
     customer: { name: booking.customerName, phone: booking.customerPhone },
@@ -222,26 +255,33 @@ export async function buildInvoice(scope: Scope, booking: BookingHydrated): Prom
       total: round2(order.total),
       deposit: round2(order.depositTotal ?? 0),
     },
-    qrPayload: receipt?.qrPayload ?? `ZATCA|${tenant._id.toUpperCase()}|${order.ref}|${order.total.toFixed(2)}`,
+    qrPayload:
+      receipt?.qrPayload ??
+      `ZATCA|${tenant._id.toUpperCase()}|${order.ref}|${order.total.toFixed(2)}`,
     barcode: order.ref,
     status: order.status,
-  }
+  };
 }
 
-const INVOICE_TTL_MIN = 60
+const INVOICE_TTL_MIN = 60;
 
 export async function whatsAppInvoice(
   scope: Scope,
   booking: BookingHydrated,
-  pdf: Buffer,
+  pdf: Buffer
 ): Promise<{ sent: boolean; asText: boolean; url: string; reason?: string }> {
   const [order, tenant] = await Promise.all([
     Order.findById(booking.orderId, { ref: 1, total: 1 }).lean(),
     Tenant.findById(scope.tenantId, { name: 1, currency: 1 }).lean(),
-  ])
+  ]);
 
   if (!booking.customerPhone) {
-    return { sent: false, asText: false, url: '', reason: 'This booking has no customer phone number.' }
+    return {
+      sent: false,
+      asText: false,
+      url: '',
+      reason: 'This booking has no customer phone number.',
+    };
   }
 
   const doc = await InvoiceDoc.create({
@@ -250,12 +290,12 @@ export async function whatsAppInvoice(
     orderRef: order?.ref ?? booking.ref,
     pdf,
     expiresAt: new Date(Date.now() + INVOICE_TTL_MIN * 60_000),
-  })
+  });
 
-  const base = (env.PUBLIC_API_URL ?? env.PUBLIC_APP_URL).replace(/\/$/, '')
-  const url = `${base}/api/public/invoice/${doc._id}`
-  const tracking = `${env.PUBLIC_APP_URL.replace(/\/$/, '')}/track/${booking.trackingToken}`
-  const brand = tenant?.name ?? 'WAYZ'
+  const base = (env.PUBLIC_API_URL ?? env.PUBLIC_APP_URL).replace(/\/$/, '');
+  const url = `${base}/api/public/invoice/${doc._id}`;
+  const tracking = `${env.PUBLIC_APP_URL.replace(/\/$/, '')}/track/${booking.trackingToken}`;
+  const brand = tenant?.name ?? 'WAYZ';
 
   const message = {
     brand,
@@ -263,12 +303,12 @@ export async function whatsAppInvoice(
     total: order?.total ?? 0,
     currency: tenant?.currency ?? 'SAR',
     tracking,
-  }
-  const thanks = invoiceWhatsApp(message)
+  };
+  const thanks = invoiceWhatsApp(message);
 
   if (!isPubliclyFetchable(url)) {
-    const withLink = invoiceWhatsApp({ ...message, invoiceUrl: url })
-    const fallback = await sendTextVia(['whatsapp', 'sms'], booking.customerPhone, withLink)
+    const withLink = invoiceWhatsApp({ ...message, invoiceUrl: url });
+    const fallback = await sendTextVia(['whatsapp', 'sms'], booking.customerPhone, withLink);
     return {
       sent: fallback.ok,
       asText: true,
@@ -276,7 +316,7 @@ export async function whatsAppInvoice(
       reason: fallback.ok
         ? `The message went, but not the PDF: WhatsApp fetches attachments itself and cannot reach ${base}. Point PUBLIC_API_URL at a publicly reachable address to attach the invoice.`
         : fallback.error,
-    }
+    };
   }
 
   /*
@@ -286,17 +326,23 @@ export async function whatsAppInvoice(
    * as a link rather than not reaching them.
    */
   if (!isChannelConfigured('whatsapp')) {
-    const asLink = await sendTextVia(['sms'], booking.customerPhone, invoiceWhatsApp({ ...message, invoiceUrl: url }))
-    return { sent: asLink.ok, asText: true, url, reason: asLink.ok ? undefined : asLink.error }
+    const asLink = await sendTextVia(
+      ['sms'],
+      booking.customerPhone,
+      invoiceWhatsApp({ ...message, invoiceUrl: url })
+    );
+    return { sent: asLink.ok, asText: true, url, reason: asLink.ok ? undefined : asLink.error };
   }
 
-  const result = await sendFile('whatsapp', booking.customerPhone, { url, caption: thanks })
-  return { sent: result.ok, asText: false, url, reason: result.ok ? undefined : result.error }
+  const result = await sendFile('whatsapp', booking.customerPhone, { url, caption: thanks });
+  return { sent: result.ok, asText: false, url, reason: result.ok ? undefined : result.error };
 }
 
-export async function readInvoicePdf(token: string): Promise<{ pdf: Buffer; filename: string } | null> {
-  const doc = await InvoiceDoc.findById(token)
-  if (!doc) return null
-  if (doc.expiresAt.getTime() < Date.now()) return null
-  return { pdf: Buffer.from(doc.pdf), filename: `invoice-${doc.orderRef}.pdf` }
+export async function readInvoicePdf(
+  token: string
+): Promise<{ pdf: Buffer; filename: string } | null> {
+  const doc = await InvoiceDoc.findById(token);
+  if (!doc) return null;
+  if (doc.expiresAt.getTime() < Date.now()) return null;
+  return { pdf: Buffer.from(doc.pdf), filename: `invoice-${doc.orderRef}.pdf` };
 }

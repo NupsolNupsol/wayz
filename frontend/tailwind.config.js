@@ -1,5 +1,5 @@
 /** @type {import('tailwindcss').Config} */
-const withOpacity = (v) => `rgb(var(${v}) / <alpha-value>)`
+const withOpacity = (v) => `rgb(var(${v}) / <alpha-value>)`;
 
 export default {
   darkMode: ['class', '[data-theme="dark"]'],
@@ -59,4 +59,4 @@ export default {
     },
   },
   plugins: [],
-}
+};

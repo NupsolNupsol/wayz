@@ -1,13 +1,22 @@
-import { useState } from 'react'
-import { useTranslation } from 'react-i18next'
-import { useNavigate } from 'react-router-dom'
-import { Ban, CalendarRange, ChevronRight, Plus, Receipt, TriangleAlert, Users, Wallet } from 'lucide-react'
-import { useTenantEngines } from '@/hooks/useTenantEngines'
-import { PageHeader } from '@/components/PageHeader'
-import { Badge, Button, Card, Field, SectionTitle, Spinner, StatCard } from '@/components/ui'
-import { DataTable } from '@/components/DataTable'
-import { Modal } from '@/components/Modal'
-import { Select } from '@/components/Select'
+import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
+import { useNavigate } from 'react-router-dom';
+import {
+  Ban,
+  CalendarRange,
+  ChevronRight,
+  Plus,
+  Receipt,
+  TriangleAlert,
+  Users,
+  Wallet,
+} from 'lucide-react';
+import { useTenantEngines } from '@/hooks/useTenantEngines';
+import { PageHeader } from '@/components/PageHeader';
+import { Badge, Button, Card, Field, SectionTitle, Spinner, StatCard } from '@/components/ui';
+import { DataTable } from '@/components/DataTable';
+import { Modal } from '@/components/Modal';
+import { Select } from '@/components/Select';
 import {
   useCreateExpense,
   useCreateSeason,
@@ -15,17 +24,23 @@ import {
   useHrOverview,
   useHrSeasons,
   useVoidExpense,
-} from '@/hooks'
-import { ENTERABLE_CATEGORIES, EXPENSE_CATEGORIES, SYSTEM_CATEGORIES, categoryLabel, type Expense, type ExpenseCategory } from '@/api/hr.api'
-import { ApiError } from '@/api/client'
-import { toast } from '@/state/toastStore'
-import { engineLabel } from '@/config/engineMeta'
-import { money } from '@/utils'
-import type { EngineKind } from '@/api/types'
-
+} from '@/hooks';
+import {
+  ENTERABLE_CATEGORIES,
+  EXPENSE_CATEGORIES,
+  SYSTEM_CATEGORIES,
+  categoryLabel,
+  type Expense,
+  type ExpenseCategory,
+} from '@/api/hr.api';
+import { ApiError } from '@/api/client';
+import { toast } from '@/state/toastStore';
+import { engineLabel } from '@/config/engineMeta';
+import { money } from '@/utils';
+import type { EngineKind } from '@/api/types';
 
 export function HrCosts() {
-  const { t } = useTranslation(['hr', 'common'])
+  const { t } = useTranslation(['hr', 'common']);
 
   /*
    * A cost is charged to one of the activities *this company runs*, or to none of them.
@@ -36,18 +51,21 @@ export function HrCosts() {
    */
   const chargeableActivities: { labelKey: string; value: string }[] = [
     { labelKey: 'common:label.notactivityspecific', value: '' },
-    ...useTenantEngines().map((kind: EngineKind) => ({ labelKey: `common:engine.${kind}`, value: kind as string })),
-  ]
-  const { data: overview, isLoading } = useHrOverview()
-  const { data: rows = [] } = useHrExpenses()
-  const { data: seasons = [] } = useHrSeasons()
-  const createExpense = useCreateExpense()
-  const voidExpense = useVoidExpense()
+    ...useTenantEngines().map((kind: EngineKind) => ({
+      labelKey: `common:engine.${kind}`,
+      value: kind as string,
+    })),
+  ];
+  const { data: overview, isLoading } = useHrOverview();
+  const { data: rows = [] } = useHrExpenses();
+  const { data: seasons = [] } = useHrSeasons();
+  const createExpense = useCreateExpense();
+  const voidExpense = useVoidExpense();
 
-  const [adding, setAdding] = useState(false)
-  const [voiding, setVoiding] = useState<Expense | null>(null)
-  const [reason, setReason] = useState('')
-  const [form, setForm] = useState<Record<string, string>>({})
+  const [adding, setAdding] = useState(false);
+  const [voiding, setVoiding] = useState<Expense | null>(null);
+  const [reason, setReason] = useState('');
+  const [form, setForm] = useState<Record<string, string>>({});
 
   const openAdd = () => {
     setForm({
@@ -59,9 +77,9 @@ export function HrCosts() {
       seasonId: seasons[0]?._id ?? '',
       amount: '',
       incurredAt: new Date().toISOString().slice(0, 10),
-    })
-    setAdding(true)
-  }
+    });
+    setAdding(true);
+  };
 
   const submit = () => {
     createExpense.mutate(
@@ -77,28 +95,38 @@ export function HrCosts() {
       },
       {
         onSuccess: () => {
-          toast('success', t('costs.costRecorded'), t('costs.nowCounts'))
-          setAdding(false)
+          toast('success', t('costs.costRecorded'), t('costs.nowCounts'));
+          setAdding(false);
         },
-        onError: (e) => toast('danger', t('costs.notRecorded'), e instanceof ApiError ? (e.errors?.join(' ') ?? e.message) : ''),
-      },
-    )
-  }
+        onError: (e) =>
+          toast(
+            'danger',
+            t('costs.notRecorded'),
+            e instanceof ApiError ? (e.errors?.join(' ') ?? e.message) : ''
+          ),
+      }
+    );
+  };
 
   const submitVoid = () => {
-    if (!voiding) return
+    if (!voiding) return;
     voidExpense.mutate(
       { id: voiding._id, reason: reason.trim() },
       {
         onSuccess: () => {
-          toast('warning', t('costs.costVoided'), t('costs.noLongerCounts'))
-          setVoiding(null)
-          setReason('')
+          toast('warning', t('costs.costVoided'), t('costs.noLongerCounts'));
+          setVoiding(null);
+          setReason('');
         },
-        onError: (e) => toast('danger', t('costs.couldNotVoid'), e instanceof ApiError ? (e.errors?.join(' ') ?? e.message) : ''),
-      },
-    )
-  }
+        onError: (e) =>
+          toast(
+            'danger',
+            t('costs.couldNotVoid'),
+            e instanceof ApiError ? (e.errors?.join(' ') ?? e.message) : ''
+          ),
+      }
+    );
+  };
 
   if (isLoading || !overview) {
     return (
@@ -106,16 +134,18 @@ export function HrCosts() {
         <PageHeader title={t('costs.title')} subtitle={t('common:state.loading')} />
         <Spinner />
       </div>
-    )
+    );
   }
 
-  const ready = (form.description ?? '').trim().length >= 3 && Number(form.amount) > 0
+  const ready = (form.description ?? '').trim().length >= 3 && Number(form.amount) > 0;
 
   /* The filter offers what has actually been recorded, which is a different question. */
-  const activityOptions = [...new Set(rows.map((r) => r.engineKind).filter(Boolean))].map((kind) => ({
-    label: engineLabel(kind as EngineKind),
-    value: String(kind),
-  }))
+  const activityOptions = [...new Set(rows.map((r) => r.engineKind).filter(Boolean))].map(
+    (kind) => ({
+      label: engineLabel(kind as EngineKind),
+      value: String(kind),
+    })
+  );
 
   return (
     <div data-testid="hr-costs">
@@ -126,14 +156,34 @@ export function HrCosts() {
         helpId="hr-costs"
         actions={
           <Button onClick={openAdd} data-testid="hr-add-cost">
-            <Plus size={16} />{t('costs.record')}</Button>
+            <Plus size={16} />
+            {t('costs.record')}
+          </Button>
         }
       />
 
       <div className="grid grid-cols-1 sm:grid-cols-4 gap-4 mb-5">
-        <StatCard label={t('costs.recorded')} value={overview.totals.count} icon={<Receipt size={18} />} tone="neutral" testId="hr-stat-count" />
-        <StatCard label={t('costs.totalExVat')} value={money(overview.totals.base)} icon={<Wallet size={18} />} tone="info" testId="hr-stat-base" />
-        <StatCard label={t('costs.recoverableVat')} value={money(overview.totals.vat)} icon={<Receipt size={18} />} tone="success" testId="hr-stat-vat" />
+        <StatCard
+          label={t('costs.recorded')}
+          value={overview.totals.count}
+          icon={<Receipt size={18} />}
+          tone="neutral"
+          testId="hr-stat-count"
+        />
+        <StatCard
+          label={t('costs.totalExVat')}
+          value={money(overview.totals.base)}
+          icon={<Wallet size={18} />}
+          tone="info"
+          testId="hr-stat-base"
+        />
+        <StatCard
+          label={t('costs.recoverableVat')}
+          value={money(overview.totals.vat)}
+          icon={<Receipt size={18} />}
+          tone="success"
+          testId="hr-stat-vat"
+        />
         <StatCard
           label={t('costs.notTiedToActivity')}
           value={money(overview.unassigned.base)}
@@ -148,7 +198,7 @@ export function HrCosts() {
       <Card className="p-4 mb-6" data-testid="hr-by-category">
         <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-x-8">
           {overview.byCategory.map((c) => {
-            const share = overview.totals.base > 0 ? (c.base / overview.totals.base) * 100 : 0
+            const share = overview.totals.base > 0 ? (c.base / overview.totals.base) * 100 : 0;
             return (
               <div
                 key={c.category}
@@ -162,10 +212,12 @@ export function HrCosts() {
                   <span className="tabular-nums text-sm font-semibold">
                     {c.base.toLocaleString('en-US', { maximumFractionDigits: 0 })}
                   </span>
-                  <span className="text-[11px] text-muted ms-1.5 tabular-nums">{share.toFixed(0)}%</span>
+                  <span className="text-[11px] text-muted ms-1.5 tabular-nums">
+                    {share.toFixed(0)}%
+                  </span>
                 </span>
               </div>
-            )
+            );
           })}
         </div>
       </Card>
@@ -183,11 +235,18 @@ export function HrCosts() {
             key: 'what',
             header: t('common:column.cost'),
             sortValue: (r: Expense) => r.description,
-            filter: { kind: 'text', value: (r: Expense) => `${r.description} ${r.supplier} ${r.reference}` },
+            filter: {
+              kind: 'text',
+              value: (r: Expense) => `${r.description} ${r.supplier} ${r.reference}`,
+            },
             render: (r: Expense) => (
               <div className="max-w-[280px]">
-                <p className="text-sm font-semibold text-navy dark:text-dk-texthi truncate">{r.description}</p>
-                <p className="text-[11px] text-muted">{r.supplier || '—'} · {r.reference || t('common:label.noReference')}</p>
+                <p className="text-sm font-semibold text-navy dark:text-dk-texthi truncate">
+                  {r.description}
+                </p>
+                <p className="text-[11px] text-muted">
+                  {r.supplier || '—'} · {r.reference || t('common:label.noReference')}
+                </p>
               </div>
             ),
           },
@@ -204,7 +263,7 @@ export function HrCosts() {
           {
             key: 'activity',
             header: t('common:column.activity'),
-            sortValue: (r: Expense) => (r.engineKind ? (engineLabel(r.engineKind)) : ''),
+            sortValue: (r: Expense) => (r.engineKind ? engineLabel(r.engineKind) : ''),
             filter: {
               kind: 'select',
               options: [
@@ -214,7 +273,7 @@ export function HrCosts() {
               value: (r: Expense) => r.engineKind ?? '',
             },
             render: (r: Expense) =>
-              r.engineKind ? (engineLabel(r.engineKind)) : <span className="text-muted">—</span>,
+              r.engineKind ? engineLabel(r.engineKind) : <span className="text-muted">—</span>,
           },
           {
             key: 'season',
@@ -241,7 +300,9 @@ export function HrCosts() {
             key: 'vat',
             header: t('common:column.vat'),
             align: 'right',
-            render: (r: Expense) => <span className="tabular-nums text-muted">{r.vatAmount.toFixed(2)}</span>,
+            render: (r: Expense) => (
+              <span className="tabular-nums text-muted">{r.vatAmount.toFixed(2)}</span>
+            ),
           },
           {
             key: 'total',
@@ -255,7 +316,11 @@ export function HrCosts() {
             header: t('common:column.incurred'),
             align: 'right',
             sortValue: (r: Expense) => r.incurredAt,
-            render: (r: Expense) => <span className="text-xs text-muted">{new Date(r.incurredAt).toISOString().slice(0, 10)}</span>,
+            render: (r: Expense) => (
+              <span className="text-xs text-muted">
+                {new Date(r.incurredAt).toISOString().slice(0, 10)}
+              </span>
+            ),
           },
           {
             key: 'status',
@@ -265,9 +330,19 @@ export function HrCosts() {
               r.status === 'VOID' ? (
                 <Badge tone="neutral">{t('costs.void')}</Badge>
               ) : SYSTEM_CATEGORIES.includes(r.category) ? (
-                <span className="text-xs text-muted" title={t('costs.fromCards')}>{t('common:label.automatic')}</span>
+                <span className="text-xs text-muted" title={t('costs.fromCards')}>
+                  {t('common:label.automatic')}
+                </span>
               ) : (
-                <Button variant="ghost" onClick={(e) => { e.stopPropagation(); setVoiding(r); setReason('') }} data-testid={`hr-void-${r._id}`}>
+                <Button
+                  variant="ghost"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setVoiding(r);
+                    setReason('');
+                  }}
+                  data-testid={`hr-void-${r._id}`}
+                >
                   <Ban size={15} /> {t('costs.void')}
                 </Button>
               ),
@@ -284,8 +359,17 @@ export function HrCosts() {
         testId="hr-cost-modal"
         footer={
           <>
-            <Button variant="ghost" onClick={() => setAdding(false)}>{t('common:action.cancel')}</Button>
-            <Button onClick={submit} loading={createExpense.isPending} disabled={!ready} data-testid="hr-cost-submit">{t('costs.recordCost')}</Button>
+            <Button variant="ghost" onClick={() => setAdding(false)}>
+              {t('common:action.cancel')}
+            </Button>
+            <Button
+              onClick={submit}
+              loading={createExpense.isPending}
+              disabled={!ready}
+              data-testid="hr-cost-submit"
+            >
+              {t('costs.recordCost')}
+            </Button>
           </>
         }
       >
@@ -323,10 +407,20 @@ export function HrCosts() {
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4">
           <Field label={t('costs.supplier')}>
-            <input className="lf-input" value={form.supplier ?? ''} onChange={(e) => setForm({ ...form, supplier: e.target.value })} data-testid="hr-cost-supplier" />
+            <input
+              className="lf-input"
+              value={form.supplier ?? ''}
+              onChange={(e) => setForm({ ...form, supplier: e.target.value })}
+              data-testid="hr-cost-supplier"
+            />
           </Field>
           <Field label={t('costs.invoiceReference')}>
-            <input className="lf-input" value={form.reference ?? ''} onChange={(e) => setForm({ ...form, reference: e.target.value })} data-testid="hr-cost-reference" />
+            <input
+              className="lf-input"
+              value={form.reference ?? ''}
+              onChange={(e) => setForm({ ...form, reference: e.target.value })}
+              data-testid="hr-cost-reference"
+            />
           </Field>
         </div>
 
@@ -343,73 +437,111 @@ export function HrCosts() {
             <Select
               value={form.seasonId ?? ''}
               onChange={(v) => setForm({ ...form, seasonId: v })}
-              options={[{ label: t('common:label.noseason'), value: '' }, ...seasons.map((s) => ({ label: s.name, value: s._id }))]}
+              options={[
+                { label: t('common:label.noseason'), value: '' },
+                ...seasons.map((s) => ({ label: s.name, value: s._id })),
+              ]}
               testId="hr-cost-season"
             />
           </Field>
           <Field label={t('costs.dateIncurred')}>
-            <input type="date" className="lf-input" value={form.incurredAt ?? ''} onChange={(e) => setForm({ ...form, incurredAt: e.target.value })} data-testid="hr-cost-date" />
+            <input
+              type="date"
+              className="lf-input"
+              value={form.incurredAt ?? ''}
+              onChange={(e) => setForm({ ...form, incurredAt: e.target.value })}
+              data-testid="hr-cost-date"
+            />
           </Field>
         </div>
       </Modal>
 
       <Modal
         open={!!voiding}
-        onClose={() => { setVoiding(null); setReason('') }}
+        onClose={() => {
+          setVoiding(null);
+          setReason('');
+        }}
         title={t('costs.void')}
         subtitle={t('costs.voidHint')}
         testId="hr-void-modal"
         footer={
           <>
-            <Button variant="ghost" onClick={() => { setVoiding(null); setReason('') }}>{t('common:action.cancel')}</Button>
-            <Button variant="danger" onClick={submitVoid} loading={voidExpense.isPending} disabled={reason.trim().length < 3} data-testid="hr-void-submit">
+            <Button
+              variant="ghost"
+              onClick={() => {
+                setVoiding(null);
+                setReason('');
+              }}
+            >
+              {t('common:action.cancel')}
+            </Button>
+            <Button
+              variant="danger"
+              onClick={submitVoid}
+              loading={voidExpense.isPending}
+              disabled={reason.trim().length < 3}
+              data-testid="hr-void-submit"
+            >
               {t('costs.void')}
             </Button>
           </>
         }
       >
         <Field label={t('common:field.reason')} required>
-          <textarea className="lf-input min-h-[80px]" value={reason} onChange={(e) => setReason(e.target.value)} data-testid="hr-void-reason" />
+          <textarea
+            className="lf-input min-h-[80px]"
+            value={reason}
+            onChange={(e) => setReason(e.target.value)}
+            data-testid="hr-void-reason"
+          />
         </Field>
       </Modal>
     </div>
-  )
+  );
 }
 
 export function HrSeasons() {
-  const { t } = useTranslation(['hr', 'common'])
-  const navigate = useNavigate()
-  const { data: seasons = [], isLoading } = useHrSeasons()
-  const createSeason = useCreateSeason()
+  const { t } = useTranslation(['hr', 'common']);
+  const navigate = useNavigate();
+  const { data: seasons = [], isLoading } = useHrSeasons();
+  const createSeason = useCreateSeason();
 
-  const [adding, setAdding] = useState(false)
-  const [name, setName] = useState('')
-  const [startsAt, setStartsAt] = useState(new Date().toISOString().slice(0, 10))
-  const [endsAt, setEndsAt] = useState('')
+  const [adding, setAdding] = useState(false);
+  const [name, setName] = useState('');
+  const [startsAt, setStartsAt] = useState(new Date().toISOString().slice(0, 10));
+  const [endsAt, setEndsAt] = useState('');
 
   const defaultEnd = (start: string) => {
-    const [year, month, day] = start.split('-').map(Number)
-    if (!year || !month || !day) return ''
-    const target = new Date(Date.UTC(year, month - 1 + 6, 1))
-    const lastDay = new Date(Date.UTC(target.getUTCFullYear(), target.getUTCMonth() + 1, 0)).getUTCDate()
-    target.setUTCDate(Math.min(day, lastDay))
-    return target.toISOString().slice(0, 10)
-  }
+    const [year, month, day] = start.split('-').map(Number);
+    if (!year || !month || !day) return '';
+    const target = new Date(Date.UTC(year, month - 1 + 6, 1));
+    const lastDay = new Date(
+      Date.UTC(target.getUTCFullYear(), target.getUTCMonth() + 1, 0)
+    ).getUTCDate();
+    target.setUTCDate(Math.min(day, lastDay));
+    return target.toISOString().slice(0, 10);
+  };
 
   const submitSeason = () => {
     createSeason.mutate(
       { name, startsAt, endsAt: endsAt || defaultEnd(startsAt) },
       {
         onSuccess: (season) => {
-          toast('success', t('costs.seasonCreated'), t('costs.chargeNext'))
-          setAdding(false)
-          setName('')
-          navigate(`/hr/seasons/${season._id}`)
+          toast('success', t('costs.seasonCreated'), t('costs.chargeNext'));
+          setAdding(false);
+          setName('');
+          navigate(`/hr/seasons/${season._id}`);
         },
-        onError: (e) => toast('danger', t('costs.couldNotCreate'), e instanceof ApiError ? (e.errors?.join(' ') ?? e.message) : ''),
-      },
-    )
-  }
+        onError: (e) =>
+          toast(
+            'danger',
+            t('costs.couldNotCreate'),
+            e instanceof ApiError ? (e.errors?.join(' ') ?? e.message) : ''
+          ),
+      }
+    );
+  };
 
   if (isLoading) {
     return (
@@ -417,7 +549,7 @@ export function HrSeasons() {
         <PageHeader title={t('costs.seasons')} subtitle={t('common:state.loading')} />
         <Spinner />
       </div>
-    )
+    );
   }
 
   return (
@@ -428,12 +560,23 @@ export function HrSeasons() {
         crumbs={[{ label: t('common:crumb.hr') }, { label: t('common:crumb.seasons') }]}
         helpId="hr-seasons"
         actions={
-          <Button onClick={() => { setAdding(true); setEndsAt(defaultEnd(startsAt)) }} data-testid="hr-add-season">
-            <Plus size={16} />{t('costs.newSeason')}</Button>
+          <Button
+            onClick={() => {
+              setAdding(true);
+              setEndsAt(defaultEnd(startsAt));
+            }}
+            data-testid="hr-add-season"
+          >
+            <Plus size={16} />
+            {t('costs.newSeason')}
+          </Button>
         }
       />
 
-      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4" data-testid="hr-season-list">
+      <div
+        className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4"
+        data-testid="hr-season-list"
+      >
         {seasons.map((s) => (
           <Card
             key={s._id}
@@ -443,8 +586,8 @@ export function HrSeasons() {
             onClick={() => navigate(`/hr/seasons/${s._id}`)}
             onKeyDown={(e) => {
               if (e.key === 'Enter' || e.key === ' ') {
-                e.preventDefault()
-                navigate(`/hr/seasons/${s._id}`)
+                e.preventDefault();
+                navigate(`/hr/seasons/${s._id}`);
               }
             }}
             data-testid={`hr-season-${s._id}`}
@@ -452,10 +595,12 @@ export function HrSeasons() {
             <div className="flex items-start justify-between gap-2">
               <div className="min-w-0">
                 <p className="font-semibold text-navy dark:text-dk-texthi flex items-center gap-2">
-                  <CalendarRange size={16} className="text-brand shrink-0" /> <span className="truncate">{s.name}</span>
+                  <CalendarRange size={16} className="text-brand shrink-0" />{' '}
+                  <span className="truncate">{s.name}</span>
                 </p>
                 <p className="text-xs text-muted mt-1">
-                  {new Date(s.startsAt).toISOString().slice(0, 10)} → {new Date(s.endsAt).toISOString().slice(0, 10)}
+                  {new Date(s.startsAt).toISOString().slice(0, 10)} →{' '}
+                  {new Date(s.endsAt).toISOString().slice(0, 10)}
                 </p>
               </div>
               <ChevronRight size={18} className="text-muted shrink-0" />
@@ -463,20 +608,34 @@ export function HrSeasons() {
 
             <div className="grid grid-cols-2 gap-x-4 gap-y-1 mt-3 text-sm">
               <div>
-                <p className="text-[11px] uppercase tracking-wide text-muted font-semibold">{t('costs.costBase')}</p>
-                <p className="tabular-nums font-semibold text-navy dark:text-dk-texthi">{money(s.expenseBase)}</p>
-                <p className="text-[11px] text-muted">{t('costs.entryCount', { count: s.expenseCount })}</p>
+                <p className="text-[11px] uppercase tracking-wide text-muted font-semibold">
+                  {t('costs.costBase')}
+                </p>
+                <p className="tabular-nums font-semibold text-navy dark:text-dk-texthi">
+                  {money(s.expenseBase)}
+                </p>
+                <p className="text-[11px] text-muted">
+                  {t('costs.entryCount', { count: s.expenseCount })}
+                </p>
               </div>
               <div>
-                <p className="text-[11px] uppercase tracking-wide text-muted font-semibold">{t('costs.employeeCharges')}</p>
-                <p className="tabular-nums font-semibold text-navy dark:text-dk-texthi">{money(s.payrollBase)}</p>
-                <p className="text-[11px] text-muted">{t('costs.chargedCount', { count: s.payrollCount })}</p>
+                <p className="text-[11px] uppercase tracking-wide text-muted font-semibold">
+                  {t('costs.employeeCharges')}
+                </p>
+                <p className="tabular-nums font-semibold text-navy dark:text-dk-texthi">
+                  {money(s.payrollBase)}
+                </p>
+                <p className="text-[11px] text-muted">
+                  {t('costs.chargedCount', { count: s.payrollCount })}
+                </p>
               </div>
             </div>
 
             {s.payrollCount === 0 && (
               <p className="text-xs text-amber-600 dark:text-amber-300 mt-3 flex items-center gap-1.5">
-                <TriangleAlert size={13} />{t('costs.noCharges')}</p>
+                <TriangleAlert size={13} />
+                {t('costs.noCharges')}
+              </p>
             )}
           </Card>
         ))}
@@ -490,25 +649,53 @@ export function HrSeasons() {
         testId="hr-season-modal"
         footer={
           <>
-            <Button variant="ghost" onClick={() => setAdding(false)}>{t('common:action.cancel')}</Button>
-            <Button onClick={submitSeason} loading={createSeason.isPending} disabled={name.trim().length < 2} data-testid="hr-season-submit">
+            <Button variant="ghost" onClick={() => setAdding(false)}>
+              {t('common:action.cancel')}
+            </Button>
+            <Button
+              onClick={submitSeason}
+              loading={createSeason.isPending}
+              disabled={name.trim().length < 2}
+              data-testid="hr-season-submit"
+            >
               Create
             </Button>
           </>
         }
       >
         <Field label={t('common:field.name')} required>
-          <input className="lf-input" value={name} onChange={(e) => setName(e.target.value)} placeholder={t('costs.seasonPlaceholder')} data-testid="hr-season-name" />
+          <input
+            className="lf-input"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            placeholder={t('costs.seasonPlaceholder')}
+            data-testid="hr-season-name"
+          />
         </Field>
         <div className="grid grid-cols-2 gap-x-4">
           <Field label={t('costs.starts')} required>
-            <input type="date" className="lf-input" value={startsAt} onChange={(e) => { setStartsAt(e.target.value); setEndsAt(defaultEnd(e.target.value)) }} data-testid="hr-season-start" />
+            <input
+              type="date"
+              className="lf-input"
+              value={startsAt}
+              onChange={(e) => {
+                setStartsAt(e.target.value);
+                setEndsAt(defaultEnd(e.target.value));
+              }}
+              data-testid="hr-season-start"
+            />
           </Field>
           <Field label={t('costs.ends')} required hint={t('costs.defaultsSixMonths')}>
-            <input type="date" className="lf-input" value={endsAt} onChange={(e) => setEndsAt(e.target.value)} data-testid="hr-season-end" />
+            <input
+              type="date"
+              className="lf-input"
+              value={endsAt}
+              onChange={(e) => setEndsAt(e.target.value)}
+              data-testid="hr-season-end"
+            />
           </Field>
         </div>
       </Modal>
     </div>
-  )
+  );
 }

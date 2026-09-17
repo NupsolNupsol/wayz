@@ -1,4 +1,4 @@
-import { Tenant } from '../models/index.js'
+import { Tenant } from '../models/index.js';
 import {
   DEFAULT_PENALTY_SCHEDULE,
   DEFAULT_RENTAL_RULES,
@@ -18,18 +18,18 @@ import {
   resolveProcurementRules,
   type TransferRules,
   type ProcurementRules,
-} from '../domain/rules.js'
+} from '../domain/rules.js';
 
 export interface TenantRules {
-  rental: RentalRules
-  penalties: PenaltyRule[]
-  shiftWindow: ShiftWindow
-  discountReasons: DiscountReason[]
+  rental: RentalRules;
+  penalties: PenaltyRule[];
+  shiftWindow: ShiftWindow;
+  discountReasons: DiscountReason[];
 
   /** Who raises and who approves an animal transfer — §7.4 and §11.2 disagree, so it is set. */
-  transfers: TransferRules
+  transfers: TransferRules;
   /** Who approves a purchase order, and above what value — §8.2 never states the boundary. */
-  procurement: ProcurementRules
+  procurement: ProcurementRules;
 }
 
 export async function tenantRules(tenantId: string): Promise<TenantRules> {
@@ -40,7 +40,7 @@ export async function tenantRules(tenantId: string): Promise<TenantRules> {
     discountReasons: 1,
     transferRules: 1,
     procurementRules: 1,
-  }).lean()
+  }).lean();
   return {
     rental: resolveRentalRules(tenant?.rentalRules),
     penalties: resolvePenaltySchedule(tenant?.penaltySchedule),
@@ -48,7 +48,7 @@ export async function tenantRules(tenantId: string): Promise<TenantRules> {
     discountReasons: resolveDiscountReasons(tenant?.discountReasons),
     transfers: resolveTransferRules(tenant?.transferRules),
     procurement: resolveProcurementRules(tenant?.procurementRules),
-  }
+  };
 }
 
 export const DEFAULT_TENANT_RULES: TenantRules = {
@@ -58,4 +58,4 @@ export const DEFAULT_TENANT_RULES: TenantRules = {
   discountReasons: DEFAULT_DISCOUNT_REASONS,
   transfers: DEFAULT_TRANSFER_RULES,
   procurement: DEFAULT_PROCUREMENT_RULES,
-}
+};

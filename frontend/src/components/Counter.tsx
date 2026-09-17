@@ -1,5 +1,5 @@
-import { Minus, Plus } from 'lucide-react'
-import { clsx } from 'clsx'
+import { Minus, Plus } from 'lucide-react';
+import { clsx } from 'clsx';
 
 /**
  * A count, chosen with two buttons.
@@ -25,30 +25,34 @@ export function Counter({
   testId,
   ariaLabel,
 }: {
-  value: number
-  onChange: (value: number) => void
-  min?: number
-  max?: number
-  step?: number
-  disabled?: boolean
+  value: number;
+  onChange: (value: number) => void;
+  min?: number;
+  max?: number;
+  step?: number;
+  disabled?: boolean;
   /** A word after the figure — "hours", "people" — so the number is never bare. */
-  suffix?: string
-  className?: string
-  testId?: string
-  ariaLabel?: string
+  suffix?: string;
+  className?: string;
+  testId?: string;
+  ariaLabel?: string;
 }) {
-  const clamp = (next: number) => Math.min(max ?? Number.POSITIVE_INFINITY, Math.max(min, next))
-  const atFloor = disabled || value <= min
-  const atCeiling = disabled || (max !== undefined && value >= max)
+  const clamp = (next: number) => Math.min(max ?? Number.POSITIVE_INFINITY, Math.max(min, next));
+  const atFloor = disabled || value <= min;
+  const atCeiling = disabled || (max !== undefined && value >= max);
 
   const nudge = (by: number) => {
-    const next = clamp(value + by)
-    if (next !== value) onChange(next)
-  }
+    const next = clamp(value + by);
+    if (next !== value) onChange(next);
+  };
 
   return (
     <div
-      className={clsx('lf-input flex items-center justify-between gap-1 !px-1', disabled && 'opacity-60', className)}
+      className={clsx(
+        'lf-input flex items-center justify-between gap-1 !px-1',
+        disabled && 'opacity-60',
+        className
+      )}
       data-testid={testId ? `${testId}-row` : undefined}
     >
       <button
@@ -90,5 +94,5 @@ export function Counter({
         <Plus size={15} />
       </button>
     </div>
-  )
+  );
 }

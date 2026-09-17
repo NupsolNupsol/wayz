@@ -1,10 +1,10 @@
-import { allEnginesWorkflow } from '../domain/workflow.js'
-import { ACTIVITY_LABELS } from '../constants/labels.constants.js'
-import { ENGINE_KINDS, type EngineKind } from '../domain/types.js'
-import { Tenant } from '../models/index.js'
-import { requireOrganisation } from './orgScope.js'
-import { ApiError } from '../utils/ApiError.js'
-import type { BilingualLabel } from '../interfaces/accounting.interface.js'
+import { allEnginesWorkflow } from '../domain/workflow.js';
+import { ACTIVITY_LABELS } from '../constants/labels.constants.js';
+import { ENGINE_KINDS, type EngineKind } from '../domain/types.js';
+import { Tenant } from '../models/index.js';
+import { requireOrganisation } from './orgScope.js';
+import { ApiError } from '../utils/ApiError.js';
+import type { BilingualLabel } from '../interfaces/accounting.interface.js';
 
 /**
  * Every activity the platform can run, and which organisations have taken them up.
@@ -32,16 +32,16 @@ import type { BilingualLabel } from '../interfaces/accounting.interface.js'
  */
 
 export interface CatalogueEntry {
-  key: EngineKind
-  label: BilingualLabel
+  key: EngineKind;
+  label: BilingualLabel;
   /** What a tenant administrator reads when deciding whether to take it up. */
-  description: string
+  description: string;
   /** The kind of thing it runs on — what its resources are. */
-  assetKind: string
+  assetKind: string;
   /** The shape of one unit of work: a storage, a rental, an outing. */
-  sessionKind: string
+  sessionKind: string;
   /** The jobs its workflow admits, so an adoption page can say who would staff it. */
-  actors: string[]
+  actors: string[];
 }
 
 const DESCRIPTIONS: Record<EngineKind, string> = {
@@ -50,13 +50,15 @@ const DESCRIPTIONS: Record<EngineKind, string> = {
   LAGOON: 'Boat trips sold by the seat, run by a captain and timed by the voyage.',
   COTE_RESTAURANT: 'Table service — a cover is seated, served and settled.',
   HORSE_RIDING: 'A guided trail ride on an Arabian horse, escorted by a trainer.',
-  EQUESTRIAN_LESSON: 'A structured riding lesson from a certified trainer, beginner or intermediate.',
+  EQUESTRIAN_LESSON:
+    'A structured riding lesson from a certified trainer, beginner or intermediate.',
   CAMEL_TOUR: 'A guided camel walk within the grounds, led on foot by a handler.',
   ANIMAL_CARE: 'The visitor grooms and showers their assigned horse, guided by a trainer.',
   ANIMAL_FEEDING: 'The visitor buys feed and gives it to an animal under supervision.',
   PHOTOGRAPHY: 'A studio photography session with an animal, delivered digitally or printed.',
-  GROUP_PACKAGE: 'A camel tour, a feeding and a photo session sold together to a party of five or more.',
-}
+  GROUP_PACKAGE:
+    'A camel tour, a feeding and a photo session sold together to a party of five or more.',
+};
 
 /**
  * The catalogue, derived from the workflow registry rather than written out beside it.
@@ -66,7 +68,7 @@ const DESCRIPTIONS: Record<EngineKind, string> = {
  */
 export function listCatalogue(): CatalogueEntry[] {
   return ENGINE_KINDS.filter((key) => allEnginesWorkflow[key]).map((key) => {
-    const wf = allEnginesWorkflow[key]
+    const wf = allEnginesWorkflow[key];
     return {
       key,
       label: ACTIVITY_LABELS[key],
@@ -74,14 +76,14 @@ export function listCatalogue(): CatalogueEntry[] {
       assetKind: wf.assetKind,
       sessionKind: wf.sessionKind,
       actors: [...wf.actors],
-    }
-  })
+    };
+  });
 }
 
-const CATALOGUE_KEYS = new Set<string>(listCatalogue().map((e) => e.key))
+const CATALOGUE_KEYS = new Set<string>(listCatalogue().map((e) => e.key));
 
 export function isRegisteredActivity(key: string): key is EngineKind {
-  return CATALOGUE_KEYS.has(key)
+  return CATALOGUE_KEYS.has(key);
 }
 
 /**
@@ -94,9 +96,9 @@ export function isRegisteredActivity(key: string): key is EngineKind {
  */
 export async function adoptedActivities(): Promise<EngineKind[]> {
   const organisation = await Tenant.findById(requireOrganisation(), { enabledEngines: 1 }).lean<{
-    enabledEngines?: EngineKind[]
-  } | null>()
-  return organisation?.enabledEngines ?? []
+    enabledEngines?: EngineKind[];
+  } | null>();
+  return organisation?.enabledEngines ?? [];
 }
 
 /**
@@ -111,22 +113,22 @@ export async function adoptedActivities(): Promise<EngineKind[]> {
  * stale assignments are invisible anyway because every screen reads the adopted list.
  */
 export async function adoptActivities(keys: string[]): Promise<EngineKind[]> {
-  const wanted = [...new Set(keys)]
+  const wanted = [...new Set(keys)];
 
-  const unknown = wanted.filter((k) => !isRegisteredActivity(k))
+  const unknown = wanted.filter((k) => !isRegisteredActivity(k));
   if (unknown.length) {
     throw ApiError.badRequest(`The platform has no activity called "${unknown[0]}".`, [
       `Registered activities: ${[...CATALOGUE_KEYS].join(', ')}.`,
-    ])
+    ]);
   }
 
   // By id, for the same reason `adoptedActivities` is — see the note there.
-  const organisation = await Tenant.findById(requireOrganisation())
-  if (!organisation) throw ApiError.notFound('This organisation has no record to configure.')
+  const organisation = await Tenant.findById(requireOrganisation());
+  if (!organisation) throw ApiError.notFound('This organisation has no record to configure.');
 
-  organisation.enabledEngines = wanted as EngineKind[]
-  await organisation.save()
-  return organisation.enabledEngines
+  organisation.enabledEngines = wanted as EngineKind[];
+  await organisation.save();
+  return organisation.enabledEngines;
 }
 
 /**
@@ -137,13 +139,14 @@ export async function adoptActivities(keys: string[]): Promise<EngineKind[]> {
  * says the same thing.
  */
 export async function assertAdopted(keys: string[]): Promise<void> {
-  if (keys.length === 0) return
+  if (keys.length === 0) return;
 
-  const adopted = await adoptedActivities()
-  const missing = keys.filter((k) => !adopted.includes(k as EngineKind))
+  const adopted = await adoptedActivities();
+  const missing = keys.filter((k) => !adopted.includes(k as EngineKind));
   if (missing.length) {
-    throw ApiError.badRequest(`This organisation does not run ${ACTIVITY_LABELS[missing[0] as EngineKind]?.en ?? missing[0]}.`, [
-      'An administrator adopts an activity before anybody can be assigned to it.',
-    ])
+    throw ApiError.badRequest(
+      `This organisation does not run ${ACTIVITY_LABELS[missing[0] as EngineKind]?.en ?? missing[0]}.`,
+      ['An administrator adopts an activity before anybody can be assigned to it.']
+    );
   }
 }

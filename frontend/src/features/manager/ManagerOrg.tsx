@@ -1,11 +1,22 @@
-import { useState } from 'react'
-import { useTranslation } from 'react-i18next'
-import { Building2, DoorOpen, MapPin, Pencil, Plus, Boxes, Power, ChevronRight, Server, Trash2 } from 'lucide-react'
-import { clsx } from 'clsx'
-import { PageHeader } from '@/components/PageHeader'
-import { Card, SectionTitle, Button, Field, Spinner, Badge, EmptyState } from '@/components/ui'
-import { Modal } from '@/components/Modal'
-import { Select } from '@/components/Select'
+import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
+import {
+  Building2,
+  DoorOpen,
+  MapPin,
+  Pencil,
+  Plus,
+  Boxes,
+  Power,
+  ChevronRight,
+  Server,
+  Trash2,
+} from 'lucide-react';
+import { clsx } from 'clsx';
+import { PageHeader } from '@/components/PageHeader';
+import { Card, SectionTitle, Button, Field, Spinner, Badge, EmptyState } from '@/components/ui';
+import { Modal } from '@/components/Modal';
+import { Select } from '@/components/Select';
 import {
   useCreateGate,
   useCreateKiosk,
@@ -20,62 +31,90 @@ import {
   useUpdateKiosk,
   useUpdateSite,
   useUpdateStation,
-} from '@/hooks'
-import { ApiError } from '@/api/client'
-import { toast } from '@/state/toastStore'
-import { ENGINE_META, engineLabel } from '@/config/engineMeta'
-import type { EngineKind } from '@/api/types'
-import type { OrgSite, OrgStation } from '@/api/manager.api'
+} from '@/hooks';
+import { ApiError } from '@/api/client';
+import { toast } from '@/state/toastStore';
+import { ENGINE_META, engineLabel } from '@/config/engineMeta';
+import type { EngineKind } from '@/api/types';
+import type { OrgSite, OrgStation } from '@/api/manager.api';
 
 type Dialog =
   | { kind: 'site'; id?: string; initial?: Partial<OrgSite> }
   | { kind: 'station'; id?: string; siteId: string; initial?: Partial<OrgStation> }
-  | { kind: 'kiosk'; id?: string; stationId: string; runs: EngineKind[]; initial?: Record<string, unknown> }
+  | {
+      kind: 'kiosk';
+      id?: string;
+      stationId: string;
+      runs: EngineKind[];
+      initial?: Record<string, unknown>;
+    }
   /** A gate names no activity: it holds lockers, and any desk at the station can allocate them. */
   | { kind: 'gate'; id?: string; stationId: string; initial?: Record<string, unknown> }
-  | null
+  | null;
 
 /** Sentinel in the venue-type list: picking it swaps the dropdown for a free-text box. */
-const ADD_VENUE = '__ADD__'
+const ADD_VENUE = '__ADD__';
 
 export function ManagerOrg() {
-  const { t } = useTranslation(['manager', 'common'])
-  const { data, isLoading } = useManagerOrg()
-  const createSite = useCreateSite()
-  const updateSite = useUpdateSite()
-  const createStation = useCreateStation()
-  const updateStation = useUpdateStation()
-  const createKiosk = useCreateKiosk()
-  const updateKiosk = useUpdateKiosk()
-  const removeKiosk = useRemoveKiosk()
-  const createGate = useCreateGate()
-  const updateGate = useUpdateGate()
-  const removeGate = useRemoveGate()
-  const removeStation = useRemoveStation()
-  const removeSite = useRemoveSite()
+  const { t } = useTranslation(['manager', 'common']);
+  const { data, isLoading } = useManagerOrg();
+  const createSite = useCreateSite();
+  const updateSite = useUpdateSite();
+  const createStation = useCreateStation();
+  const updateStation = useUpdateStation();
+  const createKiosk = useCreateKiosk();
+  const updateKiosk = useUpdateKiosk();
+  const removeKiosk = useRemoveKiosk();
+  const createGate = useCreateGate();
+  const updateGate = useUpdateGate();
+  const removeGate = useRemoveGate();
+  const removeStation = useRemoveStation();
+  const removeSite = useRemoveSite();
 
-  const [dialog, setDialog] = useState<Dialog>(null)
-  const [form, setForm] = useState<Record<string, string>>({})
-  const [removing, setRemoving] = useState<{ kind: 'site' | 'station' | 'kiosk' | 'gate'; id: string; name: string } | null>(null)
-  const [engines, setEngines] = useState<EngineKind[]>([])
-  const [customVenue, setCustomVenue] = useState(false)
+  const [dialog, setDialog] = useState<Dialog>(null);
+  const [form, setForm] = useState<Record<string, string>>({});
+  const [removing, setRemoving] = useState<{
+    kind: 'site' | 'station' | 'kiosk' | 'gate';
+    id: string;
+    name: string;
+  } | null>(null);
+  const [engines, setEngines] = useState<EngineKind[]>([]);
+  const [customVenue, setCustomVenue] = useState(false);
 
   const open = (d: Dialog, initial: Record<string, string> = {}, eng: EngineKind[] = []) => {
-    setCustomVenue(false)
-    setForm(initial)
-    setEngines(eng)
-    setDialog(d)
-  }
+    setCustomVenue(false);
+    setForm(initial);
+    setEngines(eng);
+    setDialog(d);
+  };
 
-  const fail = (e: unknown) => toast('danger', t('common:error.couldNotSave'), e instanceof ApiError ? (e.errors?.join(' ') ?? e.message) : '')
-  const done = (msg: string) => { toast('success', msg); setDialog(null) }
+  const fail = (e: unknown) =>
+    toast(
+      'danger',
+      t('common:error.couldNotSave'),
+      e instanceof ApiError ? (e.errors?.join(' ') ?? e.message) : ''
+    );
+  const done = (msg: string) => {
+    toast('success', msg);
+    setDialog(null);
+  };
 
   const submit = () => {
-    if (!dialog) return
+    if (!dialog) return;
     if (dialog.kind === 'site') {
-      const payload = { name: form.name, city: form.city, venueType: form.venueType, address: form.address, contactPhone: form.contactPhone }
-      if (dialog.id) updateSite.mutate({ id: dialog.id, patch: payload }, { onSuccess: () => done('Site updated'), onError: fail })
-      else createSite.mutate(payload, { onSuccess: () => done('Site created'), onError: fail })
+      const payload = {
+        name: form.name,
+        city: form.city,
+        venueType: form.venueType,
+        address: form.address,
+        contactPhone: form.contactPhone,
+      };
+      if (dialog.id)
+        updateSite.mutate(
+          { id: dialog.id, patch: payload },
+          { onSuccess: () => done('Site updated'), onError: fail }
+        );
+      else createSite.mutate(payload, { onSuccess: () => done('Site created'), onError: fail });
     }
     if (dialog.kind === 'station') {
       const payload = {
@@ -86,9 +125,14 @@ export function ManagerOrg() {
         openingTime: form.openingTime,
         closingTime: form.closingTime,
         contactPhone: form.contactPhone,
-      }
-      if (dialog.id) updateStation.mutate({ id: dialog.id, patch: payload }, { onSuccess: () => done('Station updated'), onError: fail })
-      else createStation.mutate(payload, { onSuccess: () => done('Station created'), onError: fail })
+      };
+      if (dialog.id)
+        updateStation.mutate(
+          { id: dialog.id, patch: payload },
+          { onSuccess: () => done('Station updated'), onError: fail }
+        );
+      else
+        createStation.mutate(payload, { onSuccess: () => done('Station created'), onError: fail });
     }
     if (dialog.kind === 'kiosk') {
       const payload = {
@@ -98,28 +142,43 @@ export function ManagerOrg() {
         location: form.location,
         engineKind: form.engineKind,
         isExitGate: form.isExitGate === 'yes',
-      }
-      if (dialog.id) updateKiosk.mutate({ id: dialog.id, patch: payload }, { onSuccess: () => done('Kiosk updated'), onError: fail })
-      else createKiosk.mutate(payload, { onSuccess: () => done('Kiosk created'), onError: fail })
+      };
+      if (dialog.id)
+        updateKiosk.mutate(
+          { id: dialog.id, patch: payload },
+          { onSuccess: () => done('Kiosk updated'), onError: fail }
+        );
+      else createKiosk.mutate(payload, { onSuccess: () => done('Kiosk created'), onError: fail });
     }
     if (dialog.kind === 'gate') {
-      const payload = { stationId: dialog.stationId, name: form.name, code: form.code, location: form.location }
-      if (dialog.id) updateGate.mutate({ id: dialog.id, patch: payload }, { onSuccess: () => done(t('org.gateUpdated')), onError: fail })
-      else createGate.mutate(payload, { onSuccess: () => done(t('org.gateCreated')), onError: fail })
+      const payload = {
+        stationId: dialog.stationId,
+        name: form.name,
+        code: form.code,
+        location: form.location,
+      };
+      if (dialog.id)
+        updateGate.mutate(
+          { id: dialog.id, patch: payload },
+          { onSuccess: () => done(t('org.gateUpdated')), onError: fail }
+        );
+      else
+        createGate.mutate(payload, { onSuccess: () => done(t('org.gateCreated')), onError: fail });
     }
-  }
+  };
 
   const toggle = (kind: 'site' | 'station' | 'kiosk' | 'gate', id: string, active: boolean) => {
-    const patch = { active: !active }
+    const patch = { active: !active };
     const opts = {
-      onSuccess: () => toast(active ? 'warning' : 'success', active ? 'Deactivated' : 'Reactivated'),
+      onSuccess: () =>
+        toast(active ? 'warning' : 'success', active ? 'Deactivated' : 'Reactivated'),
       onError: fail,
-    }
-    if (kind === 'site') updateSite.mutate({ id, patch }, opts)
-    if (kind === 'station') updateStation.mutate({ id, patch }, opts)
-    if (kind === 'kiosk') updateKiosk.mutate({ id, patch }, opts)
-    if (kind === 'gate') updateGate.mutate({ id, patch }, opts)
-  }
+    };
+    if (kind === 'site') updateSite.mutate({ id, patch }, opts);
+    if (kind === 'station') updateStation.mutate({ id, patch }, opts);
+    if (kind === 'kiosk') updateKiosk.mutate({ id, patch }, opts);
+    if (kind === 'gate') updateGate.mutate({ id, patch }, opts);
+  };
 
   if (isLoading || !data) {
     return (
@@ -127,11 +186,16 @@ export function ManagerOrg() {
         <PageHeader title={t('org.title')} subtitle={t('org.loading')} />
         <Spinner />
       </div>
-    )
+    );
   }
 
-  const saving = createSite.isPending || createStation.isPending || createKiosk.isPending ||
-    updateSite.isPending || updateStation.isPending || updateKiosk.isPending
+  const saving =
+    createSite.isPending ||
+    createStation.isPending ||
+    createKiosk.isPending ||
+    updateSite.isPending ||
+    updateStation.isPending ||
+    updateKiosk.isPending;
 
   return (
     <div data-testid="manager-org">
@@ -140,8 +204,13 @@ export function ManagerOrg() {
         subtitle={t('org.subtitle')}
         crumbs={[{ label: t('common:crumb.manager') }, { label: t('common:crumb.organisation') }]}
         actions={
-          <Button onClick={() => open({ kind: 'site' }, { venueType: 'MALL' })} data-testid="org-add-site">
-            <Plus size={16} />{t('org.addSite')}</Button>
+          <Button
+            onClick={() => open({ kind: 'site' }, { venueType: 'MALL' })}
+            data-testid="org-add-site"
+          >
+            <Plus size={16} />
+            {t('org.addSite')}
+          </Button>
         }
       />
 
@@ -152,11 +221,19 @@ export function ManagerOrg() {
         <ChevronRight size={12} />
         <Server size={14} /> {t('common:field.kiosk')}
         <ChevronRight size={12} />
-        <Boxes size={14} />{t('org.compartments')}<span className="ms-auto">{t('org.deactivateNote')}</span>
+        <Boxes size={14} />
+        {t('org.compartments')}
+        <span className="ms-auto">{t('org.deactivateNote')}</span>
       </div>
 
       {data.sites.length === 0 ? (
-        <Card><EmptyState icon={<Building2 size={24} />} title={t('org.noSites')} message={t('org.noSitesMessage')} /></Card>
+        <Card>
+          <EmptyState
+            icon={<Building2 size={24} />}
+            title={t('org.noSites')}
+            message={t('org.noSitesMessage')}
+          />
+        </Card>
       ) : (
         <div className="flex flex-col gap-4" data-testid="org-tree">
           {data.sites.map((site) => (
@@ -169,18 +246,39 @@ export function ManagerOrg() {
                   <div className="min-w-0">
                     <SectionTitle>{site.name}</SectionTitle>
                     <p className="text-xs text-muted mt-0.5">
-                      {t('org.siteLine', { city: site.city, venue: site.venueType ?? 'VENUE', count: site.stations.length })}
+                      {t('org.siteLine', {
+                        city: site.city,
+                        venue: site.venueType ?? 'VENUE',
+                        count: site.stations.length,
+                      })}
                       {site.address ? ` · ${site.address}` : ''}
                     </p>
                   </div>
                   {!site.active && <Badge tone="danger">{t('org.inactive')}</Badge>}
                 </div>
                 <div className="flex items-center gap-2">
-                  <Button variant="ghost" onClick={() => open({ kind: 'site', id: site._id }, {
-                    name: site.name, city: site.city, venueType: site.venueType ?? 'MALL',
-                    address: site.address ?? '', contactPhone: site.contactPhone ?? '',
-                  })}>{t('common:action.edit')}</Button>
-                  <Button variant="ghost" onClick={() => toggle('site', site._id, site.active)} title={site.active ? t('org.deactivate') : t('org.reactivate')}>
+                  <Button
+                    variant="ghost"
+                    onClick={() =>
+                      open(
+                        { kind: 'site', id: site._id },
+                        {
+                          name: site.name,
+                          city: site.city,
+                          venueType: site.venueType ?? 'MALL',
+                          address: site.address ?? '',
+                          contactPhone: site.contactPhone ?? '',
+                        }
+                      )
+                    }
+                  >
+                    {t('common:action.edit')}
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    onClick={() => toggle('site', site._id, site.active)}
+                    title={site.active ? t('org.deactivate') : t('org.reactivate')}
+                  >
                     <Power size={15} />
                   </Button>
                   <Button
@@ -191,7 +289,16 @@ export function ManagerOrg() {
                   >
                     <Trash2 size={15} />
                   </Button>
-                  <Button variant="secondary" onClick={() => open({ kind: 'station', siteId: site._id }, { openingTime: '08:00', closingTime: '22:00' })} data-testid={`org-add-station-${site._id}`}>
+                  <Button
+                    variant="secondary"
+                    onClick={() =>
+                      open(
+                        { kind: 'station', siteId: site._id },
+                        { openingTime: '08:00', closingTime: '22:00' }
+                      )
+                    }
+                    data-testid={`org-add-station-${site._id}`}
+                  >
                     <Plus size={15} /> {t('org.station')}
                   </Button>
                 </div>
@@ -200,37 +307,69 @@ export function ManagerOrg() {
               {site.stations.length > 0 && (
                 <div className="mt-4 flex flex-col gap-3 ps-2 sm:ps-6 border-s-2 border-line">
                   {site.stations.map((station) => (
-                    <div key={station._id} className={clsx('lf-card p-3', !station.active && 'opacity-60')}>
+                    <div
+                      key={station._id}
+                      className={clsx('lf-card p-3', !station.active && 'opacity-60')}
+                    >
                       <div className="flex flex-wrap items-start justify-between gap-2">
                         <div className="flex items-start gap-2.5 min-w-0">
                           <MapPin size={17} className="text-brand shrink-0 mt-0.5" />
                           <div className="min-w-0">
                             <p className="font-semibold text-navy dark:text-dk-texthi">
-                              {station.name} {station.code && <span className="text-xs text-muted">({station.code})</span>}
+                              {station.name}{' '}
+                              {station.code && (
+                                <span className="text-xs text-muted">({station.code})</span>
+                              )}
                             </p>
                             <p className="text-xs text-muted mt-0.5">
-                              {t('org.stationLine', { open: station.openingTime, close: station.closingTime, units: station.total, live: station.activeSessions })}
+                              {t('org.stationLine', {
+                                open: station.openingTime,
+                                close: station.closingTime,
+                                units: station.total,
+                                live: station.activeSessions,
+                              })}
                             </p>
                             <div className="flex flex-wrap gap-1 mt-1.5">
                               {station.engineKinds.map((e) => (
-                                <Badge key={e} tone="neutral">{engineLabel(e as EngineKind)}</Badge>
+                                <Badge key={e} tone="neutral">
+                                  {engineLabel(e as EngineKind)}
+                                </Badge>
                               ))}
                             </div>
                           </div>
                           {!station.active && <Badge tone="danger">{t('org.inactive')}</Badge>}
                         </div>
                         <div className="flex items-center gap-1.5">
-                          <Button variant="ghost" onClick={() => open({ kind: 'station', id: station._id, siteId: site._id }, {
-                            name: station.name, code: station.code ?? '',
-                            openingTime: station.openingTime ?? '08:00', closingTime: station.closingTime ?? '22:00',
-                            contactPhone: station.contactPhone ?? '',
-                          }, station.engineKinds)}>{t('common:action.edit')}</Button>
-                          <Button variant="ghost" onClick={() => toggle('station', station._id, station.active)} title={station.active ? t('org.deactivate') : t('org.reactivate')}>
+                          <Button
+                            variant="ghost"
+                            onClick={() =>
+                              open(
+                                { kind: 'station', id: station._id, siteId: site._id },
+                                {
+                                  name: station.name,
+                                  code: station.code ?? '',
+                                  openingTime: station.openingTime ?? '08:00',
+                                  closingTime: station.closingTime ?? '22:00',
+                                  contactPhone: station.contactPhone ?? '',
+                                },
+                                station.engineKinds
+                              )
+                            }
+                          >
+                            {t('common:action.edit')}
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            onClick={() => toggle('station', station._id, station.active)}
+                            title={station.active ? t('org.deactivate') : t('org.reactivate')}
+                          >
                             <Power size={14} />
                           </Button>
                           <Button
                             variant="ghost"
-                            onClick={() => setRemoving({ kind: 'station', id: station._id, name: station.name })}
+                            onClick={() =>
+                              setRemoving({ kind: 'station', id: station._id, name: station.name })
+                            }
                             title={t('common:action.delete')}
                             data-testid={`org-remove-station-${station._id}`}
                           >
@@ -239,11 +378,19 @@ export function ManagerOrg() {
                           <Button
                             variant="ghost"
                             disabled={station.engineKinds.length === 0}
-                            title={station.engineKinds.length === 0 ? t('org.stationHasNoActivity') : undefined}
+                            title={
+                              station.engineKinds.length === 0
+                                ? t('org.stationHasNoActivity')
+                                : undefined
+                            }
                             onClick={() =>
                               open(
-                                { kind: 'kiosk', stationId: station._id, runs: station.engineKinds },
-                                { engineKind: station.engineKinds[0] ?? '' },
+                                {
+                                  kind: 'kiosk',
+                                  stationId: station._id,
+                                  runs: station.engineKinds,
+                                },
+                                { engineKind: station.engineKinds[0] ?? '' }
                               )
                             }
                             data-testid={`org-add-kiosk-${station._id}`}
@@ -268,13 +415,22 @@ export function ManagerOrg() {
                       {station.kiosks.length > 0 && (
                         <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-2">
                           {station.kiosks.map((k) => (
-                            <div key={k._id} className={clsx('rounded-lg bg-canvas dark:bg-dk-elevated p-2.5', !k.active && 'opacity-60')}>
+                            <div
+                              key={k._id}
+                              className={clsx(
+                                'rounded-lg bg-canvas dark:bg-dk-elevated p-2.5',
+                                !k.active && 'opacity-60'
+                              )}
+                            >
                               <div className="flex items-start justify-between gap-2">
                                 <div className="min-w-0">
                                   <p className="text-sm font-medium text-navy dark:text-dk-text flex items-center gap-1.5">
                                     <Server size={13} /> {k.name}
                                   </p>
-                                  <p className="text-[11px] text-brand mt-0.5" data-testid={`org-kiosk-activity-${k._id}`}>
+                                  <p
+                                    className="text-[11px] text-brand mt-0.5"
+                                    data-testid={`org-kiosk-activity-${k._id}`}
+                                  >
                                     {engineLabel(k.engineKind)}
                                   </p>
                                   {k.isExitGate && (
@@ -285,20 +441,29 @@ export function ManagerOrg() {
                                       <DoorOpen size={10} /> {t('org.exitGate')}
                                     </span>
                                   )}
-                                  {k.location && <p className="text-[11px] text-muted mt-0.5 line-clamp-1">{k.location}</p>}
+                                  {k.location && (
+                                    <p className="text-[11px] text-muted mt-0.5 line-clamp-1">
+                                      {k.location}
+                                    </p>
+                                  )}
                                 </div>
                                 <div className="flex items-center gap-1 shrink-0">
                                   <button
                                     onClick={() =>
                                       open(
-                                        { kind: 'kiosk', id: k._id, stationId: station._id, runs: station.engineKinds },
+                                        {
+                                          kind: 'kiosk',
+                                          id: k._id,
+                                          stationId: station._id,
+                                          runs: station.engineKinds,
+                                        },
                                         {
                                           name: k.name,
                                           code: k.code ?? '',
                                           location: k.location ?? '',
                                           engineKind: k.engineKind,
                                           isExitGate: k.isExitGate ? 'yes' : 'no',
-                                        },
+                                        }
                                       )
                                     }
                                     className="text-muted hover:text-brand"
@@ -310,12 +475,18 @@ export function ManagerOrg() {
                                   <button
                                     onClick={() => toggle('kiosk', k._id, k.active)}
                                     className="text-muted hover:text-danger-strong"
-                                    title={k.active ? t('common:action.suspend') : t('common:action.restore')}
+                                    title={
+                                      k.active
+                                        ? t('common:action.suspend')
+                                        : t('common:action.restore')
+                                    }
                                   >
                                     <Power size={13} />
                                   </button>
                                   <button
-                                    onClick={() => setRemoving({ kind: 'kiosk', id: k._id, name: k.name })}
+                                    onClick={() =>
+                                      setRemoving({ kind: 'kiosk', id: k._id, name: k.name })
+                                    }
                                     className="text-muted hover:text-danger-strong"
                                     title={t('common:action.delete')}
                                     data-testid={`org-remove-kiosk-${k._id}`}
@@ -325,7 +496,8 @@ export function ManagerOrg() {
                                 </div>
                               </div>
                               <p className="text-xs text-muted mt-1.5">
-                                <strong className="text-navy dark:text-dk-text">{k.total}</strong> {t('org.kioskLine', { inUse: k.inUse, free: k.available })}
+                                <strong className="text-navy dark:text-dk-text">{k.total}</strong>{' '}
+                                {t('org.kioskLine', { inUse: k.inUse, free: k.available })}
                               </p>
                             </div>
                           ))}
@@ -337,11 +509,17 @@ export function ManagerOrg() {
                           <p className="text-[11px] uppercase tracking-wider text-muted font-bold mb-1.5">
                             {t('org.gatesHeading')}
                           </p>
-                          <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-2" data-testid={`org-gates-${station._id}`}>
+                          <div
+                            className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-2"
+                            data-testid={`org-gates-${station._id}`}
+                          >
                             {station.gates.map((g) => (
                               <div
                                 key={g._id}
-                                className={clsx('rounded-lg bg-canvas dark:bg-dk-elevated p-2.5', !g.active && 'opacity-60')}
+                                className={clsx(
+                                  'rounded-lg bg-canvas dark:bg-dk-elevated p-2.5',
+                                  !g.active && 'opacity-60'
+                                )}
                                 data-testid={`org-gate-${g._id}`}
                               >
                                 <div className="flex items-start justify-between gap-2">
@@ -349,15 +527,25 @@ export function ManagerOrg() {
                                     <p className="text-sm font-medium text-navy dark:text-dk-text flex items-center gap-1.5">
                                       <DoorOpen size={13} /> {g.name}
                                     </p>
-                                    <p className="text-[11px] text-brand mt-0.5">{t('org.gateHolds')}</p>
-                                    {g.location && <p className="text-[11px] text-muted mt-0.5 line-clamp-1">{g.location}</p>}
+                                    <p className="text-[11px] text-brand mt-0.5">
+                                      {t('org.gateHolds')}
+                                    </p>
+                                    {g.location && (
+                                      <p className="text-[11px] text-muted mt-0.5 line-clamp-1">
+                                        {g.location}
+                                      </p>
+                                    )}
                                   </div>
                                   <div className="flex items-center gap-1 shrink-0">
                                     <button
                                       onClick={() =>
                                         open(
                                           { kind: 'gate', id: g._id, stationId: station._id },
-                                          { name: g.name, code: g.code ?? '', location: g.location ?? '' },
+                                          {
+                                            name: g.name,
+                                            code: g.code ?? '',
+                                            location: g.location ?? '',
+                                          }
                                         )
                                       }
                                       className="text-muted hover:text-brand"
@@ -369,12 +557,18 @@ export function ManagerOrg() {
                                     <button
                                       onClick={() => toggle('gate', g._id, g.active)}
                                       className="text-muted hover:text-danger-strong"
-                                      title={g.active ? t('common:action.suspend') : t('common:action.restore')}
+                                      title={
+                                        g.active
+                                          ? t('common:action.suspend')
+                                          : t('common:action.restore')
+                                      }
                                     >
                                       <Power size={13} />
                                     </button>
                                     <button
-                                      onClick={() => setRemoving({ kind: 'gate', id: g._id, name: g.name })}
+                                      onClick={() =>
+                                        setRemoving({ kind: 'gate', id: g._id, name: g.name })
+                                      }
                                       className="text-muted hover:text-danger-strong"
                                       title={t('common:action.delete')}
                                       data-testid={`org-remove-gate-${g._id}`}
@@ -408,21 +602,38 @@ export function ManagerOrg() {
         testId="org-modal"
         footer={
           <>
-            <Button variant="ghost" onClick={() => setDialog(null)}>{t('common:action.cancel')}</Button>
-            <Button onClick={submit} loading={saving} disabled={!form.name?.trim()} data-testid="org-submit">
+            <Button variant="ghost" onClick={() => setDialog(null)}>
+              {t('common:action.cancel')}
+            </Button>
+            <Button
+              onClick={submit}
+              loading={saving}
+              disabled={!form.name?.trim()}
+              data-testid="org-submit"
+            >
               {dialog?.id ? 'Save' : 'Create'}
             </Button>
           </>
         }
       >
         <Field label={t('common:field.name')} required>
-          <input className="lf-input" value={form.name ?? ''} onChange={(e) => setForm({ ...form, name: e.target.value })} data-testid="org-name" />
+          <input
+            className="lf-input"
+            value={form.name ?? ''}
+            onChange={(e) => setForm({ ...form, name: e.target.value })}
+            data-testid="org-name"
+          />
         </Field>
 
         {dialog?.kind === 'site' && (
           <>
             <Field label={t('org.city')} required>
-              <input className="lf-input" value={form.city ?? ''} onChange={(e) => setForm({ ...form, city: e.target.value })} data-testid="org-city" />
+              <input
+                className="lf-input"
+                value={form.city ?? ''}
+                onChange={(e) => setForm({ ...form, city: e.target.value })}
+                data-testid="org-city"
+              />
             </Field>
             <Field label={t('org.venueType')} hint={t('org.venueTypeHint')}>
               {customVenue ? (
@@ -439,9 +650,9 @@ export function ManagerOrg() {
                   value={form.venueType ?? 'MALL'}
                   onChange={(v) => {
                     if (v === ADD_VENUE) {
-                      setCustomVenue(true)
-                      setForm({ ...form, venueType: '' })
-                    } else setForm({ ...form, venueType: v })
+                      setCustomVenue(true);
+                      setForm({ ...form, venueType: '' });
+                    } else setForm({ ...form, venueType: v });
                   }}
                   options={[
                     ...data.venueTypes.map((v) => ({ label: v.replaceAll('_', ' '), value: v })),
@@ -451,35 +662,66 @@ export function ManagerOrg() {
                 />
               )}
             </Field>
-            <Field label={t('org.address')}><input className="lf-input" value={form.address ?? ''} onChange={(e) => setForm({ ...form, address: e.target.value })} /></Field>
+            <Field label={t('org.address')}>
+              <input
+                className="lf-input"
+                value={form.address ?? ''}
+                onChange={(e) => setForm({ ...form, address: e.target.value })}
+              />
+            </Field>
           </>
         )}
 
         {dialog?.kind === 'station' && (
           <>
             <Field label={t('org.code')} hint={t('org.codeHint')}>
-              <input className="lf-input" value={form.code ?? ''} onChange={(e) => setForm({ ...form, code: e.target.value })} />
+              <input
+                className="lf-input"
+                value={form.code ?? ''}
+                onChange={(e) => setForm({ ...form, code: e.target.value })}
+              />
             </Field>
             <Field label={t('org.servicesOffered')} hint={t('org.servicesHint')}>
               <div className="flex flex-wrap gap-2">
                 {(Object.keys(ENGINE_META) as EngineKind[]).map((e) => {
-                  const on = engines.includes(e)
+                  const on = engines.includes(e);
                   return (
                     <button
                       key={e}
                       type="button"
-                      onClick={() => setEngines(on ? engines.filter((x) => x !== e) : [...engines, e])}
-                      className={clsx('lf-chip !px-3 !py-1.5 border transition-colors', on ? 'border-brand bg-brand/10 text-brand font-semibold' : 'border-line text-muted')}
+                      onClick={() =>
+                        setEngines(on ? engines.filter((x) => x !== e) : [...engines, e])
+                      }
+                      className={clsx(
+                        'lf-chip !px-3 !py-1.5 border transition-colors',
+                        on
+                          ? 'border-brand bg-brand/10 text-brand font-semibold'
+                          : 'border-line text-muted'
+                      )}
                     >
                       {engineLabel(e)}
                     </button>
-                  )
+                  );
                 })}
               </div>
             </Field>
             <div className="grid grid-cols-2 gap-x-4">
-              <Field label={t('org.opens')}><input type="time" className="lf-input" value={form.openingTime ?? '08:00'} onChange={(e) => setForm({ ...form, openingTime: e.target.value })} /></Field>
-              <Field label={t('org.closes')}><input type="time" className="lf-input" value={form.closingTime ?? '22:00'} onChange={(e) => setForm({ ...form, closingTime: e.target.value })} /></Field>
+              <Field label={t('org.opens')}>
+                <input
+                  type="time"
+                  className="lf-input"
+                  value={form.openingTime ?? '08:00'}
+                  onChange={(e) => setForm({ ...form, openingTime: e.target.value })}
+                />
+              </Field>
+              <Field label={t('org.closes')}>
+                <input
+                  type="time"
+                  className="lf-input"
+                  value={form.closingTime ?? '22:00'}
+                  onChange={(e) => setForm({ ...form, closingTime: e.target.value })}
+                />
+              </Field>
             </div>
           </>
         )}
@@ -499,9 +741,20 @@ export function ManagerOrg() {
                 testId="org-kiosk-activity"
               />
             </Field>
-            <Field label={t('org.code')}><input className="lf-input" value={form.code ?? ''} onChange={(e) => setForm({ ...form, code: e.target.value })} /></Field>
+            <Field label={t('org.code')}>
+              <input
+                className="lf-input"
+                value={form.code ?? ''}
+                onChange={(e) => setForm({ ...form, code: e.target.value })}
+              />
+            </Field>
             <Field label={t('org.location')} hint={t('org.locationHint')}>
-              <input className="lf-input" value={form.location ?? ''} onChange={(e) => setForm({ ...form, location: e.target.value })} placeholder={t('org.locationPlaceholder')} />
+              <input
+                className="lf-input"
+                value={form.location ?? ''}
+                onChange={(e) => setForm({ ...form, location: e.target.value })}
+                placeholder={t('org.locationPlaceholder')}
+              />
             </Field>
             <Field label={t('org.exitGate')} hint={t('org.exitGateHint')}>
               <label className="lf-card flex cursor-pointer items-start gap-3 p-3">
@@ -509,7 +762,9 @@ export function ManagerOrg() {
                   type="checkbox"
                   className="mt-0.5"
                   checked={form.isExitGate === 'yes'}
-                  onChange={(e) => setForm({ ...form, isExitGate: e.target.checked ? 'yes' : 'no' })}
+                  onChange={(e) =>
+                    setForm({ ...form, isExitGate: e.target.checked ? 'yes' : 'no' })
+                  }
                   data-testid="org-kiosk-exit-gate"
                 />
                 <span className="min-w-0">
@@ -558,12 +813,19 @@ export function ManagerOrg() {
         testId="org-remove-modal"
         footer={
           <>
-            <Button variant="ghost" onClick={() => setRemoving(null)}>{t('common:action.cancel')}</Button>
+            <Button variant="ghost" onClick={() => setRemoving(null)}>
+              {t('common:action.cancel')}
+            </Button>
             <Button
               variant="danger"
-              loading={removeKiosk.isPending || removeStation.isPending || removeSite.isPending || removeGate.isPending}
+              loading={
+                removeKiosk.isPending ||
+                removeStation.isPending ||
+                removeSite.isPending ||
+                removeGate.isPending
+              }
               onClick={() => {
-                if (!removing) return
+                if (!removing) return;
                 const mutation =
                   removing.kind === 'site'
                     ? removeSite
@@ -571,14 +833,14 @@ export function ManagerOrg() {
                       ? removeStation
                       : removing.kind === 'gate'
                         ? removeGate
-                        : removeKiosk
+                        : removeKiosk;
                 mutation.mutate(removing.id, {
                   onSuccess: () => {
-                    toast('warning', t(`org.remove.${removing.kind}Done`, { name: removing.name }))
-                    setRemoving(null)
+                    toast('warning', t(`org.remove.${removing.kind}Done`, { name: removing.name }));
+                    setRemoving(null);
                   },
                   onError: fail,
-                })
+                });
               }}
               data-testid="org-remove-submit"
             >
@@ -590,5 +852,5 @@ export function ManagerOrg() {
         <p className="text-sm text-muted">{t(`org.remove.${removing?.kind ?? 'kiosk'}Body`)}</p>
       </Modal>
     </div>
-  )
+  );
 }

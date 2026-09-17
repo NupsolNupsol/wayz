@@ -1,9 +1,14 @@
-import { OPS, TILL } from '../../shared/access.js'
-import { ACTIVE, CANCELLED, COMPLETED, CONFIRMED, DRAFT, OVERTIME } from '../../shared/status.js'
-import { MINIMUM_FEED_PORTIONS } from '../../bookingWorkflowValidators/shared.animal.validators.js'
-import type { EngineWorkflow, OperationResult, ValidationResult, WorkflowContext } from '../../shared/types.js'
-import { useAnimalFeedingValidator } from '../../bookingWorkflowValidators/wiqar/controller.animalFeeding.validator.controller.js'
-import { useAnimalFeedingOperation } from '../../bookingWorkflowOperations/wiqar/controller.animalFeeding.operation.controller.js'
+import { OPS, TILL } from '../../shared/access.js';
+import { ACTIVE, CANCELLED, COMPLETED, CONFIRMED, DRAFT, OVERTIME } from '../../shared/status.js';
+import { MINIMUM_FEED_PORTIONS } from '../../bookingWorkflowValidators/shared.animal.validators.js';
+import type {
+  EngineWorkflow,
+  OperationResult,
+  ValidationResult,
+  WorkflowContext,
+} from '../../shared/types.js';
+import { useAnimalFeedingValidator } from '../../bookingWorkflowValidators/wiqar/controller.animalFeeding.validator.controller.js';
+import { useAnimalFeedingOperation } from '../../bookingWorkflowOperations/wiqar/controller.animalFeeding.operation.controller.js';
 
 /**
  * Animal Feeding Session.
@@ -56,14 +61,14 @@ export const animalFeedingWorkflow: EngineWorkflow = {
       style: { backgroundColor: '#db5d5d' },
     },
   ],
-}
+};
 
 export const LaunchAnimalFeedingControl = async (
   transitionCode: string,
-  ctx: WorkflowContext,
-): Promise<ValidationResult> => useAnimalFeedingValidator(transitionCode, ctx)
+  ctx: WorkflowContext
+): Promise<ValidationResult> => useAnimalFeedingValidator(transitionCode, ctx);
 
 export const LaunchAnimalFeedingOperation = async (
   transitionCode: string,
-  ctx: WorkflowContext,
-): Promise<OperationResult> => useAnimalFeedingOperation(transitionCode, ctx)
+  ctx: WorkflowContext
+): Promise<OperationResult> => useAnimalFeedingOperation(transitionCode, ctx);

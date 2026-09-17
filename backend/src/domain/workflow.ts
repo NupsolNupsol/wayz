@@ -40,7 +40,7 @@ export {
   LAGOON_OPS,
   LAGOON_TILL,
   TILL,
-} from '@wayz/workflow'
+} from '@wayz/workflow';
 
 export type {
   AssetIntent,
@@ -66,4 +66,4 @@ export type {
   DeliveryTimelineEntry,
   DeliveryTransition,
   DeliveryWorkflowDef,
-} from '@wayz/workflow'
+} from '@wayz/workflow';

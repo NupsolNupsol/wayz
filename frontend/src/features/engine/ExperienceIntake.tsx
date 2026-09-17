@@ -1,14 +1,14 @@
-import { useEffect, useMemo, useState } from 'react'
-import { useQuery } from '@tanstack/react-query'
-import { useTranslation } from 'react-i18next'
-import { ClipboardCheck } from 'lucide-react'
+import { useEffect, useMemo, useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
+import { useTranslation } from 'react-i18next';
+import { ClipboardCheck } from 'lucide-react';
 
-import { Field, SectionTitle } from '@/components/ui'
-import { Select } from '@/components/Select'
-import { Counter } from '@/components/Counter'
-import { catalogueApi } from '@/api/catalogue.api'
-import { useWorkflows } from '@/hooks'
-import type { Booking, EngineKind, IntakeField } from '@/api/types'
+import { Field, SectionTitle } from '@/components/ui';
+import { Select } from '@/components/Select';
+import { Counter } from '@/components/Counter';
+import { catalogueApi } from '@/api/catalogue.api';
+import { useWorkflows } from '@/hooks';
+import type { Booking, EngineKind, IntakeField } from '@/api/types';
 
 /**
  * The details an activity needs before its booking can be confirmed.
@@ -24,60 +24,63 @@ import type { Booking, EngineKind, IntakeField } from '@/api/types'
  */
 
 export interface IntakeValue {
-  consent: boolean
-  trainerId: string
-  level: string
-  partySize: number
-  feedPortions: number
+  consent: boolean;
+  trainerId: string;
+  level: string;
+  partySize: number;
+  feedPortions: number;
 }
 
 export function useIntakeFields(engineKind: EngineKind): IntakeField[] {
-  const { data: workflows = [] } = useWorkflows()
-  return useMemo(() => workflows.find((w) => w.engineKind === engineKind)?.intake ?? [], [workflows, engineKind])
+  const { data: workflows = [] } = useWorkflows();
+  return useMemo(
+    () => workflows.find((w) => w.engineKind === engineKind)?.intake ?? [],
+    [workflows, engineKind]
+  );
 }
 
 /** What is already recorded on the booking — a resumed sale picks up where it stopped. */
 function recorded(booking: Booking, fields: IntakeField[]): IntakeValue {
-  const m = booking.metadata ?? {}
-  const party = fields.find((f) => f.key === 'partySize')
-  const feed = fields.find((f) => f.key === 'feedPortions')
+  const m = booking.metadata ?? {};
+  const party = fields.find((f) => f.key === 'partySize');
+  const feed = fields.find((f) => f.key === 'feedPortions');
   return {
     consent: !!m.consentAt,
     trainerId: typeof m.trainerId === 'string' ? m.trainerId : '',
     level: typeof m.level === 'string' ? m.level : '',
     partySize: Number(m.partySize) || (party && 'min' in party ? party.min : 1),
     feedPortions: Number(m.feedPortions) || (feed && 'min' in feed ? feed.min : 1),
-  }
+  };
 }
 
 export function isIntakeComplete(fields: IntakeField[], v: IntakeValue): boolean {
   return fields.every((f) => {
     switch (f.key) {
       case 'consent':
-        return v.consent
+        return v.consent;
       case 'trainer':
-        return !!v.trainerId
+        return !!v.trainerId;
       case 'level':
-        return f.options.includes(v.level)
+        return f.options.includes(v.level);
       case 'partySize':
-        return v.partySize >= f.min
+        return v.partySize >= f.min;
       case 'feedPortions':
-        return v.feedPortions >= f.min
+        return v.feedPortions >= f.min;
     }
-  })
+  });
 }
 
 /** Only what the activity declares is sent. */
 export function intakeBody(fields: IntakeField[], v: IntakeValue) {
-  const body: Record<string, unknown> = {}
+  const body: Record<string, unknown> = {};
   for (const f of fields) {
-    if (f.key === 'consent') body.consent = v.consent
-    if (f.key === 'trainer') body.trainerId = v.trainerId || null
-    if (f.key === 'level') body.level = v.level || null
-    if (f.key === 'partySize') body.partySize = v.partySize
-    if (f.key === 'feedPortions') body.feedPortions = v.feedPortions
+    if (f.key === 'consent') body.consent = v.consent;
+    if (f.key === 'trainer') body.trainerId = v.trainerId || null;
+    if (f.key === 'level') body.level = v.level || null;
+    if (f.key === 'partySize') body.partySize = v.partySize;
+    if (f.key === 'feedPortions') body.feedPortions = v.feedPortions;
   }
-  return body
+  return body;
 }
 
 export function ExperienceIntake({
@@ -85,39 +88,42 @@ export function ExperienceIntake({
   booking,
   onChange,
 }: {
-  engineKind: EngineKind
-  booking: Booking
-  onChange: (value: IntakeValue, complete: boolean) => void
+  engineKind: EngineKind;
+  booking: Booking;
+  onChange: (value: IntakeValue, complete: boolean) => void;
 }) {
-  const { t } = useTranslation(['agent', 'common'])
-  const fields = useIntakeFields(engineKind)
-  const [value, setValue] = useState<IntakeValue>(() => recorded(booking, fields))
+  const { t } = useTranslation(['agent', 'common']);
+  const fields = useIntakeFields(engineKind);
+  const [value, setValue] = useState<IntakeValue>(() => recorded(booking, fields));
 
   /* The declaration arrives with the workflows; take the booking's record once it does. */
-  const fieldKeys = fields.map((f) => f.key).join(',')
+  const fieldKeys = fields.map((f) => f.key).join(',');
   useEffect(() => {
-    setValue(recorded(booking, fields))
+    setValue(recorded(booking, fields));
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [booking.id, fieldKeys])
+  }, [booking.id, fieldKeys]);
 
   useEffect(() => {
-    onChange(value, isIntakeComplete(fields, value))
+    onChange(value, isIntakeComplete(fields, value));
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [value, fieldKeys])
+  }, [value, fieldKeys]);
 
-  const needsTrainer = fields.some((f) => f.key === 'trainer')
+  const needsTrainer = fields.some((f) => f.key === 'trainer');
   const { data: trainers = [], isLoading: trainersLoading } = useQuery({
     queryKey: ['catalogue', 'trainers', engineKind],
     queryFn: () => catalogueApi.trainers(engineKind),
     enabled: needsTrainer,
-  })
+  });
 
-  if (fields.length === 0) return null
+  if (fields.length === 0) return null;
 
-  const set = (patch: Partial<IntakeValue>) => setValue((v) => ({ ...v, ...patch }))
+  const set = (patch: Partial<IntakeValue>) => setValue((v) => ({ ...v, ...patch }));
 
   return (
-    <div className="mb-4 rounded-xl2 border border-line p-3 dark:border-dk-line" data-testid="experience-intake">
+    <div
+      className="mb-4 rounded-xl2 border border-line p-3 dark:border-dk-line"
+      data-testid="experience-intake"
+    >
       <SectionTitle className="mb-2 flex items-center gap-2 text-sm">
         <ClipboardCheck size={15} className="text-brand" />
         {t('engine.intake.title', { defaultValue: 'Before confirming' })}
@@ -130,12 +136,15 @@ export function ExperienceIntake({
               return (
                 <Field
                   key={f.key}
-                  label={t('engine.intake.trainer', { defaultValue: 'Trainer running the session' })}
+                  label={t('engine.intake.trainer', {
+                    defaultValue: 'Trainer running the session',
+                  })}
                   required
                   hint={
                     !trainersLoading && trainers.length === 0
                       ? t('engine.intake.noTrainer', {
-                          defaultValue: 'Nobody at this location is assigned to this activity — assign someone on the Team page.',
+                          defaultValue:
+                            'Nobody at this location is assigned to this activity — assign someone on the Team page.',
                         })
                       : undefined
                   }
@@ -144,31 +153,48 @@ export function ExperienceIntake({
                     value={value.trainerId}
                     onChange={(id) => set({ trainerId: id })}
                     options={[
-                      { label: t('engine.intake.pickTrainer', { defaultValue: 'Choose who will run it' }), value: '' },
-                      ...trainers.map((p) => ({ label: p.title ? `${p.name} · ${p.title}` : p.name, value: p.id })),
+                      {
+                        label: t('engine.intake.pickTrainer', {
+                          defaultValue: 'Choose who will run it',
+                        }),
+                        value: '',
+                      },
+                      ...trainers.map((p) => ({
+                        label: p.title ? `${p.name} · ${p.title}` : p.name,
+                        value: p.id,
+                      })),
                     ]}
                     testId="intake-trainer"
                   />
                 </Field>
-              )
+              );
 
             case 'level':
               return (
-                <Field key={f.key} label={t('engine.intake.level', { defaultValue: 'Level' })} required>
+                <Field
+                  key={f.key}
+                  label={t('engine.intake.level', { defaultValue: 'Level' })}
+                  required
+                >
                   <Select
                     value={value.level}
                     onChange={(level) => set({ level })}
                     options={[
-                      { label: t('engine.intake.pickLevel', { defaultValue: 'Choose the level' }), value: '' },
+                      {
+                        label: t('engine.intake.pickLevel', { defaultValue: 'Choose the level' }),
+                        value: '',
+                      },
                       ...f.options.map((o) => ({
-                        label: t(`engine.intake.levels.${o}`, { defaultValue: o.charAt(0) + o.slice(1).toLowerCase() }),
+                        label: t(`engine.intake.levels.${o}`, {
+                          defaultValue: o.charAt(0) + o.slice(1).toLowerCase(),
+                        }),
                         value: o,
                       })),
                     ]}
                     testId="intake-level"
                   />
                 </Field>
-              )
+              );
 
             case 'partySize':
               return (
@@ -176,7 +202,10 @@ export function ExperienceIntake({
                   key={f.key}
                   label={t('engine.intake.party', { defaultValue: 'People in the party' })}
                   required
-                  hint={t('engine.intake.partyHint', { defaultValue: 'At least {{min}}', min: f.min })}
+                  hint={t('engine.intake.partyHint', {
+                    defaultValue: 'At least {{min}}',
+                    min: f.min,
+                  })}
                 >
                   <Counter
                     min={f.min}
@@ -186,11 +215,15 @@ export function ExperienceIntake({
                     ariaLabel="party size"
                   />
                 </Field>
-              )
+              );
 
             case 'feedPortions':
               return (
-                <Field key={f.key} label={t('engine.intake.feed', { defaultValue: 'Feed portions bought' })} required>
+                <Field
+                  key={f.key}
+                  label={t('engine.intake.feed', { defaultValue: 'Feed portions bought' })}
+                  required
+                >
                   <Counter
                     min={f.min}
                     value={value.feedPortions}
@@ -199,16 +232,19 @@ export function ExperienceIntake({
                     ariaLabel="feed portions"
                   />
                 </Field>
-              )
+              );
 
             default:
-              return null
+              return null;
           }
         })}
       </div>
 
       {fields.some((f) => f.key === 'consent') && (
-        <label className="mt-3 flex cursor-pointer items-start gap-2 text-sm" data-testid="intake-consent">
+        <label
+          className="mt-3 flex cursor-pointer items-start gap-2 text-sm"
+          data-testid="intake-consent"
+        >
           <input
             type="checkbox"
             className="mt-0.5"
@@ -218,11 +254,12 @@ export function ExperienceIntake({
           />
           <span>
             {t('engine.intake.consent', {
-              defaultValue: 'The visitor has read and accepts the terms and conditions of this experience.',
+              defaultValue:
+                'The visitor has read and accepts the terms and conditions of this experience.',
             })}
           </span>
         </label>
       )}
     </div>
-  )
+  );
 }

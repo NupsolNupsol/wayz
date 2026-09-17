@@ -1,11 +1,11 @@
-import i18n from '@/i18n'
-import type { EngineKind } from '@/api/types'
+import i18n from '@/i18n';
+import type { EngineKind } from '@/api/types';
 
 export interface EngineMeta {
-  label: string
-  tagline: string
-  icon: string
-  route: string
+  label: string;
+  tagline: string;
+  icon: string;
+  route: string;
 }
 
 /**
@@ -22,28 +22,85 @@ export const ANIMAL_ACTIVITIES: EngineKind[] = [
   'ANIMAL_FEEDING',
   'PHOTOGRAPHY',
   'GROUP_PACKAGE',
-]
+];
 
 export const ENGINE_META: Record<EngineKind, EngineMeta> = {
-  SHOP_AND_DROP: { label: 'Shop & Drop', tagline: 'Bag storage & retrieval', icon: 'ShoppingBag', route: '/shop-drop' },
-  MOBILITY: { label: 'Mobility Rentals', tagline: 'Scooters, carts, wheelchairs & more', icon: 'Bike', route: '/mobility' },
-  LAGOON: { label: 'Lagoon', tagline: 'Boat activities & dispatch', icon: 'Sailboat', route: '/lagoon' },
-  COTE_RESTAURANT: { label: 'COTE Restaurant', tagline: 'Dining & kitchen display', icon: 'UtensilsCrossed', route: '/cote' },
-  HORSE_RIDING: { label: 'Arabian Horse Riding', tagline: 'Guided trail rides', icon: 'Rabbit', route: '/horse-riding' },
-  EQUESTRIAN_LESSON: { label: 'Equestrian Lessons', tagline: 'Riding lessons by level', icon: 'GraduationCap', route: '/equestrian-lessons' },
-  CAMEL_TOUR: { label: 'Camel Tours', tagline: 'Guided camel walks', icon: 'Footprints', route: '/camel-tours' },
-  ANIMAL_CARE: { label: 'Animal Care', tagline: 'Grooming and showering', icon: 'Sparkles', route: '/animal-care' },
-  ANIMAL_FEEDING: { label: 'Animal Feeding', tagline: 'Feed bought and given', icon: 'Wheat', route: '/animal-feeding' },
-  PHOTOGRAPHY: { label: 'Photo Sessions', tagline: 'Studio photography', icon: 'Camera', route: '/photography' },
-  GROUP_PACKAGE: { label: 'Group Package', tagline: 'Tour, feeding and photos', icon: 'Users', route: '/group-package' },
-}
+  SHOP_AND_DROP: {
+    label: 'Shop & Drop',
+    tagline: 'Bag storage & retrieval',
+    icon: 'ShoppingBag',
+    route: '/shop-drop',
+  },
+  MOBILITY: {
+    label: 'Mobility Rentals',
+    tagline: 'Scooters, carts, wheelchairs & more',
+    icon: 'Bike',
+    route: '/mobility',
+  },
+  LAGOON: {
+    label: 'Lagoon',
+    tagline: 'Boat activities & dispatch',
+    icon: 'Sailboat',
+    route: '/lagoon',
+  },
+  COTE_RESTAURANT: {
+    label: 'COTE Restaurant',
+    tagline: 'Dining & kitchen display',
+    icon: 'UtensilsCrossed',
+    route: '/cote',
+  },
+  HORSE_RIDING: {
+    label: 'Arabian Horse Riding',
+    tagline: 'Guided trail rides',
+    icon: 'Rabbit',
+    route: '/horse-riding',
+  },
+  EQUESTRIAN_LESSON: {
+    label: 'Equestrian Lessons',
+    tagline: 'Riding lessons by level',
+    icon: 'GraduationCap',
+    route: '/equestrian-lessons',
+  },
+  CAMEL_TOUR: {
+    label: 'Camel Tours',
+    tagline: 'Guided camel walks',
+    icon: 'Footprints',
+    route: '/camel-tours',
+  },
+  ANIMAL_CARE: {
+    label: 'Animal Care',
+    tagline: 'Grooming and showering',
+    icon: 'Sparkles',
+    route: '/animal-care',
+  },
+  ANIMAL_FEEDING: {
+    label: 'Animal Feeding',
+    tagline: 'Feed bought and given',
+    icon: 'Wheat',
+    route: '/animal-feeding',
+  },
+  PHOTOGRAPHY: {
+    label: 'Photo Sessions',
+    tagline: 'Studio photography',
+    icon: 'Camera',
+    route: '/photography',
+  },
+  GROUP_PACKAGE: {
+    label: 'Group Package',
+    tagline: 'Tour, feeding and photos',
+    icon: 'Users',
+    route: '/group-package',
+  },
+};
 
 export function engineLabel(kind: EngineKind | string): string {
-  return i18n.t(`common:engine.${kind}`, { defaultValue: ENGINE_META[kind as EngineKind]?.label ?? String(kind) })
+  return i18n.t(`common:engine.${kind}`, {
+    defaultValue: ENGINE_META[kind as EngineKind]?.label ?? String(kind),
+  });
 }
 
 export function engineTagline(kind: EngineKind): string {
-  return i18n.t(`common:engineTagline.${kind}`, { defaultValue: ENGINE_META[kind]?.tagline ?? '' })
+  return i18n.t(`common:engineTagline.${kind}`, { defaultValue: ENGINE_META[kind]?.tagline ?? '' });
 }
 
 /**
@@ -58,7 +115,7 @@ export function engineTagline(kind: EngineKind): string {
  * which narrows this to the activities the organisation has adopted. Almost every screen wants
  * that one; this is for the few places that legitimately describe the platform itself.
  */
-export const VISIBLE_ENGINES: EngineKind[] = Object.keys(ENGINE_META) as EngineKind[]
+export const VISIBLE_ENGINES: EngineKind[] = Object.keys(ENGINE_META) as EngineKind[];
 
 /**
  * Activities whose resource is taken away and brought back — a scooter, not a horse ride.
@@ -67,20 +124,21 @@ export const VISIBLE_ENGINES: EngineKind[] = Object.keys(ENGINE_META) as EngineK
  * settings for those two things exist only where one of these is adopted. A property of the
  * activity, not of any company that runs it.
  */
-export const TAKEN_AWAY_ACTIVITIES: EngineKind[] = ['MOBILITY']
+export const TAKEN_AWAY_ACTIVITIES: EngineKind[] = ['MOBILITY'];
 
 export function isVisibleEngine(kind: EngineKind): boolean {
-  return VISIBLE_ENGINES.includes(kind)
+  return VISIBLE_ENGINES.includes(kind);
 }
 
-export const visibleEngineOptions = () => VISIBLE_ENGINES.map((k) => ({ label: engineLabel(k), value: k }))
+export const visibleEngineOptions = () =>
+  VISIBLE_ENGINES.map((k) => ({ label: engineLabel(k), value: k }));
 
 export function enginesFor(assigned: EngineKind[]): EngineKind[] {
-  return assigned.length ? VISIBLE_ENGINES.filter((k) => assigned.includes(k)) : VISIBLE_ENGINES
+  return assigned.length ? VISIBLE_ENGINES.filter((k) => assigned.includes(k)) : VISIBLE_ENGINES;
 }
 
 export function engineOptionsFor(assigned: EngineKind[]) {
-  return enginesFor(assigned).map((k) => ({ label: engineLabel(k), value: k }))
+  return enginesFor(assigned).map((k) => ({ label: engineLabel(k), value: k }));
 }
 
 /**
@@ -88,10 +146,29 @@ export function engineOptionsFor(assigned: EngineKind[]) {
  * every device and reads as a stand-in rather than a considered choice.
  */
 export const PRODUCT_ICONS = [
-  'Package', 'ShoppingBag', 'Boxes', 'PackageOpen', 'Bike', 'Car', 'Accessibility', 'Baby',
-  'ShoppingCart', 'Sailboat', 'Ship', 'Anchor', 'Truck', 'UtensilsCrossed', 'Coffee', 'Beef',
-  'Salad', 'GlassWater', 'Rabbit', 'Bird', 'Tag', 'Sparkles',
-] as const
+  'Package',
+  'ShoppingBag',
+  'Boxes',
+  'PackageOpen',
+  'Bike',
+  'Car',
+  'Accessibility',
+  'Baby',
+  'ShoppingCart',
+  'Sailboat',
+  'Ship',
+  'Anchor',
+  'Truck',
+  'UtensilsCrossed',
+  'Coffee',
+  'Beef',
+  'Salad',
+  'GlassWater',
+  'Rabbit',
+  'Bird',
+  'Tag',
+  'Sparkles',
+] as const;
 
 /**
  * What to draw on a product tile: the icon the company chose, or one worked out from the name.
@@ -99,11 +176,11 @@ export const PRODUCT_ICONS = [
  */
 export function productIconFor(
   product: { name: string; emoji?: string | null },
-  engineKind: EngineKind,
+  engineKind: EngineKind
 ): string {
-  const chosen = (product.emoji ?? '').trim()
-  if (chosen && (PRODUCT_ICONS as readonly string[]).includes(chosen)) return chosen
-  return productIcon(product.name, engineKind)
+  const chosen = (product.emoji ?? '').trim();
+  if (chosen && (PRODUCT_ICONS as readonly string[]).includes(chosen)) return chosen;
+  return productIcon(product.name, engineKind);
 }
 
 /**
@@ -130,10 +207,10 @@ export const SALE_UNITS_FOR: Record<EngineKind, string[]> = {
   ANIMAL_FEEDING: ['TOUR'],
   PHOTOGRAPHY: ['TOUR'],
   GROUP_PACKAGE: ['TOUR', 'HOUR'],
-}
+};
 
 export function saleUnitsFor(engineKind: EngineKind, all: readonly string[]): string[] {
-  return SALE_UNITS_FOR[engineKind] ?? [...all]
+  return SALE_UNITS_FOR[engineKind] ?? [...all];
 }
 
 /**
@@ -157,18 +234,18 @@ export const DEFAULT_SALE_UNIT: Record<EngineKind, string> = {
   ANIMAL_FEEDING: 'TOUR',
   PHOTOGRAPHY: 'TOUR',
   GROUP_PACKAGE: 'TOUR',
-}
+};
 
 export function defaultSaleUnitFor(engineKind: EngineKind, all: readonly string[]): string {
-  const offered = saleUnitsFor(engineKind, all)
-  const wanted = DEFAULT_SALE_UNIT[engineKind]
-  return wanted && offered.includes(wanted) ? wanted : (offered[0] ?? 'ITEM')
+  const offered = saleUnitsFor(engineKind, all);
+  const wanted = DEFAULT_SALE_UNIT[engineKind];
+  return wanted && offered.includes(wanted) ? wanted : (offered[0] ?? 'ITEM');
 }
 
 /** Sale units that measure time — mirrors the platform's own rule. */
-export const TIMED_SALE_UNITS = ['HOUR', 'FULL_DAY']
+export const TIMED_SALE_UNITS = ['HOUR', 'FULL_DAY'];
 
-export const isTimedSaleUnit = (unit: string): boolean => TIMED_SALE_UNITS.includes(unit)
+export const isTimedSaleUnit = (unit: string): boolean => TIMED_SALE_UNITS.includes(unit);
 
 /**
  * How a kind sold in this unit will actually be charged.
@@ -177,43 +254,43 @@ export const isTimedSaleUnit = (unit: string): boolean => TIMED_SALE_UNITS.inclu
  * what the platform will do, shown back to the admin before they commit to it.
  */
 export function billingForSaleUnit(unit: string, kind: string): string {
-  if (isTimedSaleUnit(unit)) return 'DURATION_BASED'
-  if (kind === 'COMPARTMENT') return 'PER_COMPARTMENT'
-  if (kind === 'VEHICLE') return 'DURATION_BASED'
-  return 'PACKAGE'
+  if (isTimedSaleUnit(unit)) return 'DURATION_BASED';
+  if (kind === 'COMPARTMENT') return 'PER_COMPARTMENT';
+  if (kind === 'VEHICLE') return 'DURATION_BASED';
+  return 'PACKAGE';
 }
 
 /** A lagoon trip has a captain, not a meter, so nothing about it is priced by time. */
 export function chargesForTime(engineKind: EngineKind): boolean {
-  return engineKind !== 'LAGOON'
+  return engineKind !== 'LAGOON';
 }
 
 /** How a charge reads to the person setting it, in the words that activity actually uses. */
 export function billingLabel(model: string, engineKind: EngineKind): string {
   if (model === 'PACKAGE') {
-    if (engineKind === 'LAGOON') return 'PER TRIP'
-    if (ANIMAL_ACTIVITIES.includes(engineKind)) return 'PER EXPERIENCE'
-    if (engineKind === 'MOBILITY') return 'PER TOUR'
+    if (engineKind === 'LAGOON') return 'PER TRIP';
+    if (ANIMAL_ACTIVITIES.includes(engineKind)) return 'PER EXPERIENCE';
+    if (engineKind === 'MOBILITY') return 'PER TOUR';
   }
-  return model.replaceAll('_', ' ')
+  return model.replaceAll('_', ' ');
 }
 
 export function productIcon(name: string, engineKind: EngineKind): string {
-  const n = name.toLowerCase()
-  if (n.includes('scooter')) return 'Bike'
-  if (n.includes('wheelchair')) return 'Accessibility'
-  if (n.includes('tuk')) return 'Car'
-  if (n.includes('stroller')) return 'Baby'
-  if (n.includes('cart')) return 'ShoppingCart'
-  if (n.includes('kids car') || n.includes('kids')) return 'Car'
-  if (n.includes('boat') || n.includes('pedal')) return 'Sailboat'
-  if (n.includes('burger') || n.includes('beef')) return 'Beef'
-  if (n.includes('salad')) return 'Salad'
-  if (n.includes('juice') || n.includes('drink')) return 'GlassWater'
-  if (n.includes('kunafa') || n.includes('dessert')) return 'Coffee'
-  if (n.includes('pony') || n.includes('horse')) return 'Rabbit'
-  if (n.includes('falcon') || n.includes('bird')) return 'Bird'
-  if (n.includes('family') || n.includes('pack')) return 'Boxes'
-  if (engineKind === 'SHOP_AND_DROP') return 'Package'
-  return ENGINE_META[engineKind].icon
+  const n = name.toLowerCase();
+  if (n.includes('scooter')) return 'Bike';
+  if (n.includes('wheelchair')) return 'Accessibility';
+  if (n.includes('tuk')) return 'Car';
+  if (n.includes('stroller')) return 'Baby';
+  if (n.includes('cart')) return 'ShoppingCart';
+  if (n.includes('kids car') || n.includes('kids')) return 'Car';
+  if (n.includes('boat') || n.includes('pedal')) return 'Sailboat';
+  if (n.includes('burger') || n.includes('beef')) return 'Beef';
+  if (n.includes('salad')) return 'Salad';
+  if (n.includes('juice') || n.includes('drink')) return 'GlassWater';
+  if (n.includes('kunafa') || n.includes('dessert')) return 'Coffee';
+  if (n.includes('pony') || n.includes('horse')) return 'Rabbit';
+  if (n.includes('falcon') || n.includes('bird')) return 'Bird';
+  if (n.includes('family') || n.includes('pack')) return 'Boxes';
+  if (engineKind === 'SHOP_AND_DROP') return 'Package';
+  return ENGINE_META[engineKind].icon;
 }

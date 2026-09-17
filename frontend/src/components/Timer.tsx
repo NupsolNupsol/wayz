@@ -1,9 +1,9 @@
-import { clsx } from 'clsx'
-import { useTranslation } from 'react-i18next'
-import { useNow } from '@/hooks/useNow'
-import { humanizeRemaining } from '@/utils'
+import { clsx } from 'clsx';
+import { useTranslation } from 'react-i18next';
+import { useNow } from '@/hooks/useNow';
+import { humanizeRemaining } from '@/utils';
 
-const MS_PER_MIN = 60_000
+const MS_PER_MIN = 60_000;
 
 /**
  * How long is left, in the three states a rental can actually be in.
@@ -24,26 +24,30 @@ export function Timer({
   gracePeriodMin = 0,
   className,
 }: {
-  expectedEndAt?: number | string | Date | null
-  endedAt?: number | string | Date | null
-  gracePeriodMin?: number | null
-  className?: string
+  expectedEndAt?: number | string | Date | null;
+  endedAt?: number | string | Date | null;
+  gracePeriodMin?: number | null;
+  className?: string;
 }) {
-  const { t } = useTranslation('common')
-  const now = useNow(1000)
-  if (!expectedEndAt) return <span className={clsx('font-mono text-muted', className)}>—</span>
+  const { t } = useTranslation('common');
+  const now = useNow(1000);
+  if (!expectedEndAt) return <span className={clsx('font-mono text-muted', className)}>—</span>;
 
-  const end = typeof expectedEndAt === 'number' ? expectedEndAt : new Date(expectedEndAt).getTime()
-  const stoppedAt = endedAt ? (typeof endedAt === 'number' ? endedAt : new Date(endedAt).getTime()) : null
-  const at = stoppedAt ?? now
-  const remaining = end - at
+  const end = typeof expectedEndAt === 'number' ? expectedEndAt : new Date(expectedEndAt).getTime();
+  const stoppedAt = endedAt
+    ? typeof endedAt === 'number'
+      ? endedAt
+      : new Date(endedAt).getTime()
+    : null;
+  const at = stoppedAt ?? now;
+  const remaining = end - at;
 
-  const graceMs = Math.max(0, gracePeriodMin ?? 0) * MS_PER_MIN
-  const late = remaining < 0
-  const withinGrace = late && -remaining <= graceMs
-  const overtime = late && !withinGrace
+  const graceMs = Math.max(0, gracePeriodMin ?? 0) * MS_PER_MIN;
+  const late = remaining < 0;
+  const withinGrace = late && -remaining <= graceMs;
+  const overtime = late && !withinGrace;
 
-  const phase = stoppedAt ? 'STOPPED' : overtime ? 'OVERTIME' : withinGrace ? 'GRACE' : 'RUNNING'
+  const phase = stoppedAt ? 'STOPPED' : overtime ? 'OVERTIME' : withinGrace ? 'GRACE' : 'RUNNING';
 
   return (
     <span
@@ -56,7 +60,7 @@ export function Timer({
             : withinGrace || remaining < 45 * MS_PER_MIN
               ? 'text-amber-600'
               : 'text-success',
-        className,
+        className
       )}
       data-testid="timer"
       data-phase={phase}
@@ -68,5 +72,5 @@ export function Timer({
       {humanizeRemaining(remaining)}
       {stoppedAt ? ' · stopped' : ''}
     </span>
-  )
+  );
 }

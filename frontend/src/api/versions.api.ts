@@ -1,55 +1,55 @@
-import { http, unwrap } from './client'
+import { http, unwrap } from './client';
 
 export interface VersionLink {
-  label: string
-  to: string
+  label: string;
+  to: string;
 }
 
 export interface VersionCheck {
-  by: string
-  at: string
+  by: string;
+  at: string;
 }
 
 export interface VersionIssue {
-  by: string
-  note: string
-  at: string
-  status: 'OPEN' | 'RESOLVED'
+  by: string;
+  note: string;
+  at: string;
+  status: 'OPEN' | 'RESOLVED';
 }
 
 export interface VersionChange {
-  area: string
-  title: string
-  detail: string
-  roles: string[]
-  howToTest: string[]
-  expect: string
-  links?: VersionLink[]
-  checks?: VersionCheck[]
-  issues?: VersionIssue[]
+  area: string;
+  title: string;
+  detail: string;
+  roles: string[];
+  howToTest: string[];
+  expect: string;
+  links?: VersionLink[];
+  checks?: VersionCheck[];
+  issues?: VersionIssue[];
 }
 
 export interface VersionRow {
-  _id: string
-  number: string
-  name: string
-  releasedAt: string
-  summary: string
-  highlights: string[]
-  changeCount: number
-  checkedCount: number
-  openIssues: number
-  areas: string[]
+  _id: string;
+  number: string;
+  name: string;
+  releasedAt: string;
+  summary: string;
+  highlights: string[];
+  changeCount: number;
+  checkedCount: number;
+  openIssues: number;
+  areas: string[];
 }
 
 export interface VersionDetail {
-  _id: string
-  number: string
-  name: string
-  releasedAt: string
-  summary: string
-  highlights: string[]
-  changes: VersionChange[]
+  _id: string;
+  number: string;
+  name: string;
+  releasedAt: string;
+  summary: string;
+  highlights: string[];
+  changes: VersionChange[];
 }
 
 export const versionsApi = {
@@ -59,4 +59,4 @@ export const versionsApi = {
     unwrap<VersionDetail>(http.post(`/public/versions/${id}/changes/${index}/check`, { by })),
   report: (id: string, index: number, by: string, note: string) =>
     unwrap<VersionDetail>(http.post(`/public/versions/${id}/changes/${index}/issue`, { by, note })),
-}
+};

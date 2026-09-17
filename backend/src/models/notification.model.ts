@@ -1,24 +1,24 @@
-import { Schema } from 'mongoose'
-import { nanoid } from 'nanoid'
-import type { EngineKind, Role } from '../domain/types.js'
+import { Schema } from 'mongoose';
+import { nanoid } from 'nanoid';
+import type { EngineKind, Role } from '../domain/types.js';
 
-export const NOTIFICATION_LEVELS = ['info', 'success', 'warning', 'danger'] as const
-export type NotificationLevel = (typeof NOTIFICATION_LEVELS)[number]
+export const NOTIFICATION_LEVELS = ['info', 'success', 'warning', 'danger'] as const;
+export type NotificationLevel = (typeof NOTIFICATION_LEVELS)[number];
 
 export interface NotificationDoc {
-  _id: string
-  tenantId: string
-  stationId: string
-  kioskId: string | null
-  engineKind: EngineKind | null
-  title: string
-  body: string
-  level: NotificationLevel
-  audience: Role[]
-  link: string | null
-  readBy: string[]
-  createdAt: Date
-  updatedAt: Date
+  _id: string;
+  tenantId: string;
+  stationId: string;
+  kioskId: string | null;
+  engineKind: EngineKind | null;
+  title: string;
+  body: string;
+  level: NotificationLevel;
+  audience: Role[];
+  link: string | null;
+  readBy: string[];
+  createdAt: Date;
+  updatedAt: Date;
 }
 
 const notificationSchema = new Schema<NotificationDoc>(
@@ -35,9 +35,9 @@ const notificationSchema = new Schema<NotificationDoc>(
     link: { type: String, default: null },
     readBy: { type: [String], default: [] },
   },
-  { _id: false, timestamps: true },
-)
+  { _id: false, timestamps: true }
+);
 
-notificationSchema.index({ tenantId: 1, createdAt: -1 })
+notificationSchema.index({ tenantId: 1, createdAt: -1 });
 
-export const NotificationSchema = notificationSchema
+export const NotificationSchema = notificationSchema;

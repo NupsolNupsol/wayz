@@ -1,6 +1,6 @@
-import { useEffect } from 'react'
+import { useEffect } from 'react';
 
-import { applyTenantBranding, PLATFORM_BRAND, type BrandColours } from './branding'
+import { applyTenantBranding, PLATFORM_BRAND, type BrandColours } from './branding';
 
 /**
  * Whose colours the product is wearing — decided by the session, and by nothing else.
@@ -19,8 +19,8 @@ import { applyTenantBranding, PLATFORM_BRAND, type BrandColours } from './brandi
  */
 
 /** What is currently painted, so an unchanged brand is not reapplied on every navigation. */
-const PLATFORM = '__platform__'
-let painted: string | null = null
+const PLATFORM = '__platform__';
+let painted: string | null = null;
 
 /**
  * Paints an organisation's colours, or the platform's when there is no session.
@@ -30,7 +30,7 @@ let painted: string | null = null
  */
 export function paintBrandFor(
   organizationId: string | null,
-  branding?: Partial<BrandColours> | null,
+  branding?: Partial<BrandColours> | null
 ): void {
   if (!organizationId || !branding) {
     /*
@@ -41,21 +41,21 @@ export function paintBrandFor(
      * would then be indistinguishable.
      */
     if (painted !== PLATFORM) {
-      applyTenantBranding(PLATFORM_BRAND)
-      painted = PLATFORM
+      applyTenantBranding(PLATFORM_BRAND);
+      painted = PLATFORM;
     }
-    return
+    return;
   }
 
-  if (painted === organizationId) return
+  if (painted === organizationId) return;
 
-  applyTenantBranding(branding)
-  painted = organizationId
+  applyTenantBranding(branding);
+  painted = organizationId;
 }
 
 /** Forget what is on screen — for a sign-out, where the next paint must actually happen. */
 export function forgetPaintedBrand(): void {
-  painted = null
+  painted = null;
 }
 
 /**
@@ -65,13 +65,13 @@ export function forgetPaintedBrand(): void {
  * that belongs to an organisation any more.
  */
 export function useTenantBrand(session: {
-  organizationId: string | null | undefined
-  branding: Partial<BrandColours> | null | undefined
+  organizationId: string | null | undefined;
+  branding: Partial<BrandColours> | null | undefined;
 }): void {
-  const organizationId = session.organizationId ?? null
-  const branding = session.branding ?? null
+  const organizationId = session.organizationId ?? null;
+  const branding = session.branding ?? null;
 
   useEffect(() => {
-    paintBrandFor(organizationId, branding)
-  }, [organizationId, branding])
+    paintBrandFor(organizationId, branding);
+  }, [organizationId, branding]);
 }

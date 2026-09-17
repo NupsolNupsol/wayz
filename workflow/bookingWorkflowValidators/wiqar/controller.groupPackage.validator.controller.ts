@@ -1,5 +1,9 @@
-import type { ValidationResult, WorkflowContext } from '../../shared/types.js'
-import { requireAvailableUnit, requirePaid, requirePositiveDuration } from '../shared.validators.js'
+import type { ValidationResult, WorkflowContext } from '../../shared/types.js';
+import {
+  requireAvailableUnit,
+  requirePaid,
+  requirePositiveDuration,
+} from '../shared.validators.js';
 import {
   GROUP_MINIMUM_PARTY,
   requireConsent,
@@ -8,7 +12,7 @@ import {
   requireNamedTrainer,
   requireWithinSlotGrace,
   requireWorkableAnimal,
-} from '../shared.animal.validators.js'
+} from '../shared.animal.validators.js';
 
 /**
  * What Group Package refuses, and why.
@@ -19,9 +23,11 @@ import {
  * is only what makes this experience different from the other six.
  */
 
-
-export const useGroupPackageValidator = (transitionCode: string, ctx: WorkflowContext): ValidationResult => {
-  const errors: string[] = []
+export const useGroupPackageValidator = (
+  transitionCode: string,
+  ctx: WorkflowContext
+): ValidationResult => {
+  const errors: string[] = [];
 
   switch (transitionCode) {
     case 'TO_CONFIRMED': {
@@ -32,9 +38,9 @@ export const useGroupPackageValidator = (transitionCode: string, ctx: WorkflowCo
         // ASSUMPTION A-1 — it contains a camel tour and a feeding session, so it inherits their assumption.
         ...requireNamedTrainer(ctx),
         ...requireWorkableAnimal(ctx),
-        ...requireFeedPurchased(ctx),
-      )
-      break
+        ...requireFeedPurchased(ctx)
+      );
+      break;
     }
 
     case 'TO_STARTED': {
@@ -46,24 +52,24 @@ export const useGroupPackageValidator = (transitionCode: string, ctx: WorkflowCo
         ...requireWorkableAnimal(ctx),
         ...requireAvailableUnit(ctx),
         // §4.1 gives this experience a duration of 90 min.
-        ...requirePositiveDuration(ctx),
-      )
-      break
+        ...requirePositiveDuration(ctx)
+      );
+      break;
     }
 
     case 'TO_COMPLETED': {
-      break
+      break;
     }
 
     case 'TO_CANCELLED': {
-      break
+      break;
     }
 
     default: {
-      errors.push(`Unknown transition code: ${transitionCode}`)
-      break
+      errors.push(`Unknown transition code: ${transitionCode}`);
+      break;
     }
   }
 
-  return { errors }
-}
+  return { errors };
+};

@@ -1,33 +1,33 @@
-import { create } from 'zustand'
-import { persist } from 'zustand/middleware'
-import type { Me } from '../api/types'
-import type { PlatformIdentity } from '../api/platform.api'
-import { configureAuth } from '../api/client'
-import { applyThemeMode } from './theme'
-import { applyLanguage, type Language } from '../i18n'
-import { forgetPaintedBrand, paintBrandFor } from './tenant'
-import { queryClient } from '../lib/queryClient'
-import { runViewTransition } from '../lib/viewTransition'
+import { create } from 'zustand';
+import { persist } from 'zustand/middleware';
+import type { Me } from '../api/types';
+import type { PlatformIdentity } from '../api/platform.api';
+import { configureAuth } from '../api/client';
+import { applyThemeMode } from './theme';
+import { applyLanguage, type Language } from '../i18n';
+import { forgetPaintedBrand, paintBrandFor } from './tenant';
+import { queryClient } from '../lib/queryClient';
+import { runViewTransition } from '../lib/viewTransition';
 
 interface AuthState {
-  token: string | null
-  me: Me | null
+  token: string | null;
+  me: Me | null;
   /**
    * Set instead of `me` when whoever signed in runs the platform rather than working at one of
    * its companies. The two are never both set: a session is one or the other, exactly as the
    * two token kinds on the API are.
    */
-  platform: PlatformIdentity | null
-  online: boolean
-  theme: 'light' | 'dark'
-  language: Language
-  setSession: (token: string, me: Me) => void
-  setPlatformSession: (token: string, platform: PlatformIdentity) => void
-  setMe: (me: Me) => void
-  logout: () => void
-  setOnline: (online: boolean) => void
-  toggleTheme: (origin?: { x: number; y: number }) => void
-  setLanguage: (language: Language, origin?: { x: number; y: number }) => void
+  platform: PlatformIdentity | null;
+  online: boolean;
+  theme: 'light' | 'dark';
+  language: Language;
+  setSession: (token: string, me: Me) => void;
+  setPlatformSession: (token: string, platform: PlatformIdentity) => void;
+  setMe: (me: Me) => void;
+  logout: () => void;
+  setOnline: (online: boolean) => void;
+  toggleTheme: (origin?: { x: number; y: number }) => void;
+  setLanguage: (language: Language, origin?: { x: number; y: number }) => void;
 }
 
 export const useAuthStore = create<AuthState>()(
@@ -41,8 +41,8 @@ export const useAuthStore = create<AuthState>()(
       language: 'en',
       setSession: (token, me) => {
         // The colours land before the first branded pixel, not after a flash of the default.
-        paintBrandFor(me.tenant?.id ?? null, me.tenant?.branding ?? null)
-        set({ token, me, platform: null })
+        paintBrandFor(me.tenant?.id ?? null, me.tenant?.branding ?? null);
+        set({ token, me, platform: null });
       },
       /**
        * A platform session wears the platform's own palette, not a company's.
@@ -51,12 +51,12 @@ export const useAuthStore = create<AuthState>()(
        * neutral — the console shows every company, so looking like one of them would be a lie.
        */
       setPlatformSession: (token, platform) => {
-        paintBrandFor(null)
-        set({ token, platform, me: null })
+        paintBrandFor(null);
+        set({ token, platform, me: null });
       },
       setMe: (me) => {
-        paintBrandFor(me.tenant?.id ?? null, me.tenant?.branding ?? null)
-        set({ me })
+        paintBrandFor(me.tenant?.id ?? null, me.tenant?.branding ?? null);
+        set({ me });
       },
       /**
        * Ends the session. Deliberately does **not** decide what colour the screen becomes.
@@ -70,7 +70,7 @@ export const useAuthStore = create<AuthState>()(
        * WIQAR" on WIQAR's door and "nobody" on the platform's.
        */
       logout: () => {
-        set({ token: null, me: null, platform: null })
+        set({ token: null, me: null, platform: null });
 
         /*
          * Everything the old session fetched goes with it.
@@ -80,47 +80,47 @@ export const useAuthStore = create<AuthState>()(
          * in — including, on a shared machine, somebody from a different company. Clearing is
          * cheap; the alternative is a cross-tenant data leak that looks like a stale render.
          */
-        queryClient.clear()
+        queryClient.clear();
 
-        forgetPaintedBrand()
+        forgetPaintedBrand();
         // Nobody is signed in, so the screen goes back to the platform's own palette.
-        paintBrandFor(null)
+        paintBrandFor(null);
       },
       setOnline: (online) => set({ online }),
       toggleTheme: (origin) => {
-        const next = get().theme === 'light' ? 'dark' : 'light'
+        const next = get().theme === 'light' ? 'dark' : 'light';
         runViewTransition(
           () => {
-            applyThemeMode(next)
-            set({ theme: next })
+            applyThemeMode(next);
+            set({ theme: next });
           },
           'theme',
-          origin,
-        )
+          origin
+        );
       },
       setLanguage: (language, origin) => {
-        if (get().language === language) return
+        if (get().language === language) return;
         runViewTransition(
           () => {
-            applyLanguage(language)
-            set({ language })
+            applyLanguage(language);
+            set({ language });
           },
           'language',
-          origin,
-        )
+          origin
+        );
       },
     }),
-    { name: 'wayz.platform.auth' },
-  ),
-)
+    { name: 'wayz.platform.auth' }
+  )
+);
 
 configureAuth(
   () => useAuthStore.getState().token,
-  () => useAuthStore.getState().logout(),
-)
+  () => useAuthStore.getState().logout()
+);
 
 export function bootstrapTheme() {
-  applyThemeMode(useAuthStore.getState().theme)
+  applyThemeMode(useAuthStore.getState().theme);
 
   /*
    * A reload comes back wearing the right colours before the first paint.
@@ -128,10 +128,10 @@ export function bootstrapTheme() {
    * The persisted session carries the organisation's branding, so there is nothing to fetch
    * and no frame in which the wrong brand could show. Signed out, it is the platform's.
    */
-  const me = useAuthStore.getState().me
-  paintBrandFor(me?.tenant?.id ?? null, me?.tenant?.branding ?? null)
+  const me = useAuthStore.getState().me;
+  paintBrandFor(me?.tenant?.id ?? null, me?.tenant?.branding ?? null);
 }
 
 export function bootstrapLanguage() {
-  applyLanguage(useAuthStore.getState().language ?? 'en')
+  applyLanguage(useAuthStore.getState().language ?? 'en');
 }

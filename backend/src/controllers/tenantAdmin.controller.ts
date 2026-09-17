@@ -1,9 +1,13 @@
-import { z } from 'zod'
-import type { Request } from 'express'
-import { asyncHandler } from '../utils/asyncHandler.js'
-import { ApiError } from '../utils/ApiError.js'
-import { ENGINE_KINDS, ROLES } from '../domain/types.js'
-import { adoptActivities, adoptedActivities, listCatalogue } from '../platform/activityCatalogue.js'
+import { z } from 'zod';
+import type { Request } from 'express';
+import { asyncHandler } from '../utils/asyncHandler.js';
+import { ApiError } from '../utils/ApiError.js';
+import { ENGINE_KINDS, ROLES } from '../domain/types.js';
+import {
+  adoptActivities,
+  adoptedActivities,
+  listCatalogue,
+} from '../platform/activityCatalogue.js';
 
 import {
   tenantAudit,
@@ -13,24 +17,24 @@ import {
   readRules,
   updateCompany,
   updateRules,
-} from '../services/tenantAdmin.service.js'
-import { saveStationMap, stationMap } from '../services/org.service.js'
-import type { ManagerScope } from '../interfaces/index.js'
+} from '../services/tenantAdmin.service.js';
+import { saveStationMap, stationMap } from '../services/org.service.js';
+import type { ManagerScope } from '../interfaces/index.js';
 
 function adminScope(req: Request): ManagerScope {
-  if (!req.auth) throw ApiError.unauthorized()
+  if (!req.auth) throw ApiError.unauthorized();
   return {
     tenantId: req.auth.tenantId,
     userId: req.auth.sub,
     role: req.auth.role,
     engineKinds: req.auth.engineKinds ?? [],
-  }
+  };
 }
 
 const timerSchema = z.object({
   startsOn: z.enum(['FULFILMENT', 'PAYMENT']),
   startDelayMin: z.number().min(0).max(240),
-})
+});
 
 const rulesSchema = z.object({
   rental: z
@@ -50,7 +54,7 @@ const rulesSchema = z.object({
         label: z.string().min(2).max(160),
         amount: z.number().min(0).nullable(),
         engineKind: z.enum(ENGINE_KINDS).nullable().default(null),
-      }),
+      })
     )
     .max(100)
     .optional(),
@@ -62,7 +66,7 @@ const rulesSchema = z.object({
         labelAr: z.string().max(80).optional(),
         maxPercent: z.coerce.number().min(0).max(100).default(100),
         needsApproval: z.boolean().optional(),
-      }),
+      })
     )
     .max(40)
     .optional(),
@@ -89,7 +93,7 @@ const rulesSchema = z.object({
       selfApproval: z.boolean().optional(),
     })
     .optional(),
-})
+});
 
 const companySchema = z.object({
   name: z.string().min(2).optional(),
@@ -101,7 +105,7 @@ const companySchema = z.object({
   enabledEngines: z.array(z.enum(ENGINE_KINDS)).optional(),
   company: z.record(z.string()).optional(),
   branding: z.record(z.string()).optional(),
-})
+});
 
 const mapSchema = z.object({
   placements: z
@@ -110,51 +114,54 @@ const mapSchema = z.object({
         id: z.string().min(1),
         x: z.number().min(0).max(1).nullable(),
         y: z.number().min(0).max(1).nullable(),
-      }),
+      })
     )
     .min(1, 'Nothing to place.'),
-})
+});
 
 export const tenantAdminController = {
   stationMap: asyncHandler(async (req, res) => {
-    res.json({ success: true, data: await stationMap(adminScope(req).tenantId) })
+    res.json({ success: true, data: await stationMap(adminScope(req).tenantId) });
   }),
 
   saveStationMap: asyncHandler(async (req, res) => {
-    const body = mapSchema.parse(req.body)
-    res.json({ success: true, data: await saveStationMap(adminScope(req).tenantId, body.placements) })
+    const body = mapSchema.parse(req.body);
+    res.json({
+      success: true,
+      data: await saveStationMap(adminScope(req).tenantId, body.placements),
+    });
   }),
 
   overview: asyncHandler(async (req, res) => {
-    res.json({ success: true, data: await tenantOverview(adminScope(req)) })
+    res.json({ success: true, data: await tenantOverview(adminScope(req)) });
   }),
 
   people: asyncHandler(async (req, res) => {
-    res.json({ success: true, data: await tenantPeople(adminScope(req)) })
+    res.json({ success: true, data: await tenantPeople(adminScope(req)) });
   }),
 
   audit: asyncHandler(async (req, res) => {
-    res.json({ success: true, data: await tenantAudit(adminScope(req)) })
+    res.json({ success: true, data: await tenantAudit(adminScope(req)) });
   }),
 
   isolation: asyncHandler(async (req, res) => {
-    res.json({ success: true, data: await tenantIsolationReport(adminScope(req)) })
+    res.json({ success: true, data: await tenantIsolationReport(adminScope(req)) });
   }),
 
   updateCompany: asyncHandler(async (req, res) => {
-    const body = companySchema.parse(req.body)
-    res.json({ success: true, data: await updateCompany(adminScope(req), body) })
+    const body = companySchema.parse(req.body);
+    res.json({ success: true, data: await updateCompany(adminScope(req), body) });
   }),
 
   rules: asyncHandler(async (req, res) => {
-    res.json({ success: true, data: await readRules(adminScope(req)) })
+    res.json({ success: true, data: await readRules(adminScope(req)) });
   }),
 
   updateRules: asyncHandler(async (req, res) => {
-    const body = rulesSchema.parse(req.body)
-    res.json({ success: true, data: await updateRules(adminScope(req), body) })
+    const body = rulesSchema.parse(req.body);
+    res.json({ success: true, data: await updateRules(adminScope(req), body) });
   }),
-}
+};
 
 /* ------------------------------------------------------------------------------------- */
 /* The activity catalogue                                                                  */
@@ -162,7 +169,7 @@ export const tenantAdminController = {
 
 const adoptSchema = z.object({
   activities: z.array(z.string().trim().min(1).max(40)).max(40),
-})
+});
 
 /**
  * What this organisation runs, chosen from what the platform implements.
@@ -176,12 +183,12 @@ export const activityCatalogueController = {
     const [catalogue, adopted] = await Promise.all([
       Promise.resolve(listCatalogue()),
       adoptedActivities(),
-    ])
-    res.json({ success: true, data: { catalogue, adopted } })
+    ]);
+    res.json({ success: true, data: { catalogue, adopted } });
   }),
 
   adopt: asyncHandler(async (req, res) => {
-    const { activities } = adoptSchema.parse(req.body)
-    res.json({ success: true, data: { adopted: await adoptActivities(activities) } })
+    const { activities } = adoptSchema.parse(req.body);
+    res.json({ success: true, data: { adopted: await adoptActivities(activities) } });
   }),
-}
+};

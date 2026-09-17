@@ -1,8 +1,8 @@
-import { useEffect } from 'react'
-import { Outlet } from 'react-router-dom'
+import { useEffect } from 'react';
+import { Outlet } from 'react-router-dom';
 
-import { useAuthStore } from '@/store/auth'
-import { useTenantBrand } from '@/store/tenant'
+import { useAuthStore } from '@/store/auth';
+import { useTenantBrand } from '@/store/tenant';
 
 /**
  * Mounted once, above every route. Keeps the frame honest about whose session this is.
@@ -16,12 +16,12 @@ import { useTenantBrand } from '@/store/tenant'
  * account decides where you land. The guard had nothing left to guard.
  */
 export function TenantChrome() {
-  const me = useAuthStore((s) => s.me)
+  const me = useAuthStore((s) => s.me);
 
   useTenantBrand({
     organizationId: me?.tenant?.id ?? null,
     branding: me?.tenant?.branding ?? null,
-  })
+  });
 
   /*
    * The browser tab names the organisation you are in.
@@ -30,9 +30,9 @@ export function TenantChrome() {
    * identical tabs, one of them lying about which company it held.
    */
   useEffect(() => {
-    const company = me?.tenant?.name
-    document.title = company ? `${company} · LockerFlow` : 'LockerFlow'
-  }, [me?.tenant?.name])
+    const company = me?.tenant?.name;
+    document.title = company ? `${company} · LockerFlow` : 'LockerFlow';
+  }, [me?.tenant?.name]);
 
-  return <Outlet />
+  return <Outlet />;
 }

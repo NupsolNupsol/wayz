@@ -1,7 +1,7 @@
-import { Router } from 'express'
+import { Router } from 'express';
 
-import { authenticate } from '../middlewares/auth.js'
-import { procurementController } from '../controllers/procurement.controller.js'
+import { authenticate } from '../middlewares/auth.js';
+import { procurementController } from '../controllers/procurement.controller.js';
 
 /**
  * Purchase orders — §8.2.
@@ -11,17 +11,17 @@ import { procurementController } from '../controllers/procurement.controller.js'
  * file would be a second answer that contradicts the configured one and cannot be changed
  * without a release.
  */
-const router = Router()
+const router = Router();
 
-router.use(authenticate)
+router.use(authenticate);
 
-router.get('/policy', procurementController.policy)
-router.get('/', procurementController.list)
-router.post('/', procurementController.raise)
-router.post('/:id/submit', procurementController.submit)
-router.post('/:id/approve', procurementController.approve)
-router.post('/:id/reject', procurementController.reject)
-router.post('/:id/receive', procurementController.receive)
-router.post('/:id/cancel', procurementController.cancel)
+router.get('/policy', procurementController.policy);
+router.get('/', procurementController.list);
+router.post('/', procurementController.raise);
+router.post('/:id/submit', procurementController.submit);
+router.post('/:id/approve', procurementController.approve);
+router.post('/:id/reject', procurementController.reject);
+router.post('/:id/receive', procurementController.receive);
+router.post('/:id/cancel', procurementController.cancel);
 
-export default router
+export default router;

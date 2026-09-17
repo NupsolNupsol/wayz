@@ -1,11 +1,11 @@
-import type { IntakeField } from '@wayz/workflow'
+import type { IntakeField } from '@wayz/workflow';
 
-import { Booking, User } from '../models/index.js'
-import { ApiError } from '../utils/ApiError.js'
-import { getWorkflow } from '../domain/workflow.js'
-import { placesAround } from './reach.service.js'
-import type { Scope } from '../interfaces/index.js'
-import type { EngineKind } from '../domain/types.js'
+import { Booking, User } from '../models/index.js';
+import { ApiError } from '../utils/ApiError.js';
+import { getWorkflow } from '../domain/workflow.js';
+import { placesAround } from './reach.service.js';
+import type { Scope } from '../interfaces/index.js';
+import type { EngineKind } from '../domain/types.js';
 
 /**
  * The details an activity needs before its booking can be confirmed.
@@ -26,25 +26,35 @@ import type { EngineKind } from '../domain/types.js'
  */
 
 /** Keys only this service writes. Stripped from a new booking's free-form metadata. */
-export const INTAKE_KEYS = ['consentAt', 'consentBy', 'trainerId', 'trainerName', 'level', 'partySize', 'feedPortions'] as const
+export const INTAKE_KEYS = [
+  'consentAt',
+  'consentBy',
+  'trainerId',
+  'trainerName',
+  'level',
+  'partySize',
+  'feedPortions',
+] as const;
 
-export function withoutIntakeKeys(metadata: Record<string, unknown> | undefined): Record<string, unknown> {
-  const copy = { ...(metadata ?? {}) }
-  for (const key of INTAKE_KEYS) delete copy[key]
-  return copy
+export function withoutIntakeKeys(
+  metadata: Record<string, unknown> | undefined
+): Record<string, unknown> {
+  const copy = { ...(metadata ?? {}) };
+  for (const key of INTAKE_KEYS) delete copy[key];
+  return copy;
 }
 
 export interface IntakeInput {
-  consent?: boolean
-  trainerId?: string | null
-  level?: string | null
-  partySize?: number | null
-  feedPortions?: number | null
+  consent?: boolean;
+  trainerId?: string | null;
+  level?: string | null;
+  partySize?: number | null;
+  feedPortions?: number | null;
 }
 
 export function intakeFor(engineKind: EngineKind | null): IntakeField[] {
-  if (!engineKind) return []
-  return getWorkflow(engineKind)?.intake ?? []
+  if (!engineKind) return [];
+  return getWorkflow(engineKind)?.intake ?? [];
 }
 
 /**
@@ -55,13 +65,13 @@ export function intakeFor(engineKind: EngineKind | null): IntakeField[] {
  * to the counter.
  */
 export async function trainersFor(scope: Scope, engineKind: EngineKind) {
-  const { siteStationIds } = await placesAround(scope.stationId)
+  const { siteStationIds } = await placesAround(scope.stationId);
   const people = await User.find(
     { active: true, engineKinds: engineKind, stationId: { $in: siteStationIds } },
-    { fullName: 1, roleLabel: 1 },
+    { fullName: 1, roleLabel: 1 }
   )
     .sort({ fullName: 1 })
-    .lean<{ _id: string; fullName: string; roleLabel?: string }[]>()
+    .lean<{ _id: string; fullName: string; roleLabel?: string }[]>();
 
   /*
    * Everyone assigned the activity is offered, with their job title, and anyone whose title
@@ -73,93 +83,97 @@ export async function trainersFor(scope: Scope, engineKind: EngineKind) {
    * the telling. Who may be named is an open question for the client — see the WIQAR assumptions
    * document, A-7.
    */
-  const trains = (title: string) => /trainer|coach|instructor|مدرب/i.test(title)
+  const trains = (title: string) => /trainer|coach|instructor|مدرب/i.test(title);
   return people
     .map((p) => ({ id: p._id, name: p.fullName, title: p.roleLabel ?? '' }))
-    .sort((a, b) => Number(trains(b.title)) - Number(trains(a.title)))
+    .sort((a, b) => Number(trains(b.title)) - Number(trains(a.title)));
 }
 
 export async function recordIntake(scope: Scope, bookingId: string, input: IntakeInput) {
-  const booking = await Booking.findOne({ _id: bookingId, stationId: scope.stationId })
-  if (!booking) throw ApiError.notFound('Booking not found.')
+  const booking = await Booking.findOne({ _id: bookingId, stationId: scope.stationId });
+  if (!booking) throw ApiError.notFound('Booking not found.');
   if (booking.status !== 'DRAFT') {
-    throw ApiError.unprocessable('These details are taken before the booking is confirmed, and this one already is.')
+    throw ApiError.unprocessable(
+      'These details are taken before the booking is confirmed, and this one already is.'
+    );
   }
 
-  const declared = intakeFor(booking.engineKind as EngineKind | null)
-  if (declared.length === 0) return booking
+  const declared = intakeFor(booking.engineKind as EngineKind | null);
+  if (declared.length === 0) return booking;
 
-  const metadata: Record<string, unknown> = { ...(booking.metadata ?? {}) }
-  const problems: string[] = []
+  const metadata: Record<string, unknown> = { ...(booking.metadata ?? {}) };
+  const problems: string[] = [];
 
   for (const field of declared) {
     switch (field.key) {
       case 'consent': {
         // Recorded once. A later call that does not repeat it does not withdraw it.
         if (input.consent === true && !metadata.consentAt) {
-          metadata.consentAt = new Date().toISOString()
-          metadata.consentBy = scope.agentId
+          metadata.consentAt = new Date().toISOString();
+          metadata.consentBy = scope.agentId;
         }
-        break
+        break;
       }
 
       case 'trainer': {
-        if (input.trainerId === undefined) break
+        if (input.trainerId === undefined) break;
         if (!input.trainerId) {
-          delete metadata.trainerId
-          delete metadata.trainerName
-          break
+          delete metadata.trainerId;
+          delete metadata.trainerName;
+          break;
         }
-        const allowed = await trainersFor(scope, booking.engineKind as EngineKind)
-        const trainer = allowed.find((t) => t.id === input.trainerId)
+        const allowed = await trainersFor(scope, booking.engineKind as EngineKind);
+        const trainer = allowed.find((t) => t.id === input.trainerId);
         if (!trainer) {
-          problems.push('That person does not run this activity at this location.')
-          break
+          problems.push('That person does not run this activity at this location.');
+          break;
         }
-        metadata.trainerId = trainer.id
-        metadata.trainerName = trainer.name
-        break
+        metadata.trainerId = trainer.id;
+        metadata.trainerName = trainer.name;
+        break;
       }
 
       case 'level': {
-        if (input.level === undefined || input.level === null) break
-        const level = String(input.level).trim().toUpperCase()
+        if (input.level === undefined || input.level === null) break;
+        const level = String(input.level).trim().toUpperCase();
         if (!field.options.includes(level)) {
-          problems.push(`"${input.level}" is not a level this is taught at — choose ${field.options.join(' or ')}.`)
-          break
+          problems.push(
+            `"${input.level}" is not a level this is taught at — choose ${field.options.join(' or ')}.`
+          );
+          break;
         }
-        metadata.level = level
-        break
+        metadata.level = level;
+        break;
       }
 
       case 'partySize': {
-        if (input.partySize === undefined || input.partySize === null) break
-        const size = Math.floor(Number(input.partySize))
+        if (input.partySize === undefined || input.partySize === null) break;
+        const size = Math.floor(Number(input.partySize));
         if (!Number.isFinite(size) || size < field.min) {
-          problems.push(`This takes a party of at least ${field.min}.`)
-          break
+          problems.push(`This takes a party of at least ${field.min}.`);
+          break;
         }
-        metadata.partySize = size
-        break
+        metadata.partySize = size;
+        break;
       }
 
       case 'feedPortions': {
-        if (input.feedPortions === undefined || input.feedPortions === null) break
-        const portions = Math.floor(Number(input.feedPortions))
+        if (input.feedPortions === undefined || input.feedPortions === null) break;
+        const portions = Math.floor(Number(input.feedPortions));
         if (!Number.isFinite(portions) || portions < field.min) {
-          problems.push(`At least ${field.min} portion of feed goes with this session.`)
-          break
+          problems.push(`At least ${field.min} portion of feed goes with this session.`);
+          break;
         }
-        metadata.feedPortions = portions
-        break
+        metadata.feedPortions = portions;
+        break;
       }
     }
   }
 
-  if (problems.length) throw ApiError.badRequest(problems[0], problems.slice(1))
+  if (problems.length) throw ApiError.badRequest(problems[0], problems.slice(1));
 
-  booking.metadata = metadata
-  booking.markModified('metadata')
-  await booking.save()
-  return booking
+  booking.metadata = metadata;
+  booking.markModified('metadata');
+  await booking.save();
+  return booking;
 }

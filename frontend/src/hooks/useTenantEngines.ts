@@ -1,8 +1,8 @@
-import { useMemo } from 'react'
+import { useMemo } from 'react';
 
-import { useAuthStore } from '@/store/auth'
-import { ENGINE_META, VISIBLE_ENGINES, engineLabel } from '@/config/engineMeta'
-import type { EngineKind } from '@/api/types'
+import { useAuthStore } from '@/store/auth';
+import { ENGINE_META, VISIBLE_ENGINES, engineLabel } from '@/config/engineMeta';
+import type { EngineKind } from '@/api/types';
 
 /**
  * The activities this organisation has adopted.
@@ -20,11 +20,11 @@ import type { EngineKind } from '@/api/types'
  * before the first `/me` resolves; an empty list would flash an empty picker on every reload.
  */
 export function useTenantEngines(): EngineKind[] {
-  const adopted = useAuthStore((s) => s.me?.tenant?.enabledEngines)
+  const adopted = useAuthStore((s) => s.me?.tenant?.enabledEngines);
 
   return useMemo(() => {
-    const held = adopted ?? []
-    if (held.length === 0) return VISIBLE_ENGINES
+    const held = adopted ?? [];
+    if (held.length === 0) return VISIBLE_ENGINES;
 
     /*
      * Ordered by the catalogue, so two organisations running the same activities list them the
@@ -32,20 +32,20 @@ export function useTenantEngines(): EngineKind[] {
      * dropped — a server that has shipped an activity this build has not heard of should show
      * as an unfamiliar name, not vanish.
      */
-    const known = VISIBLE_ENGINES.filter((kind) => held.includes(kind))
-    const unknown = held.filter((kind) => !VISIBLE_ENGINES.includes(kind))
-    return [...known, ...unknown]
-  }, [adopted])
+    const known = VISIBLE_ENGINES.filter((kind) => held.includes(kind));
+    const unknown = held.filter((kind) => !VISIBLE_ENGINES.includes(kind));
+    return [...known, ...unknown];
+  }, [adopted]);
 }
 
 /** The same list, shaped for a `<Select>`. */
 export function useTenantEngineOptions(): { label: string; value: EngineKind }[] {
-  const engines = useTenantEngines()
-  return useMemo(() => engines.map((k) => ({ label: engineLabel(k), value: k })), [engines])
+  const engines = useTenantEngines();
+  return useMemo(() => engines.map((k) => ({ label: engineLabel(k), value: k })), [engines]);
 }
 
 /** The catalogue entry for each adopted activity — label, icon, route. */
 export function useTenantEngineMeta() {
-  const engines = useTenantEngines()
-  return useMemo(() => engines.map((kind) => ({ kind, ...ENGINE_META[kind] })), [engines])
+  const engines = useTenantEngines();
+  return useMemo(() => engines.map((kind) => ({ kind, ...ENGINE_META[kind] })), [engines]);
 }

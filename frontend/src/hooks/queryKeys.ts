@@ -1,4 +1,4 @@
-import type { EngineKind } from '../api/types'
+import type { EngineKind } from '../api/types';
 
 export const qk = {
   me: ['me'] as const,
@@ -89,4 +89,4 @@ export const qk = {
     detail: (id: string) => ['delivery', 'detail', id] as const,
     customerBags: (bookingId: string) => ['delivery', 'customer-bags', bookingId] as const,
   },
-}
+};

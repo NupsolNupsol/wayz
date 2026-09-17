@@ -1,16 +1,16 @@
-import { Schema } from 'mongoose'
-import { nanoid } from 'nanoid'
+import { Schema } from 'mongoose';
+import { nanoid } from 'nanoid';
 
 export interface AuditDoc {
-  _id: string
-  tenantId: string
-  actorId: string
-  action: string
-  entity: string
-  entityId: string
-  reason?: string
-  detail?: string
-  at: Date
+  _id: string;
+  tenantId: string;
+  actorId: string;
+  action: string;
+  entity: string;
+  entityId: string;
+  reason?: string;
+  detail?: string;
+  at: Date;
 }
 
 const auditSchema = new Schema<AuditDoc>(
@@ -25,7 +25,7 @@ const auditSchema = new Schema<AuditDoc>(
     detail: { type: String },
     at: { type: Date, default: Date.now },
   },
-  { _id: false },
-)
+  { _id: false }
+);
 
-export const AuditSchema = auditSchema
+export const AuditSchema = auditSchema;

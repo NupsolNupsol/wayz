@@ -1,7 +1,7 @@
-import { aiClient, type PlatformAdminActor } from './aiClient.js'
-import { ApiError } from '../../utils/ApiError.js'
-import { runAcrossOrganisations } from '../../platform/orgScope.js'
-import { Tenant } from '../../models/index.js'
+import { aiClient, type PlatformAdminActor } from './aiClient.js';
+import { ApiError } from '../../utils/ApiError.js';
+import { runAcrossOrganisations } from '../../platform/orgScope.js';
+import { Tenant } from '../../models/index.js';
 
 /**
  * What the assistant is allowed to have read.
@@ -29,34 +29,34 @@ const asPlatform = (adminId: string, displayName: string): PlatformAdminActor =>
   kind: 'PLATFORM_ADMIN',
   adminId,
   displayName,
-})
+});
 
 /** The service credential these calls run under. A platform administrator has no organisation. */
-const SERVICE_ACTOR = asPlatform('platform-console', 'Platform console')
+const SERVICE_ACTOR = asPlatform('platform-console', 'Platform console');
 
 export interface KnowledgeDocument {
-  id: string
-  title: string
-  scope: 'GLOBAL' | 'TENANT'
-  tenantId: string | null
-  tenantName: string | null
-  status: string
-  chunks: number
-  error: string | null
-  createdAt: string
+  id: string;
+  title: string;
+  scope: 'GLOBAL' | 'TENANT';
+  tenantId: string | null;
+  tenantName: string | null;
+  status: string;
+  chunks: number;
+  error: string | null;
+  createdAt: string;
 }
 
 interface AiDocumentSummary {
-  id?: string
-  _id?: string
-  title: string
-  scope: string
-  tenant_id: string | null
-  tenant_name: string | null
-  status: string
-  chunk_count?: number
-  error?: string | null
-  created_at?: string
+  id?: string;
+  _id?: string;
+  title: string;
+  scope: string;
+  tenant_id: string | null;
+  tenant_name: string | null;
+  status: string;
+  chunk_count?: number;
+  error?: string | null;
+  created_at?: string;
 }
 
 const present = (d: AiDocumentSummary): KnowledgeDocument => ({
@@ -69,7 +69,7 @@ const present = (d: AiDocumentSummary): KnowledgeDocument => ({
   chunks: d.chunk_count ?? 0,
   error: d.error ?? null,
   createdAt: d.created_at ?? '',
-})
+});
 
 /**
  * Checks that a named organisation is real, and returns what it is called.
@@ -79,53 +79,53 @@ const present = (d: AiDocumentSummary): KnowledgeDocument => ({
  */
 async function organisationNamed(organizationId: string) {
   const company = await runAcrossOrganisations(() =>
-    Tenant.findById(organizationId, { name: 1 }).lean<{ _id: string; name: string } | null>(),
-  )
-  if (!company) throw ApiError.notFound(`There is no organisation called "${organizationId}".`)
-  return company
+    Tenant.findById(organizationId, { name: 1 }).lean<{ _id: string; name: string } | null>()
+  );
+  if (!company) throw ApiError.notFound(`There is no organisation called "${organizationId}".`);
+  return company;
 }
 
 export async function listKnowledgeDocuments(filter: { organizationId?: string } = {}) {
-  const query = new URLSearchParams({ limit: '200' })
+  const query = new URLSearchParams({ limit: '200' });
   if (filter.organizationId) {
-    query.set('scope', 'TENANT')
-    query.set('tenant_id', filter.organizationId)
+    query.set('scope', 'TENANT');
+    query.set('tenant_id', filter.organizationId);
   }
 
   const body = await aiClient.get<{ documents?: AiDocumentSummary[]; items?: AiDocumentSummary[] }>(
     SERVICE_ACTOR,
-    `/documents?${query.toString()}`,
-  )
+    `/documents?${query.toString()}`
+  );
 
-  const documents = (body.documents ?? body.items ?? []).map(present)
+  const documents = (body.documents ?? body.items ?? []).map(present);
   return {
     documents,
     generic: documents.filter((d) => d.scope === 'GLOBAL').length,
     specific: documents.filter((d) => d.scope === 'TENANT').length,
-  }
+  };
 }
 
 export interface UploadKnowledgeInput {
-  title: string
+  title: string;
   /** Absent means generic — every organisation can retrieve it. */
-  organizationId?: string
-  text?: string
-  sourceUrl?: string
-  tags?: string[]
-  filename?: string
-  language?: string
-  uploadedBy: string
+  organizationId?: string;
+  text?: string;
+  sourceUrl?: string;
+  tags?: string[];
+  filename?: string;
+  language?: string;
+  uploadedBy: string;
 }
 
 export async function uploadKnowledgeDocument(input: UploadKnowledgeInput) {
-  const text = input.text?.trim()
+  const text = input.text?.trim();
   if (!text) {
     throw ApiError.badRequest('Give the assistant something to read.', [
       'Paste the text, or attach a file the browser can read.',
-    ])
+    ]);
   }
 
-  const company = input.organizationId ? await organisationNamed(input.organizationId) : null
+  const company = input.organizationId ? await organisationNamed(input.organizationId) : null;
 
   const created = await aiClient.post<AiDocumentSummary>(SERVICE_ACTOR, '/documents', {
     title: input.title.trim(),
@@ -136,20 +136,20 @@ export async function uploadKnowledgeDocument(input: UploadKnowledgeInput) {
     filename: input.filename ?? 'document.txt',
     language: input.language ?? 'ar',
     notes: [`Uploaded by ${input.uploadedBy}`, ...(input.tags ?? [])].join(' · ').slice(0, 1000),
-  })
+  });
 
-  return present(created)
+  return present(created);
 }
 
 export async function reindexKnowledgeDocument(id: string) {
-  return aiClient.post<unknown>(SERVICE_ACTOR, `/documents/${encodeURIComponent(id)}/reindex`)
+  return aiClient.post<unknown>(SERVICE_ACTOR, `/documents/${encodeURIComponent(id)}/reindex`);
 }
 
 export async function deleteKnowledgeDocument(id: string) {
-  return aiClient.remove<unknown>(SERVICE_ACTOR, `/documents/${encodeURIComponent(id)}`)
+  return aiClient.remove<unknown>(SERVICE_ACTOR, `/documents/${encodeURIComponent(id)}`);
 }
 
 /** Whether the assistant is reachable at all, so the console can say so rather than fail oddly. */
 export async function assistantHealth() {
-  return aiClient.health()
+  return aiClient.health();
 }

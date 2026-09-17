@@ -1,19 +1,27 @@
-import { Voucher, VoucherCampaign } from '../models/index.js'
+import { Voucher, VoucherCampaign } from '../models/index.js';
 
 /**
  * A live batch of discount codes so the demo can be tested the moment it is seeded:
  * fixed codes, so a tester can read them out of this file or off the batch page.
  */
 const CODES = [
-  'WZ-4F7K2Q', 'WZ-9HTM3D', 'WZ-2BQX8N', 'WZ-6LVR5P', 'WZ-7CJD4W',
-  'WZ-3XKN9F', 'WZ-8PWT2M', 'WZ-5RDH6B', 'WZ-QN4V7L', 'WZ-MJ8C3T',
-]
+  'WZ-4F7K2Q',
+  'WZ-9HTM3D',
+  'WZ-2BQX8N',
+  'WZ-6LVR5P',
+  'WZ-7CJD4W',
+  'WZ-3XKN9F',
+  'WZ-8PWT2M',
+  'WZ-5RDH6B',
+  'WZ-QN4V7L',
+  'WZ-MJ8C3T',
+];
 
-const LAGOON_CODES = ['LAG-5TQ9WD', 'LAG-2HMK7B', 'LAG-8VXR4N']
+const LAGOON_CODES = ['LAG-5TQ9WD', 'LAG-2HMK7B', 'LAG-8VXR4N'];
 
 export async function seedVouchers() {
-  const now = new Date()
-  const inThreeMonths = new Date(now.getTime() + 90 * 24 * 60 * 60 * 1000)
+  const now = new Date();
+  const inThreeMonths = new Date(now.getTime() + 90 * 24 * 60 * 60 * 1000);
 
   await VoucherCampaign.insertMany([
     {
@@ -40,7 +48,7 @@ export async function seedVouchers() {
       createdBy: 'usr_admin_wayz',
       active: true,
     },
-  ])
+  ]);
 
   await Voucher.insertMany([
     ...CODES.map((code) => ({
@@ -61,7 +69,7 @@ export async function seedVouchers() {
       expiresAt: inThreeMonths,
       status: 'ISSUED' as const,
     })),
-  ])
+  ]);
 
-  return CODES.length + LAGOON_CODES.length
+  return CODES.length + LAGOON_CODES.length;
 }

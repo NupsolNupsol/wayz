@@ -1,6 +1,6 @@
-import { Schema } from 'mongoose'
+import { Schema } from 'mongoose';
 
-import type { InventoryCategory } from '../domain/rules.js'
+import type { InventoryCategory } from '../domain/rules.js';
 
 /**
  * A purchase order — §8.2.
@@ -25,39 +25,39 @@ export type PurchaseOrderStatus =
   | 'PARTIALLY_RECEIVED'
   | 'RECEIVED'
   | 'REJECTED'
-  | 'CANCELLED'
+  | 'CANCELLED';
 
 export interface PurchaseOrderLine {
   /** What is being bought. Free text: a supplier's catalogue is not ours to model. */
-  description: string
-  category: InventoryCategory
-  quantity: number
-  unit: string
-  unitPrice: number
+  description: string;
+  category: InventoryCategory;
+  quantity: number;
+  unit: string;
+  unitPrice: number;
   /** §8.2: *"receiving party confirms receipt with quantity verification"*. */
-  receivedQuantity: number
+  receivedQuantity: number;
 }
 
 export interface PurchaseOrderEvent {
-  action: string
-  by: string
-  byName: string
-  role: string
-  at: Date
-  note?: string
+  action: string;
+  by: string;
+  byName: string;
+  role: string;
+  at: Date;
+  note?: string;
 }
 
 export interface PurchaseOrderDoc {
-  _id: string
-  tenantId: string
-  ref: string
+  _id: string;
+  tenantId: string;
+  ref: string;
 
   /** Which location the stock is for. §8.1 tracks most categories per location. */
-  siteId: string
+  siteId: string;
 
-  supplier: string
-  lines: PurchaseOrderLine[]
-  total: number
+  supplier: string;
+  lines: PurchaseOrderLine[];
+  total: number;
 
   /**
    * Whether this order needed the higher approval.
@@ -65,24 +65,24 @@ export interface PurchaseOrderDoc {
    * Recorded at submission rather than recomputed, because the threshold is configuration and
    * may change — an order approved last month should still show the rule it was approved under.
    */
-  highValue: boolean
+  highValue: boolean;
 
   /**
    * §8.2: *"Veterinary supply purchases require supporting documentation (vet prescription
    * where applicable)."* A reference to whatever was supplied; the specification does not say
    * the document itself is stored, so a reference is what is kept.
    */
-  supportingDocument: string
+  supportingDocument: string;
 
-  status: PurchaseOrderStatus
-  raisedBy: string
-  approvedBy: string | null
-  approvedAt: Date | null
-  receivedAt: Date | null
+  status: PurchaseOrderStatus;
+  raisedBy: string;
+  approvedBy: string | null;
+  approvedAt: Date | null;
+  receivedAt: Date | null;
 
-  log: PurchaseOrderEvent[]
-  createdAt: Date
-  updatedAt: Date
+  log: PurchaseOrderEvent[];
+  createdAt: Date;
+  updatedAt: Date;
 }
 
 const lineSchema = new Schema<PurchaseOrderLine>(
@@ -94,8 +94,8 @@ const lineSchema = new Schema<PurchaseOrderLine>(
     unitPrice: { type: Number, required: true, min: 0 },
     receivedQuantity: { type: Number, default: 0, min: 0 },
   },
-  { _id: false },
-)
+  { _id: false }
+);
 
 const eventSchema = new Schema<PurchaseOrderEvent>(
   {
@@ -106,8 +106,8 @@ const eventSchema = new Schema<PurchaseOrderEvent>(
     at: { type: Date, default: Date.now },
     note: { type: String, default: '' },
   },
-  { _id: false },
-)
+  { _id: false }
+);
 
 export const PurchaseOrderSchema = new Schema<PurchaseOrderDoc>(
   {
@@ -132,5 +132,5 @@ export const PurchaseOrderSchema = new Schema<PurchaseOrderDoc>(
 
     log: { type: [eventSchema], default: [] },
   },
-  { _id: false, timestamps: true },
-)
+  { _id: false, timestamps: true }
+);

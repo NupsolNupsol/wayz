@@ -1,7 +1,7 @@
-import { Router } from 'express'
+import { Router } from 'express';
 
-import { authenticatePlatform } from '../middlewares/auth.js'
-import { platformController } from '../controllers/platform.controller.js'
+import { authenticatePlatform } from '../middlewares/auth.js';
+import { platformController } from '../controllers/platform.controller.js';
 
 /**
  * The platform console.
@@ -13,28 +13,28 @@ import { platformController } from '../controllers/platform.controller.js'
  *
  * `authenticatePlatform` is applied once, at the top, so a route added below cannot forget it.
  */
-const router = Router()
+const router = Router();
 
-router.use(authenticatePlatform)
+router.use(authenticatePlatform);
 
-router.get('/me', platformController.me)
+router.get('/me', platformController.me);
 
 /* What the platform can do at all, and who is doing it. */
-router.get('/catalogue', platformController.catalogue)
-router.get('/assistant', platformController.assistant)
+router.get('/catalogue', platformController.catalogue);
+router.get('/assistant', platformController.assistant);
 
 /* The companies. */
-router.get('/organisations', platformController.organisations)
-router.post('/organisations', platformController.createOrganisation)
-router.patch('/organisations/:id', platformController.updateOrganisation)
+router.get('/organisations', platformController.organisations);
+router.post('/organisations', platformController.createOrganisation);
+router.patch('/organisations/:id', platformController.updateOrganisation);
 
 /* Reporting across them. */
-router.get('/report', platformController.report)
+router.get('/report', platformController.report);
 
 /* What the assistant has been given to read. */
-router.get('/knowledge', platformController.knowledge)
-router.post('/knowledge', platformController.uploadKnowledge)
-router.post('/knowledge/:id/reindex', platformController.reindexKnowledge)
-router.delete('/knowledge/:id', platformController.removeKnowledge)
+router.get('/knowledge', platformController.knowledge);
+router.post('/knowledge', platformController.uploadKnowledge);
+router.post('/knowledge/:id/reindex', platformController.reindexKnowledge);
+router.delete('/knowledge/:id', platformController.removeKnowledge);
 
-export default router
+export default router;

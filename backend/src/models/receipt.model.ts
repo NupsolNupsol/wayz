@@ -1,17 +1,17 @@
-import { Schema } from 'mongoose'
-import { nanoid } from 'nanoid'
+import { Schema } from 'mongoose';
+import { nanoid } from 'nanoid';
 
 export interface ReceiptDoc {
-  _id: string
-  ref: string
-  tenantId: string
-  stationId: string
-  orderId: string
-  bookingId: string
-  kind: 'SALE' | 'FINAL'
-  qrPayload: string
-  createdAt: Date
-  updatedAt: Date
+  _id: string;
+  ref: string;
+  tenantId: string;
+  stationId: string;
+  orderId: string;
+  bookingId: string;
+  kind: 'SALE' | 'FINAL';
+  qrPayload: string;
+  createdAt: Date;
+  updatedAt: Date;
 }
 
 const receiptSchema = new Schema<ReceiptDoc>(
@@ -25,7 +25,7 @@ const receiptSchema = new Schema<ReceiptDoc>(
     kind: { type: String, default: 'SALE' },
     qrPayload: { type: String, required: true },
   },
-  { _id: false, timestamps: true },
-)
+  { _id: false, timestamps: true }
+);
 
-export const ReceiptSchema = receiptSchema
+export const ReceiptSchema = receiptSchema;

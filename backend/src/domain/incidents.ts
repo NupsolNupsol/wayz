@@ -1,4 +1,4 @@
-import type { EngineKind } from './types.js'
+import type { EngineKind } from './types.js';
 
 export const INCIDENT_TYPES = [
   'MISSING_BAG',
@@ -18,9 +18,9 @@ export const INCIDENT_TYPES = [
   'ACCESS_ISSUE',
   'PAYMENT_DISPUTE',
   'OTHER',
-] as const
+] as const;
 
-export type IncidentType = (typeof INCIDENT_TYPES)[number]
+export type IncidentType = (typeof INCIDENT_TYPES)[number];
 
 export const INCIDENT_CATALOGUE: Record<EngineKind, IncidentType[]> = {
   SHOP_AND_DROP: [
@@ -45,7 +45,15 @@ export const INCIDENT_CATALOGUE: Record<EngineKind, IncidentType[]> = {
     'PAYMENT_DISPUTE',
     'OTHER',
   ],
-  LAGOON: ['ASSET_FAULT', 'ASSET_DAMAGE', 'SAFETY_CONCERN', 'CUSTOMER_INJURY', 'LATE_RETURN', 'PAYMENT_DISPUTE', 'OTHER'],
+  LAGOON: [
+    'ASSET_FAULT',
+    'ASSET_DAMAGE',
+    'SAFETY_CONCERN',
+    'CUSTOMER_INJURY',
+    'LATE_RETURN',
+    'PAYMENT_DISPUTE',
+    'OTHER',
+  ],
   COTE_RESTAURANT: ['ORDER_ERROR', 'FOOD_QUALITY', 'PAYMENT_DISPUTE', 'CUSTOMER_INJURY', 'OTHER'],
   /*
    * What can go wrong on an animal experience.
@@ -54,22 +62,74 @@ export const INCIDENT_CATALOGUE: Record<EngineKind, IncidentType[]> = {
    * than the package's — a bolting horse is the same incident whether it happened on a tour or
    * during a grooming session.
    */
-  HORSE_RIDING: ['ANIMAL_WELFARE', 'SAFETY_CONCERN', 'CUSTOMER_INJURY', 'ASSET_FAULT', 'PAYMENT_DISPUTE', 'OTHER'],
-  EQUESTRIAN_LESSON: ['ANIMAL_WELFARE', 'SAFETY_CONCERN', 'CUSTOMER_INJURY', 'ASSET_FAULT', 'PAYMENT_DISPUTE', 'OTHER'],
-  CAMEL_TOUR: ['ANIMAL_WELFARE', 'SAFETY_CONCERN', 'CUSTOMER_INJURY', 'ASSET_FAULT', 'PAYMENT_DISPUTE', 'OTHER'],
-  ANIMAL_CARE: ['ANIMAL_WELFARE', 'SAFETY_CONCERN', 'CUSTOMER_INJURY', 'ASSET_FAULT', 'PAYMENT_DISPUTE', 'OTHER'],
-  ANIMAL_FEEDING: ['ANIMAL_WELFARE', 'SAFETY_CONCERN', 'CUSTOMER_INJURY', 'ASSET_FAULT', 'PAYMENT_DISPUTE', 'OTHER'],
-  PHOTOGRAPHY: ['ANIMAL_WELFARE', 'SAFETY_CONCERN', 'CUSTOMER_INJURY', 'ASSET_FAULT', 'PAYMENT_DISPUTE', 'OTHER'],
-  GROUP_PACKAGE: ['ANIMAL_WELFARE', 'SAFETY_CONCERN', 'CUSTOMER_INJURY', 'ASSET_FAULT', 'PAYMENT_DISPUTE', 'OTHER'],
-}
+  HORSE_RIDING: [
+    'ANIMAL_WELFARE',
+    'SAFETY_CONCERN',
+    'CUSTOMER_INJURY',
+    'ASSET_FAULT',
+    'PAYMENT_DISPUTE',
+    'OTHER',
+  ],
+  EQUESTRIAN_LESSON: [
+    'ANIMAL_WELFARE',
+    'SAFETY_CONCERN',
+    'CUSTOMER_INJURY',
+    'ASSET_FAULT',
+    'PAYMENT_DISPUTE',
+    'OTHER',
+  ],
+  CAMEL_TOUR: [
+    'ANIMAL_WELFARE',
+    'SAFETY_CONCERN',
+    'CUSTOMER_INJURY',
+    'ASSET_FAULT',
+    'PAYMENT_DISPUTE',
+    'OTHER',
+  ],
+  ANIMAL_CARE: [
+    'ANIMAL_WELFARE',
+    'SAFETY_CONCERN',
+    'CUSTOMER_INJURY',
+    'ASSET_FAULT',
+    'PAYMENT_DISPUTE',
+    'OTHER',
+  ],
+  ANIMAL_FEEDING: [
+    'ANIMAL_WELFARE',
+    'SAFETY_CONCERN',
+    'CUSTOMER_INJURY',
+    'ASSET_FAULT',
+    'PAYMENT_DISPUTE',
+    'OTHER',
+  ],
+  PHOTOGRAPHY: [
+    'ANIMAL_WELFARE',
+    'SAFETY_CONCERN',
+    'CUSTOMER_INJURY',
+    'ASSET_FAULT',
+    'PAYMENT_DISPUTE',
+    'OTHER',
+  ],
+  GROUP_PACKAGE: [
+    'ANIMAL_WELFARE',
+    'SAFETY_CONCERN',
+    'CUSTOMER_INJURY',
+    'ASSET_FAULT',
+    'PAYMENT_DISPUTE',
+    'OTHER',
+  ],
+};
 
 export function incidentTypesFor(engineKind?: EngineKind | null): IncidentType[] {
-  if (engineKind && INCIDENT_CATALOGUE[engineKind]) return INCIDENT_CATALOGUE[engineKind]
-  const seen = new Set<IncidentType>()
-  for (const list of Object.values(INCIDENT_CATALOGUE)) for (const t of list) seen.add(t)
-  return INCIDENT_TYPES.filter((t) => seen.has(t))
+  if (engineKind && INCIDENT_CATALOGUE[engineKind]) return INCIDENT_CATALOGUE[engineKind];
+  const seen = new Set<IncidentType>();
+  for (const list of Object.values(INCIDENT_CATALOGUE)) for (const t of list) seen.add(t);
+  return INCIDENT_TYPES.filter((t) => seen.has(t));
 }
 
-export function isIncidentTypeValidFor(engineKind: EngineKind | null | undefined, type: IncidentType): boolean {
-  return incidentTypesFor(engineKind).includes(type)
+export function isIncidentTypeValidFor(
+  engineKind: EngineKind | null | undefined,
+  type: IncidentType
+): boolean {
+  return incidentTypesFor(engineKind).includes(type);
 }

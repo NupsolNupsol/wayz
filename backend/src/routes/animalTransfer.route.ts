@@ -1,7 +1,7 @@
-import { Router } from 'express'
+import { Router } from 'express';
 
-import { authenticate } from '../middlewares/auth.js'
-import { animalTransferController } from '../controllers/animalTransfer.controller.js'
+import { authenticate } from '../middlewares/auth.js';
+import { animalTransferController } from '../controllers/animalTransfer.controller.js';
 
 /**
  * Inter-location animal transfers — §7.4.
@@ -14,17 +14,17 @@ import { animalTransferController } from '../controllers/animalTransfer.controll
  * Authentication is still required: every step records who took it, because §7.4 wants a full
  * log with the approver's identity on it.
  */
-const router = Router()
+const router = Router();
 
-router.use(authenticate)
+router.use(authenticate);
 
-router.get('/policy', animalTransferController.policy)
-router.get('/', animalTransferController.list)
-router.post('/', animalTransferController.raise)
-router.post('/:id/approve', animalTransferController.approve)
-router.post('/:id/reject', animalTransferController.reject)
-router.post('/:id/depart', animalTransferController.depart)
-router.post('/:id/receive', animalTransferController.receive)
-router.post('/:id/cancel', animalTransferController.cancel)
+router.get('/policy', animalTransferController.policy);
+router.get('/', animalTransferController.list);
+router.post('/', animalTransferController.raise);
+router.post('/:id/approve', animalTransferController.approve);
+router.post('/:id/reject', animalTransferController.reject);
+router.post('/:id/depart', animalTransferController.depart);
+router.post('/:id/receive', animalTransferController.receive);
+router.post('/:id/cancel', animalTransferController.cancel);
 
-export default router
+export default router;

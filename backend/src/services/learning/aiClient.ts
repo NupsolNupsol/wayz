@@ -1,10 +1,10 @@
-import jwt from 'jsonwebtoken'
-import { randomUUID } from 'node:crypto'
+import jwt from 'jsonwebtoken';
+import { randomUUID } from 'node:crypto';
 
-import { env } from '../../config/env.js'
-import { logger } from '../../config/logger.js'
-import { ApiError } from '../../utils/ApiError.js'
-import type { Role } from '../../domain/types.js'
+import { env } from '../../config/env.js';
+import { logger } from '../../config/logger.js';
+import { ApiError } from '../../utils/ApiError.js';
+import type { Role } from '../../domain/types.js';
 
 /**
  * The only door between LockerFlow and the learning/AI service.
@@ -28,37 +28,37 @@ import type { Role } from '../../domain/types.js'
  * not become a key that can mint "I am a platform administrator" to the AI service.
  */
 
-const AI_AUDIENCE = 'lockerflow-ai'
-const AI_ISSUER = 'lockerflow-api'
-const TOKEN_TTL_SECONDS = 120
+const AI_AUDIENCE = 'lockerflow-ai';
+const AI_ISSUER = 'lockerflow-api';
+const TOKEN_TTL_SECONDS = 120;
 
 export interface EmployeeActor {
-  kind: 'EMPLOYEE'
-  userId: string
-  tenantId: string
-  tenantSlug: string
-  tenantName: string
-  role: Role
-  locale?: string
-  displayName?: string
+  kind: 'EMPLOYEE';
+  userId: string;
+  tenantId: string;
+  tenantSlug: string;
+  tenantName: string;
+  role: Role;
+  locale?: string;
+  displayName?: string;
 }
 
 export interface PlatformAdminActor {
-  kind: 'PLATFORM_ADMIN'
-  adminId: string
-  displayName?: string
+  kind: 'PLATFORM_ADMIN';
+  adminId: string;
+  displayName?: string;
 }
 
-export type AiActor = EmployeeActor | PlatformAdminActor
+export type AiActor = EmployeeActor | PlatformAdminActor;
 
 /** Whether this deployment has an assistant at all. Unset secret means the feature is off. */
-export const learningEnabled = (): boolean => Boolean(env.AI_SERVICE_SECRET && env.AI_SERVICE_URL)
+export const learningEnabled = (): boolean => Boolean(env.AI_SERVICE_SECRET && env.AI_SERVICE_URL);
 
 function assertEnabled(): void {
   if (!learningEnabled()) {
     throw ApiError.unprocessable('The learning assistant is not configured on this server.', [
       'Set AI_SERVICE_SECRET and AI_SERVICE_URL, and start the learning-ai service.',
-    ])
+    ]);
   }
 }
 
@@ -74,7 +74,7 @@ function signActorToken(actor: AiActor): string {
           locale: actor.locale ?? 'ar',
           displayName: actor.displayName ?? '',
         }
-      : { kind: 'PLATFORM_ADMIN', locale: 'en', displayName: actor.displayName ?? '' }
+      : { kind: 'PLATFORM_ADMIN', locale: 'en', displayName: actor.displayName ?? '' };
 
   return jwt.sign({ ctx }, env.AI_SERVICE_SECRET as string, {
     algorithm: 'HS256',
@@ -83,13 +83,13 @@ function signActorToken(actor: AiActor): string {
     subject: actor.kind === 'EMPLOYEE' ? actor.userId : actor.adminId,
     expiresIn: TOKEN_TTL_SECONDS,
     jwtid: randomUUID(),
-  })
+  });
 }
 
 interface AiFailureBody {
-  code?: string
-  message?: string
-  errors?: string[]
+  code?: string;
+  message?: string;
+  errors?: string[];
 }
 
 /**
@@ -100,17 +100,17 @@ interface AiFailureBody {
  * the exception type — stays on this side of the wire and goes to the log.
  */
 function translateFailure(status: number, body: AiFailureBody | null, requestId: string): ApiError {
-  const message = body?.message || 'تعذّر الوصول إلى المساعد الذكي حالياً.'
+  const message = body?.message || 'تعذّر الوصول إلى المساعد الذكي حالياً.';
   if (status === 401 || status === 403) {
-    logger.error('AI service rejected our service token', { status, requestId })
+    logger.error('AI service rejected our service token', { status, requestId });
     // Never surfaced as 401: a failure of *our* credential must not look to the browser like
     // the employee's session has ended, which would sign them out of LockerFlow entirely.
-    return ApiError.unprocessable(message)
+    return ApiError.unprocessable(message);
   }
-  if (status === 404) return ApiError.notFound(message)
-  if (status === 422) return ApiError.unprocessable(message, body?.errors)
-  if (status === 503) return new ApiError(503, message)
-  return new ApiError(status >= 400 && status < 600 ? status : 502, message)
+  if (status === 404) return ApiError.notFound(message);
+  if (status === 422) return ApiError.unprocessable(message, body?.errors);
+  if (status === 503) return new ApiError(503, message);
+  return new ApiError(status >= 400 && status < 600 ? status : 502, message);
 }
 
 async function call<T>(
@@ -118,18 +118,18 @@ async function call<T>(
   method: 'GET' | 'POST' | 'PATCH' | 'DELETE',
   path: string,
   body?: unknown,
-  expect: 'json' | 'binary' = 'json',
+  expect: 'json' | 'binary' = 'json'
 ): Promise<T> {
-  assertEnabled()
+  assertEnabled();
 
-  const requestId = randomUUID().slice(0, 16)
-  const url = `${env.AI_SERVICE_URL!.replace(/\/$/, '')}${path}`
-  const startedAt = Date.now()
+  const requestId = randomUUID().slice(0, 16);
+  const url = `${env.AI_SERVICE_URL!.replace(/\/$/, '')}${path}`;
+  const startedAt = Date.now();
 
-  const controller = new AbortController()
-  const timeout = setTimeout(() => controller.abort(), env.AI_SERVICE_TIMEOUT_MS)
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), env.AI_SERVICE_TIMEOUT_MS);
 
-  let response: Response
+  let response: Response;
   try {
     response = await fetch(url, {
       method,
@@ -140,7 +140,7 @@ async function call<T>(
       },
       body: body === undefined ? undefined : JSON.stringify(body),
       signal: controller.signal,
-    })
+    });
   } catch (error) {
     // A dead AI service must not read as a broken LockerFlow. The log has the detail; the
     // employee gets one sentence in Arabic.
@@ -149,20 +149,20 @@ async function call<T>(
       path,
       reason: error instanceof Error ? error.name : 'unknown',
       durationMs: Date.now() - startedAt,
-    })
-    throw new ApiError(503, 'المساعد الذكي غير متاح حالياً. حاول مرة أخرى بعد قليل.')
+    });
+    throw new ApiError(503, 'المساعد الذكي غير متاح حالياً. حاول مرة أخرى بعد قليل.');
   } finally {
-    clearTimeout(timeout)
+    clearTimeout(timeout);
   }
 
-  const durationMs = Date.now() - startedAt
+  const durationMs = Date.now() - startedAt;
 
   if (!response.ok) {
-    let failure: AiFailureBody | null = null
+    let failure: AiFailureBody | null = null;
     try {
-      failure = (await response.json()) as AiFailureBody
+      failure = (await response.json()) as AiFailureBody;
     } catch {
-      failure = null
+      failure = null;
     }
     logger.warn('AI service refused a request', {
       requestId,
@@ -170,19 +170,19 @@ async function call<T>(
       status: response.status,
       code: failure?.code,
       durationMs,
-    })
-    throw translateFailure(response.status, failure, requestId)
+    });
+    throw translateFailure(response.status, failure, requestId);
   }
 
-  logger.info('AI service call', { requestId, path, status: response.status, durationMs })
+  logger.info('AI service call', { requestId, path, status: response.status, durationMs });
 
   if (expect === 'binary') {
     return {
       buffer: Buffer.from(await response.arrayBuffer()),
       contentType: response.headers.get('content-type') ?? 'application/octet-stream',
-    } as T
+    } as T;
   }
-  return (await response.json()) as T
+  return (await response.json()) as T;
 }
 
 export const aiClient = {
@@ -195,18 +195,18 @@ export const aiClient = {
 
   /** Readiness, for the control plane's health screen. Never throws — it reports. */
   async health(): Promise<{ reachable: boolean; status: string; checks?: unknown }> {
-    if (!learningEnabled()) return { reachable: false, status: 'not-configured' }
+    if (!learningEnabled()) return { reachable: false, status: 'not-configured' };
     try {
-      const controller = new AbortController()
-      const timeout = setTimeout(() => controller.abort(), 5_000)
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 5_000);
       const response = await fetch(`${env.AI_SERVICE_URL!.replace(/\/$/, '')}/health/ready`, {
         signal: controller.signal,
-      })
-      clearTimeout(timeout)
-      const body = (await response.json()) as { status?: string; checks?: unknown }
-      return { reachable: true, status: body.status ?? 'unknown', checks: body.checks }
+      });
+      clearTimeout(timeout);
+      const body = (await response.json()) as { status?: string; checks?: unknown };
+      return { reachable: true, status: body.status ?? 'unknown', checks: body.checks };
     } catch {
-      return { reachable: false, status: 'unreachable' }
+      return { reachable: false, status: 'unreachable' };
     }
   },
-}
+};

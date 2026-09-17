@@ -1,8 +1,8 @@
-import bcrypt from 'bcryptjs'
+import bcrypt from 'bcryptjs';
 
-import { env } from '../config/env.js'
-import { logger } from '../config/logger.js'
-import { PlatformAdmin } from '../models/index.js'
+import { env } from '../config/env.js';
+import { logger } from '../config/logger.js';
+import { PlatformAdmin } from '../models/index.js';
 
 /**
  * Makes sure the deployment has somebody who can run it.
@@ -25,17 +25,17 @@ import { PlatformAdmin } from '../models/index.js'
  * environment variable and restarting, without a migration or a console of its own.
  */
 export async function ensurePlatformAdmin(): Promise<void> {
-  const email = env.PLATFORM_ADMIN_EMAIL?.trim().toLowerCase()
-  const password = env.PLATFORM_ADMIN_PASSWORD
+  const email = env.PLATFORM_ADMIN_EMAIL?.trim().toLowerCase();
+  const password = env.PLATFORM_ADMIN_PASSWORD;
 
   if (!email || !password) {
     logger.info('No platform administrator configured', {
       hint: 'Set PLATFORM_ADMIN_EMAIL and PLATFORM_ADMIN_PASSWORD to enable the platform console.',
-    })
-    return
+    });
+    return;
   }
 
-  const existing = await PlatformAdmin.findOne({ email })
+  const existing = await PlatformAdmin.findOne({ email });
 
   if (!existing) {
     await PlatformAdmin.create({
@@ -44,25 +44,25 @@ export async function ensurePlatformAdmin(): Promise<void> {
       fullName: env.PLATFORM_ADMIN_NAME,
       passwordHash: await bcrypt.hash(password, 10),
       active: true,
-    })
+    });
     /* The address, never the credential. */
-    logger.info('Platform administrator created', { email })
-    return
+    logger.info('Platform administrator created', { email });
+    return;
   }
 
-  const unchanged = await bcrypt.compare(password, existing.passwordHash)
+  const unchanged = await bcrypt.compare(password, existing.passwordHash);
   if (!unchanged) {
-    existing.passwordHash = await bcrypt.hash(password, 10)
-    existing.fullName = env.PLATFORM_ADMIN_NAME
-    existing.active = true
-    await existing.save()
-    logger.info('Platform administrator credential rotated from the environment', { email })
-    return
+    existing.passwordHash = await bcrypt.hash(password, 10);
+    existing.fullName = env.PLATFORM_ADMIN_NAME;
+    existing.active = true;
+    await existing.save();
+    logger.info('Platform administrator credential rotated from the environment', { email });
+    return;
   }
 
   if (existing.active === false) {
-    existing.active = true
-    await existing.save()
-    logger.info('Platform administrator re-enabled', { email })
+    existing.active = true;
+    await existing.save();
+    logger.info('Platform administrator re-enabled', { email });
   }
 }

@@ -1,9 +1,9 @@
-import { useState } from 'react'
-import { useTranslation } from 'react-i18next'
+import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 
-import { invoiceApi } from '@/api/invoice.api'
-import { ApiError } from '@/api/client'
-import { toast } from '@/state/toastStore'
+import { invoiceApi } from '@/api/invoice.api';
+import { ApiError } from '@/api/client';
+import { toast } from '@/state/toastStore';
 
 /**
  * Downloading a booking's ZATCA invoice.
@@ -23,35 +23,35 @@ import { toast } from '@/state/toastStore'
  * the refusal — "could not generate" on its own would send somebody hunting.
  */
 export function useInvoiceXml() {
-  const { t } = useTranslation(['bookings', 'common'])
-  const [loading, setLoading] = useState(false)
+  const { t } = useTranslation(['bookings', 'common']);
+  const [loading, setLoading] = useState(false);
 
   const download = async (bookingId: string | undefined) => {
-    if (!bookingId || loading) return
-    setLoading(true)
+    if (!bookingId || loading) return;
+    setLoading(true);
     try {
-      const { xml, filename } = await invoiceApi.xmlForBooking(bookingId)
+      const { xml, filename } = await invoiceApi.xmlForBooking(bookingId);
 
-      const url = URL.createObjectURL(new Blob([xml], { type: 'application/xml;charset=utf-8' }))
-      const a = document.createElement('a')
-      a.href = url
-      a.download = filename
-      document.body.appendChild(a)
-      a.click()
-      a.remove()
-      URL.revokeObjectURL(url)
+      const url = URL.createObjectURL(new Blob([xml], { type: 'application/xml;charset=utf-8' }));
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
 
-      toast('success', t('invoice.xmlReady', { defaultValue: 'XML invoice downloaded' }), filename)
+      toast('success', t('invoice.xmlReady', { defaultValue: 'XML invoice downloaded' }), filename);
     } catch (e) {
       toast(
         'danger',
         t('invoice.xmlFailed', { defaultValue: 'Could not generate XML invoice' }),
-        e instanceof ApiError ? (e.errors?.join(' ') ?? e.message) : String(e),
-      )
+        e instanceof ApiError ? (e.errors?.join(' ') ?? e.message) : String(e)
+      );
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  };
 
-  return { download, loading }
+  return { download, loading };
 }

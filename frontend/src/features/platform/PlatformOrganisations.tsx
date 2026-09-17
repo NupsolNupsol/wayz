@@ -1,13 +1,13 @@
-import { useState } from 'react'
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { Building2, Check, Plus } from 'lucide-react'
-import { clsx } from 'clsx'
+import { useState } from 'react';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { Building2, Check, Plus } from 'lucide-react';
+import { clsx } from 'clsx';
 
-import { PageHeader } from '@/components/PageHeader'
-import { Badge, Button, Card, EmptyState, Field, SectionTitle, Spinner } from '@/components/ui'
-import { Modal } from '@/components/Modal'
-import { platformApi, type CatalogueActivity, type PlatformOrganisation } from '@/api/platform.api'
-import type { EngineKind } from '@/api/types'
+import { PageHeader } from '@/components/PageHeader';
+import { Badge, Button, Card, EmptyState, Field, SectionTitle, Spinner } from '@/components/ui';
+import { Modal } from '@/components/Modal';
+import { platformApi, type CatalogueActivity, type PlatformOrganisation } from '@/api/platform.api';
+import type { EngineKind } from '@/api/types';
 
 /**
  * The companies on this deployment, and what each of them runs.
@@ -24,31 +24,41 @@ import type { EngineKind } from '@/api/types'
  */
 
 interface Draft {
-  id: string
-  name: string
-  activities: EngineKind[]
-  adminName: string
-  adminEmail: string
-  adminPassword: string
+  id: string;
+  name: string;
+  activities: EngineKind[];
+  adminName: string;
+  adminEmail: string;
+  adminPassword: string;
 }
 
-const EMPTY: Draft = { id: '', name: '', activities: [], adminName: '', adminEmail: '', adminPassword: '' }
+const EMPTY: Draft = {
+  id: '',
+  name: '',
+  activities: [],
+  adminName: '',
+  adminEmail: '',
+  adminPassword: '',
+};
 
 export function PlatformOrganisations() {
-  const qc = useQueryClient()
-  const [creating, setCreating] = useState(false)
-  const [draft, setDraft] = useState<Draft>(EMPTY)
-  const [error, setError] = useState('')
+  const qc = useQueryClient();
+  const [creating, setCreating] = useState(false);
+  const [draft, setDraft] = useState<Draft>(EMPTY);
+  const [error, setError] = useState('');
 
   const organisations = useQuery({
     queryKey: ['platform', 'organisations'],
     queryFn: () => platformApi.organisations(),
-  })
-  const catalogue = useQuery({ queryKey: ['platform', 'catalogue'], queryFn: () => platformApi.catalogue() })
+  });
+  const catalogue = useQuery({
+    queryKey: ['platform', 'catalogue'],
+    queryFn: () => platformApi.catalogue(),
+  });
 
   const refresh = () => {
-    void qc.invalidateQueries({ queryKey: ['platform'] })
-  }
+    void qc.invalidateQueries({ queryKey: ['platform'] });
+  };
 
   const create = useMutation({
     mutationFn: () =>
@@ -56,24 +66,29 @@ export function PlatformOrganisations() {
         id: draft.id,
         name: draft.name,
         activities: draft.activities,
-        admin: { fullName: draft.adminName, email: draft.adminEmail, password: draft.adminPassword },
+        admin: {
+          fullName: draft.adminName,
+          email: draft.adminEmail,
+          password: draft.adminPassword,
+        },
       }),
     onSuccess: () => {
-      setCreating(false)
-      setDraft(EMPTY)
-      setError('')
-      refresh()
+      setCreating(false);
+      setDraft(EMPTY);
+      setError('');
+      refresh();
     },
-    onError: (e: unknown) => setError(e instanceof Error ? e.message : 'Could not create that organisation.'),
-  })
+    onError: (e: unknown) =>
+      setError(e instanceof Error ? e.message : 'Could not create that organisation.'),
+  });
 
   const adopt = useMutation({
     mutationFn: ({ id, activities }: { id: string; activities: EngineKind[] }) =>
       platformApi.updateOrganisation(id, { activities }),
     onSuccess: refresh,
-  })
+  });
 
-  const activities = catalogue.data?.activities ?? []
+  const activities = catalogue.data?.activities ?? [];
 
   if (organisations.isLoading) {
     return (
@@ -81,10 +96,10 @@ export function PlatformOrganisations() {
         <PageHeader title="Organisations" subtitle="Loading…" />
         <Spinner />
       </div>
-    )
+    );
   }
 
-  const rows = organisations.data?.organisations ?? []
+  const rows = organisations.data?.organisations ?? [];
 
   return (
     <div data-testid="platform-organisations-page">
@@ -124,14 +139,18 @@ export function PlatformOrganisations() {
       <Modal
         open={creating}
         onClose={() => {
-          setCreating(false)
-          setError('')
+          setCreating(false);
+          setError('');
         }}
         title="New organisation"
         testId="new-organisation-modal"
       >
         <div className="grid gap-3">
-          <Field label="Identifier" hint="Lowercase letters, digits and hyphens. It never changes." required>
+          <Field
+            label="Identifier"
+            hint="Lowercase letters, digits and hyphens. It never changes."
+            required
+          >
             <input
               className="lf-input"
               data-testid="new-org-id"
@@ -197,7 +216,10 @@ export function PlatformOrganisations() {
           </Field>
 
           {error && (
-            <div className="rounded-lg bg-danger/10 px-3 py-2 text-[12.5px] text-danger" data-testid="new-org-error">
+            <div
+              className="rounded-lg bg-danger/10 px-3 py-2 text-[12.5px] text-danger"
+              data-testid="new-org-error"
+            >
               {error}
             </div>
           )}
@@ -206,14 +228,18 @@ export function PlatformOrganisations() {
             <Button variant="ghost" onClick={() => setCreating(false)}>
               Cancel
             </Button>
-            <Button onClick={() => create.mutate()} disabled={create.isPending} data-testid="new-org-submit">
+            <Button
+              onClick={() => create.mutate()}
+              disabled={create.isPending}
+              data-testid="new-org-submit"
+            >
               {create.isPending ? 'Creating…' : 'Create organisation'}
             </Button>
           </div>
         </div>
       </Modal>
     </div>
-  )
+  );
 }
 
 function OrganisationCard({
@@ -222,10 +248,10 @@ function OrganisationCard({
   busy,
   onAdopt,
 }: {
-  org: PlatformOrganisation
-  activities: CatalogueActivity[]
-  busy: boolean
-  onAdopt: (next: EngineKind[]) => void
+  org: PlatformOrganisation;
+  activities: CatalogueActivity[];
+  busy: boolean;
+  onAdopt: (next: EngineKind[]) => void;
 }) {
   return (
     <Card className="p-4" data-testid={`org-${org.id}`}>
@@ -237,7 +263,9 @@ function OrganisationCard({
           {org.name.slice(0, 2).toUpperCase()}
         </div>
         <div className="min-w-0 flex-1">
-          <div className="truncate text-[14px] font-semibold text-navy dark:text-dk-texthi">{org.name}</div>
+          <div className="truncate text-[14px] font-semibold text-navy dark:text-dk-texthi">
+            {org.name}
+          </div>
           <div className="text-[12px] text-muted">
             {org.id} · {org.staff} people · {org.sites} location{org.sites === 1 ? '' : 's'}
           </div>
@@ -255,7 +283,7 @@ function OrganisationCard({
         />
       </div>
     </Card>
-  )
+  );
 }
 
 /**
@@ -271,19 +299,19 @@ function ActivityPicker({
   disabled,
   testIdPrefix,
 }: {
-  activities: CatalogueActivity[]
-  selected: EngineKind[]
-  onChange: (next: EngineKind[]) => void
-  disabled?: boolean
-  testIdPrefix: string
+  activities: CatalogueActivity[];
+  selected: EngineKind[];
+  onChange: (next: EngineKind[]) => void;
+  disabled?: boolean;
+  testIdPrefix: string;
 }) {
   const toggle = (key: EngineKind) =>
-    onChange(selected.includes(key) ? selected.filter((k) => k !== key) : [...selected, key])
+    onChange(selected.includes(key) ? selected.filter((k) => k !== key) : [...selected, key]);
 
   return (
     <div className="flex flex-wrap gap-1.5">
       {activities.map((activity) => {
-        const on = selected.includes(activity.key)
+        const on = selected.includes(activity.key);
         return (
           <button
             key={activity.key}
@@ -297,14 +325,14 @@ function ActivityPicker({
               'flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[12px] transition-colors disabled:opacity-50',
               on
                 ? 'border-brand bg-brand/10 font-medium text-brand'
-                : 'border-line text-muted hover:border-brand/40 hover:text-navy dark:border-dk-line dark:hover:text-dk-texthi',
+                : 'border-line text-muted hover:border-brand/40 hover:text-navy dark:border-dk-line dark:hover:text-dk-texthi'
             )}
           >
             {on && <Check size={12} />}
             {activity.label.en}
           </button>
-        )
+        );
       })}
     </div>
-  )
+  );
 }

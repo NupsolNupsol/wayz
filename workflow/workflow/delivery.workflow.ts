@@ -1,4 +1,4 @@
-import { COURIER, KIOSK_OPS, OVERRIDE_ROLES } from '../shared/access.js'
+import { COURIER, KIOSK_OPS, OVERRIDE_ROLES } from '../shared/access.js';
 import {
   DLV_ASSIGNED,
   DLV_CANCELLED,
@@ -8,15 +8,15 @@ import {
   DLV_RELEASE_APPROVED,
   DLV_RELEASE_REQUESTED,
   DLV_REQUESTED,
-} from '../shared/status.js'
+} from '../shared/status.js';
 import type {
   DeliveryContext,
   DeliveryOperationResult,
   DeliveryWorkflowDef,
   ValidationResult,
-} from '../shared/types.js'
-import { useDeliveryValidator } from '../deliveryWorkflowValidators/controller.delivery.validator.controller.js'
-import { useDeliveryOperation } from '../deliveryWorkflowOperations/controller.delivery.operation.controller.js'
+} from '../shared/types.js';
+import { useDeliveryValidator } from '../deliveryWorkflowValidators/controller.delivery.validator.controller.js';
+import { useDeliveryOperation } from '../deliveryWorkflowOperations/controller.delivery.operation.controller.js';
 
 export const deliveryWorkflow: DeliveryWorkflowDef = {
   entity: 'DELIVERY',
@@ -83,18 +83,18 @@ export const deliveryWorkflow: DeliveryWorkflowDef = {
       style: { backgroundColor: '#8a8a8a' },
     },
   ],
-}
+};
 
 export const LaunchDeliveryControl = async (
   transitionCode: string,
-  ctx: DeliveryContext,
-): Promise<ValidationResult> => useDeliveryValidator(transitionCode, ctx)
+  ctx: DeliveryContext
+): Promise<ValidationResult> => useDeliveryValidator(transitionCode, ctx);
 
 export const LaunchDeliveryOperation = async (
   transitionCode: string,
-  ctx: DeliveryContext,
-): Promise<DeliveryOperationResult> => useDeliveryOperation(transitionCode, ctx)
+  ctx: DeliveryContext
+): Promise<DeliveryOperationResult> => useDeliveryOperation(transitionCode, ctx);
 
 export function getDeliveryTransition(code: string) {
-  return deliveryWorkflow.transitions.find((t) => t.code === code) ?? null
+  return deliveryWorkflow.transitions.find((t) => t.code === code) ?? null;
 }

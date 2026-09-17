@@ -1,16 +1,16 @@
-import { ScrollText, ShieldCheck } from 'lucide-react'
-import { formatDateTime } from '@/utils'
-import { Trans, useTranslation } from 'react-i18next'
-import { PageHeader } from '@/components/PageHeader'
-import { RefText } from '@/components/RefLink'
-import { Badge, Card, Spinner } from '@/components/ui'
-import { DataTable } from '@/components/DataTable'
-import { useTenantAudit, useTenantIsolation, useTenantOverview } from '@/hooks'
-import type { IsolationReport, TenantAuditRow } from '@/api/admin.api'
+import { ScrollText, ShieldCheck } from 'lucide-react';
+import { formatDateTime } from '@/utils';
+import { Trans, useTranslation } from 'react-i18next';
+import { PageHeader } from '@/components/PageHeader';
+import { RefText } from '@/components/RefLink';
+import { Badge, Card, Spinner } from '@/components/ui';
+import { DataTable } from '@/components/DataTable';
+import { useTenantAudit, useTenantIsolation, useTenantOverview } from '@/hooks';
+import type { IsolationReport, TenantAuditRow } from '@/api/admin.api';
 
 export function AdminAudit() {
-  const { t } = useTranslation(['admin', 'common'])
-  const { data: rows = [], isLoading } = useTenantAudit()
+  const { t } = useTranslation(['admin', 'common']);
+  const { data: rows = [], isLoading } = useTenantAudit();
 
   if (isLoading) {
     return (
@@ -18,7 +18,7 @@ export function AdminAudit() {
         <PageHeader title={t('people.audit')} subtitle={t('common:state.loading')} />
         <Spinner />
       </div>
-    )
+    );
   }
 
   return (
@@ -42,21 +42,41 @@ export function AdminAudit() {
             key: 'action',
             header: t('common:column.action'),
             sortValue: (r: TenantAuditRow) => r.action,
-            filter: { kind: 'text', value: (r: TenantAuditRow) => `${r.action} ${r.actorName} ${r.detail ?? ''} ${r.reason ?? ''}` },
+            filter: {
+              kind: 'text',
+              value: (r: TenantAuditRow) =>
+                `${r.action} ${r.actorName} ${r.detail ?? ''} ${r.reason ?? ''}`,
+            },
             render: (r: TenantAuditRow) => (
               <div>
                 <p className="font-semibold text-navy dark:text-dk-texthi flex items-center gap-1.5">
-                  <ScrollText size={14} className="text-muted" /> {t(`status:auditAction.${r.action}`, { defaultValue: r.action.replaceAll('_', ' ').toLowerCase() })}
+                  <ScrollText size={14} className="text-muted" />{' '}
+                  {t(`status:auditAction.${r.action}`, {
+                    defaultValue: r.action.replaceAll('_', ' ').toLowerCase(),
+                  })}
                 </p>
-                {r.detail && <p className="text-xs text-muted font-mono max-w-[280px] truncate">{r.detail}</p>}
+                {r.detail && (
+                  <p className="text-xs text-muted font-mono max-w-[280px] truncate">{r.detail}</p>
+                )}
               </div>
             ),
           },
           {
             key: 'entity',
             header: t('common:column.on'),
-            filter: { kind: 'select', options: [...new Set(rows.map((r: TenantAuditRow) => r.entity))].map((e) => ({ label: t(`status:entity.${e}`, { defaultValue: e }), value: e })), value: (r: TenantAuditRow) => r.entity },
-            render: (r: TenantAuditRow) => <Badge tone="neutral">{t(`status:entity.${r.entity}`, { defaultValue: r.entity })}</Badge>,
+            filter: {
+              kind: 'select',
+              options: [...new Set(rows.map((r: TenantAuditRow) => r.entity))].map((e) => ({
+                label: t(`status:entity.${e}`, { defaultValue: e }),
+                value: e,
+              })),
+              value: (r: TenantAuditRow) => r.entity,
+            },
+            render: (r: TenantAuditRow) => (
+              <Badge tone="neutral">
+                {t(`status:entity.${r.entity}`, { defaultValue: r.entity })}
+              </Badge>
+            ),
           },
           {
             key: 'reference',
@@ -68,31 +88,42 @@ export function AdminAudit() {
             key: 'by',
             header: t('common:column.by'),
             sortValue: (r: TenantAuditRow) => r.actorName,
-            filter: { kind: 'select', options: [...new Set(rows.map((r: TenantAuditRow) => r.actorName))].map((n) => ({ label: n, value: n })), value: (r: TenantAuditRow) => r.actorName },
+            filter: {
+              kind: 'select',
+              options: [...new Set(rows.map((r: TenantAuditRow) => r.actorName))].map((n) => ({
+                label: n,
+                value: n,
+              })),
+              value: (r: TenantAuditRow) => r.actorName,
+            },
             render: (r: TenantAuditRow) => <span className="text-sm">{r.actorName}</span>,
           },
           {
             key: 'reason',
             header: t('common:column.reason'),
-            render: (r: TenantAuditRow) => <span className="text-sm max-w-[260px] line-clamp-2 block">{r.reason || '—'}</span>,
+            render: (r: TenantAuditRow) => (
+              <span className="text-sm max-w-[260px] line-clamp-2 block">{r.reason || '—'}</span>
+            ),
           },
           {
             key: 'when',
             header: t('common:column.when'),
             align: 'right',
             sortValue: (r: TenantAuditRow) => r.at,
-            render: (r: TenantAuditRow) => <span className="text-xs text-muted">{formatDateTime(new Date(r.at).getTime())}</span>,
+            render: (r: TenantAuditRow) => (
+              <span className="text-xs text-muted">{formatDateTime(new Date(r.at).getTime())}</span>
+            ),
           },
         ]}
       />
     </div>
-  )
+  );
 }
 
 export function AdminIsolation() {
-  const { t } = useTranslation(['admin', 'common'])
-  const { data, isLoading } = useTenantIsolation()
-  const { data: overview } = useTenantOverview()
+  const { t } = useTranslation(['admin', 'common']);
+  const { data, isLoading } = useTenantIsolation();
+  const { data: overview } = useTenantOverview();
 
   if (isLoading || !data) {
     return (
@@ -100,7 +131,7 @@ export function AdminIsolation() {
         <PageHeader title={t('people.isolation')} subtitle={t('common:state.loading')} />
         <Spinner />
       </div>
-    )
+    );
   }
 
   return (
@@ -112,14 +143,17 @@ export function AdminIsolation() {
         helpId="admin-isolation"
       />
 
-      <Card className="mb-5 p-4 flex items-start gap-3 border-brand/40 bg-brand/5" data-testid="admin-isolation-note">
+      <Card
+        className="mb-5 p-4 flex items-start gap-3 border-brand/40 bg-brand/5"
+        data-testid="admin-isolation-note"
+      >
         <ShieldCheck size={18} className="text-brand shrink-0 mt-0.5" />
         <div>
-          <p className="font-semibold text-navy dark:text-dk-texthi">{t('people.stamped')}<span className="font-mono">{data.tenantId}</span>
+          <p className="font-semibold text-navy dark:text-dk-texthi">
+            {t('people.stamped')}
+            <span className="font-mono">{data.tenantId}</span>
           </p>
-          <p className="text-sm text-muted">
-            {t('people.isolationNote')}
-          </p>
+          <p className="text-sm text-muted">{t('people.isolationNote')}</p>
         </div>
       </Card>
 
@@ -131,7 +165,14 @@ export function AdminIsolation() {
         empty={{ title: t('people.nothingYet'), message: '' }}
         pageSize={20}
         columns={[
-          { key: 'name', header: t('common:column.recordtype'), sortValue: (r) => r.name, render: (r) => <strong>{t(`status:collection.${r.name}`, { defaultValue: r.name })}</strong> },
+          {
+            key: 'name',
+            header: t('common:column.recordtype'),
+            sortValue: (r) => r.name,
+            render: (r) => (
+              <strong>{t(`status:collection.${r.name}`, { defaultValue: r.name })}</strong>
+            ),
+          },
           {
             key: 'count',
             header: t('common:column.belongingtoyou'),
@@ -157,5 +198,5 @@ export function AdminIsolation() {
         </p>
       )}
     </div>
-  )
+  );
 }

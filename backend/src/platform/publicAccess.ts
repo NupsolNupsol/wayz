@@ -1,8 +1,8 @@
-import type { NextFunction, Request, Response } from 'express'
+import type { NextFunction, Request, Response } from 'express';
 
-import { ApiError } from '../utils/ApiError.js'
-import { appDb } from './connections.js'
-import { enterOrg, runAcrossOrganisations } from './orgScope.js'
+import { ApiError } from '../utils/ApiError.js';
+import { appDb } from './connections.js';
+import { enterOrg, runAcrossOrganisations } from './orgScope.js';
 
 /**
  * Links a customer follows without signing in.
@@ -36,7 +36,7 @@ const TOKEN_HOLDERS = [
   { model: 'Booking', field: 'trackingToken' },
   { model: 'InvoiceDoc', field: '_id' },
   { model: 'User', field: 'invite.tokenHash' },
-] as const
+] as const;
 
 /**
  * Which organisation owns a public token.
@@ -47,15 +47,19 @@ const TOKEN_HOLDERS = [
  */
 async function organisationForToken(token: string): Promise<string | null> {
   return runAcrossOrganisations(async () => {
-    const models = appDb()
+    const models = appDb();
     for (const { model, field } of TOKEN_HOLDERS) {
-      const found = await (models[model] as { findOne: (f: object, p: object) => { lean: () => Promise<{ tenantId?: string } | null> } })
+      const found = await (
+        models[model] as {
+          findOne: (f: object, p: object) => { lean: () => Promise<{ tenantId?: string } | null> };
+        }
+      )
         .findOne({ [field]: token }, { tenantId: 1 })
-        .lean()
-      if (found?.tenantId) return found.tenantId
+        .lean();
+      if (found?.tenantId) return found.tenantId;
     }
-    return null
-  })
+    return null;
+  });
 }
 
 /**
@@ -66,14 +70,14 @@ async function organisationForToken(token: string): Promise<string | null> {
  */
 export function withPublicLinkOrg(param: string, key: (raw: string) => string = (raw) => raw) {
   return (req: Request, _res: Response, next: NextFunction) => {
-    const raw = String(req.params[param] ?? '')
-    if (!raw) return next(ApiError.notFound('That link has expired.'))
+    const raw = String(req.params[param] ?? '');
+    if (!raw) return next(ApiError.notFound('That link has expired.'));
 
     organisationForToken(key(raw))
       .then((organizationId) => {
-        if (!organizationId) return next(ApiError.notFound('That link has expired.'))
-        enterOrg(organizationId, next)
+        if (!organizationId) return next(ApiError.notFound('That link has expired.'));
+        enterOrg(organizationId, next);
       })
-      .catch(next)
-  }
+      .catch(next);
+  };
 }

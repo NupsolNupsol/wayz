@@ -1,15 +1,15 @@
-import { useEffect, useState } from 'react'
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { useTranslation } from 'react-i18next'
-import { Check, Info, Users } from 'lucide-react'
-import { clsx } from 'clsx'
+import { useEffect, useState } from 'react';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useTranslation } from 'react-i18next';
+import { Check, Info, Users } from 'lucide-react';
+import { clsx } from 'clsx';
 
-import { PageHeader } from '@/components/PageHeader'
-import { Badge, Button, Card, SectionTitle, Spinner } from '@/components/ui'
-import { adminApi, type CatalogueActivity } from '@/api/admin.api'
-import { useAuthStore } from '@/store/auth'
-import { isTenantAdminRole } from '@/permissions/permissions'
-import type { EngineKind } from '@/api/types'
+import { PageHeader } from '@/components/PageHeader';
+import { Badge, Button, Card, SectionTitle, Spinner } from '@/components/ui';
+import { adminApi, type CatalogueActivity } from '@/api/admin.api';
+import { useAuthStore } from '@/store/auth';
+import { isTenantAdminRole } from '@/permissions/permissions';
+import type { EngineKind } from '@/api/types';
 
 /**
  * The activities this organisation runs.
@@ -38,21 +38,21 @@ import type { EngineKind } from '@/api/types'
  * would be refused.
  */
 export function AdminActivities() {
-  const { t } = useTranslation(['admin', 'common'])
-  const qc = useQueryClient()
-  const role = useAuthStore((s) => s.me?.role)
-  const mayAdopt = isTenantAdminRole(role)
+  const { t } = useTranslation(['admin', 'common']);
+  const qc = useQueryClient();
+  const role = useAuthStore((s) => s.me?.role);
+  const mayAdopt = isTenantAdminRole(role);
 
   const { data, isLoading } = useQuery({
     queryKey: ['admin', 'activities'],
     queryFn: () => adminApi.activities(),
-  })
+  });
 
   /* Local until saved, so ticking several before committing does not fire a request each. */
-  const [chosen, setChosen] = useState<EngineKind[] | null>(null)
+  const [chosen, setChosen] = useState<EngineKind[] | null>(null);
   useEffect(() => {
-    if (data && chosen === null) setChosen(data.adopted)
-  }, [data, chosen])
+    if (data && chosen === null) setChosen(data.adopted);
+  }, [data, chosen]);
 
   const adopt = useMutation({
     mutationFn: (activities: EngineKind[]) => adminApi.adoptActivities(activities),
@@ -61,25 +61,29 @@ export function AdminActivities() {
        * Everything narrows by what this company runs — the sidebar, the counter, the employee
        * form, the estate, the accounts. All of it is stale the moment this changes.
        */
-      await qc.invalidateQueries()
+      await qc.invalidateQueries();
     },
-  })
+  });
 
   if (isLoading || !data || chosen === null) {
     return (
       <div data-testid="admin-activities">
-        <PageHeader title={t('activities.title', { defaultValue: 'Activities' })} subtitle={t('common:state.loading')} />
+        <PageHeader
+          title={t('activities.title', { defaultValue: 'Activities' })}
+          subtitle={t('common:state.loading')}
+        />
         <Spinner />
       </div>
-    )
+    );
   }
 
-  const adopted = data.adopted
-  const dirty =
-    chosen.length !== adopted.length || chosen.some((k) => !adopted.includes(k))
+  const adopted = data.adopted;
+  const dirty = chosen.length !== adopted.length || chosen.some((k) => !adopted.includes(k));
 
   const toggle = (key: EngineKind) =>
-    setChosen((c) => ((c ?? []).includes(key) ? (c ?? []).filter((k) => k !== key) : [...(c ?? []), key]))
+    setChosen((c) =>
+      (c ?? []).includes(key) ? (c ?? []).filter((k) => k !== key) : [...(c ?? []), key]
+    );
 
   return (
     <div data-testid="admin-activities">
@@ -91,7 +95,11 @@ export function AdminActivities() {
         actions={
           mayAdopt && dirty ? (
             <div className="flex gap-2">
-              <Button variant="ghost" onClick={() => setChosen(adopted)} data-testid="activities-cancel">
+              <Button
+                variant="ghost"
+                onClick={() => setChosen(adopted)}
+                data-testid="activities-cancel"
+              >
                 {t('common:action.cancel', { defaultValue: 'Cancel' })}
               </Button>
               <Button
@@ -142,7 +150,7 @@ export function AdminActivities() {
         </p>
       )}
     </div>
-  )
+  );
 }
 
 function ActivityCard({
@@ -152,11 +160,11 @@ function ActivityCard({
   disabled,
   onToggle,
 }: {
-  activity: CatalogueActivity
-  on: boolean
-  changed: boolean
-  disabled: boolean
-  onToggle: () => void
+  activity: CatalogueActivity;
+  on: boolean;
+  changed: boolean;
+  disabled: boolean;
+  onToggle: () => void;
 }) {
   return (
     <button
@@ -168,21 +176,23 @@ function ActivityCard({
       className={clsx(
         'lf-card p-4 text-start transition-all disabled:cursor-default',
         on ? 'border-brand ring-2 ring-brand/20' : 'opacity-70 hover:opacity-100',
-        changed && 'ring-2 ring-warning/50',
+        changed && 'ring-2 ring-warning/50'
       )}
     >
       <div className="flex items-start gap-2.5">
         <div
           className={clsx(
             'mt-0.5 grid h-5 w-5 shrink-0 place-items-center rounded-md border transition-colors',
-            on ? 'border-brand bg-brand text-white' : 'border-line',
+            on ? 'border-brand bg-brand text-white' : 'border-line'
           )}
         >
           {on && <Check size={13} />}
         </div>
 
         <div className="min-w-0 flex-1">
-          <div className="text-[13.5px] font-semibold text-navy dark:text-dk-texthi">{activity.label.en}</div>
+          <div className="text-[13.5px] font-semibold text-navy dark:text-dk-texthi">
+            {activity.label.en}
+          </div>
           <div className="text-[11.5px] text-muted" dir="rtl">
             {activity.label.ar}
           </div>
@@ -198,5 +208,5 @@ function ActivityCard({
         </div>
       </div>
     </button>
-  )
+  );
 }

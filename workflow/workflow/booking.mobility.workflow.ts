@@ -1,8 +1,13 @@
-import { OPS, TILL } from '../shared/access.js'
-import { ACTIVE, CANCELLED, COMPLETED, CONFIRMED, DRAFT, OVERTIME } from '../shared/status.js'
-import type { EngineWorkflow, OperationResult, ValidationResult, WorkflowContext } from '../shared/types.js'
-import { useMobilityValidator } from '../bookingWorkflowValidators/controller.mobility.validator.controller.js'
-import { useMobilityOperation } from '../bookingWorkflowOperations/controller.mobility.operation.controller.js'
+import { OPS, TILL } from '../shared/access.js';
+import { ACTIVE, CANCELLED, COMPLETED, CONFIRMED, DRAFT, OVERTIME } from '../shared/status.js';
+import type {
+  EngineWorkflow,
+  OperationResult,
+  ValidationResult,
+  WorkflowContext,
+} from '../shared/types.js';
+import { useMobilityValidator } from '../bookingWorkflowValidators/controller.mobility.validator.controller.js';
+import { useMobilityOperation } from '../bookingWorkflowOperations/controller.mobility.operation.controller.js';
 
 export const mobilityWorkflow: EngineWorkflow = {
   engineKind: 'MOBILITY',
@@ -52,14 +57,14 @@ export const mobilityWorkflow: EngineWorkflow = {
       style: { backgroundColor: '#db5d5d' },
     },
   ],
-}
+};
 
 export const LaunchMobilityControl = async (
   transitionCode: string,
-  ctx: WorkflowContext,
-): Promise<ValidationResult> => useMobilityValidator(transitionCode, ctx)
+  ctx: WorkflowContext
+): Promise<ValidationResult> => useMobilityValidator(transitionCode, ctx);
 
 export const LaunchMobilityOperation = async (
   transitionCode: string,
-  ctx: WorkflowContext,
-): Promise<OperationResult> => useMobilityOperation(transitionCode, ctx)
+  ctx: WorkflowContext
+): Promise<OperationResult> => useMobilityOperation(transitionCode, ctx);

@@ -1,7 +1,7 @@
-import { Router } from 'express'
+import { Router } from 'express';
 
-import { authenticate } from '../middlewares/auth.js'
-import { learningController } from '../controllers/learning.controller.js'
+import { authenticate } from '../middlewares/auth.js';
+import { learningController } from '../controllers/learning.controller.js';
 
 /**
  * The employee learning assistant.
@@ -14,18 +14,18 @@ import { learningController } from '../controllers/learning.controller.js'
  * `authenticate` puts the request inside the caller's tenant, which is where the tenant in
  * the signed service token comes from. There is no route here that names a tenant.
  */
-const router = Router()
+const router = Router();
 
-router.use(authenticate)
+router.use(authenticate);
 
-router.get('/capability', learningController.capability)
+router.get('/capability', learningController.capability);
 
-router.post('/chat', learningController.ask)
-router.post('/speech', learningController.speak)
-router.post('/feedback', learningController.feedback)
-router.post('/events/video-click', learningController.videoClick)
+router.post('/chat', learningController.ask);
+router.post('/speech', learningController.speak);
+router.post('/feedback', learningController.feedback);
+router.post('/events/video-click', learningController.videoClick);
 
-router.get('/onboarding', learningController.onboarding)
-router.post('/onboarding', learningController.saveOnboarding)
+router.get('/onboarding', learningController.onboarding);
+router.post('/onboarding', learningController.saveOnboarding);
 
-export default router
+export default router;

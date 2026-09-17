@@ -1,6 +1,6 @@
-import { logger } from '../config/logger.js'
-import { markSeededAccountsOnboarded } from './onboarding.seed.js'
-import { hashPassword } from '../models/user.model.js'
+import { logger } from '../config/logger.js';
+import { markSeededAccountsOnboarded } from './onboarding.seed.js';
+import { hashPassword } from '../models/user.model.js';
 import {
   AssetType,
   AssetUnit,
@@ -11,8 +11,8 @@ import {
   Station,
   Tenant,
   User,
-} from '../models/index.js'
-import type { EngineKind } from '../domain/types.js'
+} from '../models/index.js';
+import type { EngineKind } from '../domain/types.js';
 
 /**
  * WIQAR, as the specification describes it.
@@ -41,14 +41,14 @@ const ADOPTED: EngineKind[] = [
   'ANIMAL_FEEDING',
   'PHOTOGRAPHY',
   'GROUP_PACKAGE',
-]
+];
 
 /** §3.1 — three locations, identical architecture at each. */
 const LOCATIONS = [
   { key: 'usfan', name: "South of 'Usfan", nameAr: 'جنوب عسفان' },
   { key: 'jihfa', name: 'Al-Jihfa', nameAr: 'الجحفة' },
   { key: 'qahah', name: 'Wadi al-Qahah', nameAr: 'وادي القاحة' },
-]
+];
 
 /**
  * §3.2 — the seven service areas within each location.
@@ -57,14 +57,49 @@ const LOCATIONS = [
  * built and where a session takes place.
  */
 const AREAS = [
-  { key: 'welcome', name: 'Main Entrance & Welcome Desk', nameAr: 'المدخل الرئيسي ومكتب الاستقبال', activities: ADOPTED },
-  { key: 'equestrian', name: 'Equestrian Track & Stable', nameAr: 'مضمار الفروسية والإسطبل', activities: ['HORSE_RIDING', 'EQUESTRIAN_LESSON', 'ANIMAL_CARE'] as EngineKind[] },
-  { key: 'camel', name: 'Camel Paddock', nameAr: 'حظيرة الإبل', activities: ['CAMEL_TOUR', 'GROUP_PACKAGE'] as EngineKind[] },
-  { key: 'village', name: 'Animal Village', nameAr: 'قرية الحيوانات', activities: ['ANIMAL_FEEDING', 'PHOTOGRAPHY'] as EngineKind[] },
-  { key: 'studio', name: 'Photography Studio', nameAr: 'استوديو التصوير', activities: ['PHOTOGRAPHY', 'GROUP_PACKAGE'] as EngineKind[] },
-  { key: 'shop_m', name: 'Changing Rooms — Male Shop', nameAr: 'غرف التبديل — متجر الرجال', activities: [] as EngineKind[] },
-  { key: 'shop_f', name: 'Changing Rooms — Female Shop', nameAr: 'غرف التبديل — متجر النساء', activities: [] as EngineKind[] },
-]
+  {
+    key: 'welcome',
+    name: 'Main Entrance & Welcome Desk',
+    nameAr: 'المدخل الرئيسي ومكتب الاستقبال',
+    activities: ADOPTED,
+  },
+  {
+    key: 'equestrian',
+    name: 'Equestrian Track & Stable',
+    nameAr: 'مضمار الفروسية والإسطبل',
+    activities: ['HORSE_RIDING', 'EQUESTRIAN_LESSON', 'ANIMAL_CARE'] as EngineKind[],
+  },
+  {
+    key: 'camel',
+    name: 'Camel Paddock',
+    nameAr: 'حظيرة الإبل',
+    activities: ['CAMEL_TOUR', 'GROUP_PACKAGE'] as EngineKind[],
+  },
+  {
+    key: 'village',
+    name: 'Animal Village',
+    nameAr: 'قرية الحيوانات',
+    activities: ['ANIMAL_FEEDING', 'PHOTOGRAPHY'] as EngineKind[],
+  },
+  {
+    key: 'studio',
+    name: 'Photography Studio',
+    nameAr: 'استوديو التصوير',
+    activities: ['PHOTOGRAPHY', 'GROUP_PACKAGE'] as EngineKind[],
+  },
+  {
+    key: 'shop_m',
+    name: 'Changing Rooms — Male Shop',
+    nameAr: 'غرف التبديل — متجر الرجال',
+    activities: [] as EngineKind[],
+  },
+  {
+    key: 'shop_f',
+    name: 'Changing Rooms — Female Shop',
+    nameAr: 'غرف التبديل — متجر النساء',
+    activities: [] as EngineKind[],
+  },
+];
 
 /**
  * §3.2 — the counters.
@@ -74,10 +109,28 @@ const AREAS = [
  * empty rather than a copy of reception's.
  */
 const COUNTERS = [
-  { key: 'reception', area: 'welcome', name: 'Main Reception POS', nameAr: 'نقطة البيع الرئيسية', activities: ADOPTED },
-  { key: 'shop_m', area: 'shop_m', name: 'Male Shop POS', nameAr: 'نقطة بيع متجر الرجال', activities: [] as EngineKind[] },
-  { key: 'shop_f', area: 'shop_f', name: 'Female Shop POS', nameAr: 'نقطة بيع متجر النساء', activities: [] as EngineKind[] },
-]
+  {
+    key: 'reception',
+    area: 'welcome',
+    name: 'Main Reception POS',
+    nameAr: 'نقطة البيع الرئيسية',
+    activities: ADOPTED,
+  },
+  {
+    key: 'shop_m',
+    area: 'shop_m',
+    name: 'Male Shop POS',
+    nameAr: 'نقطة بيع متجر الرجال',
+    activities: [] as EngineKind[],
+  },
+  {
+    key: 'shop_f',
+    area: 'shop_f',
+    name: 'Female Shop POS',
+    nameAr: 'نقطة بيع متجر النساء',
+    activities: [] as EngineKind[],
+  },
+];
 
 /**
  * §7.1 — the live inventory.
@@ -87,11 +140,18 @@ const COUNTERS = [
  * empty; that number carries no authority.
  */
 const SPECIES = [
-  { key: 'horse', name: 'Arabian Horse', nameAr: 'حصان عربي', prefix: 'H', area: 'equestrian', perLocation: 10 },
+  {
+    key: 'horse',
+    name: 'Arabian Horse',
+    nameAr: 'حصان عربي',
+    prefix: 'H',
+    area: 'equestrian',
+    perLocation: 10,
+  },
   { key: 'camel', name: 'Camel', nameAr: 'جمل', prefix: 'C', area: 'camel', perLocation: 6 },
   { key: 'goat', name: 'Goat', nameAr: 'ماعز', prefix: 'G', area: 'village', perLocation: 8 },
   { key: 'deer', name: 'Deer', nameAr: 'غزال', prefix: 'D', area: 'village', perLocation: 4 },
-]
+];
 
 /**
  * §4.1 — the seven experiences, as things a counter can actually sell.
@@ -113,24 +173,80 @@ const SPECIES = [
  * it might not.
  */
 const EXPERIENCES: {
-  key: string
-  activity: EngineKind
-  name: string
-  nameAr: string
+  key: string;
+  activity: EngineKind;
+  name: string;
+  nameAr: string;
   /** §4.1. The upper end where the document gives a range. */
-  minutes: number
+  minutes: number;
   /** PLACEHOLDER — §4.1 says TBD for every one of these. */
-  price: number
-  species: 'horse' | 'camel' | null
+  price: number;
+  species: 'horse' | 'camel' | null;
 }[] = [
-  { key: 'horse_tour', activity: 'HORSE_RIDING', name: 'Arabian Horse Riding Tour', nameAr: 'جولة ركوب الخيل العربي', minutes: 60, price: 300, species: 'horse' },
-  { key: 'lesson', activity: 'EQUESTRIAN_LESSON', name: 'Equestrian Lesson', nameAr: 'درس فروسية', minutes: 60, price: 400, species: 'horse' },
-  { key: 'camel_tour', activity: 'CAMEL_TOUR', name: 'Camel Tour', nameAr: 'جولة الجمال', minutes: 30, price: 200, species: 'camel' },
-  { key: 'care', activity: 'ANIMAL_CARE', name: 'Animal Care Pack — Horse', nameAr: 'باقة العناية بالحيوان', minutes: 30, price: 150, species: 'horse' },
-  { key: 'feeding', activity: 'ANIMAL_FEEDING', name: 'Animal Feeding Session', nameAr: 'جلسة إطعام الحيوانات', minutes: 15, price: 50, species: null },
-  { key: 'photo', activity: 'PHOTOGRAPHY', name: 'Professional Photo Session', nameAr: 'جلسة تصوير احترافية', minutes: 20, price: 250, species: null },
-  { key: 'group', activity: 'GROUP_PACKAGE', name: 'Group Package', nameAr: 'الباقة الجماعية', minutes: 90, price: 900, species: null },
-]
+  {
+    key: 'horse_tour',
+    activity: 'HORSE_RIDING',
+    name: 'Arabian Horse Riding Tour',
+    nameAr: 'جولة ركوب الخيل العربي',
+    minutes: 60,
+    price: 300,
+    species: 'horse',
+  },
+  {
+    key: 'lesson',
+    activity: 'EQUESTRIAN_LESSON',
+    name: 'Equestrian Lesson',
+    nameAr: 'درس فروسية',
+    minutes: 60,
+    price: 400,
+    species: 'horse',
+  },
+  {
+    key: 'camel_tour',
+    activity: 'CAMEL_TOUR',
+    name: 'Camel Tour',
+    nameAr: 'جولة الجمال',
+    minutes: 30,
+    price: 200,
+    species: 'camel',
+  },
+  {
+    key: 'care',
+    activity: 'ANIMAL_CARE',
+    name: 'Animal Care Pack — Horse',
+    nameAr: 'باقة العناية بالحيوان',
+    minutes: 30,
+    price: 150,
+    species: 'horse',
+  },
+  {
+    key: 'feeding',
+    activity: 'ANIMAL_FEEDING',
+    name: 'Animal Feeding Session',
+    nameAr: 'جلسة إطعام الحيوانات',
+    minutes: 15,
+    price: 50,
+    species: null,
+  },
+  {
+    key: 'photo',
+    activity: 'PHOTOGRAPHY',
+    name: 'Professional Photo Session',
+    nameAr: 'جلسة تصوير احترافية',
+    minutes: 20,
+    price: 250,
+    species: null,
+  },
+  {
+    key: 'group',
+    activity: 'GROUP_PACKAGE',
+    name: 'Group Package',
+    nameAr: 'الباقة الجماعية',
+    minutes: 90,
+    price: 900,
+    species: null,
+  },
+];
 
 /**
  * Visitors, so the counter has somebody to sell to.
@@ -140,24 +256,77 @@ const EXPERIENCES: {
  * a customer the counter refuses every sale and the activities cannot be demonstrated at all.
  */
 const VISITORS = [
-  { key: 'alqahtani', name: 'Nora Al-Qahtani', phone: '+966 55 214 8830', nationalId: '1087654321' },
+  {
+    key: 'alqahtani',
+    name: 'Nora Al-Qahtani',
+    phone: '+966 55 214 8830',
+    nationalId: '1087654321',
+  },
   { key: 'alharbi', name: 'Faisal Al-Harbi', phone: '+966 50 771 4402', nationalId: '1098765432' },
   { key: 'family', name: 'Al-Sudairi Family', phone: '+966 53 309 1187', nationalId: '1076543210' },
-]
+];
 
 /** §4.2 — the changing-room shop catalogue. Prices are TBD in the document. */
 const RETAIL = [
-  { key: 'helmet', name: 'Riding Helmet', nameAr: 'خوذة ركوب', category: 'Equestrian accessories', price: 180 },
-  { key: 'gloves', name: 'Riding Gloves', nameAr: 'قفازات ركوب', category: 'Equestrian accessories', price: 65 },
-  { key: 'crop', name: 'Riding Crop', nameAr: 'سوط ركوب', category: 'Equestrian accessories', price: 45 },
-  { key: 'brush', name: 'Grooming Brush', nameAr: 'فرشاة عناية', category: 'Animal care products', price: 35 },
-  { key: 'kit', name: 'Grooming Kit', nameAr: 'طقم العناية', category: 'Animal care products', price: 120 },
+  {
+    key: 'helmet',
+    name: 'Riding Helmet',
+    nameAr: 'خوذة ركوب',
+    category: 'Equestrian accessories',
+    price: 180,
+  },
+  {
+    key: 'gloves',
+    name: 'Riding Gloves',
+    nameAr: 'قفازات ركوب',
+    category: 'Equestrian accessories',
+    price: 65,
+  },
+  {
+    key: 'crop',
+    name: 'Riding Crop',
+    nameAr: 'سوط ركوب',
+    category: 'Equestrian accessories',
+    price: 45,
+  },
+  {
+    key: 'brush',
+    name: 'Grooming Brush',
+    nameAr: 'فرشاة عناية',
+    category: 'Animal care products',
+    price: 35,
+  },
+  {
+    key: 'kit',
+    name: 'Grooming Kit',
+    nameAr: 'طقم العناية',
+    category: 'Animal care products',
+    price: 120,
+  },
   { key: 'halter', name: 'Halter', nameAr: 'رسن', category: 'Animal care products', price: 90 },
-  { key: 'scarf', name: 'Heritage Scarf', nameAr: 'وشاح تراثي', category: 'Heritage memorabilia', price: 75 },
-  { key: 'keychain', name: 'Branded Keychain', nameAr: 'ميدالية مفاتيح', category: 'Heritage memorabilia', price: 25 },
-  { key: 'print', name: 'Calligraphic Print', nameAr: 'لوحة خط عربي', category: 'Heritage memorabilia', price: 150 },
+  {
+    key: 'scarf',
+    name: 'Heritage Scarf',
+    nameAr: 'وشاح تراثي',
+    category: 'Heritage memorabilia',
+    price: 75,
+  },
+  {
+    key: 'keychain',
+    name: 'Branded Keychain',
+    nameAr: 'ميدالية مفاتيح',
+    category: 'Heritage memorabilia',
+    price: 25,
+  },
+  {
+    key: 'print',
+    name: 'Calligraphic Print',
+    nameAr: 'لوحة خط عربي',
+    category: 'Heritage memorabilia',
+    price: 150,
+  },
   { key: 'feed', name: 'Animal Feed Pack', nameAr: 'كيس علف', category: 'Animal food', price: 20 },
-]
+];
 
 /**
  * §5.1 — the roles, with the platform base role each maps onto.
@@ -177,13 +346,48 @@ const STAFF = [
   { key: 'it.manager', title: 'IT Manager', role: 'TENANT_ADMIN', scope: 'central' },
   { key: 'purchasing', title: 'Purchasing Agent', role: 'ACCOUNTANT', scope: 'central' },
   { key: 'supervisor', title: 'Supervisor', role: 'SUPERVISOR', scope: 'location' },
-  { key: 'cashier', title: 'Cashier-Receptionist', role: 'AGENT', scope: 'location', counter: 'reception', activities: ADOPTED },
-  { key: 'shop.cashier', title: 'Shop Cashier', role: 'AGENT', scope: 'location', counter: 'shop_m', activities: [] as EngineKind[] },
-  { key: 'horse.trainer', title: 'Horse Trainer', role: 'AGENT', scope: 'location', counter: 'reception', activities: ['HORSE_RIDING', 'EQUESTRIAN_LESSON', 'ANIMAL_CARE'] as EngineKind[] },
-  { key: 'camel.trainer', title: 'Camel Trainer', role: 'AGENT', scope: 'location', counter: 'reception', activities: ['CAMEL_TOUR', 'ANIMAL_FEEDING', 'GROUP_PACKAGE'] as EngineKind[] },
-  { key: 'animal.worker', title: 'Animal Worker', role: 'AGENT', scope: 'location', counter: 'reception', activities: ['ANIMAL_FEEDING', 'PHOTOGRAPHY'] as EngineKind[] },
+  {
+    key: 'cashier',
+    title: 'Cashier-Receptionist',
+    role: 'AGENT',
+    scope: 'location',
+    counter: 'reception',
+    activities: ADOPTED,
+  },
+  {
+    key: 'shop.cashier',
+    title: 'Shop Cashier',
+    role: 'AGENT',
+    scope: 'location',
+    counter: 'shop_m',
+    activities: [] as EngineKind[],
+  },
+  {
+    key: 'horse.trainer',
+    title: 'Horse Trainer',
+    role: 'AGENT',
+    scope: 'location',
+    counter: 'reception',
+    activities: ['HORSE_RIDING', 'EQUESTRIAN_LESSON', 'ANIMAL_CARE'] as EngineKind[],
+  },
+  {
+    key: 'camel.trainer',
+    title: 'Camel Trainer',
+    role: 'AGENT',
+    scope: 'location',
+    counter: 'reception',
+    activities: ['CAMEL_TOUR', 'ANIMAL_FEEDING', 'GROUP_PACKAGE'] as EngineKind[],
+  },
+  {
+    key: 'animal.worker',
+    title: 'Animal Worker',
+    role: 'AGENT',
+    scope: 'location',
+    counter: 'reception',
+    activities: ['ANIMAL_FEEDING', 'PHOTOGRAPHY'] as EngineKind[],
+  },
   { key: 'driver', title: 'Transport Driver', role: 'DELIVERY_AGENT', scope: 'central' },
-]
+];
 
 /**
  * The password every seeded WIQAR account is given.
@@ -191,26 +395,26 @@ const STAFF = [
  * Not a secret and not pretending to be one: it exists only on deployments that have declared
  * themselves demonstrations, and every account using it is printed on the sign-in page.
  */
-const DEMO_PASSWORD = process.env.TENANT_DEMO_PASSWORD ?? 'Demo@12345'
+const DEMO_PASSWORD = process.env.TENANT_DEMO_PASSWORD ?? 'Demo@12345';
 
-const ORG = 'wiqar'
+const ORG = 'wiqar';
 
-const siteId = (l: string) => `site_${ORG}_${l}`
-const areaId = (l: string, a: string) => `stn_${ORG}_${l}_${a}`
-const counterId = (l: string, c: string) => `ksk_${ORG}_${l}_${c}`
-const speciesId = (s: string) => `at_${ORG}_${s}`
-const animalId = (s: string, l: string, n: number) => `unit_${ORG}_${s}_${l}_${n}`
-const productId = (k: string) => `pr_${ORG}_${k}`
+const siteId = (l: string) => `site_${ORG}_${l}`;
+const areaId = (l: string, a: string) => `stn_${ORG}_${l}_${a}`;
+const counterId = (l: string, c: string) => `ksk_${ORG}_${l}_${c}`;
+const speciesId = (s: string) => `at_${ORG}_${s}`;
+const animalId = (s: string, l: string, n: number) => `unit_${ORG}_${s}_${l}_${n}`;
+const productId = (k: string) => `pr_${ORG}_${k}`;
 
 export interface WiqarSeedReport {
-  customers: number
-  sites: number
-  areas: number
-  counters: number
-  species: number
-  animals: number
-  products: number
-  people: number
+  customers: number;
+  sites: number;
+  areas: number;
+  counters: number;
+  species: number;
+  animals: number;
+  products: number;
+  people: number;
 }
 
 /**
@@ -220,7 +424,16 @@ export interface WiqarSeedReport {
  * administrator has made. Re-running must never quietly undo somebody's work.
  */
 export async function seedWiqar(): Promise<WiqarSeedReport> {
-  const report: WiqarSeedReport = { sites: 0, areas: 0, counters: 0, species: 0, animals: 0, products: 0, customers: 0, people: 0 }
+  const report: WiqarSeedReport = {
+    sites: 0,
+    areas: 0,
+    counters: 0,
+    species: 0,
+    animals: 0,
+    products: 0,
+    customers: 0,
+    people: 0,
+  };
 
   /* The organisation itself, with the seven activities it has adopted from the catalogue. */
   if (!(await Tenant.findById(ORG).lean())) {
@@ -253,7 +466,7 @@ export async function seedWiqar(): Promise<WiqarSeedReport> {
         accentColor: '#C9A227',
         logoText: 'WQ',
       },
-    })
+    });
   }
 
   const existing = {
@@ -262,8 +475,10 @@ export async function seedWiqar(): Promise<WiqarSeedReport> {
     counters: new Set((await Kiosk.find({}, { _id: 1 }).lean()).map((r) => String(r._id))),
     species: new Set((await AssetType.find({}, { _id: 1 }).lean()).map((r) => String(r._id))),
     animals: new Set((await AssetUnit.find({}, { _id: 1 }).lean()).map((r) => String(r._id))),
-    products: new Set((await CatalogueProduct.find({}, { _id: 1 }).lean()).map((r) => String(r._id))),
-  }
+    products: new Set(
+      (await CatalogueProduct.find({}, { _id: 1 }).lean()).map((r) => String(r._id))
+    ),
+  };
 
   /* §3.1 — three locations, §3.2 — seven areas and three counters at each. */
   for (const location of LOCATIONS) {
@@ -274,13 +489,13 @@ export async function seedWiqar(): Promise<WiqarSeedReport> {
         nameAr: `تجربة الأنعام — ${location.nameAr}`,
         city: 'Jeddah',
         active: true,
-      })
-      report.sites += 1
+      });
+      report.sites += 1;
     }
 
     for (const area of AREAS) {
-      const id = areaId(location.key, area.key)
-      if (existing.areas.has(id)) continue
+      const id = areaId(location.key, area.key);
+      if (existing.areas.has(id)) continue;
       await Station.create({
         _id: id,
         siteId: siteId(location.key),
@@ -290,13 +505,13 @@ export async function seedWiqar(): Promise<WiqarSeedReport> {
         code: `${location.key}-${area.key}`,
         engineKinds: area.activities,
         active: true,
-      })
-      report.areas += 1
+      });
+      report.areas += 1;
     }
 
     for (const counter of COUNTERS) {
-      const id = counterId(location.key, counter.key)
-      if (existing.counters.has(id)) continue
+      const id = counterId(location.key, counter.key);
+      if (existing.counters.has(id)) continue;
       await Kiosk.create({
         _id: id,
         siteId: siteId(location.key),
@@ -309,8 +524,8 @@ export async function seedWiqar(): Promise<WiqarSeedReport> {
         activityKeys: counter.activities,
         isExitGate: false,
         active: true,
-      })
-      report.counters += 1
+      });
+      report.counters += 1;
     }
   }
 
@@ -326,14 +541,14 @@ export async function seedWiqar(): Promise<WiqarSeedReport> {
         engineKind: null,
         capacity: { capacityScore: 0, seats: 1 },
         active: true,
-      })
-      report.species += 1
+      });
+      report.species += 1;
     }
 
     for (const location of LOCATIONS) {
       for (let n = 1; n <= species.perLocation; n += 1) {
-        const id = animalId(species.key, location.key, n)
-        if (existing.animals.has(id)) continue
+        const id = animalId(species.key, location.key, n);
+        if (existing.animals.has(id)) continue;
         await AssetUnit.create({
           _id: id,
           assetTypeId: speciesId(species.key),
@@ -344,8 +559,8 @@ export async function seedWiqar(): Promise<WiqarSeedReport> {
           gateId: null,
           status: 'AVAILABLE',
           currentBookingId: null,
-        })
-        report.animals += 1
+        });
+        report.animals += 1;
       }
     }
   }
@@ -357,7 +572,7 @@ export async function seedWiqar(): Promise<WiqarSeedReport> {
    * by the hour. The duration is what the slot occupies, not what it costs.
    */
   for (const experience of EXPERIENCES) {
-    if (existing.products.has(productId(experience.key))) continue
+    if (existing.products.has(productId(experience.key))) continue;
     await CatalogueProduct.create({
       _id: productId(experience.key),
       name: experience.name,
@@ -372,13 +587,13 @@ export async function seedWiqar(): Promise<WiqarSeedReport> {
       /* The animal it runs on, where the experience names one. */
       assetTypeId: experience.species ? speciesId(experience.species) : null,
       active: true,
-    })
-    report.products += 1
+    });
+    report.products += 1;
   }
 
   /* §4.2 — the changing-room catalogue, the same at every location. */
   for (const product of RETAIL) {
-    if (existing.products.has(productId(product.key))) continue
+    if (existing.products.has(productId(product.key))) continue;
     await CatalogueProduct.create({
       _id: productId(product.key),
       name: product.name,
@@ -391,28 +606,28 @@ export async function seedWiqar(): Promise<WiqarSeedReport> {
       engineKind: null,
       assetTypeId: null,
       active: true,
-    })
-    report.products += 1
+    });
+    report.products += 1;
   }
 
   /* Visitors, so a counter can sell to somebody on a freshly seeded server. */
   for (const visitor of VISITORS) {
-    const _id = `cust_${ORG}_${visitor.key}`
-    if (await Customer.findById(_id).lean()) continue
+    const _id = `cust_${ORG}_${visitor.key}`;
+    if (await Customer.findById(_id).lean()) continue;
     await Customer.create({
       _id,
       name: visitor.name,
       phone: visitor.phone,
       nationalId: visitor.nationalId,
       active: true,
-    })
-    report.customers += 1
+    });
+    report.customers += 1;
   }
 
   /* §5.1 — one account per role, posted where that role works. */
-  const home = LOCATIONS[0]
+  const home = LOCATIONS[0];
   for (const person of STAFF) {
-    const email = `${person.key}.${ORG}@lockerflow.demo`
+    const email = `${person.key}.${ORG}@lockerflow.demo`;
 
     /*
      * Somebody already here is brought up to date rather than skipped.
@@ -423,16 +638,22 @@ export async function seedWiqar(): Promise<WiqarSeedReport> {
      * existing one. Only the descriptive fields are touched: their password, their counter and
      * anything they have done since are theirs.
      */
-    const existingPerson = await User.findOne({ email }).lean()
+    const existingPerson = await User.findOne({ email }).lean();
     if (existingPerson) {
       await User.updateOne(
         { email },
-        { $set: { roleLabel: `WIQAR ${person.title}`, fullName: `WIQAR ${person.title}`, role: person.role } },
-      )
-      continue
+        {
+          $set: {
+            roleLabel: `WIQAR ${person.title}`,
+            fullName: `WIQAR ${person.title}`,
+            role: person.role,
+          },
+        }
+      );
+      continue;
     }
 
-    const central = person.scope === 'central'
+    const central = person.scope === 'central';
     await User.create({
       _id: `usr_${person.key.replace(/\./g, '_')}_${ORG}`,
       email,
@@ -455,13 +676,13 @@ export async function seedWiqar(): Promise<WiqarSeedReport> {
       engineKinds: person.activities ?? [],
       activityKeys: [],
       active: true,
-    })
-    report.people += 1
+    });
+    report.people += 1;
   }
 
   // A demonstration account is not a first-time employee — see onboarding.seed.ts.
-  await markSeededAccountsOnboarded()
+  await markSeededAccountsOnboarded();
 
-  logger.info('WIQAR seeded', { ...report })
-  return report
+  logger.info('WIQAR seeded', { ...report });
+  return report;
 }

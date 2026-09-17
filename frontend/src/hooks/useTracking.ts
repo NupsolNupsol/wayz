@@ -1,6 +1,6 @@
-import { useQuery } from '@tanstack/react-query'
-import { publicApi } from '../api/public.api'
-import { qk } from './queryKeys'
+import { useQuery } from '@tanstack/react-query';
+import { publicApi } from '../api/public.api';
+import { qk } from './queryKeys';
 
 export const usePublicTracking = (id: string | undefined) =>
   useQuery({
@@ -9,4 +9,4 @@ export const usePublicTracking = (id: string | undefined) =>
     enabled: !!id,
     refetchInterval: 20_000,
     retry: false,
-  })
+  });

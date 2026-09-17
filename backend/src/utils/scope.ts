@@ -1,10 +1,10 @@
-import type { Request } from 'express'
+import type { Request } from 'express';
 
-import { ApiError } from './ApiError.js'
-import type { Scope } from '../interfaces/index.js'
+import { ApiError } from './ApiError.js';
+import type { Scope } from '../interfaces/index.js';
 
 export function scopeFromReq(req: Request): Scope {
-  if (!req.auth) throw ApiError.unauthorized()
+  if (!req.auth) throw ApiError.unauthorized();
   return {
     tenantId: req.auth.tenantId,
     stationId: req.auth.stationId,
@@ -13,5 +13,5 @@ export function scopeFromReq(req: Request): Scope {
     kioskId: req.auth.kioskId ?? null,
     gateId: req.auth.gateId ?? null,
     engineKinds: req.auth.engineKinds ?? [],
-  }
+  };
 }

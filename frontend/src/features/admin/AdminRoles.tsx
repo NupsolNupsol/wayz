@@ -1,14 +1,14 @@
-import { useMemo } from 'react'
-import { useTranslation } from 'react-i18next'
-import { Check, Info, Users } from 'lucide-react'
-import { clsx } from 'clsx'
+import { useMemo } from 'react';
+import { useTranslation } from 'react-i18next';
+import { Check, Info, Users } from 'lucide-react';
+import { clsx } from 'clsx';
 
-import { PageHeader } from '@/components/PageHeader'
-import { Badge, Card, SectionTitle, Spinner } from '@/components/ui'
-import { PERMISSION_ROLES, type Permission } from '@/permissions/permissions'
-import { useManagerStaff } from '@/hooks'
-import { SCOPE_LEVEL } from '@/config/roleRules'
-import type { Role } from '@/api/types'
+import { PageHeader } from '@/components/PageHeader';
+import { Badge, Card, SectionTitle, Spinner } from '@/components/ui';
+import { PERMISSION_ROLES, type Permission } from '@/permissions/permissions';
+import { useManagerStaff } from '@/hooks';
+import { SCOPE_LEVEL } from '@/config/roleRules';
+import type { Role } from '@/api/types';
 
 /**
  * Who can do what.
@@ -45,42 +45,47 @@ const ROLE_ORDER: Role[] = [
   'AGENT',
   'CHIEF_CAPTAIN',
   'DELIVERY_AGENT',
-]
+];
 
 const SCOPE_NOTE: Record<string, string> = {
   tenant: 'Sees the whole company',
   activity: 'Sees one activity, across every counter',
   kiosk: 'Sees one counter',
-}
+};
 
 export function AdminRoles() {
-  const { t } = useTranslation(['admin', 'common'])
-  const { data: staff = [], isLoading } = useManagerStaff()
+  const { t } = useTranslation(['admin', 'common']);
+  const { data: staff = [], isLoading } = useManagerStaff();
 
   /** How many people here hold each role — the part that is actually this company's. */
   const held = useMemo(() => {
-    const counts = new Map<Role, number>()
+    const counts = new Map<Role, number>();
     for (const person of staff) {
-      if (person.active === false) continue
-      counts.set(person.role, (counts.get(person.role) ?? 0) + 1)
+      if (person.active === false) continue;
+      counts.set(person.role, (counts.get(person.role) ?? 0) + 1);
     }
-    return counts
-  }, [staff])
+    return counts;
+  }, [staff]);
 
   if (isLoading) {
     return (
       <div data-testid="admin-roles">
-        <PageHeader title={t('roles.title', { defaultValue: 'Roles & permissions' })} subtitle={t('common:state.loading')} />
+        <PageHeader
+          title={t('roles.title', { defaultValue: 'Roles & permissions' })}
+          subtitle={t('common:state.loading')}
+        />
         <Spinner />
       </div>
-    )
+    );
   }
 
   return (
     <div data-testid="admin-roles">
       <PageHeader
         title={t('roles.title', { defaultValue: 'Roles & permissions' })}
-        subtitle={t('roles.subtitle', { defaultValue: 'What each role may do, and how many people here hold it' })}
+        subtitle={t('roles.subtitle', {
+          defaultValue: 'What each role may do, and how many people here hold it',
+        })}
       />
 
       <Card className="mb-4 flex items-start gap-3 p-4" data-testid="roles-explainer">
@@ -101,7 +106,9 @@ export function AdminRoles() {
                 <div className="text-[13.5px] font-semibold text-navy dark:text-dk-texthi">
                   {t(`common:role.${role}`, { defaultValue: role })}
                 </div>
-                <div className="text-[11.5px] text-muted">{SCOPE_NOTE[SCOPE_LEVEL[role]] ?? ''}</div>
+                <div className="text-[11.5px] text-muted">
+                  {SCOPE_NOTE[SCOPE_LEVEL[role]] ?? ''}
+                </div>
               </div>
               <Badge tone={held.get(role) ? 'info' : 'neutral'}>
                 <Users size={11} /> {held.get(role) ?? 0}
@@ -112,7 +119,10 @@ export function AdminRoles() {
               {(Object.keys(PERMISSION_ROLES) as Permission[])
                 .filter((permission) => PERMISSION_ROLES[permission].includes(role))
                 .map((permission) => (
-                  <li key={permission} className="flex items-start gap-1.5 text-[11.5px] text-muted">
+                  <li
+                    key={permission}
+                    className="flex items-start gap-1.5 text-[11.5px] text-muted"
+                  >
                     <Check size={11} className="mt-[3px] shrink-0 text-success" />
                     <span>{t(`admin:permission.${permission}`, { defaultValue: permission })}</span>
                   </li>
@@ -129,7 +139,9 @@ export function AdminRoles() {
         <table className="w-full min-w-[760px] text-[12px]" data-testid="roles-matrix">
           <thead>
             <tr className="border-b border-line dark:border-dk-line">
-              <th className="p-2.5 text-start font-semibold">{t('roles.permission', { defaultValue: 'Permission' })}</th>
+              <th className="p-2.5 text-start font-semibold">
+                {t('roles.permission', { defaultValue: 'Permission' })}
+              </th>
               {ROLE_ORDER.map((role) => (
                 <th key={role} className="p-2.5 text-center font-semibold">
                   <span className="block max-w-[74px] text-[10.5px] leading-tight">
@@ -141,25 +153,28 @@ export function AdminRoles() {
           </thead>
           <tbody>
             {(Object.keys(PERMISSION_ROLES) as Permission[]).map((permission) => (
-              <tr key={permission} className="border-b border-line last:border-0 dark:border-dk-line">
+              <tr
+                key={permission}
+                className="border-b border-line last:border-0 dark:border-dk-line"
+              >
                 <td className="p-2.5 text-muted">
                   {t(`admin:permission.${permission}`, { defaultValue: permission })}
                 </td>
                 {ROLE_ORDER.map((role) => {
-                  const allowed = PERMISSION_ROLES[permission].includes(role)
+                  const allowed = PERMISSION_ROLES[permission].includes(role);
                   return (
                     <td key={role} className="p-2.5 text-center">
                       <span
                         className={clsx(
                           'inline-grid h-4 w-4 place-items-center rounded',
-                          allowed ? 'bg-success/15 text-success' : 'text-muted/30',
+                          allowed ? 'bg-success/15 text-success' : 'text-muted/30'
                         )}
                         aria-label={allowed ? 'allowed' : 'not allowed'}
                       >
                         {allowed ? <Check size={11} /> : '·'}
                       </span>
                     </td>
-                  )
+                  );
                 })}
               </tr>
             ))}
@@ -167,5 +182,5 @@ export function AdminRoles() {
         </table>
       </Card>
     </div>
-  )
+  );
 }

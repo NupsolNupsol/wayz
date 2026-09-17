@@ -1,4 +1,4 @@
-import { Schema } from 'mongoose'
+import { Schema } from 'mongoose';
 
 /**
  * Somebody who runs the platform, as opposed to somebody who works at one of its companies.
@@ -30,14 +30,14 @@ import { Schema } from 'mongoose'
  */
 
 export interface PlatformAdminDoc {
-  _id: string
-  email: string
-  fullName: string
-  passwordHash: string
-  active: boolean
-  lastSeenAt: Date | null
-  createdAt: Date
-  updatedAt: Date
+  _id: string;
+  email: string;
+  fullName: string;
+  passwordHash: string;
+  active: boolean;
+  lastSeenAt: Date | null;
+  createdAt: Date;
+  updatedAt: Date;
 }
 
 export const PlatformAdminSchema = new Schema<PlatformAdminDoc>(
@@ -49,5 +49,5 @@ export const PlatformAdminSchema = new Schema<PlatformAdminDoc>(
     active: { type: Boolean, default: true },
     lastSeenAt: { type: Date, default: null },
   },
-  { _id: false, timestamps: true },
-)
+  { _id: false, timestamps: true }
+);

@@ -1,6 +1,10 @@
-import { allEnginesWorkflow, getWorkflow as lookupWorkflow, type EngineWorkflow } from '../domain/workflow.js'
-import { INCIDENT_CATALOGUE, incidentTypesFor } from '../domain/incidents.js'
-import { INCIDENT_LABELS } from '../constants/labels.constants.js'
+import {
+  allEnginesWorkflow,
+  getWorkflow as lookupWorkflow,
+  type EngineWorkflow,
+} from '../domain/workflow.js';
+import { INCIDENT_CATALOGUE, incidentTypesFor } from '../domain/incidents.js';
+import { INCIDENT_LABELS } from '../constants/labels.constants.js';
 
 function serialize(wf: EngineWorkflow) {
   return {
@@ -19,16 +23,16 @@ function serialize(wf: EngineWorkflow) {
     })),
     /* What the counter must collect before confirmation — rendered as declared. */
     intake: wf.intake ?? [],
-  }
+  };
 }
 
 export function listWorkflows() {
-  return Object.values(allEnginesWorkflow).map(serialize)
+  return Object.values(allEnginesWorkflow).map(serialize);
 }
 
 export function getWorkflowByKind(kind: string) {
-  const wf = lookupWorkflow(kind)
-  return wf ? serialize(wf) : null
+  const wf = lookupWorkflow(kind);
+  return wf ? serialize(wf) : null;
 }
 
 export function listIncidentCatalogue() {
@@ -36,5 +40,5 @@ export function listIncidentCatalogue() {
     labels: INCIDENT_LABELS,
     byEngine: INCIDENT_CATALOGUE,
     all: incidentTypesFor(),
-  }
+  };
 }

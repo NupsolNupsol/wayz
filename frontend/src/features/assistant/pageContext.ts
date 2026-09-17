@@ -1,5 +1,5 @@
-import { createContext, useContext, useEffect, useRef } from 'react'
-import type { PageContextPayload } from '@/api/learning.api'
+import { createContext, useContext, useEffect, useRef } from 'react';
+import type { PageContextPayload } from '@/api/learning.api';
 
 /**
  * How a screen introduces itself to the assistant.
@@ -20,19 +20,19 @@ import type { PageContextPayload } from '@/api/learning.api'
  */
 
 export interface PageContextValue extends PageContextPayload {
-  pageKey: string
+  pageKey: string;
 }
 
 interface Registry {
-  current: PageContextValue | null
-  set: (value: PageContextValue | null) => void
-  read: () => PageContextValue | null
+  current: PageContextValue | null;
+  set: (value: PageContextValue | null) => void;
+  read: () => PageContextValue | null;
 }
 
-export const PageContextRegistry = createContext<Registry | null>(null)
+export const PageContextRegistry = createContext<Registry | null>(null);
 
 export function usePageContextRegistry(): Registry | null {
-  return useContext(PageContextRegistry)
+  return useContext(PageContextRegistry);
 }
 
 /**
@@ -43,18 +43,18 @@ export function usePageContextRegistry(): Registry | null {
  * in front of them rather than the one the page opened with.
  */
 export function usePageContext(value: PageContextValue, deps: unknown[] = []): void {
-  const registry = usePageContextRegistry()
-  const latest = useRef(value)
-  latest.current = value
+  const registry = usePageContextRegistry();
+  const latest = useRef(value);
+  latest.current = value;
 
   useEffect(() => {
-    if (!registry) return
-    registry.set(latest.current)
-    return () => registry.set(null)
+    if (!registry) return;
+    registry.set(latest.current);
+    return () => registry.set(null);
     // The caller owns the dependency list; `value` is read through a ref so an inline object
     // literal at the call site does not republish on every render.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [registry, ...deps])
+  }, [registry, ...deps]);
 }
 
 /**
@@ -93,9 +93,9 @@ export const PAGE_KEYS = {
   hrCosts: 'hr.costs',
   adminOverview: 'admin.overview',
   training: 'shared.training',
-} as const
+} as const;
 
-export type PageKey = (typeof PAGE_KEYS)[keyof typeof PAGE_KEYS]
+export type PageKey = (typeof PAGE_KEYS)[keyof typeof PAGE_KEYS];
 
 /**
  * `/bookings/bkg_9f2a1` -> `/bookings/:id`.
@@ -108,7 +108,7 @@ export function anonymiseRoute(pathname: string): string {
   return pathname
     .split('/')
     .map((segment) =>
-      segment && /\d/.test(segment) && /^[A-Za-z0-9_-]{6,}$/.test(segment) ? ':id' : segment,
+      segment && /\d/.test(segment) && /^[A-Za-z0-9_-]{6,}$/.test(segment) ? ':id' : segment
     )
-    .join('/')
+    .join('/');
 }

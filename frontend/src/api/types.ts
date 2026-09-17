@@ -7,7 +7,7 @@ export type Role =
   | 'PROJECT_MANAGER'
   | 'HR'
   | 'ACCOUNTANT'
-  | 'TENANT_ADMIN'
+  | 'TENANT_ADMIN';
 /**
  * Every activity the platform implements, mirroring the backend's registry.
  *
@@ -16,41 +16,48 @@ export type Role =
  */
 export type EngineKind =
   | 'SHOP_AND_DROP'
- 
   | 'MOBILITY'
   | 'LAGOON'
   | 'COTE_RESTAURANT'
- 
   | 'HORSE_RIDING'
   | 'EQUESTRIAN_LESSON'
   | 'CAMEL_TOUR'
   | 'ANIMAL_CARE'
- 
   | 'ANIMAL_FEEDING'
   | 'PHOTOGRAPHY'
-  | 'GROUP_PACKAGE'
-export type BillingModel = 'PER_BAG' | 'PER_COMPARTMENT' | 'PACKAGE' | 'DURATION_BASED'
-export type BookingStatus = 'DRAFT' | 'CONFIRMED' | 'RESERVED' | 'ACTIVE' | 'OVERTIME' | 'RETRIEVAL_IN_PROGRESS' | 'PREPARING' | 'SERVED' | 'COMPLETED' | 'CANCELLED'
-export type PaymentMethod = 'CASH' | 'CARD'
-export type { CardScheme } from '@/config/cardSchemes'
+  | 'GROUP_PACKAGE';
+export type BillingModel = 'PER_BAG' | 'PER_COMPARTMENT' | 'PACKAGE' | 'DURATION_BASED';
+export type BookingStatus =
+  | 'DRAFT'
+  | 'CONFIRMED'
+  | 'RESERVED'
+  | 'ACTIVE'
+  | 'OVERTIME'
+  | 'RETRIEVAL_IN_PROGRESS'
+  | 'PREPARING'
+  | 'SERVED'
+  | 'COMPLETED'
+  | 'CANCELLED';
+export type PaymentMethod = 'CASH' | 'CARD';
+export type { CardScheme } from '@/config/cardSchemes';
 
 export interface Branding {
-  primaryColor: string
-  secondaryColor: string
-  accentColor: string
-  fontFamily: string
-  logoText: string
+  primaryColor: string;
+  secondaryColor: string;
+  accentColor: string;
+  fontFamily: string;
+  logoText: string;
   /** A data URI, when the tenant uploaded a mark. Held in the registry — see the control plane. */
-  logoUrl?: string | null
+  logoUrl?: string | null;
 }
 
 export interface Me {
-  id: string
-  email: string
-  fullName: string
-  role: Role
-  phone: string
-  engineKinds: EngineKind[]
+  id: string;
+  email: string;
+  fullName: string;
+  role: Role;
+  phone: string;
+  engineKinds: EngineKind[];
   /**
    * The activities this person works, by the tenant's own keys.
    *
@@ -59,324 +66,336 @@ export interface Me {
    * in, and these exist only in one company's database. Merging the two lists would let a
    * company name an activity `MOBILITY` and inherit behaviour nobody granted it.
    */
-  activityKeys?: string[]
+  activityKeys?: string[];
   /** The job this person holds, as their own company defines it. See role.api.ts. */
-  roleKey?: string | null
+  roleKey?: string | null;
   /** What their company calls their job. Shown in place of the platform role when present. */
-  jobTitle?: string | null
+  jobTitle?: string | null;
   tenant: {
-    id: string
+    id: string;
     /** The handle this tenant is reached at — `/t/<slug>/…`. From the control-plane registry. */
-    slug: string
-    name: string
-    legalName: string
-    crNumber: string
-    vatNumber: string
-    currency: string
-    vatRate: number
-    enabledEngines: EngineKind[]
+    slug: string;
+    name: string;
+    legalName: string;
+    crNumber: string;
+    vatNumber: string;
+    currency: string;
+    vatRate: number;
+    enabledEngines: EngineKind[];
     /**
      * What this tenant may do, from the control plane.
      *
      * Navigation and screens ask about these rather than about the tenant's name, which is
      * what keeps a company that runs horse tours from being offered a lagoon captain.
      */
-    capabilities?: string[]
-    branding: Branding
-    discountReasons?: { code: string; label: string; maxPercent: number; needsApproval?: boolean }[]
-    autoPrintReceipt?: boolean
+    capabilities?: string[];
+    branding: Branding;
+    discountReasons?: {
+      code: string;
+      label: string;
+      maxPercent: number;
+      needsApproval?: boolean;
+    }[];
+    autoPrintReceipt?: boolean;
     /** How long a customer's confirmation counts for, mirrored from the API. */
-    phoneProofTtlMin?: number
-  } | null
-  station: { id: string; name: string; engineKinds: EngineKind[]; siteId: string; zoneId: string | null } | null
-  kiosk?: { id: string; name: string; code?: string; stationId: string; siteId: string } | null
+    phoneProofTtlMin?: number;
+  } | null;
+  station: {
+    id: string;
+    name: string;
+    engineKinds: EngineKind[];
+    siteId: string;
+    zoneId: string | null;
+  } | null;
+  kiosk?: { id: string; name: string; code?: string; stationId: string; siteId: string } | null;
   /**
    * The locker hall this member of staff answers for, separate from the desk they work.
    *
    * A mobility agent stands at a gate: the bags in its lockers are theirs to hand back, and the
    * customer returns there rather than to the counter that sold the storage.
    */
-  gate?: { id: string; name: string; code?: string; stationId: string; location?: string } | null
+  gate?: { id: string; name: string; code?: string; stationId: string; location?: string } | null;
 }
 
 export interface ProposedPolicy {
-  minAge?: number | null
-  licenseRequired?: boolean
-  conditionInspection?: 'MANDATORY_PHOTO' | 'VISUAL' | 'SKIP' | 'MANDATORY'
-  safetyAck?: boolean
-  overtimeRule?: string
-  returnLocation?: string
-  damageRule?: string
-  operatorRequirement?: string
+  minAge?: number | null;
+  licenseRequired?: boolean;
+  conditionInspection?: 'MANDATORY_PHOTO' | 'VISUAL' | 'SKIP' | 'MANDATORY';
+  safetyAck?: boolean;
+  overtimeRule?: string;
+  returnLocation?: string;
+  damageRule?: string;
+  operatorRequirement?: string;
 }
 
 export interface Product {
-  _id: string
-  tenantId: string
-  engineKind: EngineKind
-  name: string
-  nameAr?: string
-  category: string
-  basePrice: number
-  hourlyPrice?: number | null
-  tourPrice?: number | null
-  tourMinutes?: number | null
-  depositRequired: number
-  assetTypeId: string | null
-  billingModel: BillingModel
-  durationUnit?: string
-  proposedPolicy?: ProposedPolicy
-  emoji?: string
+  _id: string;
+  tenantId: string;
+  engineKind: EngineKind;
+  name: string;
+  nameAr?: string;
+  category: string;
+  basePrice: number;
+  hourlyPrice?: number | null;
+  tourPrice?: number | null;
+  tourMinutes?: number | null;
+  depositRequired: number;
+  assetTypeId: string | null;
+  billingModel: BillingModel;
+  durationUnit?: string;
+  proposedPolicy?: ProposedPolicy;
+  emoji?: string;
 }
 
 export interface Customer {
-  _id: string
-  tenantId: string
-  name: string
-  phone: string
-  email?: string
+  _id: string;
+  tenantId: string;
+  name: string;
+  phone: string;
+  email?: string;
   /** National id, residency permit or passport number. Required of anyone registered from now on. */
-  nationalId?: string
-  createdAt: string
+  nationalId?: string;
+  createdAt: string;
 }
 
 export interface PackingSuggestion {
-  productId: string
-  productName: string
-  assetTypeId: string
-  assetTypeName: string
-  capacityScore: number
-  maxBagsPerCompartment: number | null
-  numberOfCompartments: number
+  productId: string;
+  productName: string;
+  assetTypeId: string;
+  assetTypeName: string;
+  capacityScore: number;
+  maxBagsPerCompartment: number | null;
+  numberOfCompartments: number;
   /** Free at this desk — the only ones it can reserve. */
-  availableUnits: number
+  availableUnits: number;
   /** Free at other desks in the station; shown so the agent can send them next door. */
-  availableElsewhere: number
-  fits: boolean
+  availableElsewhere: number;
+  fits: boolean;
 }
 export interface PackingSuggestResponse {
-  recommendedProductId: string | null
-  totalScore: number
-  suggestions: PackingSuggestion[]
+  recommendedProductId: string | null;
+  totalScore: number;
+  suggestions: PackingSuggestion[];
 }
 
 export interface AssetUnit {
-  _id: string
-  identifier: string
-  status: string
-  assetTypeId: string
-  stationId: string
-  kioskId?: string | null
+  _id: string;
+  identifier: string;
+  status: string;
+  assetTypeId: string;
+  stationId: string;
+  kioskId?: string | null;
   /** The gate a locker stands in. Null on anything a desk hands over itself. */
-  gateId?: string | null
-  gateName?: string | null
+  gateId?: string | null;
+  gateName?: string | null;
   /** Joined from the unit's kind and its product, so a counter can list units without a second call. */
-  assetTypeName: string
-  assetKind: string | null
-  engineKind: EngineKind | null
-  capacityScore: number | null
-  maxBags: number | null
-  seats: number | null
-  productId: string | null
-  productName: string | null
-  price: number | null
-  saleUnit: string | null
-  billingModel: string | null
+  assetTypeName: string;
+  assetKind: string | null;
+  engineKind: EngineKind | null;
+  capacityScore: number | null;
+  maxBags: number | null;
+  seats: number | null;
+  productId: string | null;
+  productName: string | null;
+  price: number | null;
+  saleUnit: string | null;
+  billingModel: string | null;
 }
 
 export interface AssetTypeLite {
-  _id: string
-  name: string
-  kind: string
-  engineKind: EngineKind
+  _id: string;
+  name: string;
+  kind: string;
+  engineKind: EngineKind;
 }
 
 export interface BagItem {
-  index: number
-  category: string
-  description: string
-  dimensions: { w: number; h: number; d: number }
-  weight: number
-  barcode: string
-  status: string
-  assignedUnitId?: string | null
+  index: number;
+  category: string;
+  description: string;
+  dimensions: { w: number; h: number; d: number };
+  weight: number;
+  barcode: string;
+  status: string;
+  assignedUnitId?: string | null;
 }
 
-export type SessionPhase = 'NOT_STARTED' | 'RUNNING' | 'GRACE' | 'OVERTIME' | 'ENDED'
+export type SessionPhase = 'NOT_STARTED' | 'RUNNING' | 'GRACE' | 'OVERTIME' | 'ENDED';
 
 export interface OvertimeState {
-  phase: SessionPhase
-  evaluatedAt: string
-  expectedEndAt: string | null
-  graceEndsAt: string | null
-  remainingMs: number | null
-  graceRemainingMs: number | null
-  overdueMs: number
-  gracePeriodMin: number
-  withinGrace: boolean
-  isOvertime: boolean
-  chargeableHours: number
+  phase: SessionPhase;
+  evaluatedAt: string;
+  expectedEndAt: string | null;
+  graceEndsAt: string | null;
+  remainingMs: number | null;
+  graceRemainingMs: number | null;
+  overdueMs: number;
+  gracePeriodMin: number;
+  withinGrace: boolean;
+  isOvertime: boolean;
+  chargeableHours: number;
   /** When the block being charged right now began — the API works this out, the screens read it. */
-  currentChargeStartedAt?: string | null
-  hourlyRate: number
-  penaltyAmount: number
+  currentChargeStartedAt?: string | null;
+  hourlyRate: number;
+  penaltyAmount: number;
 }
 
 export interface Session {
-  kind: string
-  status: BookingStatus
-  assetUnitId?: string | null
-  requestedDurationMin: number
-  startedAt?: string | null
-  expectedEndAt?: string | null
-  chargeableEndedAt?: string | null
+  kind: string;
+  status: BookingStatus;
+  assetUnitId?: string | null;
+  requestedDurationMin: number;
+  startedAt?: string | null;
+  expectedEndAt?: string | null;
+  chargeableEndedAt?: string | null;
   /** Where the clock actually stopped: the workflow's end, or the moment a finished booking last changed. */
-  endedAt?: string | null
-  gracePeriodMin: number
-  overtimeHourlyRate: number
+  endedAt?: string | null;
+  gracePeriodMin: number;
+  overtimeHourlyRate: number;
   /** Minutes handed back after a faulty unit was swapped, totalled over every swap. */
-  replacementBonusMin?: number
-  remainingMs: number | null
-  isOvertime: boolean
-  overtime: OvertimeState
+  replacementBonusMin?: number;
+  remainingMs: number | null;
+  isOvertime: boolean;
+  overtime: OvertimeState;
 }
 
 export interface PublicTracking {
-  ref: string
-  status: BookingStatus
-  productName: string
-  brandName: string
-  currency: string
-  bags: { index: number; description: string; status: string }[]
-  bagCount: number
-  startedAt: string | null
-  expectedEndAt: string | null
-  graceEndsAt: string | null
-  requestedDurationMin: number
-  overtime: Omit<OvertimeState, 'evaluatedAt' | 'expectedEndAt' | 'graceEndsAt'>
+  ref: string;
+  status: BookingStatus;
+  productName: string;
+  brandName: string;
+  currency: string;
+  bags: { index: number; description: string; status: string }[];
+  bagCount: number;
+  startedAt: string | null;
+  expectedEndAt: string | null;
+  graceEndsAt: string | null;
+  requestedDurationMin: number;
+  overtime: Omit<OvertimeState, 'evaluatedAt' | 'expectedEndAt' | 'graceEndsAt'>;
 }
 
 export interface CustodyEvent {
-  from: string
-  to: string
-  at: string
-  bagIndex?: number
-  note?: string
+  from: string;
+  to: string;
+  at: string;
+  bagIndex?: number;
+  note?: string;
 }
 
-export type VerificationPurpose = 'RETRIEVAL' | 'DEPOSIT_REFUND' | 'DELIVERY_REQUEST'
-export type VerificationMethod = 'WHATSAPP_OTP' | 'EMAIL_OTP' | 'ID_DOCUMENT' | 'SUPERVISOR_OVERRIDE'
-export type IdDocumentType = 'NATIONAL_ID' | 'IQAMA' | 'PASSPORT' | 'DRIVING_LICENCE'
-export type OtpChannel = 'WHATSAPP' | 'SMS' | 'EMAIL'
-export type OtpDelivery = 'WHATSAPP' | 'EMAIL' | 'MOCK' | 'FAILED'
+export type VerificationPurpose = 'RETRIEVAL' | 'DEPOSIT_REFUND' | 'DELIVERY_REQUEST';
+export type VerificationMethod =
+  'WHATSAPP_OTP' | 'EMAIL_OTP' | 'ID_DOCUMENT' | 'SUPERVISOR_OVERRIDE';
+export type IdDocumentType = 'NATIONAL_ID' | 'IQAMA' | 'PASSPORT' | 'DRIVING_LICENCE';
+export type OtpChannel = 'WHATSAPP' | 'SMS' | 'EMAIL';
+export type OtpDelivery = 'WHATSAPP' | 'EMAIL' | 'MOCK' | 'FAILED';
 
 export interface IdentityVerification {
-  purpose: VerificationPurpose
-  method: VerificationMethod
-  status: 'VERIFIED' | 'CONSUMED'
-  channel?: string | null
-  destination?: string | null
-  phone?: string | null
-  verifiedAt: string
-  verifiedBy: string
-  verifiedByRole: Role
-  expiresAt: string
-  consumedAt?: string | null
-  reason?: string | null
-  document?: { type: IdDocumentType; holderName: string; last4: string } | null
-  evidenceId?: string | null
+  purpose: VerificationPurpose;
+  method: VerificationMethod;
+  status: 'VERIFIED' | 'CONSUMED';
+  channel?: string | null;
+  destination?: string | null;
+  phone?: string | null;
+  verifiedAt: string;
+  verifiedBy: string;
+  verifiedByRole: Role;
+  expiresAt: string;
+  consumedAt?: string | null;
+  reason?: string | null;
+  document?: { type: IdDocumentType; holderName: string; last4: string } | null;
+  evidenceId?: string | null;
 }
 
 export interface BookingRefund {
-  amount: number
-  reason: string
-  refundedBy: string
-  refundedByName: string
-  paymentIds: string[]
-  at: string
+  amount: number;
+  reason: string;
+  refundedBy: string;
+  refundedByName: string;
+  paymentIds: string[];
+  at: string;
 }
 
 export interface Booking {
-  id: string
-  _id: string
-  trackingToken: string
-  ref: string
-  tenantId: string
-  stationId: string
-  kioskId: string | null
+  id: string;
+  _id: string;
+  trackingToken: string;
+  ref: string;
+  tenantId: string;
+  stationId: string;
+  kioskId: string | null;
   /** The gate holding this booking's locker. Null for anything that uses no locker. */
-  gateId?: string | null
-  agentId: string
-  orderId: string
-  amountDue?: number
-  amountCharged?: number
-  baseAmount: number
-  vatAmount: number
-  totalAmount: number
-  customerId: string
-  customerName: string
-  customerPhone: string
-  customerEmail: string
-  engineKind: EngineKind
-  productName: string
+  gateId?: string | null;
+  agentId: string;
+  orderId: string;
+  amountDue?: number;
+  amountCharged?: number;
+  baseAmount: number;
+  vatAmount: number;
+  totalAmount: number;
+  customerId: string;
+  customerName: string;
+  customerPhone: string;
+  customerEmail: string;
+  engineKind: EngineKind;
+  productName: string;
   /** Written onto the booking at sale time, so an agent working in Arabic reads it in Arabic. */
-  productNameAr?: string
-  status: BookingStatus
-  bags: BagItem[]
-  session: Session
-  reservation: { assetUnitId: string; expiresAt: string; status: string } | null
-  assetUnitId: string | null
+  productNameAr?: string;
+  status: BookingStatus;
+  bags: BagItem[];
+  session: Session;
+  reservation: { assetUnitId: string; expiresAt: string; status: string } | null;
+  assetUnitId: string | null;
   packingPlan: {
-    requiredCapacityScore: number
-    suggestedAssetTypeId: string
-    numberOfCompartmentsRequired: number
-    allocations: { compartmentIndex: number; bagIndexes: number[] }[]
-    priceCalculationSummary: string
-  } | null
-  custody: CustodyEvent[]
-  verifications: IdentityVerification[]
-  refunds: BookingRefund[]
-  metadata: Record<string, unknown>
-  createdAt: string
+    requiredCapacityScore: number;
+    suggestedAssetTypeId: string;
+    numberOfCompartmentsRequired: number;
+    allocations: { compartmentIndex: number; bagIndexes: number[] }[];
+    priceCalculationSummary: string;
+  } | null;
+  custody: CustodyEvent[];
+  verifications: IdentityVerification[];
+  refunds: BookingRefund[];
+  metadata: Record<string, unknown>;
+  createdAt: string;
 }
 
 export interface OrderLine {
-  productId: string
-  name: string
+  productId: string;
+  name: string;
   /** The same line in Arabic, written at sale time — what an Arabic screen and the slip both use. */
-  nameAr?: string
-  quantity: number
-  unitPrice: number
-  isDeposit: boolean
-  taxable: boolean
+  nameAr?: string;
+  quantity: number;
+  unitPrice: number;
+  isDeposit: boolean;
+  taxable: boolean;
 }
 export interface Order {
-  _id: string
-  ref: string
-  lines: OrderLine[]
-  hold: { assetTypeId: string; quantityRequired: number; status: string } | null
-  status: string
-  subtotal: number
-  vat: number
-  depositTotal: number
-  total: number
-  createdAt: string
+  _id: string;
+  ref: string;
+  lines: OrderLine[];
+  hold: { assetTypeId: string; quantityRequired: number; status: string } | null;
+  status: string;
+  subtotal: number;
+  vat: number;
+  depositTotal: number;
+  total: number;
+  createdAt: string;
 }
 
 export interface Receipt {
-  _id: string
-  ref: string
-  kind: string
-  qrPayload: string
-  createdAt: string
+  _id: string;
+  ref: string;
+  kind: string;
+  qrPayload: string;
+  createdAt: string;
 }
 
 export interface AvailableTransition {
-  code: string
-  label: string
-  from: string
-  target: string
-  style?: { backgroundColor: string }
+  code: string;
+  label: string;
+  from: string;
+  target: string;
+  style?: { backgroundColor: string };
 }
 
 /** A detail an activity needs before confirmation. Declared by the activity's own module. */
@@ -385,44 +404,51 @@ export type IntakeField =
   | { key: 'trainer' }
   | { key: 'level'; options: string[] }
   | { key: 'partySize'; min: number }
-  | { key: 'feedPortions'; min: number }
+  | { key: 'feedPortions'; min: number };
 
 export interface EngineWorkflow {
-  engineKind: EngineKind
-  sessionKind: string
-  initialStatus: BookingStatus
-  actors: Role[]
-  transitions: { code: string; label: string; source: string[]; target: string; actors: Role[]; style?: { backgroundColor: string } }[]
+  engineKind: EngineKind;
+  sessionKind: string;
+  initialStatus: BookingStatus;
+  actors: Role[];
+  transitions: {
+    code: string;
+    label: string;
+    source: string[];
+    target: string;
+    actors: Role[];
+    style?: { backgroundColor: string };
+  }[];
   /** Absent for an activity that needs nothing beyond the sale itself. */
-  intake?: IntakeField[]
+  intake?: IntakeField[];
 }
 
 export interface DashboardStats {
-  todaysTransactions: number
-  todaysRevenue: number
-  activeOperations: number
-  storedBags: number
-  dueSoon: number
-  overdue: number
-  pendingRetrievals: number
-  openIncidents: number
-  byEngine: { engineKind: EngineKind; count: number }[]
+  todaysTransactions: number;
+  todaysRevenue: number;
+  activeOperations: number;
+  storedBags: number;
+  dueSoon: number;
+  overdue: number;
+  pendingRetrievals: number;
+  openIncidents: number;
+  byEngine: { engineKind: EngineKind; count: number }[];
 }
 
 export interface Shift {
-  _id: string
-  status: 'OPEN' | 'RECONCILING' | 'CLOSED'
-  kioskId?: string | null
-  agentId?: string
-  openedAt: string
-  closedAt?: string | null
-  openingFloat?: number
-  expectedCash: number
-  countedCash?: number | null
-  variance?: number | null
-  resolutionNote?: string
-  closedBy?: string | null
-  closedByName?: string | null
+  _id: string;
+  status: 'OPEN' | 'RECONCILING' | 'CLOSED';
+  kioskId?: string | null;
+  agentId?: string;
+  openedAt: string;
+  closedAt?: string | null;
+  openingFloat?: number;
+  expectedCash: number;
+  countedCash?: number | null;
+  variance?: number | null;
+  resolutionNote?: string;
+  closedBy?: string | null;
+  closedByName?: string | null;
 }
 
 export type IncidentType =
@@ -442,21 +468,21 @@ export type IncidentType =
   | 'ORDER_ERROR'
   | 'ACCESS_ISSUE'
   | 'PAYMENT_DISPUTE'
-  | 'OTHER'
+  | 'OTHER';
 
 export interface IncidentCatalogue {
-  labels: Record<IncidentType, string>
-  byEngine: Record<EngineKind, IncidentType[]>
-  all: IncidentType[]
+  labels: Record<IncidentType, string>;
+  byEngine: Record<EngineKind, IncidentType[]>;
+  all: IncidentType[];
 }
 
 export interface Incident {
-  _id: string
-  ref: string
-  type: IncidentType
-  status: string
-  description: string
-  bookingId?: string | null
-  engineKind?: EngineKind | null
-  createdAt: string
+  _id: string;
+  ref: string;
+  type: IncidentType;
+  status: string;
+  description: string;
+  bookingId?: string | null;
+  engineKind?: EngineKind | null;
+  createdAt: string;
 }

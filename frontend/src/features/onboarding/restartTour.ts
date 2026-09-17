@@ -5,8 +5,8 @@
  * the tour are mounted in different parts of the tree, and threading a handler between them
  * would mean the shell holding state it has no other reason to hold.
  */
-export const RESTART_TOUR_EVENT = 'lockerflow:restart-tour'
+export const RESTART_TOUR_EVENT = 'lockerflow:restart-tour';
 
 export function restartTour(): void {
-  window.dispatchEvent(new Event(RESTART_TOUR_EVENT))
+  window.dispatchEvent(new Event(RESTART_TOUR_EVENT));
 }

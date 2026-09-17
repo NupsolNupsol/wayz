@@ -1,9 +1,17 @@
-import { OPS, TILL } from '../../shared/access.js'
-import { ACTIVE, CANCELLED, COMPLETED, CONFIRMED, DRAFT, OVERTIME } from '../../shared/status.js'
-import { GROUP_MINIMUM_PARTY, MINIMUM_FEED_PORTIONS } from '../../bookingWorkflowValidators/shared.animal.validators.js'
-import type { EngineWorkflow, OperationResult, ValidationResult, WorkflowContext } from '../../shared/types.js'
-import { useGroupPackageValidator } from '../../bookingWorkflowValidators/wiqar/controller.groupPackage.validator.controller.js'
-import { useGroupPackageOperation } from '../../bookingWorkflowOperations/wiqar/controller.groupPackage.operation.controller.js'
+import { OPS, TILL } from '../../shared/access.js';
+import { ACTIVE, CANCELLED, COMPLETED, CONFIRMED, DRAFT, OVERTIME } from '../../shared/status.js';
+import {
+  GROUP_MINIMUM_PARTY,
+  MINIMUM_FEED_PORTIONS,
+} from '../../bookingWorkflowValidators/shared.animal.validators.js';
+import type {
+  EngineWorkflow,
+  OperationResult,
+  ValidationResult,
+  WorkflowContext,
+} from '../../shared/types.js';
+import { useGroupPackageValidator } from '../../bookingWorkflowValidators/wiqar/controller.groupPackage.validator.controller.js';
+import { useGroupPackageOperation } from '../../bookingWorkflowOperations/wiqar/controller.groupPackage.operation.controller.js';
 
 /**
  * Group Package.
@@ -61,14 +69,14 @@ export const groupPackageWorkflow: EngineWorkflow = {
       style: { backgroundColor: '#db5d5d' },
     },
   ],
-}
+};
 
 export const LaunchGroupPackageControl = async (
   transitionCode: string,
-  ctx: WorkflowContext,
-): Promise<ValidationResult> => useGroupPackageValidator(transitionCode, ctx)
+  ctx: WorkflowContext
+): Promise<ValidationResult> => useGroupPackageValidator(transitionCode, ctx);
 
 export const LaunchGroupPackageOperation = async (
   transitionCode: string,
-  ctx: WorkflowContext,
-): Promise<OperationResult> => useGroupPackageOperation(transitionCode, ctx)
+  ctx: WorkflowContext
+): Promise<OperationResult> => useGroupPackageOperation(transitionCode, ctx);

@@ -1,4 +1,4 @@
-import { useTranslation } from 'react-i18next'
+import { useTranslation } from 'react-i18next';
 
 const GROUPS = [
   'booking',
@@ -16,22 +16,22 @@ const GROUPS = [
   'scheme',
   'expense',
   'sessionKind',
-] as const
+] as const;
 
-export type StatusGroup = (typeof GROUPS)[number]
+export type StatusGroup = (typeof GROUPS)[number];
 
 export function useStatusLabel() {
-  const { t } = useTranslation('status')
+  const { t } = useTranslation('status');
 
   return (status: string, group?: StatusGroup): string => {
-    if (!status) return ''
-    const code = status.toUpperCase()
-    const order = group ? [group, ...GROUPS.filter((g) => g !== group)] : GROUPS
+    if (!status) return '';
+    const code = status.toUpperCase();
+    const order = group ? [group, ...GROUPS.filter((g) => g !== group)] : GROUPS;
 
     for (const candidate of order) {
-      const value = t(`${candidate}.${code}`, { defaultValue: '' })
-      if (value) return value
+      const value = t(`${candidate}.${code}`, { defaultValue: '' });
+      if (value) return value;
     }
-    return status.replaceAll('_', ' ')
-  }
+    return status.replaceAll('_', ' ');
+  };
 }

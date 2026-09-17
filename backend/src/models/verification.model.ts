@@ -1,17 +1,17 @@
-import { Schema } from 'mongoose'
-import { nanoid } from 'nanoid'
+import { Schema } from 'mongoose';
+import { nanoid } from 'nanoid';
 
 export interface VerificationEvidenceDoc {
-  _id: string
-  tenantId: string
-  stationId: string
-  bookingId: string
-  purpose: string
-  mimeType: string
-  sizeBytes: number
-  dataUri: string
-  capturedBy: string
-  createdAt: Date
+  _id: string;
+  tenantId: string;
+  stationId: string;
+  bookingId: string;
+  purpose: string;
+  mimeType: string;
+  sizeBytes: number;
+  dataUri: string;
+  capturedBy: string;
+  createdAt: Date;
 }
 
 const schema = new Schema<VerificationEvidenceDoc>(
@@ -27,7 +27,7 @@ const schema = new Schema<VerificationEvidenceDoc>(
     capturedBy: { type: String, required: true },
     createdAt: { type: Date, default: Date.now },
   },
-  { _id: false },
-)
+  { _id: false }
+);
 
-export const VerificationEvidenceSchema = schema
+export const VerificationEvidenceSchema = schema;

@@ -1,9 +1,14 @@
-import { OPS, TILL } from '../../shared/access.js'
-import { ACTIVE, CANCELLED, COMPLETED, CONFIRMED, DRAFT, OVERTIME } from '../../shared/status.js'
-import { LESSON_LEVELS } from '../../bookingWorkflowValidators/shared.animal.validators.js'
-import type { EngineWorkflow, OperationResult, ValidationResult, WorkflowContext } from '../../shared/types.js'
-import { useEquestrianLessonValidator } from '../../bookingWorkflowValidators/wiqar/controller.equestrianLesson.validator.controller.js'
-import { useEquestrianLessonOperation } from '../../bookingWorkflowOperations/wiqar/controller.equestrianLesson.operation.controller.js'
+import { OPS, TILL } from '../../shared/access.js';
+import { ACTIVE, CANCELLED, COMPLETED, CONFIRMED, DRAFT, OVERTIME } from '../../shared/status.js';
+import { LESSON_LEVELS } from '../../bookingWorkflowValidators/shared.animal.validators.js';
+import type {
+  EngineWorkflow,
+  OperationResult,
+  ValidationResult,
+  WorkflowContext,
+} from '../../shared/types.js';
+import { useEquestrianLessonValidator } from '../../bookingWorkflowValidators/wiqar/controller.equestrianLesson.validator.controller.js';
+import { useEquestrianLessonOperation } from '../../bookingWorkflowOperations/wiqar/controller.equestrianLesson.operation.controller.js';
 
 /**
  * Equestrian Lesson.
@@ -56,14 +61,14 @@ export const equestrianLessonWorkflow: EngineWorkflow = {
       style: { backgroundColor: '#db5d5d' },
     },
   ],
-}
+};
 
 export const LaunchEquestrianLessonControl = async (
   transitionCode: string,
-  ctx: WorkflowContext,
-): Promise<ValidationResult> => useEquestrianLessonValidator(transitionCode, ctx)
+  ctx: WorkflowContext
+): Promise<ValidationResult> => useEquestrianLessonValidator(transitionCode, ctx);
 
 export const LaunchEquestrianLessonOperation = async (
   transitionCode: string,
-  ctx: WorkflowContext,
-): Promise<OperationResult> => useEquestrianLessonOperation(transitionCode, ctx)
+  ctx: WorkflowContext
+): Promise<OperationResult> => useEquestrianLessonOperation(transitionCode, ctx);

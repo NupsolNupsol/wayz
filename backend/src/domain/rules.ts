@@ -1,60 +1,64 @@
-import { ENGINE_KINDS, type EngineKind } from './types.js'
+import { ENGINE_KINDS, type EngineKind } from './types.js';
 
 export interface TimerRule {
-  startsOn: 'FULFILMENT' | 'PAYMENT'
-  startDelayMin: number
+  startsOn: 'FULFILMENT' | 'PAYMENT';
+  startDelayMin: number;
 }
 
 export interface RentalRules {
-  graceMin: number
-  statedGraceMin: number
-  overtimeBlockMin: number
-  replacementBonusMin: number
-  wrongStationPenalty: number
-  timers: Record<EngineKind, TimerRule>
+  graceMin: number;
+  statedGraceMin: number;
+  overtimeBlockMin: number;
+  replacementBonusMin: number;
+  wrongStationPenalty: number;
+  timers: Record<EngineKind, TimerRule>;
 }
 
 export type RentalRulesPatch = Partial<Omit<RentalRules, 'timers'>> & {
-  timers?: Partial<Record<EngineKind, TimerRule>>
-}
+  timers?: Partial<Record<EngineKind, TimerRule>>;
+};
 
 export interface ShiftWindow {
-  startsAt: string
-  endsAt: string
+  startsAt: string;
+  endsAt: string;
 }
 
-export const DEFAULT_SHIFT_WINDOW: ShiftWindow = { startsAt: '15:00', endsAt: '01:00' }
+export const DEFAULT_SHIFT_WINDOW: ShiftWindow = { startsAt: '15:00', endsAt: '01:00' };
 
-const HHMM = /^([01]\d|2[0-3]):[0-5]\d$/
+const HHMM = /^([01]\d|2[0-3]):[0-5]\d$/;
 
 export function resolveShiftWindow(stored?: Partial<ShiftWindow> | null): ShiftWindow {
   return {
-    startsAt: HHMM.test(stored?.startsAt ?? '') ? (stored!.startsAt as string) : DEFAULT_SHIFT_WINDOW.startsAt,
-    endsAt: HHMM.test(stored?.endsAt ?? '') ? (stored!.endsAt as string) : DEFAULT_SHIFT_WINDOW.endsAt,
-  }
+    startsAt: HHMM.test(stored?.startsAt ?? '')
+      ? (stored!.startsAt as string)
+      : DEFAULT_SHIFT_WINDOW.startsAt,
+    endsAt: HHMM.test(stored?.endsAt ?? '')
+      ? (stored!.endsAt as string)
+      : DEFAULT_SHIFT_WINDOW.endsAt,
+  };
 }
 
 export function isValidClock(value: string): boolean {
-  return HHMM.test(value)
+  return HHMM.test(value);
 }
 
 export function shiftWindowMinutes(window: ShiftWindow): number {
-  const [sh, sm] = window.startsAt.split(':').map(Number)
-  const [eh, em] = window.endsAt.split(':').map(Number)
-  const start = sh * 60 + sm
-  const end = eh * 60 + em
-  return end > start ? end - start : 24 * 60 - start + end
+  const [sh, sm] = window.startsAt.split(':').map(Number);
+  const [eh, em] = window.endsAt.split(':').map(Number);
+  const start = sh * 60 + sm;
+  const end = eh * 60 + em;
+  return end > start ? end - start : 24 * 60 - start + end;
 }
 
 export interface PenaltyRule {
-  code: string
-  label: string
-  amount: number | null
-  engineKind: EngineKind | null
+  code: string;
+  label: string;
+  amount: number | null;
+  engineKind: EngineKind | null;
 }
 
-const FULFILMENT: TimerRule = { startsOn: 'FULFILMENT', startDelayMin: 0 }
-const FROM_PAYMENT: TimerRule = { startsOn: 'PAYMENT', startDelayMin: 5 }
+const FULFILMENT: TimerRule = { startsOn: 'FULFILMENT', startDelayMin: 0 };
+const FROM_PAYMENT: TimerRule = { startsOn: 'PAYMENT', startDelayMin: 5 };
 
 export const DEFAULT_RENTAL_RULES: RentalRules = {
   graceMin: 15,
@@ -77,34 +81,74 @@ export const DEFAULT_RENTAL_RULES: RentalRules = {
     PHOTOGRAPHY: FROM_PAYMENT,
     GROUP_PACKAGE: FROM_PAYMENT,
   },
-}
+};
 
 export const DEFAULT_PENALTY_SCHEDULE: PenaltyRule[] = [
-  { code: 'STROLLER_DAMAGE', label: "Children's stroller damage", amount: 150, engineKind: 'MOBILITY' },
-  { code: 'WHEELCHAIR_DAMAGE', label: 'Wheelchair / special needs cart damage', amount: 200, engineKind: 'MOBILITY' },
+  {
+    code: 'STROLLER_DAMAGE',
+    label: "Children's stroller damage",
+    amount: 150,
+    engineKind: 'MOBILITY',
+  },
+  {
+    code: 'WHEELCHAIR_DAMAGE',
+    label: 'Wheelchair / special needs cart damage',
+    amount: 200,
+    engineKind: 'MOBILITY',
+  },
   { code: 'SCOOTER_DAMAGE', label: 'Electric scooter damage', amount: 500, engineKind: 'MOBILITY' },
-  { code: 'CHILD_OPERATING', label: 'Child operating an electric scooter', amount: 500, engineKind: 'MOBILITY' },
-  { code: 'NON_RENTER_OPERATING', label: 'Non-renter operating an electric scooter', amount: 200, engineKind: 'MOBILITY' },
-  { code: 'LATE_RETURN_0100', label: 'Returning a vehicle after 01:00', amount: 200, engineKind: 'MOBILITY' },
-  { code: 'TWO_ON_ONE_SEAT', label: 'Two people on a single-seat scooter', amount: 200, engineKind: 'MOBILITY' },
+  {
+    code: 'CHILD_OPERATING',
+    label: 'Child operating an electric scooter',
+    amount: 500,
+    engineKind: 'MOBILITY',
+  },
+  {
+    code: 'NON_RENTER_OPERATING',
+    label: 'Non-renter operating an electric scooter',
+    amount: 200,
+    engineKind: 'MOBILITY',
+  },
+  {
+    code: 'LATE_RETURN_0100',
+    label: 'Returning a vehicle after 01:00',
+    amount: 200,
+    engineKind: 'MOBILITY',
+  },
+  {
+    code: 'TWO_ON_ONE_SEAT',
+    label: 'Two people on a single-seat scooter',
+    amount: 200,
+    engineKind: 'MOBILITY',
+  },
   { code: 'LOST_VEHICLE', label: 'Lost vehicle', amount: null, engineKind: 'MOBILITY' },
-  { code: 'WRONG_STATION_RETURN', label: 'Returning a vehicle to a different station', amount: 25, engineKind: null },
-]
+  {
+    code: 'WRONG_STATION_RETURN',
+    label: 'Returning a vehicle to a different station',
+    amount: 25,
+    engineKind: null,
+  },
+];
 
 const clampMin = (value: unknown, fallback: number): number => {
-  const n = Number(value)
-  return Number.isFinite(n) && n >= 0 ? n : fallback
-}
+  const n = Number(value);
+  return Number.isFinite(n) && n >= 0 ? n : fallback;
+};
 
 export function resolveRentalRules(stored?: RentalRulesPatch | null): RentalRules {
-  const base = DEFAULT_RENTAL_RULES
-  const timers = {} as Record<EngineKind, TimerRule>
+  const base = DEFAULT_RENTAL_RULES;
+  const timers = {} as Record<EngineKind, TimerRule>;
   for (const engine of ENGINE_KINDS) {
-    const kept = stored?.timers?.[engine]
+    const kept = stored?.timers?.[engine];
     timers[engine] = {
-      startsOn: kept?.startsOn === 'PAYMENT' ? 'PAYMENT' : kept?.startsOn === 'FULFILMENT' ? 'FULFILMENT' : base.timers[engine].startsOn,
+      startsOn:
+        kept?.startsOn === 'PAYMENT'
+          ? 'PAYMENT'
+          : kept?.startsOn === 'FULFILMENT'
+            ? 'FULFILMENT'
+            : base.timers[engine].startsOn,
       startDelayMin: clampMin(kept?.startDelayMin, base.timers[engine].startDelayMin),
-    }
+    };
   }
   return {
     graceMin: clampMin(stored?.graceMin, base.graceMin),
@@ -113,46 +157,59 @@ export function resolveRentalRules(stored?: RentalRulesPatch | null): RentalRule
     replacementBonusMin: clampMin(stored?.replacementBonusMin, base.replacementBonusMin),
     wrongStationPenalty: clampMin(stored?.wrongStationPenalty, base.wrongStationPenalty),
     timers,
-  }
+  };
 }
 
 export function resolvePenaltySchedule(stored?: PenaltyRule[] | null): PenaltyRule[] {
-  return stored?.length ? stored : DEFAULT_PENALTY_SCHEDULE
+  return stored?.length ? stored : DEFAULT_PENALTY_SCHEDULE;
 }
 
 export function penaltyAmount(schedule: PenaltyRule[], code: string): number | null | undefined {
-  return schedule.find((rule) => rule.code === code)?.amount
+  return schedule.find((rule) => rule.code === code)?.amount;
 }
 
 export interface DiscountReason {
-  code: string
-  label: string
+  code: string;
+  label: string;
   /** Optional: what the customer reads on the printed slip. Falls back to `label`. */
-  labelAr?: string
-  maxPercent: number
-  needsApproval?: boolean
+  labelAr?: string;
+  maxPercent: number;
+  needsApproval?: boolean;
 }
 
 export const DEFAULT_DISCOUNT_REASONS: DiscountReason[] = [
   { code: 'EMPLOYEE', label: 'Employee', labelAr: 'موظف', maxPercent: 100 },
   { code: 'MANAGER', label: 'Manager decision', labelAr: 'قرار المدير', maxPercent: 100 },
   { code: 'VIP_SELA', label: 'VIP / SELA member', labelAr: 'عضو مميز / سلا', maxPercent: 100 },
-  { code: 'SERVICE_RECOVERY', label: 'Something went wrong', labelAr: 'تعويض عن خلل في الخدمة', maxPercent: 50 },
+  {
+    code: 'SERVICE_RECOVERY',
+    label: 'Something went wrong',
+    labelAr: 'تعويض عن خلل في الخدمة',
+    maxPercent: 50,
+  },
   { code: 'PROMOTION', label: 'Promotion', labelAr: 'عرض ترويجي', maxPercent: 30 },
-]
+];
 
-export function resolveDiscountReasons(stored?: Partial<DiscountReason>[] | null): DiscountReason[] {
-  if (!Array.isArray(stored) || stored.length === 0) return DEFAULT_DISCOUNT_REASONS
+export function resolveDiscountReasons(
+  stored?: Partial<DiscountReason>[] | null
+): DiscountReason[] {
+  if (!Array.isArray(stored) || stored.length === 0) return DEFAULT_DISCOUNT_REASONS;
   const clean = stored
-    .filter((r) => typeof r?.code === 'string' && r.code.trim() && typeof r?.label === 'string' && r.label.trim())
+    .filter(
+      (r) =>
+        typeof r?.code === 'string' &&
+        r.code.trim() &&
+        typeof r?.label === 'string' &&
+        r.label.trim()
+    )
     .map((r) => ({
       code: r.code!.trim().toUpperCase().slice(0, 40),
       label: r.label!.trim().slice(0, 80),
       labelAr: (r.labelAr ?? '').trim().slice(0, 80) || undefined,
       maxPercent: Math.min(100, Math.max(0, Number(r.maxPercent ?? 100))),
       needsApproval: !!r.needsApproval,
-    }))
-  return clean.length ? clean : DEFAULT_DISCOUNT_REASONS
+    }));
+  return clean.length ? clean : DEFAULT_DISCOUNT_REASONS;
 }
 
 /* ------------------------------------------------------------------------------------- */
@@ -182,9 +239,9 @@ export function resolveDiscountReasons(stored?: Partial<DiscountReason>[] | null
  */
 export interface TransferRules {
   /** Roles that may raise a transfer order. §7.4: Project Manager or Supervisor. */
-  requesters: string[]
+  requesters: string[];
   /** Roles that may approve one. See the note above — the specification contradicts itself. */
-  approvers: string[]
+  approvers: string[];
   /**
    * Whether the person who raised a transfer may also approve it.
    *
@@ -194,7 +251,7 @@ export interface TransferRules {
    *
    * Not stated either way in the specification: **ASSUMPTION**, and one switch to change.
    */
-  selfApproval: boolean
+  selfApproval: boolean;
 }
 
 export const DEFAULT_TRANSFER_RULES: TransferRules = {
@@ -202,7 +259,7 @@ export const DEFAULT_TRANSFER_RULES: TransferRules = {
   // §7.4. The §11.2 reading is ['PROJECT_MANAGER', 'TENANT_ADMIN'].
   approvers: ['ACCOUNTANT', 'HR'],
   selfApproval: false,
-}
+};
 
 /** The transfer policy in force, falling back to the documented default. */
 export function resolveTransferRules(stored?: Partial<TransferRules> | null): TransferRules {
@@ -210,7 +267,7 @@ export function resolveTransferRules(stored?: Partial<TransferRules> | null): Tr
     requesters: stored?.requesters?.length ? stored.requesters : DEFAULT_TRANSFER_RULES.requesters,
     approvers: stored?.approvers?.length ? stored.approvers : DEFAULT_TRANSFER_RULES.approvers,
     selfApproval: stored?.selfApproval ?? DEFAULT_TRANSFER_RULES.selfApproval,
-  }
+  };
 }
 
 /* ------------------------------------------------------------------------------------- */
@@ -233,18 +290,18 @@ export function resolveTransferRules(stored?: Partial<TransferRules> | null): Tr
  */
 export interface ProcurementRules {
   /** §8.2 — Administrative Manager, which is the `HR` base role on this platform. */
-  standardApprovers: string[]
+  standardApprovers: string[];
   /** §8.2 — CEO or Project Manager. */
-  highValueApprovers: string[]
+  highValueApprovers: string[];
   /** ASSUMPTION: the specification says "high-value" and never says what that is. */
-  highValueThreshold: number
+  highValueThreshold: number;
   /**
    * §8.2: *"Alert generated when any item falls below a configurable reorder point."*
    *
    * The specification says configurable and gives no default; §6.5 mentions 20% of par level
    * for visitor feed, which is the only figure offered anywhere and is used here.
    */
-  reorderPointPct: number
+  reorderPointPct: number;
   /**
    * Whether the person who raised a purchase order may also approve it.
    *
@@ -252,7 +309,7 @@ export interface ProcurementRules {
    * raiser (Purchasing Agent) from the approvers (Administrative Manager, CEO, Project
    * Manager) in every reading, so self-approval would only arise if somebody held both roles.
    */
-  selfApproval: boolean
+  selfApproval: boolean;
 }
 
 export const DEFAULT_PROCUREMENT_RULES: ProcurementRules = {
@@ -261,9 +318,11 @@ export const DEFAULT_PROCUREMENT_RULES: ProcurementRules = {
   highValueThreshold: 5000,
   reorderPointPct: 20,
   selfApproval: false,
-}
+};
 
-export function resolveProcurementRules(stored?: Partial<ProcurementRules> | null): ProcurementRules {
+export function resolveProcurementRules(
+  stored?: Partial<ProcurementRules> | null
+): ProcurementRules {
   return {
     standardApprovers: stored?.standardApprovers?.length
       ? stored.standardApprovers
@@ -274,7 +333,7 @@ export function resolveProcurementRules(stored?: Partial<ProcurementRules> | nul
     highValueThreshold: stored?.highValueThreshold ?? DEFAULT_PROCUREMENT_RULES.highValueThreshold,
     reorderPointPct: stored?.reorderPointPct ?? DEFAULT_PROCUREMENT_RULES.reorderPointPct,
     selfApproval: stored?.selfApproval ?? DEFAULT_PROCUREMENT_RULES.selfApproval,
-  }
+  };
 }
 
 /**
@@ -290,5 +349,5 @@ export const INVENTORY_CATEGORIES = [
   'RETAIL_MERCHANDISE',
   'PHOTOGRAPHY_CONSUMABLES',
   'OPERATIONAL_SUPPLIES',
-] as const
-export type InventoryCategory = (typeof INVENTORY_CATEGORIES)[number]
+] as const;
+export type InventoryCategory = (typeof INVENTORY_CATEGORIES)[number];

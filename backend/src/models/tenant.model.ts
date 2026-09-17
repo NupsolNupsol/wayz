@@ -1,57 +1,68 @@
-import { Schema } from 'mongoose'
-import type { EngineKind, TenantBranding } from '../domain/types.js'
-import type { PenaltyRule, RentalRulesPatch, TransferRules, ProcurementRules } from '../domain/rules.js'
+import { Schema } from 'mongoose';
+import type { EngineKind, TenantBranding } from '../domain/types.js';
+import type {
+  PenaltyRule,
+  RentalRulesPatch,
+  TransferRules,
+  ProcurementRules,
+} from '../domain/rules.js';
 
 export interface TenantDoc {
-  _id: string
-  name: string
-  legalName: string
-  crNumber: string
-  vatNumber: string
-  enabledEngines: EngineKind[]
-  branding: TenantBranding
-  vatRate: number
-  zakatRate: number
-  currency: string
+  _id: string;
+  name: string;
+  legalName: string;
+  crNumber: string;
+  vatNumber: string;
+  enabledEngines: EngineKind[];
+  branding: TenantBranding;
+  vatRate: number;
+  zakatRate: number;
+  currency: string;
   /** The seller address the e-invoice XML needs. See `zatcaAddressSchema`. */
   zatcaAddress: {
-    street: string
-    building: string
-    additionalNumber: string
-    district: string
-    city: string
-    postalCode: string
-    countrySubentity: string
-    countryCode: string
-  }
+    street: string;
+    building: string;
+    additionalNumber: string;
+    district: string;
+    city: string;
+    postalCode: string;
+    countrySubentity: string;
+    countryCode: string;
+  };
   company: {
-    address: string
-    city: string
-    country: string
-    phone: string
-    email: string
-    website: string
-  }
+    address: string;
+    city: string;
+    country: string;
+    phone: string;
+    email: string;
+    website: string;
+  };
   settings: {
-    timezone: string
-    locale: string
-    gracePeriodMin: number
-    overtimeBlockMinutes: number
-    expiryWarningMinutes: number
-    paymentMethods: string[]
-    verificationChannels: string[]
-    autoPrintReceipt: boolean
-  }
-  rentalRules: RentalRulesPatch
+    timezone: string;
+    locale: string;
+    gracePeriodMin: number;
+    overtimeBlockMinutes: number;
+    expiryWarningMinutes: number;
+    paymentMethods: string[];
+    verificationChannels: string[];
+    autoPrintReceipt: boolean;
+  };
+  rentalRules: RentalRulesPatch;
   /** Who raises and who approves an animal transfer. See TransferRules — the spec conflicts. */
-  transferRules?: Partial<TransferRules>
+  transferRules?: Partial<TransferRules>;
   /** Who approves a purchase order, and where "high-value" starts. See ProcurementRules. */
-  procurementRules?: Partial<ProcurementRules>
-  shiftWindow?: { startsAt?: string; endsAt?: string }
-  discountReasons?: { code: string; label: string; labelAr?: string; maxPercent?: number; needsApproval?: boolean }[]
-  penaltySchedule: PenaltyRule[]
-  createdAt: Date
-  updatedAt: Date
+  procurementRules?: Partial<ProcurementRules>;
+  shiftWindow?: { startsAt?: string; endsAt?: string };
+  discountReasons?: {
+    code: string;
+    label: string;
+    labelAr?: string;
+    maxPercent?: number;
+    needsApproval?: boolean;
+  }[];
+  penaltySchedule: PenaltyRule[];
+  createdAt: Date;
+  updatedAt: Date;
 }
 
 const brandingSchema = new Schema<TenantBranding>(
@@ -62,8 +73,8 @@ const brandingSchema = new Schema<TenantBranding>(
     fontFamily: { type: String, default: 'system-ui, -apple-system, Segoe UI, Roboto, sans-serif' },
     logoText: { type: String, default: 'LF' },
   },
-  { _id: false },
-)
+  { _id: false }
+);
 
 const companySchema = new Schema(
   {
@@ -74,8 +85,8 @@ const companySchema = new Schema(
     email: { type: String, default: '' },
     website: { type: String, default: '' },
   },
-  { _id: false },
-)
+  { _id: false }
+);
 
 /**
  * The seller's address, in the shape ZATCA requires.
@@ -103,8 +114,8 @@ const zatcaAddressSchema = new Schema(
     countrySubentity: { type: String, default: '' },
     countryCode: { type: String, default: 'SA' },
   },
-  { _id: false },
-)
+  { _id: false }
+);
 
 const settingsSchema = new Schema(
   {
@@ -117,8 +128,8 @@ const settingsSchema = new Schema(
     verificationChannels: { type: [String], default: ['WHATSAPP', 'SMS', 'EMAIL'] },
     autoPrintReceipt: { type: Boolean, default: true },
   },
-  { _id: false },
-)
+  { _id: false }
+);
 
 const penaltyRuleSchema = new Schema<PenaltyRule>(
   {
@@ -127,8 +138,8 @@ const penaltyRuleSchema = new Schema<PenaltyRule>(
     amount: { type: Number, default: null },
     engineKind: { type: String, default: null },
   },
-  { _id: false },
-)
+  { _id: false }
+);
 
 const tenantSchema = new Schema<TenantDoc>(
   {
@@ -163,7 +174,7 @@ const tenantSchema = new Schema<TenantDoc>(
     discountReasons: { type: Schema.Types.Mixed, default: () => [] },
     penaltySchedule: { type: [penaltyRuleSchema], default: () => [] },
   },
-  { timestamps: true, _id: false },
-)
+  { timestamps: true, _id: false }
+);
 
-export const TenantSchema = tenantSchema
+export const TenantSchema = tenantSchema;

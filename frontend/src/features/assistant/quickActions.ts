@@ -6,9 +6,9 @@
  * differ because a button has to be short and a question to a model should not be.
  */
 export interface QuickAction {
-  id: string
-  labelKey: string
-  questionKey: string
+  id: string;
+  labelKey: string;
+  questionKey: string;
 }
 
 export const QUICK_ACTIONS: QuickAction[] = [
@@ -16,4 +16,4 @@ export const QUICK_ACTIONS: QuickAction[] = [
   { id: 'what-can-i-do', labelKey: 'quick.whatCanIDo', questionKey: 'quick.whatCanIDoQuestion' },
   { id: 'next-step', labelKey: 'quick.nextStep', questionKey: 'quick.nextStepQuestion' },
   { id: 'how-to-use', labelKey: 'quick.howToUse', questionKey: 'quick.howToUseQuestion' },
-]
+];

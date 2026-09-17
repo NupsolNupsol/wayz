@@ -1,8 +1,13 @@
-import { OPS, TILL } from '../../shared/access.js'
-import { ACTIVE, CANCELLED, COMPLETED, CONFIRMED, DRAFT, OVERTIME } from '../../shared/status.js'
-import type { EngineWorkflow, OperationResult, ValidationResult, WorkflowContext } from '../../shared/types.js'
-import { usePhotographyValidator } from '../../bookingWorkflowValidators/wiqar/controller.photography.validator.controller.js'
-import { usePhotographyOperation } from '../../bookingWorkflowOperations/wiqar/controller.photography.operation.controller.js'
+import { OPS, TILL } from '../../shared/access.js';
+import { ACTIVE, CANCELLED, COMPLETED, CONFIRMED, DRAFT, OVERTIME } from '../../shared/status.js';
+import type {
+  EngineWorkflow,
+  OperationResult,
+  ValidationResult,
+  WorkflowContext,
+} from '../../shared/types.js';
+import { usePhotographyValidator } from '../../bookingWorkflowValidators/wiqar/controller.photography.validator.controller.js';
+import { usePhotographyOperation } from '../../bookingWorkflowOperations/wiqar/controller.photography.operation.controller.js';
 
 /**
  * Professional Photo Session.
@@ -55,14 +60,14 @@ export const photographyWorkflow: EngineWorkflow = {
       style: { backgroundColor: '#db5d5d' },
     },
   ],
-}
+};
 
 export const LaunchPhotographyControl = async (
   transitionCode: string,
-  ctx: WorkflowContext,
-): Promise<ValidationResult> => usePhotographyValidator(transitionCode, ctx)
+  ctx: WorkflowContext
+): Promise<ValidationResult> => usePhotographyValidator(transitionCode, ctx);
 
 export const LaunchPhotographyOperation = async (
   transitionCode: string,
-  ctx: WorkflowContext,
-): Promise<OperationResult> => usePhotographyOperation(transitionCode, ctx)
+  ctx: WorkflowContext
+): Promise<OperationResult> => usePhotographyOperation(transitionCode, ctx);

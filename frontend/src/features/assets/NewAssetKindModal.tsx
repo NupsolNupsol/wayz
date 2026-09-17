@@ -1,16 +1,32 @@
-import { useEffect, useState } from 'react'
-import { useTranslation } from 'react-i18next'
-import { Modal } from '@/components/Modal'
-import { Button, Field, FieldGroupTitle } from '@/components/ui'
-import { Select } from '@/components/Select'
-import { NumberInput } from '@/components/NumberInput'
-import { useCreateAssetKind, useManagerStaff } from '@/hooks'
-import { billingForSaleUnit, billingLabel, chargesForTime, defaultSaleUnitFor, engineLabel, saleUnitsFor } from '@/config/engineMeta'
-import { useTenantEngines } from '@/hooks/useTenantEngines'
-import { ApiError } from '@/api/client'
-import { toast } from '@/state/toastStore'
-import { SALE_TYPES, SALE_UNITS, type AssetKind, type AssetGate, type AssetKiosk, type AssetStation, type SaleType, type SaleUnit } from '@/api/asset.api'
-import type { EngineKind } from '@/api/types'
+import { useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
+import { Modal } from '@/components/Modal';
+import { Button, Field, FieldGroupTitle } from '@/components/ui';
+import { Select } from '@/components/Select';
+import { NumberInput } from '@/components/NumberInput';
+import { useCreateAssetKind, useManagerStaff } from '@/hooks';
+import {
+  billingForSaleUnit,
+  billingLabel,
+  chargesForTime,
+  defaultSaleUnitFor,
+  engineLabel,
+  saleUnitsFor,
+} from '@/config/engineMeta';
+import { useTenantEngines } from '@/hooks/useTenantEngines';
+import { ApiError } from '@/api/client';
+import { toast } from '@/state/toastStore';
+import {
+  SALE_TYPES,
+  SALE_UNITS,
+  type AssetKind,
+  type AssetGate,
+  type AssetKiosk,
+  type AssetStation,
+  type SaleType,
+  type SaleUnit,
+} from '@/api/asset.api';
+import type { EngineKind } from '@/api/types';
 
 /**
  * What each activity runs on.
@@ -39,11 +55,11 @@ const RUNS_ON: Record<EngineKind, AssetKind> = {
   ANIMAL_FEEDING: 'ANIMAL',
   PHOTOGRAPHY: 'ANIMAL',
   GROUP_PACKAGE: 'ANIMAL',
-}
+};
 
 /** The activities that run on a shape — one for most, seven for an animal. */
 const activitiesOn = (shape: AssetKind, adopted: EngineKind[]) =>
-  adopted.filter((kind) => RUNS_ON[kind] === shape)
+  adopted.filter((kind) => RUNS_ON[kind] === shape);
 
 export function NewAssetKindModal({
   open,
@@ -54,49 +70,51 @@ export function NewAssetKindModal({
   defaultEngine,
   onCreated,
 }: {
-  open: boolean
-  onClose: () => void
-  stations: AssetStation[]
-  kiosks: AssetKiosk[]
-  gates: AssetGate[]
-  defaultEngine?: EngineKind
-  onCreated?: (id: string) => void
+  open: boolean;
+  onClose: () => void;
+  stations: AssetStation[];
+  kiosks: AssetKiosk[];
+  gates: AssetGate[];
+  defaultEngine?: EngineKind;
+  onCreated?: (id: string) => void;
 }) {
-  const { t } = useTranslation(['assets', 'common'])
+  const { t } = useTranslation(['assets', 'common']);
   /* Only the activities this company runs — see useTenantEngines. */
-  const engines = useTenantEngines()
-  const create = useCreateAssetKind()
+  const engines = useTenantEngines();
+  const create = useCreateAssetKind();
 
   /*
    * The shapes this company has resources for — derived from what it adopted, never listed.
    * WAYZ gets compartments, vehicles and boats; WIQAR gets animals; a company running both
    * gets both, without either list being written down anywhere.
    */
-  const shapesOffered = [...new Set(engines.map((kind) => RUNS_ON[kind]))].filter(Boolean)
+  const shapesOffered = [...new Set(engines.map((kind) => RUNS_ON[kind]))].filter(Boolean);
 
-  const [kind, setKind] = useState<AssetKind>('COMPARTMENT')
-  const [engineKind, setEngineKind] = useState<EngineKind>(defaultEngine ?? 'SHOP_AND_DROP')
-  const [name, setName] = useState('')
-  const [basePrice, setBasePrice] = useState(25)
-  const [deposit, setDeposit] = useState(0)
-  const [overtime, setOvertime] = useState(0)
-  const [penalty, setPenalty] = useState(0)
-  const [saleUnit, setSaleUnit] = useState<SaleUnit>(() => defaultSaleUnitFor(defaultEngine ?? 'SHOP_AND_DROP', SALE_UNITS) as SaleUnit)
-  const [saleType, setSaleType] = useState<SaleType>('RENTAL')
+  const [kind, setKind] = useState<AssetKind>('COMPARTMENT');
+  const [engineKind, setEngineKind] = useState<EngineKind>(defaultEngine ?? 'SHOP_AND_DROP');
+  const [name, setName] = useState('');
+  const [basePrice, setBasePrice] = useState(25);
+  const [deposit, setDeposit] = useState(0);
+  const [overtime, setOvertime] = useState(0);
+  const [penalty, setPenalty] = useState(0);
+  const [saleUnit, setSaleUnit] = useState<SaleUnit>(
+    () => defaultSaleUnitFor(defaultEngine ?? 'SHOP_AND_DROP', SALE_UNITS) as SaleUnit
+  );
+  const [saleType, setSaleType] = useState<SaleType>('RENTAL');
 
-  const [w, setW] = useState(40)
-  const [h, setH] = useState(40)
-  const [d, setD] = useState(60)
-  const [maxWeight, setMaxWeight] = useState(25)
-  const [bagCount, setBagCount] = useState(2)
-  const [seats, setSeats] = useState(2)
+  const [w, setW] = useState(40);
+  const [h, setH] = useState(40);
+  const [d, setD] = useState(60);
+  const [maxWeight, setMaxWeight] = useState(25);
+  const [bagCount, setBagCount] = useState(2);
+  const [seats, setSeats] = useState(2);
 
-  const [stationId, setStationId] = useState('')
-  const [kioskId, setKioskId] = useState('')
-  const [initialCount, setInitialCount] = useState(4)
+  const [stationId, setStationId] = useState('');
+  const [kioskId, setKioskId] = useState('');
+  const [initialCount, setInitialCount] = useState(4);
 
   useEffect(() => {
-    if (!open) return
+    if (!open) return;
 
     /*
      * Opens on something this company actually runs.
@@ -105,17 +123,17 @@ export function NewAssetKindModal({
      * administrator was shown a bag-locker form — dimensions in centimetres, a maximum weight,
      * a bag count — for a company that stores no bags.
      */
-    const startingEngine = defaultEngine ?? engines[0]
-    setEngineKind(startingEngine)
-    setKind(startingEngine ? RUNS_ON[startingEngine] : 'COMPARTMENT')
-    setName('')
-    setBasePrice(25)
-    setDeposit(0)
-    setOvertime(0)
-    setStationId(stations[0]?._id ?? '')
-    setKioskId('')
-    setInitialCount(4)
-  }, [open, defaultEngine, stations])
+    const startingEngine = defaultEngine ?? engines[0];
+    setEngineKind(startingEngine);
+    setKind(startingEngine ? RUNS_ON[startingEngine] : 'COMPARTMENT');
+    setName('');
+    setBasePrice(25);
+    setDeposit(0);
+    setOvertime(0);
+    setStationId(stations[0]?._id ?? '');
+    setKioskId('');
+    setInitialCount(4);
+  }, [open, defaultEngine, stations]);
 
   /*
    * Picking a shape narrows the activity to those that run on it.
@@ -124,32 +142,34 @@ export function NewAssetKindModal({
    * exception — seven experiences work one — so it narrows the list and leaves the choice.
    */
   const pickKind = (next: AssetKind) => {
-    setKind(next)
-    const runsOnIt = activitiesOn(next, engines)
-    if (runsOnIt.length > 0 && !runsOnIt.includes(engineKind)) setEngineKind(runsOnIt[0])
-    setKioskId('')
-  }
+    setKind(next);
+    const runsOnIt = activitiesOn(next, engines);
+    if (runsOnIt.length > 0 && !runsOnIt.includes(engineKind)) setEngineKind(runsOnIt[0]);
+    setKioskId('');
+  };
 
   /** Choosing the activity chooses the shape, so a boat is never asked for its dimensions in cm. */
   const pickEngine = (next: EngineKind) => {
-    setEngineKind(next)
-    setKind(RUNS_ON[next] ?? kind)
-    setKioskId('')
+    setEngineKind(next);
+    setKind(RUNS_ON[next] ?? kind);
+    setKioskId('');
 
-    const units = saleUnitsFor(next, SALE_UNITS)
-    if (!units.includes(saleUnit)) setSaleUnit(defaultSaleUnitFor(next, SALE_UNITS) as SaleUnit)
-    if (!chargesForTime(next)) setOvertime(0)
-  }
+    const units = saleUnitsFor(next, SALE_UNITS);
+    if (!units.includes(saleUnit)) setSaleUnit(defaultSaleUnitFor(next, SALE_UNITS) as SaleUnit);
+    if (!chargesForTime(next)) setOvertime(0);
+  };
 
   /** Only desks running this activity can hold these assets. */
   const desks = (station: string) =>
     // A locker kind is provisioned into a gate; anything a desk hands over goes to a desk.
     kind === 'COMPARTMENT'
       ? gates.filter((g) => g.stationId === station)
-      : kiosks.filter((k) => k.stationId === station && (!k.engineKind || k.engineKind === engineKind))
+      : kiosks.filter(
+          (k) => k.stationId === station && (!k.engineKind || k.engineKind === engineKind)
+        );
 
   /* An animal belongs to its area; naming a desk is optional. See asset.service addUnits. */
-  const heldByTheArea = kind === 'ANIMAL'
+  const heldByTheArea = kind === 'ANIMAL';
 
   /*
    * Who will be able to sell what is being created.
@@ -159,15 +179,15 @@ export function NewAssetKindModal({
    * horse added at South of 'Usfan and an agent posted to Al-Jihfa look fine on both screens
    * and meet nowhere. Naming the people turns that into something visible before saving.
    */
-  const { data: staff = [] } = useManagerStaff()
+  const { data: staff = [] } = useManagerStaff();
   const sellers = staff.filter(
     (p) =>
       p.active &&
       p.role === 'AGENT' &&
       p.stationId === stationId &&
       (p.engineKinds ?? []).includes(engineKind) &&
-      (heldByTheArea && !kioskId ? true : kind === 'COMPARTMENT' ? true : p.kioskId === kioskId),
-  )
+      (heldByTheArea && !kioskId ? true : kind === 'COMPARTMENT' ? true : p.kioskId === kioskId)
+  );
 
   const submit = () => {
     create.mutate(
@@ -183,10 +203,19 @@ export function NewAssetKindModal({
         overtimeHourlyRate: saleType === 'SALE' ? null : overtime || null,
         capacity:
           kind === 'COMPARTMENT'
-            ? { internalDimensions: { w, h, d }, maxWeight, maxRecommendedBagCount: bagCount, capacityScore: bagCount }
+            ? {
+                internalDimensions: { w, h, d },
+                maxWeight,
+                maxRecommendedBagCount: bagCount,
+                capacityScore: bagCount,
+              }
             : { seats, capacityScore: seats },
         ...(initialCount > 0 && stationId && kioskId
-          ? { initialCount, stationId, ...(kind === 'COMPARTMENT' ? { gateId: kioskId } : { kioskId: kioskId || null }) }
+          ? {
+              initialCount,
+              stationId,
+              ...(kind === 'COMPARTMENT' ? { gateId: kioskId } : { kioskId: kioskId || null }),
+            }
           : {}),
       },
       {
@@ -194,16 +223,22 @@ export function NewAssetKindModal({
           toast(
             'success',
             t('toast.kindCreated', { name: r.name }),
-            r.provisioned ? t('toast.kindProvisioned', { count: r.provisioned }) : t('toast.kindNoUnits'),
-          )
-          onClose()
-          onCreated?.(r._id)
+            r.provisioned
+              ? t('toast.kindProvisioned', { count: r.provisioned })
+              : t('toast.kindNoUnits')
+          );
+          onClose();
+          onCreated?.(r._id);
         },
         onError: (e) =>
-          toast('danger', t('toast.couldNotCreateKind'), e instanceof ApiError ? (e.errors?.join(' ') ?? e.message) : ''),
-      },
-    )
-  }
+          toast(
+            'danger',
+            t('toast.couldNotCreateKind'),
+            e instanceof ApiError ? (e.errors?.join(' ') ?? e.message) : ''
+          ),
+      }
+    );
+  };
 
   return (
     <Modal
@@ -215,7 +250,9 @@ export function NewAssetKindModal({
       testId="asset-new-kind-modal"
       footer={
         <>
-          <Button variant="ghost" onClick={onClose}>{t('common:action.cancel')}</Button>
+          <Button variant="ghost" onClick={onClose}>
+            {t('common:action.cancel')}
+          </Button>
           <Button
             onClick={submit}
             loading={create.isPending}
@@ -279,7 +316,10 @@ export function NewAssetKindModal({
           <Select
             value={saleUnit}
             onChange={(v) => setSaleUnit(v as SaleUnit)}
-            options={saleUnitsFor(engineKind, SALE_UNITS).map((value) => ({ label: t(`price.unit.${value}`), value }))}
+            options={saleUnitsFor(engineKind, SALE_UNITS).map((value) => ({
+              label: t(`price.unit.${value}`),
+              value,
+            }))}
             testId="asset-new-kind-sale-unit"
           />
         </Field>
@@ -294,17 +334,41 @@ export function NewAssetKindModal({
       </div>
       <div className="grid grid-cols-1 sm:grid-cols-4 gap-3">
         <Field label={t('price.base')} required>
-          <NumberInput min={0} step={0.5} value={basePrice} onChange={setBasePrice} testId="asset-new-kind-price" />
+          <NumberInput
+            min={0}
+            step={0.5}
+            value={basePrice}
+            onChange={setBasePrice}
+            testId="asset-new-kind-price"
+          />
         </Field>
         <Field label={t('price.deposit')}>
-          <NumberInput min={0} step={0.5} value={deposit} onChange={setDeposit} testId="asset-new-kind-deposit" />
+          <NumberInput
+            min={0}
+            step={0.5}
+            value={deposit}
+            onChange={setDeposit}
+            testId="asset-new-kind-deposit"
+          />
         </Field>
         <Field label={t('price.penalty')}>
-          <NumberInput min={0} step={0.5} value={penalty} onChange={setPenalty} testId="asset-new-kind-penalty" />
+          <NumberInput
+            min={0}
+            step={0.5}
+            value={penalty}
+            onChange={setPenalty}
+            testId="asset-new-kind-penalty"
+          />
         </Field>
         {saleType === 'RENTAL' && chargesForTime(engineKind) && (
           <Field label={t('price.overtime')}>
-            <NumberInput min={0} step={0.5} value={overtime} onChange={setOvertime} testId="asset-new-kind-overtime" />
+            <NumberInput
+              min={0}
+              step={0.5}
+              value={overtime}
+              onChange={setOvertime}
+              testId="asset-new-kind-overtime"
+            />
           </Field>
         )}
       </div>
@@ -321,10 +385,20 @@ export function NewAssetKindModal({
           </Field>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <Field label={t('newKind.maxWeight')}>
-              <NumberInput min={0} value={maxWeight} onChange={setMaxWeight} testId="asset-new-kind-weight" />
+              <NumberInput
+                min={0}
+                value={maxWeight}
+                onChange={setMaxWeight}
+                testId="asset-new-kind-weight"
+              />
             </Field>
             <Field label={t('newKind.bagCount')} hint={t('newKind.bagCountHint')}>
-              <NumberInput min={1} value={bagCount} onChange={setBagCount} testId="asset-new-kind-bags" />
+              <NumberInput
+                min={1}
+                value={bagCount}
+                onChange={setBagCount}
+                testId="asset-new-kind-bags"
+              />
             </Field>
           </div>
         </>
@@ -336,7 +410,9 @@ export function NewAssetKindModal({
          */
         <Field
           label={t('newKind.riders', { defaultValue: 'Riders at a time' })}
-          hint={t('newKind.ridersHint', { defaultValue: 'How many people one animal can take in a single session.' })}
+          hint={t('newKind.ridersHint', {
+            defaultValue: 'How many people one animal can take in a single session.',
+          })}
         >
           <NumberInput min={1} value={seats} onChange={setSeats} testId="asset-new-kind-seats" />
         </Field>
@@ -352,15 +428,21 @@ export function NewAssetKindModal({
           <Select
             value={stationId}
             onChange={(v) => {
-              setStationId(v)
-              setKioskId(heldByTheArea ? '' : (desks(v)[0]?._id ?? ''))
+              setStationId(v);
+              setKioskId(heldByTheArea ? '' : (desks(v)[0]?._id ?? ''));
             }}
             options={stations.map((s) => ({ label: s.name, value: s._id }))}
             testId="asset-new-kind-station"
           />
         </Field>
         <Field label={t('newKind.howMany')} hint={t('newKind.howManyHint')}>
-          <NumberInput min={0} max={200} value={initialCount} onChange={setInitialCount} testId="asset-new-kind-count" />
+          <NumberInput
+            min={0}
+            max={200}
+            value={initialCount}
+            onChange={setInitialCount}
+            testId="asset-new-kind-count"
+          />
         </Field>
       </div>
 
@@ -376,15 +458,25 @@ export function NewAssetKindModal({
               onChange={setKioskId}
               options={[
                 heldByTheArea
-                  ? { label: t('newKind.heldByArea', { defaultValue: 'The whole area — every counter here can sell it' }), value: '' }
-                  : { label: kind === 'COMPARTMENT' ? t('add.pickGate') : t('add.pickKiosk'), value: '' },
+                  ? {
+                      label: t('newKind.heldByArea', {
+                        defaultValue: 'The whole area — every counter here can sell it',
+                      }),
+                      value: '',
+                    }
+                  : {
+                      label: kind === 'COMPARTMENT' ? t('add.pickGate') : t('add.pickKiosk'),
+                      value: '',
+                    },
                 ...desks(stationId).map((k) => ({ label: k.name, value: k._id })),
               ]}
               testId="asset-new-kind-kiosk"
             />
           ) : heldByTheArea ? (
             <p className="text-xs text-muted" data-testid="asset-new-kind-area">
-              {t('newKind.heldByArea', { defaultValue: 'The whole area — every counter here can sell it' })}
+              {t('newKind.heldByArea', {
+                defaultValue: 'The whole area — every counter here can sell it',
+              })}
             </p>
           ) : (
             <p className="text-xs text-danger-strong" data-testid="asset-new-kind-no-kiosk">
@@ -412,5 +504,5 @@ export function NewAssetKindModal({
         </p>
       )}
     </Modal>
-  )
+  );
 }

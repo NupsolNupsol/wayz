@@ -1,6 +1,6 @@
-import { useQuery } from '@tanstack/react-query'
-import { invoiceApi } from '../api/invoice.api'
-import { qk } from './queryKeys'
+import { useQuery } from '@tanstack/react-query';
+import { invoiceApi } from '../api/invoice.api';
+import { qk } from './queryKeys';
 
 /**
  * A booking's invoice, always as it stands now.
@@ -21,6 +21,6 @@ export function useInvoice(bookingId: string, enabled = true) {
     enabled: enabled && !!bookingId,
     staleTime: 0,
     refetchOnMount: 'always',
-  })
-  return { ...query, isFresh: query.isFetchedAfterMount && !query.isFetching }
+  });
+  return { ...query, isFresh: query.isFetchedAfterMount && !query.isFetching };
 }

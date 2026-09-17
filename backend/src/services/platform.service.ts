@@ -1,4 +1,4 @@
-import bcrypt from 'bcryptjs'
+import bcrypt from 'bcryptjs';
 
 import {
   AssetUnit,
@@ -9,13 +9,13 @@ import {
   Station,
   Tenant,
   User,
-} from '../models/index.js'
-import { ApiError } from '../utils/ApiError.js'
-import { runAcrossOrganisations, runInOrg } from '../platform/orgScope.js'
-import { listCatalogue } from '../platform/activityCatalogue.js'
-import { logger } from '../config/logger.js'
-import type { EngineKind } from '../domain/types.js'
-import type { BilingualLabel } from '../interfaces/accounting.interface.js'
+} from '../models/index.js';
+import { ApiError } from '../utils/ApiError.js';
+import { runAcrossOrganisations, runInOrg } from '../platform/orgScope.js';
+import { listCatalogue } from '../platform/activityCatalogue.js';
+import { logger } from '../config/logger.js';
+import type { EngineKind } from '../domain/types.js';
+import type { BilingualLabel } from '../interfaces/accounting.interface.js';
 
 /**
  * What whoever runs the platform can see and do.
@@ -49,29 +49,29 @@ import type { BilingualLabel } from '../interfaces/accounting.interface.js'
  * no `runAcrossOrganisations` — there is no organisation filter to escape.
  */
 export async function platformAdminByEmail(email: string) {
-  return PlatformAdmin.findOne({ email: email.trim().toLowerCase(), active: true }).lean()
+  return PlatformAdmin.findOne({ email: email.trim().toLowerCase(), active: true }).lean();
 }
 
 export async function verifyPlatformAdmin(email: string, password: string) {
-  const admin = await platformAdminByEmail(email)
-  if (!admin) return null
-  const ok = await bcrypt.compare(password, admin.passwordHash)
-  if (!ok) return null
+  const admin = await platformAdminByEmail(email);
+  if (!admin) return null;
+  const ok = await bcrypt.compare(password, admin.passwordHash);
+  if (!ok) return null;
 
-  await PlatformAdmin.updateOne({ _id: admin._id }, { $set: { lastSeenAt: new Date() } })
-  return admin
+  await PlatformAdmin.updateOne({ _id: admin._id }, { $set: { lastSeenAt: new Date() } });
+  return admin;
 }
 
 /* ------------------------------------------------------------------ the organisations */
 
 export interface OrganisationSummary {
-  id: string
-  name: string
-  branding: Record<string, unknown>
-  activities: EngineKind[]
-  createdAt: Date | null
-  staff: number
-  sites: number
+  id: string;
+  name: string;
+  branding: Record<string, unknown>;
+  activities: EngineKind[];
+  createdAt: Date | null;
+  staff: number;
+  sites: number;
 }
 
 /** Every organisation, with the few numbers a console lists them by. */
@@ -80,8 +80,8 @@ export async function listOrganisations(): Promise<OrganisationSummary[]> {
   const companies = await runAcrossOrganisations(() =>
     Tenant.find({}, { name: 1, branding: 1, enabledEngines: 1, createdAt: 1 })
       .sort({ name: 1 })
-      .lean(),
-  )
+      .lean()
+  );
 
   /* Everything else, one organisation at a time, through the ordinary scoped path. */
   return Promise.all(
@@ -94,18 +94,18 @@ export async function listOrganisations(): Promise<OrganisationSummary[]> {
         createdAt: company.createdAt ?? null,
         staff: await User.countDocuments({ active: true }),
         sites: await Site.countDocuments({}),
-      })),
-    ),
-  )
+      }))
+    )
+  );
 }
 
 /* ------------------------------------------------------------------ creating one */
 
 export interface CreateOrganisationInput {
-  id: string
-  name: string
-  activities: EngineKind[]
-  branding?: Record<string, string>
+  id: string;
+  name: string;
+  activities: EngineKind[];
+  branding?: Record<string, string>;
   /**
    * Registration details, when they are known.
    *
@@ -113,8 +113,8 @@ export interface CreateOrganisationInput {
    * number arrive. An invoice cannot be issued until they are filled in — see
    * `invoice.service.ts`, which refuses by name rather than printing a blank.
    */
-  registration?: { legalName?: string; crNumber?: string; vatNumber?: string }
-  admin: { fullName: string; email: string; password: string }
+  registration?: { legalName?: string; crNumber?: string; vatNumber?: string };
+  admin: { fullName: string; email: string; password: string };
 }
 
 /**
@@ -125,7 +125,7 @@ export interface CreateOrganisationInput {
  * database means nothing here selects a database name — it is so the value stays safe to put
  * in a URL, a filename and a log line without escaping, for the rest of its life.
  */
-const ID_SHAPE = /^[a-z][a-z0-9-]{1,38}[a-z0-9]$/
+const ID_SHAPE = /^[a-z][a-z0-9-]{1,38}[a-z0-9]$/;
 
 /**
  * Creates an organisation and its first administrator.
@@ -139,19 +139,19 @@ const ID_SHAPE = /^[a-z][a-z0-9-]{1,38}[a-z0-9]$/
  * returned, logged, or written anywhere else.
  */
 export async function createOrganisation(input: CreateOrganisationInput) {
-  const id = input.id.trim().toLowerCase()
+  const id = input.id.trim().toLowerCase();
 
   if (!ID_SHAPE.test(id)) {
     throw ApiError.badRequest(
       'An organisation identifier is lowercase letters, digits and hyphens, and starts with a letter.',
-      ['For example: "wiqar", "north-coast", "atlas-leisure".'],
-    )
+      ['For example: "wiqar", "north-coast", "atlas-leisure".']
+    );
   }
 
-  const existing = await runAcrossOrganisations(() => Tenant.findById(id).lean())
-  if (existing) throw ApiError.conflict(`There is already an organisation called "${id}".`)
+  const existing = await runAcrossOrganisations(() => Tenant.findById(id).lean());
+  if (existing) throw ApiError.conflict(`There is already an organisation called "${id}".`);
 
-  const email = input.admin.email.trim().toLowerCase()
+  const email = input.admin.email.trim().toLowerCase();
 
   /*
    * An address has to be unique across the whole platform, not just inside the new company.
@@ -159,20 +159,20 @@ export async function createOrganisation(input: CreateOrganisationInput) {
    * Sign-in is one neutral door and the account decides which organisation it opens, so two
    * people at different companies sharing an address would make that decision ambiguous.
    */
-  const taken = await runAcrossOrganisations(() => User.findOne({ email }, { tenantId: 1 }).lean())
+  const taken = await runAcrossOrganisations(() => User.findOne({ email }, { tenantId: 1 }).lean());
   if (taken) {
-    throw ApiError.conflict(`${email} already belongs to somebody at "${taken.tenantId}".`)
+    throw ApiError.conflict(`${email} already belongs to somebody at "${taken.tenantId}".`);
   }
 
-  const catalogue = listCatalogue().map((a) => a.key)
-  const unknown = input.activities.filter((a) => !catalogue.includes(a))
+  const catalogue = listCatalogue().map((a) => a.key);
+  const unknown = input.activities.filter((a) => !catalogue.includes(a));
   if (unknown.length > 0) {
     throw ApiError.badRequest(`The platform has no activity called ${unknown.join(', ')}.`, [
       `Registered activities: ${catalogue.join(', ')}.`,
-    ])
+    ]);
   }
 
-  const passwordHash = await bcrypt.hash(input.admin.password, 10)
+  const passwordHash = await bcrypt.hash(input.admin.password, 10);
 
   /*
    * Written from inside the new organisation, so the scoping layer stamps `tenantId` exactly
@@ -188,7 +188,7 @@ export async function createOrganisation(input: CreateOrganisationInput) {
       enabledEngines: input.activities,
       /* Only what was given; the schema fills the rest with the house palette. */
       ...(input.branding ? { branding: input.branding } : {}),
-    })
+    });
 
     await User.create({
       _id: `usr_${id}_admin`,
@@ -200,58 +200,59 @@ export async function createOrganisation(input: CreateOrganisationInput) {
       active: true,
       setUp: true,
       engineKinds: input.activities,
-    })
+    });
 
-    return Tenant.findById(id).lean()
-  })
+    return Tenant.findById(id).lean();
+  });
 
-  logger.info('Organisation created', { organisation: id, activities: input.activities.length })
-  return created
+  logger.info('Organisation created', { organisation: id, activities: input.activities.length });
+  return created;
 }
 
 /** Changes what an organisation has adopted, or how it looks. */
 export async function updateOrganisation(
   id: string,
-  patch: { name?: string; activities?: EngineKind[]; branding?: Record<string, string> },
+  patch: { name?: string; activities?: EngineKind[]; branding?: Record<string, string> }
 ) {
-  const catalogue = listCatalogue().map((a) => a.key)
+  const catalogue = listCatalogue().map((a) => a.key);
 
   return runInOrg(id, async () => {
-    const company = await Tenant.findById(id)
-    if (!company) throw ApiError.notFound('No such organisation.')
+    const company = await Tenant.findById(id);
+    if (!company) throw ApiError.notFound('No such organisation.');
 
-    if (patch.name) company.name = patch.name.trim()
+    if (patch.name) company.name = patch.name.trim();
 
     if (patch.activities) {
-      const unknown = patch.activities.filter((a) => !catalogue.includes(a))
-      if (unknown.length > 0) throw ApiError.badRequest(`The platform has no activity called ${unknown.join(', ')}.`)
-      company.enabledEngines = patch.activities
-      company.markModified('enabledEngines')
+      const unknown = patch.activities.filter((a) => !catalogue.includes(a));
+      if (unknown.length > 0)
+        throw ApiError.badRequest(`The platform has no activity called ${unknown.join(', ')}.`);
+      company.enabledEngines = patch.activities;
+      company.markModified('enabledEngines');
     }
 
     if (patch.branding) {
-      company.branding = { ...(company.branding ?? {}), ...patch.branding }
-      company.markModified('branding')
+      company.branding = { ...(company.branding ?? {}), ...patch.branding };
+      company.markModified('branding');
     }
 
-    await company.save()
-    return company.toObject()
-  })
+    await company.save();
+    return company.toObject();
+  });
 }
 
 /* ------------------------------------------------------------------ reports and analytics */
 
 export interface OrganisationFigures {
-  id: string
-  name: string
-  staff: number
-  sites: number
-  stations: number
-  resources: number
-  activities: EngineKind[]
-  bookings: number
-  revenue: number
-  byActivity: { kind: EngineKind; bookings: number; revenue: number }[]
+  id: string;
+  name: string;
+  staff: number;
+  sites: number;
+  stations: number;
+  resources: number;
+  activities: EngineKind[];
+  bookings: number;
+  revenue: number;
+  byActivity: { kind: EngineKind; bookings: number; revenue: number }[];
 }
 
 /**
@@ -260,9 +261,13 @@ export interface OrganisationFigures {
  * Read inside that organisation, so these are the same numbers its own reporting screens show.
  * A platform report that disagreed with the tenant's own would be worse than no report.
  */
-async function figuresFor(company: { _id: string; name: string; enabledEngines?: string[] }, from: Date, to: Date) {
+async function figuresFor(
+  company: { _id: string; name: string; enabledEngines?: string[] },
+  from: Date,
+  to: Date
+) {
   return runInOrg(company._id, async (): Promise<OrganisationFigures> => {
-    const window = { createdAt: { $gte: from, $lte: to } }
+    const window = { createdAt: { $gte: from, $lte: to } };
 
     const [staff, sites, stations, resources, bookings, paid] = await Promise.all([
       User.countDocuments({ active: true }),
@@ -274,24 +279,26 @@ async function figuresFor(company: { _id: string; name: string; enabledEngines?:
         { $match: { ...window, status: 'PAID' } },
         { $group: { _id: null, total: { $sum: '$amount' } } },
       ]),
-    ])
+    ]);
 
     /*
      * Per activity, from bookings rather than from the adopted list — an activity adopted last
      * week and not yet sold should read zero, not be missing.
      */
-    const grouped = await Booking.aggregate<{ _id: EngineKind; bookings: number; revenue: number }>([
-      { $match: window },
-      { $group: { _id: '$engineKind', bookings: { $sum: 1 }, revenue: { $sum: '$total' } } },
-    ])
-    const soldBy = new Map(grouped.map((g) => [g._id, g]))
+    const grouped = await Booking.aggregate<{ _id: EngineKind; bookings: number; revenue: number }>(
+      [
+        { $match: window },
+        { $group: { _id: '$engineKind', bookings: { $sum: 1 }, revenue: { $sum: '$total' } } },
+      ]
+    );
+    const soldBy = new Map(grouped.map((g) => [g._id, g]));
 
-    const adopted = (company.enabledEngines ?? []) as EngineKind[]
+    const adopted = (company.enabledEngines ?? []) as EngineKind[];
     const byActivity = adopted.map((kind) => ({
       kind,
       bookings: soldBy.get(kind)?.bookings ?? 0,
       revenue: Math.round((soldBy.get(kind)?.revenue ?? 0) * 100) / 100,
-    }))
+    }));
 
     return {
       id: company._id,
@@ -304,37 +311,49 @@ async function figuresFor(company: { _id: string; name: string; enabledEngines?:
       bookings,
       revenue: Math.round((paid[0]?.total ?? 0) * 100) / 100,
       byActivity,
-    }
-  })
+    };
+  });
 }
 
 export interface PlatformReport {
-  from: string
-  to: string
-  totals: { organisations: number; staff: number; sites: number; bookings: number; revenue: number }
-  organisations: OrganisationFigures[]
+  from: string;
+  to: string;
+  totals: {
+    organisations: number;
+    staff: number;
+    sites: number;
+    bookings: number;
+    revenue: number;
+  };
+  organisations: OrganisationFigures[];
   /** Adoption across the platform: how many companies run each registered activity. */
-  adoption: { kind: EngineKind; label: BilingualLabel; organisations: number; bookings: number; revenue: number }[]
+  adoption: {
+    kind: EngineKind;
+    label: BilingualLabel;
+    organisations: number;
+    bookings: number;
+    revenue: number;
+  }[];
 }
 
 export async function platformReport(from: Date, to: Date): Promise<PlatformReport> {
   const companies = await runAcrossOrganisations(() =>
-    Tenant.find({}, { name: 1, enabledEngines: 1 }).sort({ name: 1 }).lean(),
-  )
+    Tenant.find({}, { name: 1, enabledEngines: 1 }).sort({ name: 1 }).lean()
+  );
 
-  const organisations = await Promise.all(companies.map((c) => figuresFor(c, from, to)))
+  const organisations = await Promise.all(companies.map((c) => figuresFor(c, from, to)));
 
   const adoption = listCatalogue().map((activity) => {
-    const running = organisations.filter((o) => o.activities.includes(activity.key))
-    const lines = running.flatMap((o) => o.byActivity.filter((a) => a.kind === activity.key))
+    const running = organisations.filter((o) => o.activities.includes(activity.key));
+    const lines = running.flatMap((o) => o.byActivity.filter((a) => a.kind === activity.key));
     return {
       kind: activity.key,
       label: activity.label,
       organisations: running.length,
       bookings: lines.reduce((n, l) => n + l.bookings, 0),
       revenue: Math.round(lines.reduce((n, l) => n + l.revenue, 0) * 100) / 100,
-    }
-  })
+    };
+  });
 
   return {
     from: from.toISOString(),
@@ -348,5 +367,5 @@ export async function platformReport(from: Date, to: Date): Promise<PlatformRepo
     },
     organisations,
     adoption,
-  }
+  };
 }

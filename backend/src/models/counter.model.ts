@@ -1,8 +1,8 @@
-import { Schema } from 'mongoose'
+import { Schema } from 'mongoose';
 
 export interface CounterDoc {
-  _id: string
-  seq: number
+  _id: string;
+  seq: number;
 }
 
 const counterSchema = new Schema<CounterDoc>(
@@ -10,7 +10,7 @@ const counterSchema = new Schema<CounterDoc>(
     _id: { type: String, required: true },
     seq: { type: Number, required: true, default: 0 },
   },
-  { _id: false, versionKey: false },
-)
+  { _id: false, versionKey: false }
+);
 
-export const CounterSchema = counterSchema
+export const CounterSchema = counterSchema;

@@ -1,10 +1,10 @@
-import { ACTIVITY_SCOPED, SCOPE_LEVEL } from './roles.js'
-import type { EngineKind } from './types.js'
-import type { Scope } from '../interfaces/index.js'
+import { ACTIVITY_SCOPED, SCOPE_LEVEL } from './roles.js';
+import type { EngineKind } from './types.js';
+import type { Scope } from '../interfaces/index.js';
 
 export function allowedEngines(scope: Pick<Scope, 'role' | 'engineKinds'>): EngineKind[] | null {
-  if (!ACTIVITY_SCOPED.includes(scope.role)) return null
-  return scope.engineKinds ?? []
+  if (!ACTIVITY_SCOPED.includes(scope.role)) return null;
+  return scope.engineKinds ?? [];
 }
 
 /**
@@ -18,29 +18,29 @@ export function allowedEngines(scope: Pick<Scope, 'role' | 'engineKinds'>): Engi
  */
 export function canWorkEngine(
   scope: Pick<Scope, 'role' | 'engineKinds'>,
-  engineKind: EngineKind | null,
+  engineKind: EngineKind | null
 ): boolean {
-  if (engineKind === null) return true
-  const allowed = allowedEngines(scope)
-  return allowed === null || allowed.includes(engineKind)
+  if (engineKind === null) return true;
+  const allowed = allowedEngines(scope);
+  return allowed === null || allowed.includes(engineKind);
 }
 
 export function engineFilter(
   scope: Pick<Scope, 'role' | 'engineKinds'>,
-  requested?: EngineKind,
+  requested?: EngineKind
 ): EngineKind | { $in: EngineKind[] } | undefined {
-  const allowed = allowedEngines(scope)
-  if (allowed === null) return requested
-  if (requested) return allowed.includes(requested) ? requested : { $in: [] }
-  return { $in: allowed }
+  const allowed = allowedEngines(scope);
+  if (allowed === null) return requested;
+  if (requested) return allowed.includes(requested) ? requested : { $in: [] };
+  return { $in: allowed };
 }
 
 export function scopeKiosk(scope: Pick<Scope, 'role' | 'kioskId'>): string | null {
-  return SCOPE_LEVEL[scope.role] === 'kiosk' ? (scope.kioskId ?? '') : null
+  return SCOPE_LEVEL[scope.role] === 'kiosk' ? (scope.kioskId ?? '') : null;
 }
 
 export function kioskFilter(scope: Pick<Scope, 'role' | 'kioskId'>): string | undefined {
-  return scopeKiosk(scope) ?? undefined
+  return scopeKiosk(scope) ?? undefined;
 }
 
 /**
@@ -66,15 +66,15 @@ export function kioskFilter(scope: Pick<Scope, 'role' | 'kioskId'>): string | un
  */
 export function reachableUnitsAt(
   scope: Pick<Scope, 'role' | 'kioskId'>,
-  where: Places,
+  where: Places
 ): Record<string, unknown> {
-  return unitsReachableFrom(kioskFilter(scope), where)
+  return unitsReachableFrom(kioskFilter(scope), where);
 }
 
 export interface Places {
-  stationId: string
-  gateIds?: string[]
-  siteStationIds?: string[]
+  stationId: string;
+  gateIds?: string[];
+  siteStationIds?: string[];
 }
 
 /**
@@ -85,14 +85,17 @@ export interface Places {
  * desk whoever performs it, so a supervisor starting a scooter rental still gets that bay's
  * scooters and not the next bay's.
  */
-export function unitsReachableFrom(desk: string | undefined, where: Places): Record<string, unknown> {
-  const { stationId, gateIds = [], siteStationIds = [stationId] } = where
-  const heldByTheLocation = { stationId: { $in: siteStationIds }, kioskId: null, gateId: null }
+export function unitsReachableFrom(
+  desk: string | undefined,
+  where: Places
+): Record<string, unknown> {
+  const { stationId, gateIds = [], siteStationIds = [stationId] } = where;
+  const heldByTheLocation = { stationId: { $in: siteStationIds }, kioskId: null, gateId: null };
 
-  if (desk === undefined) return { $or: [{ stationId }, heldByTheLocation] }
+  if (desk === undefined) return { $or: [{ stationId }, heldByTheLocation] };
 
-  const places: Record<string, unknown>[] = [{ stationId, kioskId: desk }]
-  if (gateIds.length > 0) places.push({ stationId, gateId: { $in: gateIds } })
-  places.push(heldByTheLocation)
-  return { $or: places }
+  const places: Record<string, unknown>[] = [{ stationId, kioskId: desk }];
+  if (gateIds.length > 0) places.push({ stationId, gateId: { $in: gateIds } });
+  places.push(heldByTheLocation);
+  return { $or: places };
 }

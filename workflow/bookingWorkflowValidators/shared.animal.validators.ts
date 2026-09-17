@@ -1,5 +1,10 @@
-import type { WorkflowContext } from '../shared/types.js'
-import { UNIT_BLOCKED, UNIT_MAINTENANCE, UNIT_OUT_OF_SERVICE, UNIT_RESTING } from '../shared/status.js'
+import type { WorkflowContext } from '../shared/types.js';
+import {
+  UNIT_BLOCKED,
+  UNIT_MAINTENANCE,
+  UNIT_OUT_OF_SERVICE,
+  UNIT_RESTING,
+} from '../shared/status.js';
 
 /**
  * Checks shared by every WIQAR activity that puts a live animal to work.
@@ -45,13 +50,13 @@ import { UNIT_BLOCKED, UNIT_MAINTENANCE, UNIT_OUT_OF_SERVICE, UNIT_RESTING } fro
  */
 
 /** The levels §4.1 EXP-02 teaches at. The lesson's intake offers exactly these. */
-export const LESSON_LEVELS = ['BEGINNER', 'INTERMEDIATE'] as const
+export const LESSON_LEVELS = ['BEGINNER', 'INTERMEDIATE'] as const;
 
 /** §4.1 EXP-07: the group package is sold to parties of five or more. */
-export const GROUP_MINIMUM_PARTY = 5
+export const GROUP_MINIMUM_PARTY = 5;
 
 /** A feeding session is at least one portion of feed — §6.5. */
-export const MINIMUM_FEED_PORTIONS = 1
+export const MINIMUM_FEED_PORTIONS = 1;
 
 /** Why an animal is not workable right now, said the way the person at the counter would say it. */
 const UNAVAILABLE_REASON: Record<string, string> = {
@@ -59,13 +64,13 @@ const UNAVAILABLE_REASON: Record<string, string> = {
   [UNIT_MAINTENANCE]: 'is under veterinary care',
   [UNIT_BLOCKED]: 'has been stood down by a supervisor',
   [UNIT_OUT_OF_SERVICE]: 'is retired from the experience',
-}
+};
 
 /** The animal this booking is about, whether it was just named or assigned earlier. */
 function animalFor(ctx: WorkflowContext) {
-  const requested = typeof ctx.payload.unitId === 'string' ? ctx.payload.unitId.trim() : ''
-  const id = requested || ctx.booking.assetUnitId || ctx.booking.reservation?.assetUnitId || ''
-  return id ? (ctx.assets.byId[id] ?? null) : null
+  const requested = typeof ctx.payload.unitId === 'string' ? ctx.payload.unitId.trim() : '';
+  const id = requested || ctx.booking.assetUnitId || ctx.booking.reservation?.assetUnitId || '';
+  return id ? (ctx.assets.byId[id] ?? null) : null;
 }
 
 /**
@@ -79,11 +84,11 @@ function animalFor(ctx: WorkflowContext) {
  * request is submitted, which is why the statuses rather than a separate flag decide it.
  */
 export function requireWorkableAnimal(ctx: WorkflowContext): string[] {
-  const animal = animalFor(ctx)
-  if (!animal) return []
+  const animal = animalFor(ctx);
+  if (!animal) return [];
 
-  const reason = UNAVAILABLE_REASON[animal.status]
-  if (reason) return [`${animal.identifier} ${reason}.`]
+  const reason = UNAVAILABLE_REASON[animal.status];
+  if (reason) return [`${animal.identifier} ${reason}.`];
 
   /*
    * Already out with somebody else — §11.1 double-booking, §6.4 overbooking.
@@ -92,10 +97,10 @@ export function requireWorkableAnimal(ctx: WorkflowContext): string[] {
    * *this* booking is legitimately not "available" and refusing it here would make it
    * impossible to start the session it is being held for.
    */
-  const heldElsewhere = animal.currentBookingId && animal.currentBookingId !== ctx.booking._id
-  if (heldElsewhere) return [`${animal.identifier} is already out with another visitor.`]
+  const heldElsewhere = animal.currentBookingId && animal.currentBookingId !== ctx.booking._id;
+  if (heldElsewhere) return [`${animal.identifier} is already out with another visitor.`];
 
-  return []
+  return [];
 }
 
 /**
@@ -108,9 +113,10 @@ export function requireWorkableAnimal(ctx: WorkflowContext): string[] {
 export function requireNamedTrainer(ctx: WorkflowContext): string[] {
   const named =
     (typeof ctx.payload.trainerId === 'string' && ctx.payload.trainerId.trim()) ||
-    (typeof ctx.booking.metadata?.trainerId === 'string' && (ctx.booking.metadata.trainerId as string).trim())
+    (typeof ctx.booking.metadata?.trainerId === 'string' &&
+      (ctx.booking.metadata.trainerId as string).trim());
 
-  return named ? [] : ['Name the trainer who will run this session before confirming it.']
+  return named ? [] : ['Name the trainer who will run this session before confirming it.'];
 }
 
 /**
@@ -122,8 +128,8 @@ export function requireNamedTrainer(ctx: WorkflowContext): string[] {
  * experience — the specification attaches it to the visitor, not to any one activity.
  */
 export function requireConsent(ctx: WorkflowContext): string[] {
-  const consented = ctx.booking.metadata?.consentAt ?? ctx.payload.consentAt
-  return consented ? [] : ['Record the visitor’s acceptance of the terms before confirming.']
+  const consented = ctx.booking.metadata?.consentAt ?? ctx.payload.consentAt;
+  return consented ? [] : ['Record the visitor’s acceptance of the terms before confirming.'];
 }
 
 /**
@@ -133,24 +139,24 @@ export function requireConsent(ctx: WorkflowContext): string[] {
  * that period at supervisor's discretion."* — a refusal an agent cannot clear and a supervisor
  * can, which is why the message says whose decision it is.
  */
-export const SLOT_GRACE_MINUTES = 15
+export const SLOT_GRACE_MINUTES = 15;
 
 export function requireWithinSlotGrace(ctx: WorkflowContext): string[] {
-  const slot = ctx.booking.metadata?.slotAt
-  if (typeof slot !== 'string') return []
+  const slot = ctx.booking.metadata?.slotAt;
+  if (typeof slot !== 'string') return [];
 
-  const booked = new Date(slot).getTime()
-  if (!Number.isFinite(booked)) return []
+  const booked = new Date(slot).getTime();
+  if (!Number.isFinite(booked)) return [];
 
-  const lateBy = Math.round((ctx.now.getTime() - booked) / 60_000)
-  if (lateBy <= SLOT_GRACE_MINUTES) return []
+  const lateBy = Math.round((ctx.now.getTime() - booked) / 60_000);
+  if (lateBy <= SLOT_GRACE_MINUTES) return [];
 
   // §11.1 puts reallocation at the supervisor's discretion, so they are allowed past this.
-  if (ctx.actor.role !== 'AGENT') return []
+  if (ctx.actor.role !== 'AGENT') return [];
 
   return [
     `This slot was booked for ${lateBy} minutes ago, beyond the ${SLOT_GRACE_MINUTES}-minute grace. A supervisor decides whether to reallocate it.`,
-  ]
+  ];
 }
 
 /**
@@ -160,11 +166,13 @@ export function requireWithinSlotGrace(ctx: WorkflowContext): string[] {
  * one module that needs it says its own number out loud.
  */
 export function requireMinimumParty(ctx: WorkflowContext, minimum: number): string[] {
-  const size = Number(ctx.booking.metadata?.partySize ?? ctx.payload.partySize ?? 0)
+  const size = Number(ctx.booking.metadata?.partySize ?? ctx.payload.partySize ?? 0);
   if (!Number.isFinite(size) || size <= 0) {
-    return [`Say how many people are in the party — this experience takes at least ${minimum}.`]
+    return [`Say how many people are in the party — this experience takes at least ${minimum}.`];
   }
-  return size >= minimum ? [] : [`This experience takes a party of at least ${minimum}; this one is ${size}.`]
+  return size >= minimum
+    ? []
+    : [`This experience takes a party of at least ${minimum}; this one is ${size}.`];
 }
 
 /**
@@ -175,8 +183,8 @@ export function requireMinimumParty(ctx: WorkflowContext, minimum: number): stri
  * a session with nothing to feed is not a session that can start.
  */
 export function requireFeedPurchased(ctx: WorkflowContext): string[] {
-  const portions = Number(ctx.booking.metadata?.feedPortions ?? 0)
+  const portions = Number(ctx.booking.metadata?.feedPortions ?? 0);
   return Number.isFinite(portions) && portions >= MINIMUM_FEED_PORTIONS
     ? []
-    : ['Add the feed the visitor is buying before starting the session.']
+    : ['Add the feed the visitor is buying before starting the session.'];
 }

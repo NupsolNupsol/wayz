@@ -1,22 +1,22 @@
-import { z } from 'zod'
+import { z } from 'zod';
 
-import { asyncHandler } from '../utils/asyncHandler.js'
-import { ApiError } from '../utils/ApiError.js'
-import { ENGINE_KINDS } from '../domain/types.js'
-import { listCatalogue } from '../platform/activityCatalogue.js'
+import { asyncHandler } from '../utils/asyncHandler.js';
+import { ApiError } from '../utils/ApiError.js';
+import { ENGINE_KINDS } from '../domain/types.js';
+import { listCatalogue } from '../platform/activityCatalogue.js';
 import {
   createOrganisation,
   listOrganisations,
   platformReport,
   updateOrganisation,
-} from '../services/platform.service.js'
+} from '../services/platform.service.js';
 import {
   assistantHealth,
   deleteKnowledgeDocument,
   listKnowledgeDocuments,
   reindexKnowledgeDocument,
   uploadKnowledgeDocument,
-} from '../services/learning/knowledge.service.js'
+} from '../services/learning/knowledge.service.js';
 
 /**
  * The platform console's endpoints.
@@ -30,16 +30,16 @@ import {
 const windowSchema = z.object({
   from: z.coerce.date().optional(),
   to: z.coerce.date().optional(),
-})
+});
 
-const DEFAULT_WINDOW_DAYS = 30
+const DEFAULT_WINDOW_DAYS = 30;
 
 function resolveWindow(query: unknown) {
-  const { from, to } = windowSchema.parse(query)
-  const end = to ?? new Date()
-  const start = from ?? new Date(end.getTime() - DEFAULT_WINDOW_DAYS * 24 * 60 * 60 * 1000)
-  if (start > end) throw ApiError.badRequest('That window ends before it starts.')
-  return { start, end }
+  const { from, to } = windowSchema.parse(query);
+  const end = to ?? new Date();
+  const start = from ?? new Date(end.getTime() - DEFAULT_WINDOW_DAYS * 24 * 60 * 60 * 1000);
+  if (start > end) throw ApiError.badRequest('That window ends before it starts.');
+  return { start, end };
 }
 
 /**
@@ -68,13 +68,13 @@ const createSchema = z.object({
     email: z.string().email(),
     password: z.string().min(12, 'An administrator password needs at least twelve characters.'),
   }),
-})
+});
 
 const updateSchema = z.object({
   name: z.string().min(2).max(120).optional(),
   activities: z.array(z.enum(ENGINE_KINDS)).optional(),
   branding: z.record(z.string()).optional(),
-})
+});
 
 /**
  * A document for the assistant to learn from.
@@ -91,7 +91,7 @@ const knowledgeSchema = z.object({
   filename: z.string().max(200).optional(),
   language: z.string().max(10).optional(),
   tags: z.array(z.string().max(40)).max(20).optional(),
-})
+});
 
 export const platformController = {
   /** Who is signed in, for the console's header. */
@@ -99,42 +99,43 @@ export const platformController = {
     res.json({
       success: true,
       data: { id: req.platform?.sub, email: req.platform?.email, name: req.platform?.name },
-    })
+    });
   }),
 
   /** Every activity the platform has coded, which is what an organisation may adopt from. */
   catalogue: asyncHandler(async (_req, res) => {
-    res.json({ success: true, data: { activities: listCatalogue() } })
+    res.json({ success: true, data: { activities: listCatalogue() } });
   }),
 
   organisations: asyncHandler(async (_req, res) => {
-    res.json({ success: true, data: { organisations: await listOrganisations() } })
+    res.json({ success: true, data: { organisations: await listOrganisations() } });
   }),
 
   createOrganisation: asyncHandler(async (req, res) => {
-    const body = createSchema.parse(req.body)
-    res.status(201).json({ success: true, data: await createOrganisation(body) })
+    const body = createSchema.parse(req.body);
+    res.status(201).json({ success: true, data: await createOrganisation(body) });
   }),
 
   updateOrganisation: asyncHandler(async (req, res) => {
-    const body = updateSchema.parse(req.body)
-    res.json({ success: true, data: await updateOrganisation(req.params.id, body) })
+    const body = updateSchema.parse(req.body);
+    res.json({ success: true, data: await updateOrganisation(req.params.id, body) });
   }),
 
   report: asyncHandler(async (req, res) => {
-    const { start, end } = resolveWindow(req.query)
-    res.json({ success: true, data: await platformReport(start, end) })
+    const { start, end } = resolveWindow(req.query);
+    res.json({ success: true, data: await platformReport(start, end) });
   }),
 
   /* ------------------------------------------------------------- the assistant's knowledge */
 
   knowledge: asyncHandler(async (req, res) => {
-    const organizationId = typeof req.query.organizationId === 'string' ? req.query.organizationId : undefined
-    res.json({ success: true, data: await listKnowledgeDocuments({ organizationId }) })
+    const organizationId =
+      typeof req.query.organizationId === 'string' ? req.query.organizationId : undefined;
+    res.json({ success: true, data: await listKnowledgeDocuments({ organizationId }) });
   }),
 
   uploadKnowledge: asyncHandler(async (req, res) => {
-    const body = knowledgeSchema.parse(req.body)
+    const body = knowledgeSchema.parse(req.body);
 
     res.status(201).json({
       success: true,
@@ -147,20 +148,20 @@ export const platformController = {
         language: body.language,
         uploadedBy: req.platform?.email ?? 'platform',
       }),
-    })
+    });
   }),
 
   /** Whether the assistant is reachable, so the console can say so plainly. */
   assistant: asyncHandler(async (_req, res) => {
-    res.json({ success: true, data: await assistantHealth() })
+    res.json({ success: true, data: await assistantHealth() });
   }),
 
   reindexKnowledge: asyncHandler(async (req, res) => {
-    res.json({ success: true, data: await reindexKnowledgeDocument(req.params.id) })
+    res.json({ success: true, data: await reindexKnowledgeDocument(req.params.id) });
   }),
 
   removeKnowledge: asyncHandler(async (req, res) => {
-    await deleteKnowledgeDocument(req.params.id)
-    res.json({ success: true, data: { removed: req.params.id } })
+    await deleteKnowledgeDocument(req.params.id);
+    res.json({ success: true, data: { removed: req.params.id } });
   }),
-}
+};

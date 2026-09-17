@@ -1,6 +1,6 @@
-import type { EngineKind, IncidentType, Role } from '../domain/types.js'
-import type { CardScheme } from '../domain/commission.js'
-import type { BilingualLabel } from '../interfaces/accounting.interface.js'
+import type { EngineKind, IncidentType, Role } from '../domain/types.js';
+import type { CardScheme } from '../domain/commission.js';
+import type { BilingualLabel } from '../interfaces/accounting.interface.js';
 
 export const ACTIVITY_LABELS: Record<EngineKind, BilingualLabel> = {
   LAGOON: { en: 'Lagoon', ar: 'لاجون' },
@@ -14,7 +14,7 @@ export const ACTIVITY_LABELS: Record<EngineKind, BilingualLabel> = {
   ANIMAL_FEEDING: { en: 'Animal Feeding Session', ar: 'جلسة إطعام الحيوانات' },
   PHOTOGRAPHY: { en: 'Professional Photo Session', ar: 'جلسة تصوير احترافية' },
   GROUP_PACKAGE: { en: 'Group Package', ar: 'الباقة الجماعية' },
-}
+};
 
 export const SCHEME_LABELS: Record<CardScheme, BilingualLabel> = {
   MADA: { en: 'Mada Card', ar: 'مدى' },
@@ -22,7 +22,7 @@ export const SCHEME_LABELS: Record<CardScheme, BilingualLabel> = {
   VISA: { en: 'Visa Card', ar: 'فيزا' },
   MASTERCARD: { en: 'Master Card', ar: 'ماستر كارد' },
   GCC: { en: 'GCC Card', ar: 'بطاقة خليجية' },
-}
+};
 
 export const ROLE_LABELS: Record<Role, string> = {
   AGENT: 'Kiosk agent',
@@ -35,7 +35,7 @@ export const ROLE_LABELS: Record<Role, string> = {
   ACCOUNTANT: 'Accountant',
   // The platform role, not a job title — a company names the job itself (see User.roleLabel).
   TENANT_ADMIN: 'Company administrator',
-}
+};
 
 export const INCIDENT_LABELS: Record<IncidentType, string> = {
   MISSING_BAG: 'Missing bag',
@@ -55,4 +55,4 @@ export const INCIDENT_LABELS: Record<IncidentType, string> = {
   ACCESS_ISSUE: 'Access issue (locker / area)',
   PAYMENT_DISPUTE: 'Payment dispute',
   OTHER: 'Other',
-}
+};

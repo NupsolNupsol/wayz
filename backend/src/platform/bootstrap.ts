@@ -1,6 +1,6 @@
-import { logger } from '../config/logger.js'
-import { appDb, connectApp } from './connections.js'
-import { runAcrossOrganisations } from './orgScope.js'
+import { logger } from '../config/logger.js';
+import { appDb, connectApp } from './connections.js';
+import { runAcrossOrganisations } from './orgScope.js';
 
 /**
  * Bringing the application up.
@@ -17,7 +17,7 @@ import { runAcrossOrganisations } from './orgScope.js'
  */
 
 export async function bootstrapApp(): Promise<void> {
-  await connectApp()
+  await connectApp();
 }
 
 /**
@@ -29,10 +29,10 @@ export async function bootstrapApp(): Promise<void> {
  */
 export async function organisationIds(): Promise<string[]> {
   const rows = await runAcrossOrganisations(() =>
-    appDb().Tenant.find({}, { _id: 1 }).lean<{ _id: string }[]>(),
-  )
+    appDb().Tenant.find({}, { _id: 1 }).lean<{ _id: string }[]>()
+  );
 
-  const ids = rows.map((r) => r._id)
-  logger.info('Organisations loaded', { count: ids.length, organisations: ids })
-  return ids
+  const ids = rows.map((r) => r._id);
+  logger.info('Organisations loaded', { count: ids.length, organisations: ids });
+  return ids;
 }

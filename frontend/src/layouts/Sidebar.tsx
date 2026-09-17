@@ -1,21 +1,37 @@
-import { NavLink } from 'react-router-dom'
-import { clsx } from 'clsx'
-import { PanelLeftClose, X, PackageOpen } from 'lucide-react'
-import { ACCOUNTANT_NAV, AGENT_NAV, CAPTAIN_NAV, COURIER_NAV, HR_NAV, MANAGER_NAV, TENANT_ADMIN_NAV } from '@/config/navigation'
-import { APP } from '@/config/appConfig'
-import { Icon } from '@/components/Icon'
-import { useTranslation } from 'react-i18next'
-import { can, homeForRole, isAccountantRole, isAgentRole, isCourierRole, isHrRole, isTenantAdminRole } from '@/permissions/permissions'
-import { useAuthStore } from '@/store/auth'
-import type { EngineKind, Role } from '@/models'
+import { NavLink } from 'react-router-dom';
+import { clsx } from 'clsx';
+import { PanelLeftClose, X, PackageOpen } from 'lucide-react';
+import {
+  ACCOUNTANT_NAV,
+  AGENT_NAV,
+  CAPTAIN_NAV,
+  COURIER_NAV,
+  HR_NAV,
+  MANAGER_NAV,
+  TENANT_ADMIN_NAV,
+} from '@/config/navigation';
+import { APP } from '@/config/appConfig';
+import { Icon } from '@/components/Icon';
+import { useTranslation } from 'react-i18next';
+import {
+  can,
+  homeForRole,
+  isAccountantRole,
+  isAgentRole,
+  isCourierRole,
+  isHrRole,
+  isTenantAdminRole,
+} from '@/permissions/permissions';
+import { useAuthStore } from '@/store/auth';
+import type { EngineKind, Role } from '@/models';
 
 function navFor(role: Role) {
-  if (isTenantAdminRole(role)) return TENANT_ADMIN_NAV
-  if (isAccountantRole(role)) return ACCOUNTANT_NAV
-  if (isHrRole(role)) return HR_NAV
-  if (isCourierRole(role)) return COURIER_NAV
-  if (role === 'CHIEF_CAPTAIN') return CAPTAIN_NAV
-  return isAgentRole(role) ? AGENT_NAV : MANAGER_NAV
+  if (isTenantAdminRole(role)) return TENANT_ADMIN_NAV;
+  if (isAccountantRole(role)) return ACCOUNTANT_NAV;
+  if (isHrRole(role)) return HR_NAV;
+  if (isCourierRole(role)) return COURIER_NAV;
+  if (role === 'CHIEF_CAPTAIN') return CAPTAIN_NAV;
+  return isAgentRole(role) ? AGENT_NAV : MANAGER_NAV;
 }
 
 const WORKSPACE_KEY = (role: Role): Role =>
@@ -29,7 +45,7 @@ const WORKSPACE_KEY = (role: Role): Role =>
           ? 'DELIVERY_AGENT'
           : isAgentRole(role)
             ? 'AGENT'
-            : 'MANAGER'
+            : 'MANAGER';
 
 export function Sidebar({
   collapsed,
@@ -40,34 +56,37 @@ export function Sidebar({
   engineKinds,
   tenantLabel,
 }: {
-  collapsed: boolean
-  onToggleCollapse: () => void
-  mobileOpen: boolean
-  onCloseMobile: () => void
-  role: Role
-  engineKinds: EngineKind[]
-  tenantLabel: string
+  collapsed: boolean;
+  onToggleCollapse: () => void;
+  mobileOpen: boolean;
+  onCloseMobile: () => void;
+  role: Role;
+  engineKinds: EngineKind[];
+  tenantLabel: string;
 }) {
   /* The activities this organisation has taken up from the catalogue. */
-  const adopted = useAuthStore((x) => x.me?.tenant?.enabledEngines ?? [])
+  const adopted = useAuthStore((x) => x.me?.tenant?.enabledEngines ?? []);
 
   /* The company signed in — its own name and its own mark, not the product's. */
-  const tenantName = useAuthStore((x) => x.me?.tenant?.name ?? '')
-  const branding = useAuthStore((x) => x.me?.tenant?.branding ?? null)
+  const tenantName = useAuthStore((x) => x.me?.tenant?.name ?? '');
+  const branding = useAuthStore((x) => x.me?.tenant?.branding ?? null);
 
-  const { t } = useTranslation(['nav', 'common'])
-  const language = useAuthStore((st) => st.language)
-  const hasGate = useAuthStore((st) => !!st.me?.gate)
-  const capabilities = useAuthStore((st) => st.me?.tenant?.capabilities ?? [])
-  const rtl = language === 'ar'
+  const { t } = useTranslation(['nav', 'common']);
+  const language = useAuthStore((st) => st.language);
+  const hasGate = useAuthStore((st) => !!st.me?.gate);
+  const capabilities = useAuthStore((st) => st.me?.tenant?.capabilities ?? []);
+  const rtl = language === 'ar';
 
-  const tree = navFor(role)
-  const allPaths = tree.flatMap((g) => g.items.map((i) => i.to))
+  const tree = navFor(role);
+  const allPaths = tree.flatMap((g) => g.items.map((i) => i.to));
 
   return (
     <>
       <div
-        className={clsx('fixed inset-0 z-[1039] bg-black/45 lg:hidden', mobileOpen ? 'block' : 'hidden')}
+        className={clsx(
+          'fixed inset-0 z-[1039] bg-black/45 lg:hidden',
+          mobileOpen ? 'block' : 'hidden'
+        )}
         onClick={onCloseMobile}
       />
       <aside
@@ -82,20 +101,28 @@ export function Sidebar({
             : rtl
               ? 'translate-x-[110%] lg:translate-x-0'
               : '-translate-x-[110%] lg:translate-x-0',
-          'max-lg:top-0 max-lg:start-0 max-lg:bottom-0 max-lg:rounded-none max-lg:w-[280px]',
+          'max-lg:top-0 max-lg:start-0 max-lg:bottom-0 max-lg:rounded-none max-lg:w-[280px]'
         )}
       >
-        <div className={clsx('flex items-center justify-between px-5 py-6 border-b border-white/15 min-h-[80px]', collapsed && 'justify-center px-0')}>
-          <NavLink to={homeForRole(role)} className="flex items-center gap-3 overflow-hidden no-underline">
+        <div
+          className={clsx(
+            'flex items-center justify-between px-5 py-6 border-b border-white/15 min-h-[80px]',
+            collapsed && 'justify-center px-0'
+          )}
+        >
+          <NavLink
+            to={homeForRole(role)}
+            className="flex items-center gap-3 overflow-hidden no-underline"
+          >
             {/*
-              * Whose workspace this is.
-              *
-              * This used to print the product's own name, which meant WIQAR's staff worked all
-              * day under a sidebar that said WAYZ — one tenant's name over another tenant's
-              * colours, which is the exact mix the client reported on the sign-in page. The
-              * company signed in is the company named, and its own mark is used when it has
-              * one.
-              */}
+             * Whose workspace this is.
+             *
+             * This used to print the product's own name, which meant WIQAR's staff worked all
+             * day under a sidebar that said WAYZ — one tenant's name over another tenant's
+             * colours, which is the exact mix the client reported on the sign-in page. The
+             * company signed in is the company named, and its own mark is used when it has
+             * one.
+             */}
             <div
               className="w-11 h-11 rounded-xl bg-white flex items-center justify-center shrink-0 shadow overflow-hidden"
               data-testid="workspace-mark"
@@ -121,7 +148,11 @@ export function Sidebar({
               </div>
             )}
           </NavLink>
-          <button className="lg:hidden text-white/70 p-1.5" onClick={onCloseMobile} aria-label={t('common:header.closeMenu')}>
+          <button
+            className="lg:hidden text-white/70 p-1.5"
+            onClick={onCloseMobile}
+            aria-label={t('common:header.closeMenu')}
+          >
             <X size={18} />
           </button>
         </div>
@@ -152,9 +183,9 @@ export function Sidebar({
                 (!it.engineKind || !adopted.length || adopted.includes(it.engineKind)) &&
                 (!it.engineKind || !engineKinds.length || engineKinds.includes(it.engineKind)) &&
                 // A locker hall only appears for the people posted to one.
-                (!it.needsGate || !!hasGate),
-            )
-            if (items.length === 0) return null
+                (!it.needsGate || !!hasGate)
+            );
+            if (items.length === 0) return null;
             return (
               <div key={group.id} className="mb-4">
                 {!collapsed && (
@@ -169,12 +200,16 @@ export function Sidebar({
                     end={allPaths.some((p) => p !== it.to && p.startsWith(`${it.to}/`))}
                     data-testid={it.testId}
                     onClick={onCloseMobile}
-                    title={collapsed ? t(`nav:item.${it.id}`, { defaultValue: it.label }) : undefined}
+                    title={
+                      collapsed ? t(`nav:item.${it.id}`, { defaultValue: it.label }) : undefined
+                    }
                     className={({ isActive }) =>
                       clsx(
                         'relative flex items-center gap-3.5 px-4 py-3 rounded-xl2 text-sm font-medium mb-1 transition-colors no-underline',
                         collapsed && 'justify-center px-0',
-                        isActive ? 'bg-white/20 text-white font-semibold' : 'text-white/80 hover:bg-white/10 hover:text-white',
+                        isActive
+                          ? 'bg-white/20 text-white font-semibold'
+                          : 'text-white/80 hover:bg-white/10 hover:text-white'
                       )
                     }
                   >
@@ -182,15 +217,19 @@ export function Sidebar({
                       <>
                         <Icon name={it.icon} size={20} className="shrink-0" />
                         {!collapsed && (
-                          <span className="flex-1">{t(`nav:item.${it.id}`, { defaultValue: it.label })}</span>
+                          <span className="flex-1">
+                            {t(`nav:item.${it.id}`, { defaultValue: it.label })}
+                          </span>
                         )}
-                        {!collapsed && isActive && <span className="absolute end-3 top-3.5 bottom-3.5 w-1 rounded bg-white" />}
+                        {!collapsed && isActive && (
+                          <span className="absolute end-3 top-3.5 bottom-3.5 w-1 rounded bg-white" />
+                        )}
                       </>
                     )}
                   </NavLink>
                 ))}
               </div>
-            )
+            );
           })}
         </nav>
 
@@ -198,13 +237,19 @@ export function Sidebar({
           <button
             onClick={onToggleCollapse}
             data-testid="sidebar-collapse"
-            className={clsx('flex items-center gap-3 px-4 py-3 rounded-xl2 bg-white/10 text-white/85 hover:bg-white/20 w-full text-sm font-semibold', collapsed && 'justify-center px-0')}
+            className={clsx(
+              'flex items-center gap-3 px-4 py-3 rounded-xl2 bg-white/10 text-white/85 hover:bg-white/20 w-full text-sm font-semibold',
+              collapsed && 'justify-center px-0'
+            )}
           >
-            <PanelLeftClose size={18} className={clsx('transition-transform lf-arrow-flip', collapsed && 'rotate-180')} />
+            <PanelLeftClose
+              size={18}
+              className={clsx('transition-transform lf-arrow-flip', collapsed && 'rotate-180')}
+            />
             {!collapsed && <span>{t('common:header.collapse')}</span>}
           </button>
         </div>
       </aside>
     </>
-  )
+  );
 }

@@ -1,19 +1,19 @@
-import { useTranslation } from 'react-i18next'
-import { clsx } from 'clsx'
-import { Coins, Package } from 'lucide-react'
-import { NumberInput } from '@/components/NumberInput'
+import { useTranslation } from 'react-i18next';
+import { clsx } from 'clsx';
+import { Coins, Package } from 'lucide-react';
+import { NumberInput } from '@/components/NumberInput';
 
 export function PenaltyAmount({
   value,
   onChange,
   index,
 }: {
-  value: number | null
-  onChange: (next: number | null) => void
-  index: number
+  value: number | null;
+  onChange: (next: number | null) => void;
+  index: number;
 }) {
-  const { t } = useTranslation(['admin', 'common'])
-  const byAsset = value === null
+  const { t } = useTranslation(['admin', 'common']);
+  const byAsset = value === null;
 
   const Option = ({
     active,
@@ -22,11 +22,11 @@ export function PenaltyAmount({
     label,
     testId,
   }: {
-    active: boolean
-    onClick: () => void
-    icon: React.ReactNode
-    label: string
-    testId: string
+    active: boolean;
+    onClick: () => void;
+    icon: React.ReactNode;
+    label: string;
+    testId: string;
   }) => (
     <button
       type="button"
@@ -37,13 +37,13 @@ export function PenaltyAmount({
         'flex-1 flex items-center justify-center gap-1.5 px-2 py-1.5 text-xs font-medium transition-colors',
         active
           ? 'bg-brand text-white'
-          : 'bg-white dark:bg-dk-elevated text-muted hover:text-navy dark:hover:text-dk-texthi',
+          : 'bg-white dark:bg-dk-elevated text-muted hover:text-navy dark:hover:text-dk-texthi'
       )}
     >
       {icon}
       {label}
     </button>
-  )
+  );
 
   return (
     <div className="min-w-[11rem]">
@@ -65,7 +65,10 @@ export function PenaltyAmount({
       </div>
 
       {byAsset ? (
-        <p className="text-[11px] text-muted mt-1.5" data-testid={`rules-penalty-asset-note-${index}`}>
+        <p
+          className="text-[11px] text-muted mt-1.5"
+          data-testid={`rules-penalty-asset-note-${index}`}
+        >
           {t('rules.penalties.byAssetNote')}
         </p>
       ) : (
@@ -81,5 +84,5 @@ export function PenaltyAmount({
         </div>
       )}
     </div>
-  )
+  );
 }

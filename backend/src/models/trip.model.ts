@@ -1,49 +1,56 @@
-import { Schema } from 'mongoose'
+import { Schema } from 'mongoose';
 
-export const TRIP_STATUSES = ['FILLING', 'READY', 'CLAIMED', 'RUNNING', 'COMPLETED', 'CANCELLED'] as const
-export type TripStatus = (typeof TRIP_STATUSES)[number]
+export const TRIP_STATUSES = [
+  'FILLING',
+  'READY',
+  'CLAIMED',
+  'RUNNING',
+  'COMPLETED',
+  'CANCELLED',
+] as const;
+export type TripStatus = (typeof TRIP_STATUSES)[number];
 
 export interface TripPassenger {
-  bookingId: string
-  bookingRef: string
-  customerName: string
-  people: number
+  bookingId: string;
+  bookingRef: string;
+  customerName: string;
+  people: number;
 }
 
 export interface TripLeg {
-  stationId: string
-  name: string
+  stationId: string;
+  name: string;
 }
 
 export interface TripStop {
-  stationId: string
-  name: string
-  at: Date
+  stationId: string;
+  name: string;
+  at: Date;
 }
 
 export interface TripDoc {
-  _id: string
-  ref: string
-  tenantId: string
-  stationId: string
-  kioskId: string | null
-  assetTypeId: string
-  assetTypeName: string
-  seats: number
-  assetUnitId: string | null
-  assetUnitIdentifier: string | null
-  passengers: TripPassenger[]
-  headcount: number
-  status: TripStatus
-  captainId: string | null
-  captainName: string | null
-  stops: TripStop[]
-  route: TripLeg[]
-  createdBy: string
-  startedAt: Date | null
-  endedAt: Date | null
-  createdAt: Date
-  updatedAt: Date
+  _id: string;
+  ref: string;
+  tenantId: string;
+  stationId: string;
+  kioskId: string | null;
+  assetTypeId: string;
+  assetTypeName: string;
+  seats: number;
+  assetUnitId: string | null;
+  assetUnitIdentifier: string | null;
+  passengers: TripPassenger[];
+  headcount: number;
+  status: TripStatus;
+  captainId: string | null;
+  captainName: string | null;
+  stops: TripStop[];
+  route: TripLeg[];
+  createdBy: string;
+  startedAt: Date | null;
+  endedAt: Date | null;
+  createdAt: Date;
+  updatedAt: Date;
 }
 
 const passengerSchema = new Schema<TripPassenger>(
@@ -53,16 +60,16 @@ const passengerSchema = new Schema<TripPassenger>(
     customerName: { type: String, default: '' },
     people: { type: Number, default: 1 },
   },
-  { _id: false },
-)
+  { _id: false }
+);
 
 const legSchema = new Schema<TripLeg>(
   {
     stationId: { type: String, required: true },
     name: { type: String, default: '' },
   },
-  { _id: false },
-)
+  { _id: false }
+);
 
 const stopSchema = new Schema<TripStop>(
   {
@@ -70,8 +77,8 @@ const stopSchema = new Schema<TripStop>(
     name: { type: String, default: '' },
     at: { type: Date, default: Date.now },
   },
-  { _id: false },
-)
+  { _id: false }
+);
 
 const tripSchema = new Schema<TripDoc>(
   {
@@ -96,7 +103,7 @@ const tripSchema = new Schema<TripDoc>(
     startedAt: { type: Date, default: null },
     endedAt: { type: Date, default: null },
   },
-  { _id: false, timestamps: true },
-)
+  { _id: false, timestamps: true }
+);
 
-export const TripSchema = tripSchema
+export const TripSchema = tripSchema;

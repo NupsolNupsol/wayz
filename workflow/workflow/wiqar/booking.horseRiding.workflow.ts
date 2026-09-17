@@ -1,8 +1,13 @@
-import { OPS, TILL } from '../../shared/access.js'
-import { ACTIVE, CANCELLED, COMPLETED, CONFIRMED, DRAFT, OVERTIME } from '../../shared/status.js'
-import type { EngineWorkflow, OperationResult, ValidationResult, WorkflowContext } from '../../shared/types.js'
-import { useHorseRidingValidator } from '../../bookingWorkflowValidators/wiqar/controller.horseRiding.validator.controller.js'
-import { useHorseRidingOperation } from '../../bookingWorkflowOperations/wiqar/controller.horseRiding.operation.controller.js'
+import { OPS, TILL } from '../../shared/access.js';
+import { ACTIVE, CANCELLED, COMPLETED, CONFIRMED, DRAFT, OVERTIME } from '../../shared/status.js';
+import type {
+  EngineWorkflow,
+  OperationResult,
+  ValidationResult,
+  WorkflowContext,
+} from '../../shared/types.js';
+import { useHorseRidingValidator } from '../../bookingWorkflowValidators/wiqar/controller.horseRiding.validator.controller.js';
+import { useHorseRidingOperation } from '../../bookingWorkflowOperations/wiqar/controller.horseRiding.operation.controller.js';
 
 /**
  * Arabian Horse Riding Tour.
@@ -55,14 +60,14 @@ export const horseRidingWorkflow: EngineWorkflow = {
       style: { backgroundColor: '#db5d5d' },
     },
   ],
-}
+};
 
 export const LaunchHorseRidingControl = async (
   transitionCode: string,
-  ctx: WorkflowContext,
-): Promise<ValidationResult> => useHorseRidingValidator(transitionCode, ctx)
+  ctx: WorkflowContext
+): Promise<ValidationResult> => useHorseRidingValidator(transitionCode, ctx);
 
 export const LaunchHorseRidingOperation = async (
   transitionCode: string,
-  ctx: WorkflowContext,
-): Promise<OperationResult> => useHorseRidingOperation(transitionCode, ctx)
+  ctx: WorkflowContext
+): Promise<OperationResult> => useHorseRidingOperation(transitionCode, ctx);
