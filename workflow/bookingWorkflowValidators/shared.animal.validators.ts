@@ -44,6 +44,15 @@ import { UNIT_BLOCKED, UNIT_MAINTENANCE, UNIT_OUT_OF_SERVICE, UNIT_RESTING } fro
  * below and applies to every experience rather than to riding alone.
  */
 
+/** The levels §4.1 EXP-02 teaches at. The lesson's intake offers exactly these. */
+export const LESSON_LEVELS = ['BEGINNER', 'INTERMEDIATE'] as const
+
+/** §4.1 EXP-07: the group package is sold to parties of five or more. */
+export const GROUP_MINIMUM_PARTY = 5
+
+/** A feeding session is at least one portion of feed — §6.5. */
+export const MINIMUM_FEED_PORTIONS = 1
+
 /** Why an animal is not workable right now, said the way the person at the counter would say it. */
 const UNAVAILABLE_REASON: Record<string, string> = {
   [UNIT_RESTING]: 'is still in its rest period after the last session',
@@ -167,7 +176,7 @@ export function requireMinimumParty(ctx: WorkflowContext, minimum: number): stri
  */
 export function requireFeedPurchased(ctx: WorkflowContext): string[] {
   const portions = Number(ctx.booking.metadata?.feedPortions ?? 0)
-  return Number.isFinite(portions) && portions > 0
+  return Number.isFinite(portions) && portions >= MINIMUM_FEED_PORTIONS
     ? []
     : ['Add the feed the visitor is buying before starting the session.']
 }

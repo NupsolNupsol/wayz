@@ -11,3 +11,6 @@ dist/
 test-results/
 playwright-report/
 .DS_Store
+
+# ZATCA XML invoices persisted per tenant (binary artifacts, not source)
+storage/

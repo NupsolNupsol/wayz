@@ -1,5 +1,6 @@
 import { OPS, TILL } from '../../shared/access.js'
 import { ACTIVE, CANCELLED, COMPLETED, CONFIRMED, DRAFT, OVERTIME } from '../../shared/status.js'
+import { GROUP_MINIMUM_PARTY, MINIMUM_FEED_PORTIONS } from '../../bookingWorkflowValidators/shared.animal.validators.js'
 import type { EngineWorkflow, OperationResult, ValidationResult, WorkflowContext } from '../../shared/types.js'
 import { useGroupPackageValidator } from '../../bookingWorkflowValidators/wiqar/controller.groupPackage.validator.controller.js'
 import { useGroupPackageOperation } from '../../bookingWorkflowOperations/wiqar/controller.groupPackage.operation.controller.js'
@@ -19,6 +20,13 @@ export const groupPackageWorkflow: EngineWorkflow = {
   sessionKind: 'EXPERIENCE',
   initialStatus: DRAFT,
   actors: OPS,
+  // What confirmation asks the counter for — the same checks its validator composes.
+  intake: [
+    { key: 'consent' },
+    { key: 'trainer' },
+    { key: 'partySize', min: GROUP_MINIMUM_PARTY },
+    { key: 'feedPortions', min: MINIMUM_FEED_PORTIONS },
+  ],
   transitions: [
     {
       code: 'TO_CONFIRMED',

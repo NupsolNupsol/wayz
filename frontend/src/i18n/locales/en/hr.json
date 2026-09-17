@@ -44,7 +44,7 @@
     "noCosts": "No costs yet",
     "noCostsHint": "Record the first supplier invoice or repair.",
     "fromCards": "Posted from the card transactions",
-    "descriptionPlaceholder": "Boat hull repair after collision",
+    "descriptionPlaceholder": "e.g. Equipment repair, supplier invoice, service call",
     "seasonPlaceholder": "Riyadh Season 2027 — H1",
     "entryCount_one": "{{count}} entry",
     "entryCount_other": "{{count}} entries",

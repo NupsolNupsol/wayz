@@ -1,3 +1,4 @@
+import { sweepRestPeriods } from './rest.service.js'
 import { Booking, Tenant } from '../models/index.js'
 import type { BookingHydrated } from '../models/booking.model.js'
 import { env } from '../config/env.js'
@@ -119,8 +120,9 @@ export async function sweepOvertime(now: Date = new Date()): Promise<number> {
   return flipped
 }
 
-export async function runSessionSweeps(now: Date = new Date()): Promise<{ warned: number; flipped: number }> {
+export async function runSessionSweeps(now: Date = new Date()): Promise<{ warned: number; flipped: number; rested: number }> {
   const warned = await sweepExpiryWarnings(now)
   const flipped = await sweepOvertime(now)
-  return { warned, flipped }
+  const rested = await sweepRestPeriods(now)
+  return { warned, flipped, rested }
 }

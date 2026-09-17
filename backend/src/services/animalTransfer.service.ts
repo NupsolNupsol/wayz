@@ -5,6 +5,7 @@ import { nextSequence, pad } from './counter.service.js'
 import { recordAudit } from './audit.service.js'
 import { resolveTransferRules, type TransferRules } from '../domain/rules.js'
 import { requireOrganisation } from '../platform/orgScope.js'
+import { restMinutesFor } from '@wayz/workflow'
 import type { Role } from '../domain/types.js'
 
 /**
@@ -272,6 +273,13 @@ export async function receiveTransfer(actor: TransferActor, id: string, arriveAs
 
   animal.stationId = transfer.toStationId
   animal.status = arriveAs
+  /*
+   * Arriving to rest means resting for the species' own interval — and then working. Without an
+   * end time the sweep would never return it, and a transferred animal would stay out of service.
+   */
+  animal.restingUntil =
+    arriveAs === 'RESTING' ? new Date(Date.now() + restMinutesFor(animal.assetTypeId) * 60_000) : null
+  if (arriveAs === 'RESTING') animal.note = `Resting after the journey (${transfer.ref}).`
   await animal.save()
 
   transfer.status = 'ARRIVED'

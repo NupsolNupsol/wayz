@@ -3,6 +3,56 @@ import { QRCodeSVG } from 'qrcode.react'
 import { Barcode } from '@/components/Barcode'
 import type { Invoice } from '@/api/invoice.api'
 
+/**
+ * The ZATCA QR payload: tag-length-value, base64.
+ *
+ * Phase-one e-invoicing requires a QR on the printed slip carrying five fields in exactly this
+ * order, each as `[tag byte][length byte][UTF-8 value]`, the whole run base64-encoded. The
+ * length is a byte *count*, not a character count, which is why the value is encoded first —
+ * an Arabic seller name is two or three bytes per character and a character count would put
+ * every following field at the wrong offset.
+ */
+function encodeTLV(fields: Array<[number, string]>): string {
+  const bytes: number[] = []
+
+  for (const [tag, value] of fields) {
+    const valueBytes = new TextEncoder().encode(value)
+
+    if (tag < 0 || tag > 255) {
+      throw new Error(`Invalid TLV tag: ${tag}`)
+    }
+
+    if (valueBytes.length > 255) {
+      throw new Error(`TLV value for tag ${tag} exceeds 255 bytes`)
+    }
+
+    // Tag: 1 byte
+    bytes.push(tag)
+
+    // Length: 1 byte
+    bytes.push(valueBytes.length)
+
+    // Value: N bytes
+    bytes.push(...valueBytes)
+  }
+
+  // Convert bytes -> binary string -> Base64
+  const binary = String.fromCharCode(...bytes)
+
+  return btoa(binary)
+}
+
+/** The five fields ZATCA wants, in the order it wants them. */
+function buildInvoiceQrPayload(invoice: Invoice): string {
+  return encodeTLV([
+    [1, invoice.seller.name],
+    [2, invoice.seller.vatNumber],
+    [3, invoice.issuedAt],
+    [4, invoice.totals.total.toFixed(2)],
+    [5, invoice.totals.vat.toFixed(2)],
+  ])
+}
+
 export function InvoiceSlip({ invoice, trackingUrl }: { invoice: Invoice; trackingUrl?: string }) {
   const { i18n } = useTranslation(['bookings', 'common'])
   // The slip is the customer's document, not the agent's screen: it always comes out of the
@@ -11,6 +61,17 @@ export function InvoiceSlip({ invoice, trackingUrl }: { invoice: Invoice; tracki
   const currency = t('common:money.currency')
   const money = (n: number) => `${n.toFixed(2)} ${currency}`
   const label = (pair: { en: string; ar: string }) => pair.ar
+  const qrPayload = buildInvoiceQrPayload(invoice)
+
+  /** Date and time of day, in the branch's own reading order. */
+  const clock = (iso: string) =>
+    new Date(iso).toLocaleString('en-GB', {
+      day: '2-digit',
+      month: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: false,
+    })
 
   return (
     <div
@@ -45,6 +106,45 @@ export function InvoiceSlip({ invoice, trackingUrl }: { invoice: Invoice; tracki
           <>
             <dt className="text-black/60">{t('invoice.desk')}</dt>
             <dd className="text-end" dir="auto">{invoice.desk}</dd>
+          </>
+        )}
+
+        {/*
+          Where the customer collects, when that is not the desk they bought at.
+
+          A scooter sold at the welcome desk is handed over at a vehicle bay, and the slip did
+          not say which — so somebody holding the paper had no way to find their scooter.
+        */}
+        {invoice.gate && (
+          <>
+            <dt className="text-black/60">{t('invoice.gate', { defaultValue: 'بوابة التسليم' })}</dt>
+            <dd className="text-end" dir="auto" data-testid="invoice-gate">
+              {invoice.gate}
+            </dd>
+          </>
+        )}
+
+        {/*
+          The window the customer paid for.
+
+          They are charged for time and the slip named none of it, so there was no way to tell
+          from the paper when the hour ran out. Printed as clock times rather than a duration,
+          because "until 14:30" is what somebody standing there needs.
+        */}
+        {invoice.session?.startedAt && (
+          <>
+            <dt className="text-black/60">{t('invoice.startedAt', { defaultValue: 'وقت البداية' })}</dt>
+            <dd className="text-end" dir="ltr" data-testid="invoice-started-at">
+              {clock(invoice.session.startedAt)}
+            </dd>
+          </>
+        )}
+        {invoice.session?.endsAt && (
+          <>
+            <dt className="text-black/60">{t('invoice.endsAt', { defaultValue: 'وقت الانتهاء' })}</dt>
+            <dd className="text-end" dir="ltr" data-testid="invoice-ends-at">
+              {clock(invoice.session.endsAt)}
+            </dd>
           </>
         )}
 
@@ -85,7 +185,10 @@ export function InvoiceSlip({ invoice, trackingUrl }: { invoice: Invoice; tracki
                     <span className="text-[12px] text-black/60"> · {t('invoice.deliveryTag')}</span>
                   )}
                 </td>
-                <td className="py-1 text-end tabular-nums">{line.quantity}</td>
+                {/* "1h" for an hour rented, "2" for two items bought — see quantityLabel. */}
+                <td className="py-1 text-end tabular-nums" data-testid={`invoice-qty-${line.index}`}>
+                  {line.quantityLabel ?? line.quantity}
+                </td>
                 <td className="py-1 text-end tabular-nums" dir="ltr">{line.total.toFixed(2)}</td>
               </tr>
             ))}
@@ -131,10 +234,25 @@ export function InvoiceSlip({ invoice, trackingUrl }: { invoice: Invoice; tracki
       </section>
 
       <footer className="text-center pt-2 border-t border-dashed border-black/40">
+        {/*
+          Two codes, and they are not interchangeable.
+
+          The left one is the tax authority's: five fields, TLV, base64 — what an inspector
+          scans. The right one is the customer's, and points at the tracking page. Printing
+          only one of them was the gap.
+        */}
         {trackingUrl && (
-          <div className="flex flex-col items-center pt-1 pb-2">
-            <QRCodeSVG value={trackingUrl} size={104} level="M" bgColor="#ffffff" fgColor="#000000" />
-            <p className="text-[13px] mt-1">{t('invoice.scanToTrack')}</p>
+          <div className="flex items-center justify-between">
+            <div className="flex flex-col items-center pt-1 pb-2">
+              <QRCodeSVG value={qrPayload} size={104} level="M" bgColor="#ffffff" fgColor="#000000" />
+              <p className="text-[13px] mt-1" data-testid="invoice-zatca-qr">
+                ZATCA
+              </p>
+            </div>
+            <div className="flex flex-col items-center pt-1 pb-2">
+              <QRCodeSVG value={trackingUrl} size={104} level="M" bgColor="#ffffff" fgColor="#000000" />
+              <p className="text-[13px] mt-1">{t('invoice.scanToTrack')}</p>
+            </div>
           </div>
         )}
         <div className="flex justify-center py-2">

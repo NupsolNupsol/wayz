@@ -168,4 +168,29 @@ export const adminApi = {
   audit: () => unwrap<TenantAuditRow[]>(http.get('/admin/audit')),
   isolation: () => unwrap<IsolationReport>(http.get('/admin/isolation')),
   updateCompany: (patch: CompanyPatch) => unwrap<Record<string, unknown>>(http.patch('/admin/company', patch)),
+
+  /**
+   * Every activity the platform has coded, and which of them this organisation runs.
+   *
+   * The catalogue half is identical for every organisation — it is the code. The adopted half
+   * is theirs. They come back together because the screen showing them is one screen.
+   */
+  activities: () =>
+    unwrap<{ catalogue: CatalogueActivity[]; adopted: EngineKind[] }>(http.get('/admin/activities')),
+
+  adoptActivities: (activities: EngineKind[]) =>
+    unwrap<{ adopted: EngineKind[] }>(http.put('/admin/activities', { activities })),
+}
+
+export interface CatalogueActivity {
+  key: EngineKind
+  label: { en: string; ar: string }
+  /** What a tenant administrator reads when deciding whether to take it up. */
+  description: string
+  /** The kind of thing it runs on — what its resources are. */
+  assetKind: string
+  /** The shape of one unit of work: a storage, a rental, an outing. */
+  sessionKind: string
+  /** The jobs its workflow admits, so the page can say who would staff it. */
+  actors: string[]
 }

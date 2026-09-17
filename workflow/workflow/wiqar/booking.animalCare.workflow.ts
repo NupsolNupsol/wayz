@@ -19,6 +19,8 @@ export const animalCareWorkflow: EngineWorkflow = {
   sessionKind: 'EXPERIENCE',
   initialStatus: DRAFT,
   actors: OPS,
+  // What confirmation asks the counter for — the same checks its validator composes.
+  intake: [{ key: 'consent' }, { key: 'trainer' }],
   transitions: [
     {
       code: 'TO_CONFIRMED',

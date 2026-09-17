@@ -152,7 +152,7 @@
     "site": "موقع",
     "station": "محطة",
     "kiosk": "كشك",
-    "compartments": "الخزائن",
+    "compartments": "الأصول",
     "deactivateNote": "تُعطَّل المستويات ولا تُحذف — تبقى الحجوزات السابقة قابلة للحل.",
     "inactive": "غير نشط",
     "siteLine": "{{city}} · {{venue}} · {{count}} محطة",

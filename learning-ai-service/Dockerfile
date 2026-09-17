@@ -90,6 +90,9 @@ RUN mkdir -p /models/hf /var/cache/lockerflow-tts
 
 COPY app ./app
 
+# The starter documents `python -m app.seed_knowledge` loads into a fresh stack.
+COPY knowledge-samples ./knowledge-samples
+
 # Not root. This process reads uploaded text and calls out to a subprocess; there is no
 # reason for it to be able to write anywhere outside the paths it was given.
 RUN useradd --create-home --uid 10001 lockerflow \

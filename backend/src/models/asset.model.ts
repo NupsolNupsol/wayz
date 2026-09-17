@@ -59,6 +59,8 @@ export interface AssetUnitDoc {
   status: AssetUnitStatus
   currentBookingId: string | null
   note?: string
+  /** When a resting animal may work again. Cleared when it returns to service. */
+  restingUntil?: Date | null
   priceOverride?: number | null
   penaltyPrice?: number | null
 }
@@ -76,6 +78,7 @@ const assetUnitSchema = new Schema<AssetUnitDoc>(
     status: { type: String, default: 'AVAILABLE', index: true },
     currentBookingId: { type: String, default: null },
     note: { type: String },
+    restingUntil: { type: Date, default: null, index: true },
     priceOverride: { type: Number, default: null },
     penaltyPrice: { type: Number, default: null },
   },

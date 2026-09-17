@@ -8,7 +8,8 @@ import { DataTable } from '@/components/DataTable'
 import { Modal } from '@/components/Modal'
 import { RefLink } from '@/components/RefLink'
 import { useRefundRequests, useReviewRefundRequest } from '@/hooks'
-import { engineLabel, visibleEngineOptions } from '@/config/engineMeta'
+import { engineLabel } from '@/config/engineMeta'
+import { useTenantEngines } from '@/hooks/useTenantEngines'
 import { ApiError } from '@/api/client'
 import { formatDateTime, money } from '@/utils'
 import { toast } from '@/state/toastStore'
@@ -22,6 +23,14 @@ const TONE: Record<RefundRequestStatus, 'info' | 'success' | 'danger'> = {
 
 export function RefundRequestsPage() {
   const { t } = useTranslation(['accounting', 'common'])
+  /*
+   * What this organisation runs, not the whole coded catalogue.
+   *
+   * The catalogue is every activity the platform has been built to run; the adopted list is
+   * the subset this company took up on the Activities page. Offering the catalogue showed
+   * every company WAYZ's three and none of its own.
+   */
+  const adoptedActivityOptions = useTenantEngines().map((kind) => ({ label: engineLabel(kind), value: kind }))
   const [status, setStatus] = useState<RefundRequestStatus | ''>('')
   const { data, isLoading } = useRefundRequests(status ? { status } : undefined)
   const review = useReviewRefundRequest()
@@ -122,7 +131,7 @@ export function RefundRequestsPage() {
             {
               key: 'activity',
               header: t('common:column.activity'),
-              filter: { kind: 'select', options: visibleEngineOptions(), value: (r) => r.engineKind },
+              filter: { kind: 'select', options: adoptedActivityOptions, value: (r) => r.engineKind },
               render: (r) => <Badge tone="info">{engineLabel(r.engineKind)}</Badge>,
             },
             {

@@ -82,7 +82,7 @@
     "activeOfKind": "Active {{engine}}",
     "customerIncomplete": "This customer has no complete mobile number, so they cannot be sent a code or an invoice. Edit them before taking payment.",
     "chooseUnit": "Which one are you handing over?",
-    "chooseUnitHint": "The operational number written on the vehicle.",
+    "chooseUnitHint": "The number on its tag.",
     "chooseUnitPlaceholder": "Choose a unit…",
     "noFreeUnits": "Nothing of this kind is free at your desk right now.",
     "byHour": "By the hour · {{price}}",
@@ -101,7 +101,7 @@
     "resumed": "Picked up where you left off — this sale was still open.",
     "startFresh": "Start a new one",
     "whichUnit": "Which one",
-    "whichUnitHint": "Pick the vehicle you are handing over. Only the free ones at this desk are listed.",
+    "whichUnitHint": "Only the free ones this counter can hand over are listed.",
     "noneFreeHere": "None of these are free at this desk right now.",
     "freeNow": "Free"
   },

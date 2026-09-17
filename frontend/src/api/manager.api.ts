@@ -158,6 +158,8 @@ export interface ManagerStaff {
   fullName: string
   email: string
   role: Role
+  /** What this company calls the job, when it differs from the platform's word. Often empty. */
+  roleLabel?: string
   phone: string
   active: boolean
   setUp: boolean

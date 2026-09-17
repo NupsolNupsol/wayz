@@ -4,37 +4,46 @@ import { Modal } from '@/components/Modal'
 import { Button, Field, FieldGroupTitle } from '@/components/ui'
 import { Select } from '@/components/Select'
 import { NumberInput } from '@/components/NumberInput'
-import { useCreateAssetKind } from '@/hooks'
+import { useCreateAssetKind, useManagerStaff } from '@/hooks'
 import { billingForSaleUnit, billingLabel, chargesForTime, defaultSaleUnitFor, engineLabel, saleUnitsFor } from '@/config/engineMeta'
 import { useTenantEngines } from '@/hooks/useTenantEngines'
 import { ApiError } from '@/api/client'
 import { toast } from '@/state/toastStore'
-import { ASSET_KINDS, SALE_TYPES, SALE_UNITS, type AssetKind, type AssetGate, type AssetKiosk, type AssetStation, type SaleType, type SaleUnit } from '@/api/asset.api'
+import { SALE_TYPES, SALE_UNITS, type AssetKind, type AssetGate, type AssetKiosk, type AssetStation, type SaleType, type SaleUnit } from '@/api/asset.api'
 import type { EngineKind } from '@/api/types'
 
 /**
- * The activity a kind of resource belongs to, where exactly one claims it.
+ * What each activity runs on.
  *
- * Deliberately partial. `ANIMAL` is missing because seven WIQAR experiences work animals and
- * an animal does not belong to any one of them — a horse is ridden, groomed, fed and
- * photographed. A resource kind whose activity is ambiguous is chosen explicitly rather than
- * inferred, which is why `VISIBLE_KINDS` below does not offer it here.
+ * Every coded activity has one shape of resource behind it: bags go in a compartment, a
+ * scooter is a vehicle, a lagoon trip needs a boat, and all seven WIQAR experiences work an
+ * animal. This is the single table that says so, and both directions are derived from it —
+ * so adding activity number twelve means adding one line here, not editing three lists that
+ * have to agree.
  */
-const KIND_ENGINE: Partial<Record<AssetKind, EngineKind>> = {
-  COMPARTMENT: 'SHOP_AND_DROP',
-  VEHICLE: 'MOBILITY',
-  BOAT: 'LAGOON',
-  TABLE: 'COTE_RESTAURANT',
-}
-
-const VISIBLE_KINDS: AssetKind[] = ['COMPARTMENT', 'VEHICLE', 'BOAT']
-
-/** Each activity has one shape of thing behind it, so the two move together. */
-const KIND_FOR_ENGINE: Partial<Record<EngineKind, AssetKind>> = {
+const RUNS_ON: Record<EngineKind, AssetKind> = {
   SHOP_AND_DROP: 'COMPARTMENT',
   MOBILITY: 'VEHICLE',
   LAGOON: 'BOAT',
+  COTE_RESTAURANT: 'TABLE',
+
+  /*
+   * An animal is worked by several experiences at once — a horse is ridden, groomed, fed and
+   * photographed — so the shape does not imply one activity the way the others do. Picking
+   * "animal" therefore narrows the activity list rather than choosing for you.
+   */
+  HORSE_RIDING: 'ANIMAL',
+  EQUESTRIAN_LESSON: 'ANIMAL',
+  CAMEL_TOUR: 'ANIMAL',
+  ANIMAL_CARE: 'ANIMAL',
+  ANIMAL_FEEDING: 'ANIMAL',
+  PHOTOGRAPHY: 'ANIMAL',
+  GROUP_PACKAGE: 'ANIMAL',
 }
+
+/** The activities that run on a shape — one for most, seven for an animal. */
+const activitiesOn = (shape: AssetKind, adopted: EngineKind[]) =>
+  adopted.filter((kind) => RUNS_ON[kind] === shape)
 
 export function NewAssetKindModal({
   open,
@@ -57,6 +66,13 @@ export function NewAssetKindModal({
   /* Only the activities this company runs — see useTenantEngines. */
   const engines = useTenantEngines()
   const create = useCreateAssetKind()
+
+  /*
+   * The shapes this company has resources for — derived from what it adopted, never listed.
+   * WAYZ gets compartments, vehicles and boats; WIQAR gets animals; a company running both
+   * gets both, without either list being written down anywhere.
+   */
+  const shapesOffered = [...new Set(engines.map((kind) => RUNS_ON[kind]))].filter(Boolean)
 
   const [kind, setKind] = useState<AssetKind>('COMPARTMENT')
   const [engineKind, setEngineKind] = useState<EngineKind>(defaultEngine ?? 'SHOP_AND_DROP')
@@ -81,16 +97,17 @@ export function NewAssetKindModal({
 
   useEffect(() => {
     if (!open) return
-    const startingKind: AssetKind = defaultEngine
-      ? ((ASSET_KINDS.find((k) => KIND_ENGINE[k] === defaultEngine) as AssetKind | undefined) ?? 'COMPARTMENT')
-      : 'COMPARTMENT'
-    setKind(startingKind)
+
     /*
-     * `VISIBLE_KINDS` only offers kinds one activity claims, so the lookup always answers for
-     * anything reachable here. The fallback covers the unreachable case honestly rather than
-     * asserting it away.
+     * Opens on something this company actually runs.
+     *
+     * It used to open on a compartment for Shop & Drop whoever you were, so WIQAR's
+     * administrator was shown a bag-locker form — dimensions in centimetres, a maximum weight,
+     * a bag count — for a company that stores no bags.
      */
-    setEngineKind(defaultEngine ?? KIND_ENGINE[startingKind] ?? 'SHOP_AND_DROP')
+    const startingEngine = defaultEngine ?? engines[0]
+    setEngineKind(startingEngine)
+    setKind(startingEngine ? RUNS_ON[startingEngine] : 'COMPARTMENT')
     setName('')
     setBasePrice(25)
     setDeposit(0)
@@ -100,17 +117,23 @@ export function NewAssetKindModal({
     setInitialCount(4)
   }, [open, defaultEngine, stations])
 
+  /*
+   * Picking a shape narrows the activity to those that run on it.
+   *
+   * One shape usually means one activity, and choosing it chooses that. An animal is the
+   * exception — seven experiences work one — so it narrows the list and leaves the choice.
+   */
   const pickKind = (next: AssetKind) => {
     setKind(next)
-    const claimed = KIND_ENGINE[next]
-    if (claimed) setEngineKind(claimed)
+    const runsOnIt = activitiesOn(next, engines)
+    if (runsOnIt.length > 0 && !runsOnIt.includes(engineKind)) setEngineKind(runsOnIt[0])
     setKioskId('')
   }
 
   /** Choosing the activity chooses the shape, so a boat is never asked for its dimensions in cm. */
   const pickEngine = (next: EngineKind) => {
     setEngineKind(next)
-    setKind(KIND_FOR_ENGINE[next] ?? kind)
+    setKind(RUNS_ON[next] ?? kind)
     setKioskId('')
 
     const units = saleUnitsFor(next, SALE_UNITS)
@@ -124,6 +147,27 @@ export function NewAssetKindModal({
     kind === 'COMPARTMENT'
       ? gates.filter((g) => g.stationId === station)
       : kiosks.filter((k) => k.stationId === station && (!k.engineKind || k.engineKind === engineKind))
+
+  /* An animal belongs to its area; naming a desk is optional. See asset.service addUnits. */
+  const heldByTheArea = kind === 'ANIMAL'
+
+  /*
+   * Who will be able to sell what is being created.
+   *
+   * The form used to say nothing about this, and it is the one thing an administrator cannot
+   * see from here: a counter agent sells only what is at their own location and activity. A
+   * horse added at South of 'Usfan and an agent posted to Al-Jihfa look fine on both screens
+   * and meet nowhere. Naming the people turns that into something visible before saving.
+   */
+  const { data: staff = [] } = useManagerStaff()
+  const sellers = staff.filter(
+    (p) =>
+      p.active &&
+      p.role === 'AGENT' &&
+      p.stationId === stationId &&
+      (p.engineKinds ?? []).includes(engineKind) &&
+      (heldByTheArea && !kioskId ? true : kind === 'COMPARTMENT' ? true : p.kioskId === kioskId),
+  )
 
   const submit = () => {
     create.mutate(
@@ -142,7 +186,7 @@ export function NewAssetKindModal({
             ? { internalDimensions: { w, h, d }, maxWeight, maxRecommendedBagCount: bagCount, capacityScore: bagCount }
             : { seats, capacityScore: seats },
         ...(initialCount > 0 && stationId && kioskId
-          ? { initialCount, stationId, ...(kind === 'COMPARTMENT' ? { gateId: kioskId } : { kioskId }) }
+          ? { initialCount, stationId, ...(kind === 'COMPARTMENT' ? { gateId: kioskId } : { kioskId: kioskId || null }) }
           : {}),
       },
       {
@@ -175,7 +219,7 @@ export function NewAssetKindModal({
           <Button
             onClick={submit}
             loading={create.isPending}
-            disabled={name.trim().length < 2 || (initialCount > 0 && !kioskId)}
+            disabled={name.trim().length < 2 || (initialCount > 0 && !kioskId && !heldByTheArea)}
             data-testid="asset-new-kind-submit"
           >
             {t('newKind.submit')}
@@ -185,7 +229,7 @@ export function NewAssetKindModal({
     >
       <Field label={t('newKind.shape')} required hint={t('newKind.shapeHint')}>
         <div className="flex flex-wrap gap-2">
-          {VISIBLE_KINDS.map((k) => (
+          {shapesOffered.map((k) => (
             <button
               key={k}
               type="button"
@@ -284,6 +328,18 @@ export function NewAssetKindModal({
             </Field>
           </div>
         </>
+      ) : kind === 'ANIMAL' ? (
+        /*
+         * An animal carries riders, and the count is what limits a session — a horse takes one,
+         * a camel can take two. Neither dimensions nor a bag count mean anything here, which is
+         * why the compartment block above is not simply reused with different labels.
+         */
+        <Field
+          label={t('newKind.riders', { defaultValue: 'Riders at a time' })}
+          hint={t('newKind.ridersHint', { defaultValue: 'How many people one animal can take in a single session.' })}
+        >
+          <NumberInput min={1} value={seats} onChange={setSeats} testId="asset-new-kind-seats" />
+        </Field>
       ) : (
         <Field label={t('newKind.seats')} hint={t('newKind.seatsHint')}>
           <NumberInput min={1} value={seats} onChange={setSeats} testId="asset-new-kind-seats" />
@@ -297,7 +353,7 @@ export function NewAssetKindModal({
             value={stationId}
             onChange={(v) => {
               setStationId(v)
-              setKioskId(desks(v)[0]?._id ?? '')
+              setKioskId(heldByTheArea ? '' : (desks(v)[0]?._id ?? ''))
             }}
             options={stations.map((s) => ({ label: s.name, value: s._id }))}
             testId="asset-new-kind-station"
@@ -319,17 +375,41 @@ export function NewAssetKindModal({
               value={kioskId}
               onChange={setKioskId}
               options={[
-                { label: kind === 'COMPARTMENT' ? t('add.pickGate') : t('add.pickKiosk'), value: '' },
+                heldByTheArea
+                  ? { label: t('newKind.heldByArea', { defaultValue: 'The whole area — every counter here can sell it' }), value: '' }
+                  : { label: kind === 'COMPARTMENT' ? t('add.pickGate') : t('add.pickKiosk'), value: '' },
                 ...desks(stationId).map((k) => ({ label: k.name, value: k._id })),
               ]}
               testId="asset-new-kind-kiosk"
             />
+          ) : heldByTheArea ? (
+            <p className="text-xs text-muted" data-testid="asset-new-kind-area">
+              {t('newKind.heldByArea', { defaultValue: 'The whole area — every counter here can sell it' })}
+            </p>
           ) : (
             <p className="text-xs text-danger-strong" data-testid="asset-new-kind-no-kiosk">
               {kind === 'COMPARTMENT' ? t('add.noGateHere') : t('add.noKioskHere')}
             </p>
           )}
         </Field>
+      )}
+
+      {initialCount > 0 && (
+        <p
+          className={sellers.length ? 'text-xs text-muted' : 'text-xs text-warning-strong'}
+          data-testid="asset-new-kind-sellers"
+        >
+          {sellers.length
+            ? t('newKind.sellers', {
+                defaultValue: 'Can be sold by: {{names}}',
+                names: sellers.map((p) => p.fullName).join(', '),
+              })
+            : t('newKind.noSellers', {
+                defaultValue:
+                  'Nobody can sell these yet — no counter agent here is assigned {{activity}}. Assign one on the Team page, or pick the location they work at.',
+                activity: engineLabel(engineKind),
+              })}
+        </p>
       )}
     </Modal>
   )

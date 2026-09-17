@@ -44,22 +44,55 @@ export function kioskFilter(scope: Pick<Scope, 'role' | 'kioskId'>): string | un
 }
 
 /**
- * Where a desk-scoped member of staff can reach stock.
+ * Every unit a member of staff can reach from where they stand, as one complete condition.
  *
- * Two places, and they are not the same place. A desk holds what it hands over itself — the
- * scooters in its bay, the boats at its jetty — and that is its own kiosk. Compartments are not
- * held by a desk at all: a Shop & Drop counter is a point of sale, and the lockers stand at the
- * gates of the venue, so the counter has to be able to allocate one at any gate in its station.
+ * It says *where* as well as *which*, so no caller adds its own "same station" beside it — that
+ * pairing is exactly how area-held stock went missing, because an animal's area is not the
+ * reception's.
  *
- * Passing no gates gives the old rule back exactly — the desk's own kiosk and nothing else —
- * which is what every activity that does not use gates still wants.
+ * Three kinds of place:
+ *
+ *  - **A desk's own units** — the scooters in its bay, the boats at its jetty. Same station,
+ *    same counter.
+ *  - **The lockers at its station's gates.** A Shop & Drop counter is a point of sale; the
+ *    compartments stand at the gates, so it allocates one at any gate of its own station.
+ *  - **Stock held by the location itself** — no counter, no gate. An animal is the case that
+ *    made this necessary: a horse lives in the stable area and is sold at the reception area of
+ *    the same site, so it is reachable from **any station of that site**. Requiring the
+ *    reception's own station made every seeded WIQAR ride unsellable at every reception.
+ *
+ * Someone not tied to a counter (a manager, a supervisor) sees everything at their station plus
+ * the same location-held stock.
  */
-export function reachableUnitFilter(
+export function reachableUnitsAt(
   scope: Pick<Scope, 'role' | 'kioskId'>,
-  gateIds: string[] = [],
-): Record<string, unknown> | undefined {
-  const kiosk = kioskFilter(scope)
-  if (kiosk === undefined) return undefined
-  if (gateIds.length === 0) return { kioskId: kiosk }
-  return { $or: [{ kioskId: kiosk }, { gateId: { $in: gateIds } }] }
+  where: Places,
+): Record<string, unknown> {
+  return unitsReachableFrom(kioskFilter(scope), where)
+}
+
+export interface Places {
+  stationId: string
+  gateIds?: string[]
+  siteStationIds?: string[]
+}
+
+/**
+ * The same rule, keyed by the desk in play rather than by who is asking.
+ *
+ * `desk` undefined means nobody is standing at a particular counter, so the whole station is in
+ * reach. The workflow uses this form: an action on a booking is bounded by the booking's own
+ * desk whoever performs it, so a supervisor starting a scooter rental still gets that bay's
+ * scooters and not the next bay's.
+ */
+export function unitsReachableFrom(desk: string | undefined, where: Places): Record<string, unknown> {
+  const { stationId, gateIds = [], siteStationIds = [stationId] } = where
+  const heldByTheLocation = { stationId: { $in: siteStationIds }, kioskId: null, gateId: null }
+
+  if (desk === undefined) return { $or: [{ stationId }, heldByTheLocation] }
+
+  const places: Record<string, unknown>[] = [{ stationId, kioskId: desk }]
+  if (gateIds.length > 0) places.push({ stationId, gateId: { $in: gateIds } })
+  places.push(heldByTheLocation)
+  return { $or: places }
 }

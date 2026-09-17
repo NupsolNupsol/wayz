@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
+import { useTenantEngines } from '@/hooks/useTenantEngines'
 import { useTranslation } from 'react-i18next'
 import { MapPinned, RotateCcw, Save, Undo2 } from 'lucide-react'
 import { clsx } from 'clsx'
@@ -13,6 +14,7 @@ import { toast } from '@/state/toastStore'
 type Placement = { x: number | null; y: number | null }
 
 export function AdminStationMap() {
+  const adopted = useTenantEngines()
   const { t } = useTranslation(['admin', 'common'])
   const { data, isLoading } = useStationMap()
   const save = useSaveStationMap()
@@ -113,9 +115,12 @@ export function AdminStationMap() {
               <span className="flex items-center gap-1.5">
                 <span className="w-3 h-3 rounded-full bg-navy inline-block" /> {t('map.legendStation')}
               </span>
-              <span className="flex items-center gap-1.5">
-                <span className="w-3 h-3 rounded-full bg-sky-500 inline-block" /> {t('map.legendLagoon')}
-              </span>
+              {/* Jetties exist only where the lagoon is run. */}
+              {adopted.includes('LAGOON') && (
+                <span className="flex items-center gap-1.5">
+                  <span className="w-3 h-3 rounded-full bg-sky-500 inline-block" /> {t('map.legendLagoon')}
+                </span>
+              )}
               <span className="flex items-center gap-1.5">
                 <span className="w-3 h-3 rounded-full bg-brand inline-block" /> {t('map.legendDesk')}
               </span>

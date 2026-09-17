@@ -25,7 +25,16 @@ export function useTenantEngines(): EngineKind[] {
   return useMemo(() => {
     const held = adopted ?? []
     if (held.length === 0) return VISIBLE_ENGINES
-    return VISIBLE_ENGINES.filter((kind) => held.includes(kind))
+
+    /*
+     * Ordered by the catalogue, so two organisations running the same activities list them the
+     * same way. Anything the session names that the catalogue does not know is kept rather than
+     * dropped — a server that has shipped an activity this build has not heard of should show
+     * as an unfamiliar name, not vanish.
+     */
+    const known = VISIBLE_ENGINES.filter((kind) => held.includes(kind))
+    const unknown = held.filter((kind) => !VISIBLE_ENGINES.includes(kind))
+    return [...known, ...unknown]
   }, [adopted])
 }
 

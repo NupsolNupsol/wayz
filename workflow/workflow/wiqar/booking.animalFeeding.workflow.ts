@@ -1,5 +1,6 @@
 import { OPS, TILL } from '../../shared/access.js'
 import { ACTIVE, CANCELLED, COMPLETED, CONFIRMED, DRAFT, OVERTIME } from '../../shared/status.js'
+import { MINIMUM_FEED_PORTIONS } from '../../bookingWorkflowValidators/shared.animal.validators.js'
 import type { EngineWorkflow, OperationResult, ValidationResult, WorkflowContext } from '../../shared/types.js'
 import { useAnimalFeedingValidator } from '../../bookingWorkflowValidators/wiqar/controller.animalFeeding.validator.controller.js'
 import { useAnimalFeedingOperation } from '../../bookingWorkflowOperations/wiqar/controller.animalFeeding.operation.controller.js'
@@ -19,6 +20,8 @@ export const animalFeedingWorkflow: EngineWorkflow = {
   sessionKind: 'EXPERIENCE',
   initialStatus: DRAFT,
   actors: OPS,
+  // What confirmation asks the counter for — the same checks its validator composes.
+  intake: [{ key: 'consent' }, { key: 'feedPortions', min: MINIMUM_FEED_PORTIONS }],
   transitions: [
     {
       code: 'TO_CONFIRMED',

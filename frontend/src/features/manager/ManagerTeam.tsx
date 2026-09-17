@@ -12,7 +12,8 @@ import { ApiError } from '@/api/client'
 import { formatDateTime } from '@/utils'
 import { toast } from '@/state/toastStore'
 import { clsx } from 'clsx'
-import { engineLabel, visibleEngineOptions } from '@/config/engineMeta'
+import { engineLabel } from '@/config/engineMeta'
+import { useTenantEngines } from '@/hooks/useTenantEngines'
 import {
   ROLE_ORDER,
   assignableBy,
@@ -30,6 +31,8 @@ const readEngines = (value?: string): EngineKind[] =>
 
 export function ManagerTeam() {
   const { t } = useTranslation(['manager', 'common'])
+  /* The filter offers what this company runs, for the same reason the hiring form does. */
+  const adoptedActivityOptions = useTenantEngines().map((kind) => ({ label: engineLabel(kind), value: kind }))
   const { data: staff = [], isLoading } = useManagerStaff()
   const { data: org } = useManagerOrg()
   const createStaff = useCreateStaff()
@@ -273,7 +276,23 @@ export function ManagerTeam() {
               key: 'role',
               header: t('common:column.role'),
               filter: { kind: 'select', options: ROLE_ORDER.map((value) => ({ label: t(`common:role.${value}`), value })), value: (r) => r.role },
-              render: (r) => <Badge tone="neutral">{t(`common:role.${r.role}`)}</Badge>,
+              /*
+               * The company's own title where it has one, with the platform's role beneath it.
+               *
+               * Both are worth showing: the title is who this person is on the floor, and the
+               * role is what the system will let them do. WIQAR's CEO and IT Manager both hold
+               * TENANT_ADMIN, and collapsing that to one line either hides that they are
+               * different people or implies the platform has two administrator roles.
+               */
+              render: (r) =>
+                r.roleLabel ? (
+                  <div className="leading-tight">
+                    <Badge tone="neutral">{r.roleLabel}</Badge>
+                    <div className="mt-0.5 text-[10.5px] text-muted">{t(`common:role.${r.role}`)}</div>
+                  </div>
+                ) : (
+                  <Badge tone="neutral">{t(`common:role.${r.role}`)}</Badge>
+                ),
             },
             {
               key: 'station',
@@ -291,7 +310,7 @@ export function ManagerTeam() {
               header: t('common:column.activities'),
               filter: {
                 kind: 'select',
-                options: visibleEngineOptions(),
+                options: adoptedActivityOptions,
                 value: (r) => (r.engineKinds ?? []).join(','),
               },
               render: (r) =>
@@ -493,9 +512,23 @@ function StaffFields({
   /** A mobility agent works a bay and answers for a locker hall. Two postings, not one. */
   const needsGate = role === 'AGENT' && engines.includes('MOBILITY')
   const oneActivityOnly = needsKiosk
+  /*
+   * The activities *this organisation* runs, not the whole catalogue.
+   *
+   * Offering the catalogue meant a WIQAR administrator hiring a trainer was shown Shop & Drop,
+   * Mobility and Lagoon — WAYZ's three — and none of their own seven. The adopted list comes
+   * from the session, which carries what the organisation took up on the Activities page, so
+   * this needs no request of its own and cannot drift from what was adopted.
+   *
+   * A chief captain is lagoon-only by definition of the job, so that narrows further — and
+   * yields nothing at an organisation that does not run the lagoon, which is correct: such a
+   * company has no captains to hire.
+   */
+  const adopted = useTenantEngines()
+  const adoptedOptions = adopted.map((kind) => ({ label: engineLabel(kind), value: kind }))
   const activityOptions = isLagoonOnly(role)
-    ? visibleEngineOptions().filter((o) => o.value === 'LAGOON')
-    : visibleEngineOptions()
+    ? adoptedOptions.filter((o) => o.value === 'LAGOON')
+    : adoptedOptions
   const set = (k: string) => (e: React.ChangeEvent<HTMLInputElement>) => setForm({ ...form, [k]: e.target.value })
   return (
     <>

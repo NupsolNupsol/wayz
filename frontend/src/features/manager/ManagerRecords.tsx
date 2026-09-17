@@ -3,9 +3,10 @@ import { useStatusLabel } from '@/i18n/useStatusLabel'
 import { useTranslation } from 'react-i18next'
 import { useNavigate, useParams } from 'react-router-dom'
 import { clsx } from 'clsx'
-import { Receipt, User, Package } from 'lucide-react'
+import { FileCode2, Receipt, User, Package } from 'lucide-react'
 import { PageHeader } from '@/components/PageHeader'
-import { Card, SectionTitle, StatusBadge, Spinner, Badge, EmptyState } from '@/components/ui'
+import { Button, Card, SectionTitle, StatusBadge, Spinner, Badge, EmptyState } from '@/components/ui'
+import { useInvoiceXml } from '@/features/invoice/useInvoiceXml'
 import { DataTable } from '@/components/DataTable'
 import { Timer } from '@/components/Timer'
 import {
@@ -81,6 +82,7 @@ export function ManagerRentalDetail() {
   const { t } = useTranslation(['manager', 'common'])
   const { id } = useParams()
   const { data, isLoading } = useManagerRental(id)
+  const invoiceXml = useInvoiceXml()
 
   if (isLoading) return <Spinner />
   if (!data) return <Card><EmptyState title={t('records.rentalNotFound')} /></Card>
@@ -101,6 +103,27 @@ export function ManagerRentalDetail() {
         title={b.ref}
         subtitle={`${localBaked(b)} · ${data.stationName} · agent ${data.agentName}`}
         crumbs={[{ label: t('common:crumb.manager') }, { label: t('common:crumb.rentals'), to: '/manager/rentals' }, { label: b.ref }]}
+        actions={
+          /*
+           * The tax invoice, here as well as on the agent's booking page.
+           *
+           * Anybody in the back office — including the administrator who has to file them —
+           * reaches a booking only through this screen; `/bookings/:id` belongs to the agent
+           * roles and bounces everybody else. Having the button on one of the two read as the
+           * feature being missing.
+           *
+           * Disabled with nothing to invoice, because an order is what an invoice is of.
+           */
+          <Button
+            variant="secondary"
+            data-testid="create-invoice-xml"
+            onClick={() => invoiceXml.download(id)}
+            loading={invoiceXml.loading}
+            disabled={!data.order || invoiceXml.loading}
+          >
+            <FileCode2 size={16} /> {t('records.invoiceXml', { defaultValue: 'Generate XML invoice' })}
+          </Button>
+        }
       />
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
@@ -333,7 +356,23 @@ export function ManagerActivity() {
             { key: 'entity', header: t('common:column.entity'), filter: { kind: 'select', options: [...new Set(data.map((r) => r.entity))].map((e) => ({ label: t(`status:entity.${e}`, { defaultValue: e }), value: e })), value: (r) => r.entity }, render: (r) => <span className="text-muted">{t(`status:entity.${r.entity}`, { defaultValue: r.entity })}</span> },
             { key: 'reference', header: t('common:column.reference'), filter: { kind: 'text', value: (r) => r.entityId }, render: (r) => <RefText>{r.entityId}</RefText> },
             { key: 'actor', header: t('common:column.by'), filter: { kind: 'text', value: (r) => r.actorId }, render: (r) => <span className="text-muted">{r.actorId}</span> },
-            { key: 'detail', header: t('common:column.detail'), render: (r) => <span className="text-muted line-clamp-1">{r.detail ?? '—'}</span> },
+            {
+              key: 'detail',
+              header: t('common:column.detail'),
+              /*
+               * Wraps rather than clamping to one line.
+               *
+               * The detail *is* the entry — "ACCOUNTANT · accountant.wayz@lockerflow.demo"
+               * clamped to "ACCOUNTANT ·…" says who signed in but not who they are, which is
+               * the only thing somebody reads an audit log for. A log is scanned, not skimmed,
+               * so two lines on a long entry is the right trade.
+               */
+              render: (r) => (
+                <span className="text-muted break-words" title={r.detail ?? undefined}>
+                  {r.detail ?? '—'}
+                </span>
+              ),
+            },
             { key: 'reason', header: t('common:column.reason'), render: (r) => (r.reason ? <span className="text-amber-700 dark:text-amber-300 line-clamp-1">{r.reason}</span> : <span className="text-muted">—</span>) },
           ]}
         />

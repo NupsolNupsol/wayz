@@ -8,15 +8,17 @@ import { packBags, priceQuote } from '../domain/packing.js'
 import { OVERTIME_LINE_PRODUCT_ID, computeOvertime, describeOvertime, pendingOvertime } from '../domain/overtime.js'
 import { DEFAULT_VAT_RATE, noVat, splitInclusive } from '../domain/tax.js'
 import { getWorkflow, type TransitionPayload } from '../domain/workflow.js'
-import { applyTransition, getAvailableTransitions, type PlaceContext } from './workflow.service.js'
+import { applyTransition, checkTransition, getAvailableTransitions, type PlaceContext } from './workflow.service.js'
 import { formatId, nextId, nextSequence, pad } from './counter.service.js'
 import { getProduct, getAssetType } from './catalogue.service.js'
 import { getCustomer, phoneProofIsFresh, PHONE_PROOF_TTL_MIN } from './customer.service.js'
-import { Gate, Tenant, User, Voucher } from '../models/index.js'
+import { Tenant, User, Voucher } from '../models/index.js'
 import type { CreateBookingInput, Scope } from '../interfaces/index.js'
 import type { PaymentSplit } from '../interfaces/index.js'
 import { CARD_SCHEMES } from '../domain/commission.js'
-import { canWorkEngine, engineFilter, kioskFilter, reachableUnitFilter, scopeKiosk } from '../domain/access.js'
+import { canWorkEngine, engineFilter, kioskFilter, reachableUnitsAt, scopeKiosk } from '../domain/access.js'
+import { placesAround } from './reach.service.js'
+import { withoutIntakeKeys } from './intake.service.js'
 import { tenantRules } from './rules.service.js'
 import { lineNameAr } from '../constants/messages.constants.js'
 import { seatOnBoat, unseatFromBoat, seatsLeftOn } from './trip.service.js'
@@ -96,19 +98,18 @@ async function assertDeskCanFulfil(
 ): Promise<void> {
   if (!assetTypeId) return
 
-  const gates = await Gate.find(
-    { tenantId: scope.tenantId, stationId: scope.stationId, active: { $ne: false } },
-    { _id: 1 },
-  ).lean()
-  const reach = reachableUnitFilter(scope, gates.map((g) => g._id)) ?? {}
-  const base = { tenantId: scope.tenantId, stationId: scope.stationId, assetTypeId }
+  /* The reach condition carries its own "where" — see reachableUnitsAt. */
+  const reach = reachableUnitsAt(scope, await placesAround(scope.stationId))
+  const base = { tenantId: scope.tenantId, assetTypeId }
 
   const [owned, free, freeElsewhere] = await Promise.all([
     AssetUnit.countDocuments({ ...base, ...reach }),
     AssetUnit.countDocuments({ ...base, status: 'AVAILABLE', ...reach }),
     // What is free at this station but out of this desk's reach, so the agent can send the
     // customer somewhere that can serve them instead of guessing.
-    scope.kioskId ? AssetUnit.countDocuments({ ...base, status: 'AVAILABLE', $nor: [reach] }) : 0,
+    scope.kioskId
+      ? AssetUnit.countDocuments({ ...base, stationId: scope.stationId, status: 'AVAILABLE', $nor: [reach] })
+      : 0,
   ])
 
   const elsewhere =
@@ -152,7 +153,16 @@ export async function createBooking(scope: Scope, input: CreateBookingInput) {
   // A lagoon trip is a ride, not a rental: no period is asked for and none is recorded, so nothing
   // counts down and nothing runs into overtime.
   const ridesOnly = input.engineKind === 'LAGOON'
-  const durationMin = ridesOnly ? 0 : byTours ? tours * tourMinutes : (input.durationMin ?? 120)
+  /*
+   * An experience lasts as long as the experience does.
+   *
+   * WIQAR sells a ride, a lesson or a feeding session as one visit, each with its own length
+   * (§4.1: 60, 45–60, 20–30, 30, 15, 20 and 90 minutes). With no duration sent, every one of
+   * them fell to the generic two hours, so a fifteen-minute feeding held its slot for two hours.
+   * The visitor count does not lengthen a session, so it is not multiplied in.
+   */
+  const sessionLength = wf.sessionKind === 'EXPERIENCE' && product.tourMinutes ? product.tourMinutes : undefined
+  const durationMin = ridesOnly ? 0 : byTours ? tours * tourMinutes : (input.durationMin ?? sessionLength ?? 120)
   const quantity = input.quantity ?? 1
 
   const lines: OrderLine[] = []
@@ -325,7 +335,8 @@ export async function createBooking(scope: Scope, input: CreateBookingInput) {
     packingPlan,
     assetUnitId: lagoonBoat?._id ?? null,
     metadata: {
-      ...(input.metadata ?? {}),
+      // Consent, trainer and the like are recorded only through recordIntake, which checks them.
+      ...withoutIntakeKeys(input.metadata),
       assetTypeId: product.assetTypeId ?? undefined,
       deposit: product.depositRequired || undefined,
       ...(lagoonBoat ? { boat: lagoonBoat.identifier } : {}),
@@ -517,7 +528,18 @@ export async function payBooking(scope: Scope, bookingId: string, splits: Paymen
   const booking = await loadBooking(scope, bookingId)
   const order = await Order.findById(booking.orderId)
   if (!order) throw ApiError.notFound('Order not found.')
-  if (order.status === 'PAID') throw ApiError.badRequest('Order already paid.')
+  if (order.status === 'PAID') {
+    /*
+     * Paid, but never confirmed.
+     *
+     * Before confirmation was checked ahead of the money, a refused confirmation left exactly
+     * this: an order marked paid on a booking still in draft, which every later attempt refused
+     * as "already paid". Finishing it here confirms the booking against the money already taken
+     * — nothing is charged a second time, and the splits sent with this call are ignored.
+     */
+    if (booking.status === 'DRAFT') return confirmAlreadyPaid(scope, booking, order)
+    throw ApiError.badRequest('Order already paid.')
+  }
   if (booking.status !== 'DRAFT') throw ApiError.badRequest(`Cannot pay a booking in status ${booking.status}.`)
 
   const paid = round2(splits.reduce((s, x) => s + (x.amount || 0), 0))
@@ -566,6 +588,23 @@ export async function payBooking(scope: Scope, bookingId: string, splits: Paymen
   }
 
   const cash = cashOffered
+
+  /*
+   * Would the booking be confirmed? Asked before a single payment is written.
+   *
+   * Confirmation runs the activity's own rules — a WIQAR ride needs the visitor's consent and a
+   * named trainer — and it used to run *after* the money was recorded. A refusal then left the
+   * order paid and the booking in draft, and the next attempt was told the order was already
+   * paid. Checking first means a refusal costs nothing and can simply be corrected and retried.
+   */
+  await checkTransition({
+    booking,
+    code: 'TO_CONFIRMED',
+    actor: { id: scope.agentId, role: scope.role },
+    tenantId: scope.tenantId,
+    stationId: scope.stationId,
+    kioskId: scope.kioskId ?? null,
+  })
 
   const vatRate = (await Tenant.findById(scope.tenantId).lean())?.vatRate ?? DEFAULT_VAT_RATE
 
@@ -623,6 +662,12 @@ export async function payBooking(scope: Scope, bookingId: string, splits: Paymen
   booking.markModified('session')
   await booking.save()
 
+  await confirmPaid(scope, booking)
+  return { booking, order, receipt }
+}
+
+/** The booking is paid for: confirm it, and seat it if it is a lagoon trip. */
+async function confirmPaid(scope: Scope, booking: BookingHydrated) {
   const { audits } = await applyTransition({
     booking,
     code: 'TO_CONFIRMED',
@@ -642,7 +687,16 @@ export async function payBooking(scope: Scope, bookingId: string, splits: Paymen
       metadata: booking.metadata as Record<string, unknown>,
     })
   }
+}
 
+async function confirmAlreadyPaid(scope: Scope, booking: BookingHydrated, order: { _id: string; updatedAt?: Date }) {
+  if (!booking.session.paidAt) {
+    booking.session.paidAt = order.updatedAt ?? new Date()
+    booking.markModified('session')
+    await booking.save()
+  }
+  await confirmPaid(scope, booking)
+  const receipt = await Receipt.findOne({ orderId: order._id }).lean()
   return { booking, order, receipt }
 }
 

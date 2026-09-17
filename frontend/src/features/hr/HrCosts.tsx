@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useNavigate } from 'react-router-dom'
 import { Ban, CalendarRange, ChevronRight, Plus, Receipt, TriangleAlert, Users, Wallet } from 'lucide-react'
+import { useTenantEngines } from '@/hooks/useTenantEngines'
 import { PageHeader } from '@/components/PageHeader'
 import { Badge, Button, Card, Field, SectionTitle, Spinner, StatCard } from '@/components/ui'
 import { DataTable } from '@/components/DataTable'
@@ -22,15 +23,21 @@ import { engineLabel } from '@/config/engineMeta'
 import { money } from '@/utils'
 import type { EngineKind } from '@/api/types'
 
-const ACTIVITY_OPTIONS = [
-  { labelKey: 'common:label.notactivityspecific', value: '' },
-  { labelKey: 'common:engine.LAGOON', value: 'LAGOON' },
-  { labelKey: 'common:engine.MOBILITY', value: 'MOBILITY' },
-  { labelKey: 'common:engine.SHOP_AND_DROP', value: 'SHOP_AND_DROP' },
-]
 
 export function HrCosts() {
   const { t } = useTranslation(['hr', 'common'])
+
+  /*
+   * A cost is charged to one of the activities *this company runs*, or to none of them.
+   *
+   * The list used to name Lagoon, Mobility and Shop & Drop outright — WAYZ's three — so a
+   * WIQAR accountant recording the vet's bill was offered three activities their company does
+   * not run and none of the seven it does.
+   */
+  const chargeableActivities: { labelKey: string; value: string }[] = [
+    { labelKey: 'common:label.notactivityspecific', value: '' },
+    ...useTenantEngines().map((kind: EngineKind) => ({ labelKey: `common:engine.${kind}`, value: kind as string })),
+  ]
   const { data: overview, isLoading } = useHrOverview()
   const { data: rows = [] } = useHrExpenses()
   const { data: seasons = [] } = useHrSeasons()
@@ -104,6 +111,7 @@ export function HrCosts() {
 
   const ready = (form.description ?? '').trim().length >= 3 && Number(form.amount) > 0
 
+  /* The filter offers what has actually been recorded, which is a different question. */
   const activityOptions = [...new Set(rows.map((r) => r.engineKind).filter(Boolean))].map((kind) => ({
     label: engineLabel(kind as EngineKind),
     value: String(kind),
@@ -327,7 +335,7 @@ export function HrCosts() {
             <Select
               value={form.engineKind ?? ''}
               onChange={(v) => setForm({ ...form, engineKind: v })}
-              options={ACTIVITY_OPTIONS.map((o) => ({ label: t(o.labelKey), value: o.value }))}
+              options={chargeableActivities.map((o) => ({ label: t(o.labelKey), value: o.value }))}
               testId="hr-cost-activity"
             />
           </Field>

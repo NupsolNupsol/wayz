@@ -146,7 +146,7 @@
     "cancelled": "Cancelled",
     "finalPenalty": "Overtime charged: {{amount}} {{currency}} ({{hours}} × 1h)",
     "notStarted": "Not started yet",
-    "notStartedHint": "Your timer begins once your items are placed in the locker.",
+    "notStartedHint": "Your time begins once your session starts.",
     "overtime": "Overtime",
     "pastBy": "Past your end time by {{duration}}",
     "penaltySoFar": "Penalty so far",

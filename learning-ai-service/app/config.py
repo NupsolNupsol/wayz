@@ -69,7 +69,10 @@ class Settings(BaseSettings):
     HF_HOME: str | None = None
 
     # --- Qdrant --------------------------------------------------------------
-    QDRANT_URL: str = "http://qdrant:6333"
+    # This service's own Qdrant, on its own internal network. The default used to name
+    # `qdrant`, which was LockerFlow's container — so the AI stack could not start without
+    # LockerFlow's stack having created it first.
+    QDRANT_URL: str = "http://lockerflow-ai-qdrant:6333"
     QDRANT_API_KEY: str | None = None
     QDRANT_COLLECTION: str = "lockerflow_knowledge"
     QDRANT_TIMEOUT_SECONDS: float = 20.0
@@ -77,7 +80,10 @@ class Settings(BaseSettings):
     QDRANT_IN_MEMORY: bool = False
 
     # --- document registry (MongoDB) -----------------------------------------
-    MONGODB_URI: str = "mongodb://mongo:27017"
+    # This service's own MongoDB. The default used to be LockerFlow's `mongo` container; the
+    # AI service keeps its own documents, embeddings and analytics and shares no collection
+    # with the booking API, so it now keeps its own database too.
+    MONGODB_URI: str = "mongodb://lockerflow-ai-mongo:27017"
     AI_DB_NAME: str = "lockerflow_ai"
     # Swaps Mongo for an in-process store. Tests only.
     REGISTRY_IN_MEMORY: bool = False

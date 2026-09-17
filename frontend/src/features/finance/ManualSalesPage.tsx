@@ -8,7 +8,8 @@ import { Modal } from '@/components/Modal'
 import { Select } from '@/components/Select'
 import { NumberInput } from '@/components/NumberInput'
 import { useManualSales, useRecordManualSale, useReviewManualSale } from '@/hooks'
-import { engineLabel, visibleEngineOptions } from '@/config/engineMeta'
+import { engineLabel } from '@/config/engineMeta'
+import { useTenantEngines } from '@/hooks/useTenantEngines'
 import { ApiError } from '@/api/client'
 import { formatDateTime } from '@/utils'
 import { toast } from '@/state/toastStore'
@@ -25,6 +26,14 @@ const today = () => new Date().toISOString().slice(0, 10)
 
 export function ManualSalesPage() {
   const { t } = useTranslation(['accounting', 'common'])
+  /*
+   * What this organisation runs, not the whole coded catalogue.
+   *
+   * The catalogue is every activity the platform has been built to run; the adopted list is
+   * the subset this company took up on the Activities page. Offering the catalogue showed
+   * every company WAYZ's three and none of its own.
+   */
+  const adoptedActivityOptions = useTenantEngines().map((kind) => ({ label: engineLabel(kind), value: kind }))
   const [status, setStatus] = useState<ManualSaleStatus | ''>('')
   const { data, isLoading } = useManualSales(status ? { status } : undefined)
   const record = useRecordManualSale()
@@ -148,7 +157,7 @@ export function ManualSalesPage() {
             {
               key: 'activity',
               header: t('common:column.activity'),
-              filter: { kind: 'select', options: visibleEngineOptions(), value: (r) => r.engineKind },
+              filter: { kind: 'select', options: adoptedActivityOptions, value: (r) => r.engineKind },
               render: (r) => <Badge tone="info">{engineLabel(r.engineKind)}</Badge>,
             },
             { key: 'station', header: t('common:column.station'), render: (r) => <span className="text-muted">{r.stationName}</span> },
@@ -240,7 +249,7 @@ export function ManualSalesPage() {
             <Select
               value={form.engineKind}
               onChange={(v) => setForm({ ...form, engineKind: v as EngineKind })}
-              options={visibleEngineOptions()}
+              options={adoptedActivityOptions}
               testId="manual-sales-activity"
             />
           </Field>

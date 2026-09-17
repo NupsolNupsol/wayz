@@ -310,7 +310,8 @@ export async function readRules(scope: ManagerScope) {
     transfers: rules.transfers,
     procurement: rules.procurement,
 
-    engineKinds: [...ENGINE_KINDS],
+    /* What this company runs — the per-activity settings are for these, not the whole catalogue. */
+    engineKinds: (await Tenant.findById(scope.tenantId, { enabledEngines: 1 }).lean())?.enabledEngines ?? [],
     roles: [...ROLES],
     defaults: {
       rental: DEFAULT_RENTAL_RULES,

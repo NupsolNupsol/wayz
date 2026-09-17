@@ -146,7 +146,7 @@
     "cancelled": "ملغاة",
     "finalPenalty": "الوقت الإضافي المحتسب: {{amount}} {{currency}} ({{hours}} × ساعة)",
     "notStarted": "لم تبدأ بعد",
-    "notStartedHint": "يبدأ المؤقت بمجرد إيداع أغراضك في الخزانة.",
+    "notStartedHint": "يبدأ وقتك عند بدء جلستك.",
     "overtime": "وقت إضافي",
     "pastBy": "تجاوزت وقت الانتهاء بـ {{duration}}",
     "penaltySoFar": "الرسوم حتى الآن",

@@ -95,6 +95,8 @@ export function AssetTypeDetailPage() {
    * rather than the form deciding it.
    */
   const atAGate = data.assetType.kind === 'COMPARTMENT'
+  /* An animal belongs to its area; a desk is optional. The server applies the same rule. */
+  const heldByArea = data.assetType.kind === 'ANIMAL'
   const kiosksHere = data.kiosks.filter((k) => k.stationId === stationId)
   const gatesHere = (data.gates ?? []).filter((g) => g.stationId === stationId)
   const placesHere = atAGate ? gatesHere : kiosksHere
@@ -452,7 +454,7 @@ export function AssetTypeDetailPage() {
         footer={
           <>
             <Button variant="ghost" onClick={() => setAddOpen(false)}>{t('common:action.cancel')}</Button>
-            <Button onClick={submitAdd} loading={addUnits.isPending} disabled={!stationId || !kioskId || count < 1} data-testid="asset-detail-add-submit">
+            <Button onClick={submitAdd} loading={addUnits.isPending} disabled={!stationId || (!kioskId && !heldByArea) || count < 1} data-testid="asset-detail-add-submit">
               {t('add.submit', { count })}
             </Button>
           </>
@@ -468,7 +470,7 @@ export function AssetTypeDetailPage() {
         </Field>
         <Field
           label={atAGate ? t('common:field.gate') : t('common:field.kiosk')}
-          required
+          required={!heldByArea}
           hint={atAGate ? t('add.gateHint') : t('add.kioskHint')}
         >
           {placesHere.length > 0 ? (
@@ -476,11 +478,15 @@ export function AssetTypeDetailPage() {
               value={kioskId}
               onChange={setKioskId}
               options={[
-                { label: atAGate ? t('add.pickGate') : t('add.pickKiosk'), value: '' },
+                heldByArea
+                  ? { label: t('newKind.heldByArea', { defaultValue: 'The whole area — every counter here can sell it' }), value: '' }
+                  : { label: atAGate ? t('add.pickGate') : t('add.pickKiosk'), value: '' },
                 ...placesHere.map((k) => ({ label: k.name, value: k._id })),
               ]}
               testId="asset-detail-add-kiosk"
             />
+          ) : heldByArea ? (
+            <p className="text-xs text-muted" data-testid="asset-detail-add-area">{t('newKind.heldByArea', { defaultValue: 'The whole area — every counter here can sell it' })}</p>
           ) : (
             <p className="text-xs text-danger-strong" data-testid="asset-detail-no-kiosk">
               {atAGate ? t('add.noGateHere') : t('add.noKioskHere')}

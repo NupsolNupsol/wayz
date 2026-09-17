@@ -7,7 +7,8 @@ import { Select } from '@/components/Select'
 import { NumberInput } from '@/components/NumberInput'
 import { PenaltyAmount } from './PenaltyAmount'
 import { useTenantRules, useUpdateRules } from '@/hooks'
-import { engineLabel, visibleEngineOptions } from '@/config/engineMeta'
+import { engineLabel, TAKEN_AWAY_ACTIVITIES } from '@/config/engineMeta'
+import { useTenantEngines } from '@/hooks/useTenantEngines'
 import { ApiError } from '@/api/client'
 import { toast } from '@/state/toastStore'
 import type { EngineKind } from '@/api/types'
@@ -17,6 +18,7 @@ const emptyPenalty = (): PenaltyRule => ({ code: '', label: '', amount: 0, engin
 const emptyReason = (): DiscountReason => ({ code: '', label: '', labelAr: '', maxPercent: 100, needsApproval: false })
 
 export function AdminRules() {
+  const adopted = useTenantEngines()
   const { t } = useTranslation(['admin', 'common'])
   const { data, isLoading } = useTenantRules()
   const update = useUpdateRules()
@@ -74,7 +76,13 @@ export function AdminRules() {
     toast('info', t('rules.reset'), t('rules.resetDetail'))
   }
 
-  const activities = visibleEngineOptions().filter((o) => data.engineKinds.includes(o.value))
+  /*
+   * The activities this company runs — the timers and penalty choices below are one per activity,
+   * and a company should only be asked about its own. This used to filter the whole catalogue by
+   * a list the server returned in full, so WIQAR was shown Shop & Drop, Mobility and Lagoon.
+   */
+  const activities = adopted.map((kind) => ({ label: engineLabel(kind), value: kind }))
+  const takesThingsAway = adopted.some((kind) => TAKEN_AWAY_ACTIVITIES.includes(kind))
 
   return (
     <div data-testid="admin-rules">
@@ -135,24 +143,29 @@ export function AdminRules() {
                 testId="rules-block"
               />
             </Field>
-            <Field label={t('rules.clock.replacementBonusMin')} hint={t('rules.clock.replacementHint')}>
-              <NumberInput
-                value={rental.replacementBonusMin}
-                onChange={(v) => setRental({ ...rental, replacementBonusMin: v })}
-                min={0}
-                testId="rules-replacement"
-              />
-            </Field>
+            {takesThingsAway && (
+              <Field label={t('rules.clock.replacementBonusMin')} hint={t('rules.clock.replacementHint')}>
+                <NumberInput
+                  value={rental.replacementBonusMin}
+                  onChange={(v) => setRental({ ...rental, replacementBonusMin: v })}
+                  min={0}
+                  testId="rules-replacement"
+                />
+              </Field>
+            )}
           </div>
 
-          <Field label={t('rules.clock.wrongStationPenalty')} hint={t('rules.clock.wrongStationHint')}>
-            <NumberInput
-              value={rental.wrongStationPenalty}
-              onChange={(v) => setRental({ ...rental, wrongStationPenalty: v })}
-              min={0}
-              testId="rules-wrong-station"
-            />
-          </Field>
+          {/* Only an activity whose resource leaves and comes back can come back to the wrong place. */}
+          {takesThingsAway && (
+            <Field label={t('rules.clock.wrongStationPenalty')} hint={t('rules.clock.wrongStationHint')}>
+              <NumberInput
+                value={rental.wrongStationPenalty}
+                onChange={(v) => setRental({ ...rental, wrongStationPenalty: v })}
+                min={0}
+                testId="rules-wrong-station"
+              />
+            </Field>
+          )}
         </Card>
 
         <Card>

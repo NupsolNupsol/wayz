@@ -12,7 +12,7 @@ import type { EngineKind, Role } from '@/api/types'
 import type { TenantOverview } from '@/api/admin.api'
 
 const ROLE_LABEL: Record<Role, string> = {
-  TENANT_ADMIN: 'CEO / tenant admin',
+  TENANT_ADMIN: 'Company administrator',
   PROJECT_MANAGER: 'Project manager',
   MANAGER: 'Activity manager',
   SUPERVISOR: 'Supervisor',

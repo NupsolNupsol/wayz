@@ -120,8 +120,7 @@ export function SignInPage() {
             </h1>
             <p className="text-sm text-white/75 text-center z-10 max-w-xs">
               {t('login.productBlurb', {
-                defaultValue:
-                  'One workspace for every activity your organisation runs — storage, mobility, boats, dining and experiences.',
+                defaultValue: 'One workspace for every activity your organisation runs.',
               })}
             </p>
             <div

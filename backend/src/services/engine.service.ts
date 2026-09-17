@@ -17,6 +17,8 @@ function serialize(wf: EngineWorkflow) {
       actors: t.actors,
       style: t.style,
     })),
+    /* What the counter must collect before confirmation — rendered as declared. */
+    intake: wf.intake ?? [],
   }
 }
 

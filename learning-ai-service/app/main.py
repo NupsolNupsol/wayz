@@ -57,6 +57,23 @@ async def lifespan(app: FastAPI):
 
         threading.Thread(target=warm, name="embedding-warmup", daemon=True).start()
 
+    # The vector collection, created now rather than on the first document.
+    #
+    # It used to appear only when something was ingested, so a freshly deployed stack reported
+    # itself *degraded* until somebody happened to upload a file — which reads as a broken
+    # install rather than an empty one. Creating it here makes a new deployment healthy and
+    # empty, which is the truth.
+    #
+    # Failure is logged, not raised: Qdrant may still be starting, and the first ingest calls
+    # this again anyway.
+    try:
+        from .services.vector_store import ensure_collection
+
+        ensure_collection()
+        logger.info("Vector collection ready", collection=settings.QDRANT_COLLECTION)
+    except Exception:  # noqa: BLE001 - readiness reports the failure, ingestion retries
+        logger.warning("Could not create the vector collection at startup; it will be retried")
+
     yield
     logger.info("Learning AI service stopping")
 

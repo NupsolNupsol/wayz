@@ -26,6 +26,8 @@ import {
 } from '../services/booking.service.js'
 import { bookingDTO, bookingListWithDue } from '../services/serializers.js'
 import { buildInvoice, whatsAppInvoice } from '../services/invoice.service.js'
+import { recordIntake } from '../services/intake.service.js'
+import { buildInvoiceXml } from '../services/invoiceXml.service.js'
 import { PAYMENT_METHODS } from '../domain/types.js'
 import { CARD_SCHEMES } from '../domain/commission.js'
 import { bookingRefundPosition } from '../services/till.service.js'
@@ -153,6 +155,15 @@ export const bookingController = {
     res.json({ success: true, data: await buildInvoice(s, await loadBooking(s, req.params.id)) })
   }),
 
+  invoiceXml: asyncHandler(async (req, res) => {
+    const s = scopeFromReq(req)
+    const booking = await loadBooking(s, req.params.id)
+    const { xml, filename } = await buildInvoiceXml(s, booking)
+    res.setHeader('Content-Type', 'application/xml; charset=utf-8')
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`)
+    res.send(xml)
+  }),
+
   transitions: asyncHandler(async (req, res) => {
     const s = scopeFromReq(req)
     const booking = await loadBooking(s, req.params.id)
@@ -164,6 +175,21 @@ export const bookingController = {
     const body = discountSchema.parse(req.body)
     const { booking, order } = await discountBooking(s, req.params.id, body)
     res.json({ success: true, data: { booking: bookingDTO(booking), order } })
+  }),
+
+  /** What the activity needs before confirmation — consent, trainer, level, party, feed. */
+  intake: asyncHandler(async (req, res) => {
+    const body = z
+      .object({
+        consent: z.boolean().optional(),
+        trainerId: z.string().min(1).nullable().optional(),
+        level: z.string().max(40).nullable().optional(),
+        partySize: z.number().int().min(1).max(500).nullable().optional(),
+        feedPortions: z.number().int().min(0).max(100).nullable().optional(),
+      })
+      .parse(req.body)
+    const booking = await recordIntake(scopeFromReq(req), req.params.id, body)
+    res.json({ success: true, data: bookingDTO(booking) })
   }),
 
   pay: asyncHandler(async (req, res) => {

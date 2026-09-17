@@ -148,7 +148,7 @@
     "site": "Site",
     "station": "Station",
     "kiosk": "Kiosk",
-    "compartments": "Compartments",
+    "compartments": "Assets",
     "deactivateNote": "Levels are deactivated, never deleted — past bookings keep resolving.",
     "inactive": "Inactive",
     "siteLine": "{{city}} · {{venue}} · {{count}} station(s)",

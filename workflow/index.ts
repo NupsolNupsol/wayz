@@ -25,4 +25,5 @@ export { bagStatusFor } from './deliveryWorkflowOperations/controller.delivery.o
 
 export * as sharedValidators from './bookingWorkflowValidators/shared.validators.js'
 export * as sharedOperations from './bookingWorkflowOperations/shared.operations.js'
+export { REST_MINUTES, DEFAULT_REST_MINUTES, restMinutesFor } from './bookingWorkflowOperations/shared.animal.operations.js'
 export { cloneBooking, beginOperation, unknownTransition } from './utils/clone.js'

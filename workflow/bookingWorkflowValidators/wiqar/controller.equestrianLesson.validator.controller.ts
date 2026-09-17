@@ -1,6 +1,7 @@
 import type { ValidationResult, WorkflowContext } from '../../shared/types.js'
 import { requireAvailableUnit, requirePaid, requirePositiveDuration } from '../shared.validators.js'
 import {
+  LESSON_LEVELS,
   requireConsent,
   requireNamedTrainer,
   requireWithinSlotGrace,
@@ -25,7 +26,7 @@ import {
 function requireLevel(ctx: WorkflowContext): string[] {
   const level = String(ctx.booking.metadata?.level ?? ctx.payload.level ?? '').trim().toUpperCase()
   if (!level) return ['Choose the level this lesson is booked at.']
-  return ['BEGINNER', 'INTERMEDIATE'].includes(level)
+  return (LESSON_LEVELS as readonly string[]).includes(level)
     ? []
     : [`"${level}" is not a level this lesson is taught at.`]
 }

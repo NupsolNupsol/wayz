@@ -24,7 +24,13 @@ export function InvoiceModal({
   onClose: () => void
 }) {
   const { t } = useTranslation(['bookings', 'common'])
-  const { data: invoice, isLoading } = useInvoice(bookingId, open)
+  /*
+   * Shown only once this opening's own fetch has landed — a cached copy from the till may
+   * predate the rental's start. See useInvoice.
+   */
+  const { data: latest, isFresh } = useInvoice(bookingId, open)
+  const invoice = isFresh ? latest : undefined
+  const isLoading = !isFresh
   const [sending, setSending] = useState(false)
   const sendToWhatsApp = async () => {
     if (!invoice) return

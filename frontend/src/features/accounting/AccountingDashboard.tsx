@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useTenantEngines } from '@/hooks/useTenantEngines'
 import { bilingual } from './bilingual'
 import { useTranslation } from 'react-i18next'
 import { Calculator, Download, FileSpreadsheet, Landmark, Receipt, TrendingDown, TrendingUp } from 'lucide-react'
@@ -17,7 +18,13 @@ import { ENGINE_META } from '@/config/engineMeta'
 import type { EngineKind } from '@/api/types'
 import type { ActivityFigures, LedgerRow } from '@/api/accounting.api'
 
-const REPORTED_ACTIVITIES: EngineKind[] = ['LAGOON', 'MOBILITY', 'SHOP_AND_DROP']
+/*
+ * Which activities a statement has a column for.
+ *
+ * Read from what the organisation adopted, not written out. The list used to name WAYZ's
+ * three, so WIQAR's accountant got a statement about activities WIQAR does not run and none
+ * about the seven it does.
+ */
 
 const iso = (d: Date) => d.toISOString().slice(0, 10)
 
@@ -61,6 +68,7 @@ function saveBlob(blob: Blob, filename: string) {
 
 export function AccountingDashboard() {
   const { t } = useTranslation(['accounting', 'common'])
+  const reportedActivities = useTenantEngines()
   const now = new Date()
   const year = now.getFullYear()
   const currentQuarter = Math.floor(now.getMonth() / 3)
@@ -197,7 +205,7 @@ export function AccountingDashboard() {
               onChange={(v) => setEngineKind(v as '' | EngineKind)}
               options={[
                 { label: t('dashboard.allActivitiesFilter'), value: '' },
-                ...REPORTED_ACTIVITIES.map((k) => ({ label: t(`common:engine.${k}`), value: k })),
+                ...reportedActivities.map((k) => ({ label: t(`common:engine.${k}`), value: k })),
               ]}
               testId="accounting-activity"
             />
@@ -392,7 +400,7 @@ export function AccountingDashboard() {
             <p className="font-semibold text-navy dark:text-dk-texthi text-sm">{t('dashboard.oneActivity')}</p>
             <p className="text-xs text-muted mb-2.5">{t('dashboard.oneActivityHint')}</p>
             <div className="flex flex-wrap gap-2">
-              {REPORTED_ACTIVITIES.map((kind) => (
+              {reportedActivities.map((kind) => (
                 <Button
                   key={kind}
                   variant="secondary"
@@ -464,7 +472,7 @@ export function AccountingDashboard() {
             header: t('common:column.activity'),
             filter: {
               kind: 'select',
-              options: REPORTED_ACTIVITIES.map((k) => ({ label: t(`common:engine.${k}`), value: k })),
+              options: reportedActivities.map((k: EngineKind) => ({ label: t(`common:engine.${k}`), value: k })),
               value: (r: LedgerRow) => r.engineKind ?? '',
             },
             render: (r: LedgerRow) =>

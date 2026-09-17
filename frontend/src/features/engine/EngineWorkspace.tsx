@@ -27,6 +27,7 @@ import { sendInvoiceOnPayment } from '@/features/invoice/sendInvoiceOnPayment'
 import type { Booking, Customer, EngineKind, Order, Product } from '@/api/types'
 import { Counter } from '@/components/Counter'
 import { Select } from '@/components/Select'
+import { ExperienceIntake, intakeBody, useIntakeFields, type IntakeValue } from './ExperienceIntake'
 
 const FULFILMENT: Record<EngineKind, { code: string; label: string; flag?: 'inspectionDone' | 'safetyAck' | 'boardingVerified'; promptKey?: string } | null> = {
   SHOP_AND_DROP: null,
@@ -35,21 +36,21 @@ const FULFILMENT: Record<EngineKind, { code: string; label: string; flag?: 'insp
   COTE_RESTAURANT: null,
 
   /*
-   * WIQAR's experiences, and where they genuinely differ.
+   * WIQAR's experiences start with nothing more to tick.
    *
-   * A rider is mounted on a moving animal, so riding and lessons take a safety brief before
-   * the session starts. A camel walk is led on foot, a grooming session is stationary, and a
-   * photo session has the animal standing still — none of them puts a visitor somewhere a
-   * brief would help, and asking for one anyway is the sort of ceremony that gets clicked
-   * through without being read.
+   * An earlier version asked riding, lessons and the group package to "confirm safety". The
+   * WIQAR specification never mentions a safety brief or waiver — the only acknowledgement it
+   * requires is the visitor's consent to the terms, which is taken before payment (see
+   * ExperienceIntake). A checkbox the rules do not ask for is ceremony, and it was removed with
+   * the rest of the invented safety logic.
    */
-  HORSE_RIDING: { code: 'TO_STARTED', label: 'Confirm safety & start ride', flag: 'safetyAck', promptKey: 'agent:engine.prompt.safetyAck' },
-  EQUESTRIAN_LESSON: { code: 'TO_STARTED', label: 'Confirm safety & start lesson', flag: 'safetyAck', promptKey: 'agent:engine.prompt.safetyAck' },
+  HORSE_RIDING: { code: 'TO_STARTED', label: 'Start ride' },
+  EQUESTRIAN_LESSON: { code: 'TO_STARTED', label: 'Start lesson' },
   CAMEL_TOUR: { code: 'TO_STARTED', label: 'Start tour' },
   ANIMAL_CARE: { code: 'TO_STARTED', label: 'Start care session' },
   ANIMAL_FEEDING: { code: 'TO_STARTED', label: 'Start feeding' },
   PHOTOGRAPHY: { code: 'TO_STARTED', label: 'Start photo session' },
-  GROUP_PACKAGE: { code: 'TO_STARTED', label: 'Start group package', flag: 'safetyAck', promptKey: 'agent:engine.prompt.safetyAck' },
+  GROUP_PACKAGE: { code: 'TO_STARTED', label: 'Start group package' },
 }
 
 const STEPS: Step[] = [
@@ -118,6 +119,9 @@ export function EngineWorkspace({ engineKind }: { engineKind: EngineKind }) {
   const [flag, setFlag] = useState(false)
   const [unitId, setUnitId] = useState('')
   const [booking, setBooking] = useState<Booking | null>(null)
+  /* What this activity needs before confirmation — see ExperienceIntake. Empty for most. */
+  const intakeFields = useIntakeFields(engineKind)
+  const [intake, setIntake] = useState<{ value: IntakeValue | null; complete: boolean }>({ value: null, complete: true })
   const [order, setOrder] = useState<Order | null>(null)
   /** What a code or a discount took off this sale, shown against the total the customer pays. */
   const discountOff = (order?.lines ?? [])
@@ -210,16 +214,28 @@ export function EngineWorkspace({ engineKind }: { engineKind: EngineKind }) {
     } catch (e) { toast('danger', t('engine.couldNotCreate'), e instanceof ApiError ? e.message : '') }
   }
 
+  /** The server's reasons, not just its headline — "Cannot confirm" alone tells nobody what to fix. */
+  const explain = (e: unknown) =>
+    e instanceof ApiError ? [e.message, ...(e.errors ?? [])].filter(Boolean).join(' ') : ''
+
   const pay = async (splits: PaymentSplit[]) => {
     if (!booking) return
     try {
+      /*
+       * The activity's details go first, so confirmation finds them. The server checks them
+       * again, and refuses before any money is taken if anything is still missing.
+       */
+      if (intakeFields.length > 0 && intake.value) {
+        const saved = await bookingApi.intake(booking.id, intakeBody(intakeFields, intake.value))
+        setBooking(saved)
+      }
       const res = await payMut.mutateAsync({ id: booking.id, splits: splits.map((s) => ({ method: s.method, cardScheme: s.cardScheme ?? null, amount: s.amount, kind: 'SALE', payerId: s.payerId })) })
       setBooking(res.booking)
       void sendInvoiceOnPayment(res.booking.id, res.booking.trackingToken)
       toast('success', t('engine.toast.paid'), t('engine.toast.awaitingFulfilment'))
       if (fulfilment) setStep(3)
       else { toast('info', t('engine.toast.sentToKitchen'), t('engine.toast.trackIt')); reset() }
-    } catch (e) { toast('danger', t('engine.toast.paymentFailed'), e instanceof ApiError ? e.message : '') }
+    } catch (e) { toast('danger', t('engine.toast.paymentFailed'), explain(e)) }
   }
 
   const { data: resuming } = useBooking(resumeId || undefined)
@@ -376,7 +392,7 @@ export function EngineWorkspace({ engineKind }: { engineKind: EngineKind }) {
       setBooking(b)
       toast('success', t('engine.toast.started'), t('engine.toast.timerStarted'))
       navigate(`/bookings/${b.id}`)
-    } catch (e) { toast('danger', t('engine.toast.cannotStart'), e instanceof ApiError ? (e.errors?.join(' ') ?? e.message) : '') }
+    } catch (e) { toast('danger', t('engine.toast.cannotStart'), explain(e)) }
   }
 
   return (
@@ -619,12 +635,17 @@ export function EngineWorkspace({ engineKind }: { engineKind: EngineKind }) {
                 setOrder(fresh)
               }}
             />
+            <ExperienceIntake
+              engineKind={engineKind}
+              booking={booking}
+              onChange={(value, complete) => setIntake({ value, complete })}
+            />
             <PaymentPanel
               total={order.total}
               discountOff={discountOff}
               onConfirm={pay}
               confirming={payMut.isPending}
-              disabled={!online || !phoneVerified}
+              disabled={!online || !phoneVerified || !intake.complete}
             />
           </Card>
           <Card>
@@ -656,15 +677,23 @@ export function EngineWorkspace({ engineKind }: { engineKind: EngineKind }) {
               </Field>
             </div>
           )}
-          {freeUnits.length === 0 && (
+          {/* Only something that runs on a unit can be short of one. A photo session is not. */}
+          {picksAUnit && freeUnits.length === 0 && (
             <p className="text-sm text-amber-600 text-center mb-4" data-testid="engine-no-units">{t('engine.noFreeUnits')}</p>
           )}
-          <label className="flex items-center gap-2 text-sm mb-4 justify-center" data-testid="engine-flag">
-            <input type="checkbox" checked={flag} onChange={(e) => setFlag(e.target.checked)} />
-            {fulfilment.flag === 'inspectionDone' && <Camera size={15} />} {fulfilment.promptKey ? t(fulfilment.promptKey) : ''}
-          </label>
+          {/*
+            A confirmation box only where the activity has something to confirm — a vehicle's
+            inspection, say. It used to render for every activity, empty, and hold the start
+            button until somebody ticked a box that said nothing.
+          */}
+          {fulfilment.flag && (
+            <label className="flex items-center gap-2 text-sm mb-4 justify-center" data-testid="engine-flag">
+              <input type="checkbox" checked={flag} onChange={(e) => setFlag(e.target.checked)} />
+              {fulfilment.flag === 'inspectionDone' && <Camera size={15} />} {fulfilment.promptKey ? t(fulfilment.promptKey) : ''}
+            </label>
+          )}
           <div className="flex justify-center">
-            <Button onClick={fulfil} loading={transitionMut.isPending} disabled={!flag || !online || (freeUnits.length > 0 && !unitId)} data-testid="engine-fulfil-btn"><PlayCircle size={16} /> {actionLabel(fulfilment.label)}</Button>
+            <Button onClick={fulfil} loading={transitionMut.isPending} disabled={(!!fulfilment.flag && !flag) || !online || (freeUnits.length > 0 && !unitId)} data-testid="engine-fulfil-btn"><PlayCircle size={16} /> {actionLabel(fulfilment.label)}</Button>
           </div>
         </Card>
       )}

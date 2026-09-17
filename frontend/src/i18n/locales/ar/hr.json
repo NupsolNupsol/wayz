@@ -44,7 +44,7 @@
     "noCosts": "لا توجد تكاليف بعد",
     "noCostsHint": "سجّل أول فاتورة مورّد أو إصلاح.",
     "fromCards": "مُرحَّلة من عمليات البطاقات",
-    "descriptionPlaceholder": "إصلاح هيكل قارب بعد اصطدام",
+    "descriptionPlaceholder": "مثال: إصلاح معدات، فاتورة مورّد، زيارة صيانة",
     "seasonPlaceholder": "موسم الرياض 2027 — النصف الأول",
     "entryCount_one": "قيد واحد",
     "entryCount_other": "{{count}} قيد",

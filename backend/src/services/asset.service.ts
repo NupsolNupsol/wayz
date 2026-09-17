@@ -308,6 +308,8 @@ export async function assetUnitDetail(scope: AssetScope, unitId: string) {
     identifier: unit.identifier,
     status: unit.status,
     note: unit.note ?? '',
+    /* When a resting animal may work again — so a screen can say it rather than just "resting". */
+    restingUntil: unit.restingUntil ?? null,
     priceOverride: unit.priceOverride ?? null,
     effectivePrice: unit.priceOverride ?? product?.basePrice ?? null,
     penaltyPrice: unit.penaltyPrice ?? null,
@@ -575,14 +577,31 @@ export async function addUnits(
     }
     placedAtGate = gate._id
   } else {
+    /*
+     * The desks that can hold it: those running this activity, and those running no single
+     * activity at all. The form offered both and this refused the second, so picking a
+     * multi-activity counter failed with a message about "activities this tenant defined".
+     */
     const desks = await Kiosk.find({
       tenantId: scope.tenantId,
       stationId: input.stationId,
-      engineKind: type.engineKind,
+      engineKind: { $in: [type.engineKind, null] },
       active: { $ne: false },
     }).lean()
 
-    if (!input.kioskId) {
+    /*
+     * An animal belongs to its area, not to a desk.
+     *
+     * A horse lives in a paddock and is ridden, groomed, fed and photographed; the reception
+     * that sells the ride does not hold it. Such a unit is posted to the station with no desk,
+     * and every counter at that station can sell it — see `reachableUnitFilter`. A desk may
+     * still be named, to keep a unit to one counter.
+     */
+    const heldByTheArea = type.kind === 'ANIMAL'
+
+    if (!input.kioskId && heldByTheArea) {
+      placedAtKiosk = null
+    } else if (!input.kioskId) {
       if (desks.length === 0) {
         throw ApiError.unprocessable(
           `${station.name} has no desk for ${type.name} yet — create one before adding it.`,
@@ -593,18 +612,18 @@ export async function addUnits(
       ])
     }
 
-    const kiosk = desks.find((k) => k._id === input.kioskId)
-    if (!kiosk) {
+    const kiosk = input.kioskId ? desks.find((k) => k._id === input.kioskId) : undefined
+    if (input.kioskId && !kiosk) {
       const anywhere = await Kiosk.findOne({ _id: input.kioskId, tenantId: scope.tenantId }).lean()
       if (!anywhere) throw ApiError.badRequest('That desk does not exist in this tenant.')
       if (anywhere.stationId !== input.stationId) throw ApiError.badRequest('That desk does not belong to the chosen station.')
       throw ApiError.badRequest(
-        anywhere.engineKind
+        anywhere.engineKind && anywhere.engineKind !== type.engineKind
           ? `${anywhere.name} runs ${anywhere.engineKind.replaceAll('_', ' ').toLowerCase()}, so it cannot hold ${type.name}.`
-          : `${anywhere.name} runs activities this tenant defined, so it cannot hold ${type.name}.`,
+          : `${anywhere.name} is not active.`,
       )
     }
-    placedAtKiosk = kiosk._id
+    if (kiosk) placedAtKiosk = kiosk._id
   }
 
   const prefix =
@@ -678,7 +697,11 @@ export async function updateUnit(
     }
     changes.push(`status ${unit.status} → ${input.status}`)
     unit.status = input.status
-    if (input.status === 'AVAILABLE') unit.currentBookingId = null
+    if (input.status === 'AVAILABLE') {
+      unit.currentBookingId = null
+      // Returned to service by hand: whatever rest it was on is over (§11.1, a supervisor's call).
+      unit.restingUntil = null
+    }
   }
 
   if (input.identifier !== undefined && input.identifier.trim() && input.identifier.trim() !== unit.identifier) {

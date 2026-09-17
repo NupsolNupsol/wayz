@@ -33,7 +33,8 @@ export const ROLE_LABELS: Record<Role, string> = {
   PROJECT_MANAGER: 'Project manager',
   HR: 'HR & expenses',
   ACCOUNTANT: 'Accountant',
-  TENANT_ADMIN: 'CEO / tenant admin',
+  // The platform role, not a job title — a company names the job itself (see User.roleLabel).
+  TENANT_ADMIN: 'Company administrator',
 }
 
 export const INCIDENT_LABELS: Record<IncidentType, string> = {

@@ -67,6 +67,8 @@ export function completeAndRest(result: OperationResult, ctx: WorkflowContext): 
     currentBookingId: null,
     // Read back by the screens that explain why an animal cannot be booked yet.
     note: `Resting until ${until.toISOString()} (${minutes} min after ${result.booking.ref}).`,
+    // Machine-readable, so the session sweep can put the animal back to work when this passes.
+    restingUntil: until.toISOString(),
   })
 
   result.booking.metadata = {

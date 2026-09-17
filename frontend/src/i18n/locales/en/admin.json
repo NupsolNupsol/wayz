@@ -98,7 +98,7 @@
     "restoreDefaults": "Restore defaults",
     "clock": {
       "title": "The clock",
-      "blurb": "How long a customer really has, and what a late return costs.",
+      "blurb": "How long a customer really has, and what running over costs.",
       "graceMin": "Grace the system allows (min)",
       "graceHint": "Overtime does not start until this has passed.",
       "statedGraceMin": "Grace told to the customer (min)",
@@ -113,12 +113,12 @@
     },
     "timers": {
       "title": "When the clock starts",
-      "blurb": "Bag storage counts from the moment the bags are in; a rental counts from payment.",
+      "blurb": "Each activity’s session starts counting either when it begins or a set time after payment.",
       "startsOn": "Starts on",
       "onFulfilment": "Handover",
       "onPayment": "Payment",
       "startDelayMin": "Delay after payment (min)",
-      "startDelayHint": "Time to walk the vehicle off the stand.",
+      "startDelayHint": "Time between payment and the start of the session.",
       "explainPayment": "The clock starts {{minutes}} minutes after the money lands.",
       "explainFulfilment": "The clock starts when the thing changes hands."
     },
@@ -147,7 +147,7 @@
   },
   "map": {
     "title": "Station map",
-    "subtitle": "Place every station and desk where it stands, so the floor and the boats read the same map.",
+    "subtitle": "Place every station and desk where it stands, so everyone reads the same map",
     "canvas": "The venue",
     "tray": "Not on the map yet",
     "trayHint": "Drag one onto the map, or drop it where it belongs.",
@@ -155,7 +155,7 @@
     "placed": "On the map ({{count}})",
     "noneYet": "Nothing placed yet.",
     "empty": "Drag a station or a desk from the right onto the map.",
-    "hint": "Drag a marker to move it. The captain's chart and the lagoon route use these positions.",
+    "hint": "Drag a marker to move it. Routes and distances are worked out from these positions.",
     "save": "Save the map",
     "discard": "Discard changes",
     "saved": "The map is saved",

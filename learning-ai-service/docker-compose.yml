@@ -1,0 +1,153 @@
+# The learning/AI service, standing on its own.
+#
+# This stack has no dependency on LockerFlow whatsoever: its own MongoDB, its own Qdrant, its
+# own model cache, its own secrets. Bring it up with the LockerFlow stack stopped, deleted, or
+# never installed, and it comes up healthy.
+#
+# That independence is the point. The AI service is a different product with a different
+# release cadence, a 2.3 GB model download and a GPU-shaped appetite; tying its lifecycle to a
+# booking API meant restarting one to deploy the other.
+#
+# ## The two networks
+#
+#   ai-internal   Mongo and Qdrant live here and nowhere else. No ports are published, so
+#                 nothing outside this stack can reach them — not even from the host.
+#   ai-edge       The one door in. LockerFlow joins this network later (see README) and talks
+#                 to `lockerflow-ai:8088`. This stack creates and owns it.
+#
+# Mongo and Qdrant are deliberately *not* on ai-edge. Whoever connects gets the API and the
+# API only.
+
+name: lockerflow-ai
+
+services:
+  # ------------------------------------------------------------------ the store
+  mongo:
+    image: mongo:7
+    container_name: lockerflow-ai-mongo
+    restart: unless-stopped
+    # No `ports:`. The database is reachable from this stack and from nothing else.
+    networks: [ai-internal]
+    volumes:
+      - ai_mongo_data:/data/db
+    healthcheck:
+      test: ["CMD", "mongosh", "--quiet", "--eval", "db.adminCommand('ping').ok"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 20s
+
+  # ------------------------------------------------------------------ the vectors
+  qdrant:
+    image: qdrant/qdrant:v1.12.4
+    container_name: lockerflow-ai-qdrant
+    restart: unless-stopped
+    networks: [ai-internal]
+    # No API key by default, and — importantly — no *empty* one either.
+    #
+    # Qdrant turns authentication on the moment QDRANT__SERVICE__API_KEY exists, and an empty
+    # value is still a value: every request is then refused with 401 and the service reports
+    # itself degraded. Qdrant is on the internal network with no published port, so nothing
+    # but this stack can reach it.
+    #
+    # To require a key anyway, add both lines — the same value on each side:
+    #   qdrant:       environment: { QDRANT__SERVICE__API_KEY: "<key>" }
+    #   learning-ai:  environment: { QDRANT_API_KEY: "<key>" }
+    volumes:
+      - ai_qdrant_data:/qdrant/storage
+    healthcheck:
+      # Qdrant's image carries no curl or wget, so it answers for itself.
+      test: ["CMD", "/qdrant/qdrant", "--version"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 15s
+
+  # ------------------------------------------------------------------ the service
+  learning-ai:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: runtime
+    container_name: lockerflow-ai
+    restart: unless-stopped
+
+    depends_on:
+      mongo:
+        condition: service_healthy
+      qdrant:
+        condition: service_healthy
+
+    # On both: it reads its own store over ai-internal, and answers LockerFlow over ai-edge.
+    networks: [ai-internal, ai-edge]
+
+    ports:
+      # Bound to localhost, not 0.0.0.0. On a single host LockerFlow reaches this over the
+      # ai-edge network by name and needs no published port at all — this exists so the stack
+      # can be verified on its own, and so a LockerFlow running outside Docker can reach it.
+      # Publish it more widely only behind a reverse proxy that terminates TLS.
+      - "${AI_BIND:-127.0.0.1}:${AI_PORT:-8088}:8088"
+
+    environment:
+      ENVIRONMENT: ${ENVIRONMENT:-production}
+      PORT: 8088
+      LOG_LEVEL: ${LOG_LEVEL:-INFO}
+
+      # --- Its own store, by container name on the internal network. -------------------
+      MONGODB_URI: mongodb://lockerflow-ai-mongo:27017
+      AI_DB_NAME: ${AI_DB_NAME:-lockerflow_ai}
+      QDRANT_URL: http://lockerflow-ai-qdrant:6333
+
+      # --- The shared secret LockerFlow signs actor tokens with. -----------------------
+      # No default on purpose: a service that cannot tell LockerFlow from anybody else who
+      # reaches the port should refuse to start rather than trust everybody.
+      AI_SERVICE_SECRET: ${AI_SERVICE_SECRET:?AI_SERVICE_SECRET is required — see .env.example}
+
+      # --- Answer generation. Embeddings are local and cost nothing. -------------------
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      OPENAI_MODEL: ${OPENAI_MODEL:-gpt-4o}
+      OPENAI_API_STYLE: ${OPENAI_API_STYLE:-responses}
+
+      # --- Local models. ---------------------------------------------------------------
+      EMBEDDING_MODEL: ${EMBEDDING_MODEL:-BAAI/bge-m3}
+      EMBEDDING_DIM: ${EMBEDDING_DIM:-1024}
+      TTS_PROVIDER: ${TTS_PROVIDER:-piper}
+      RETRIEVAL_MIN_SCORE: ${RETRIEVAL_MIN_SCORE:-0.30}
+
+    volumes:
+      # BGE-M3 is ~2.3 GB and is fetched on first use. In a volume it survives every rebuild;
+      # baked into a layer it would be re-downloaded whenever the image changed.
+      - ai_models:/models/hf
+      - ai_tts_cache:/var/cache/lockerflow-tts
+
+    healthcheck:
+      # `/health/ready` reports on Mongo, Qdrant and the embedding model. Python is used
+      # because the runtime image is slim and carries no curl.
+      test:
+        [
+          "CMD",
+          "python",
+          "-c",
+          "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://127.0.0.1:8088/health/ready', timeout=5).status==200 else 1)",
+        ]
+      interval: 15s
+      timeout: 10s
+      # The model loads after the port opens, so readiness is minutes away on a cold first
+      # boot. A long start period is the difference between "still loading" and "unhealthy".
+      retries: 20
+      start_period: 300s
+
+networks:
+  # Mongo and Qdrant, and nothing else, ever.
+  ai-internal:
+    name: lockerflow-ai-internal
+
+  # Where LockerFlow joins. Named explicitly so its compose file can declare it external.
+  ai-edge:
+    name: lockerflow-ai-edge
+
+volumes:
+  ai_mongo_data:
+  ai_qdrant_data:
+  ai_models:
+  ai_tts_cache:

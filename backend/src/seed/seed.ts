@@ -30,7 +30,7 @@ import {
   Zone,
   hashPassword,
 } from "../models/index.js";
-import { Incident, VerificationEvidence, Voucher, VoucherCampaign } from "../models/index.js";
+import { Incident, InvoiceXml, LearningProgress, VerificationEvidence, Voucher, VoucherCampaign } from "../models/index.js";
 import { seedVersions } from "./versions.seed.js";
 import { seedVouchers } from "./vouchers.seed.js";
 import { seedTradingHistory } from "./tradingHistory.seed.js";
@@ -1191,6 +1191,35 @@ export async function seedFresh() {
     VerificationEvidence.deleteMany({}),
     Voucher.deleteMany({}),
     VoucherCampaign.deleteMany({}),
+
+    /*
+     * The tax invoices, cleared with the bookings they belong to.
+     *
+     * This seed recreates bookings under the same references, so an invoice left behind would
+     * be found by `bookingId` and handed back for a *different* sale — the idempotency check in
+     * invoiceXml.service.ts returns the stored file rather than regenerating. Worse, the hash
+     * chain would continue from a record whose invoice no longer exists.
+     *
+     * Only the rows go. The XML files stay on disk, which is the right way round: a tax record
+     * should not be deleted by a demonstration reset, and an orphaned file costs nothing.
+     */
+    InvoiceXml.deleteMany({}),
+
+    /*
+     * Onboarding state, cleared with the people it belongs to.
+     *
+     * `markSeededAccountsOnboarded()` below writes one row per seeded account with
+     * `$setOnInsert`, so a row left over from a previous run is never updated — it keeps
+     * whatever status it had. A test that restarts the guided tour leaves the row IN_PROGRESS,
+     * the next seed recreates the user with the same id, the stale row survives, and the tour
+     * auto-starts for an account that is supposed to have finished it.
+     *
+     * That is not a cosmetic problem. The tour is a full-screen overlay at z-3500, so every
+     * click in that session lands on it instead of the page — which surfaced as "the button
+     * did not respond" on the till queue, the voucher field and the wrong-desk dialog, twenty
+     * seconds apart and in different suites each run.
+     */
+    LearningProgress.deleteMany({}),
   ]);
 
   await Tenant.insertMany(tenantRows([
@@ -1200,6 +1229,25 @@ export async function seedFresh() {
       legalName: "Wayz Rentals Co.",
       crNumber: "7015501021",
       vatNumber: "310917702200003",
+
+      /*
+       * The seller address the e-invoice XML needs.
+       *
+       * ZATCA (BR-KSA-09) wants these as separate elements, not one line, and the XML builder
+       * refuses without them — so a seeded company that cannot issue an invoice would look
+       * like a broken feature rather than missing data.
+       */
+      zatcaAddress: {
+        street: "Prince Turki Bin Abdulaziz Al Awwal Road",
+        building: "7015",
+        additionalNumber: "2103",
+        district: "Hittin",
+        city: "Riyadh",
+        postalCode: "13512",
+        countrySubentity: "Riyadh Province",
+        countryCode: "SA",
+      },
+
       enabledEngines: DEMO_ENGINES,
       currency: "SAR",
       vatRate: 0.15,

@@ -33,6 +33,18 @@ export interface UserDoc {
   invite: UserInvite | null
   fullName: string
   role: Role
+  /**
+   * What this company calls the job, when that differs from the platform's word for it.
+   *
+   * `role` is an *authorisation* concept — what this person may do. It is deliberately a short
+   * fixed list, because permissions have to be. A job title is a business fact and belongs to
+   * the company: WIQAR has a CEO and an IT Manager who both need full configuration access, so
+   * both carry `TENANT_ADMIN`, and showing them both as "CEO / tenant admin" made it look like
+   * there were two tenant administrator roles.
+   *
+   * Empty means "use the platform's label for the role", which is right for most people.
+   */
+  roleLabel?: string
   tenantId: string
   siteId: string
   zoneId: string | null
@@ -96,6 +108,8 @@ const userSchema = new Schema<UserDoc>(
     invite: { type: inviteSchema, default: null },
     fullName: { type: String, required: true },
     role: { type: String, required: true },
+    /* The company's own name for the job; see the interface above. */
+    roleLabel: { type: String, default: '' },
     tenantId: { type: String, required: true, index: true },
     /*
      * Where the person works, when that is a meaningful question.

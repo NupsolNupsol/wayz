@@ -204,7 +204,10 @@ export function Header({ onOpenMobile, me, dataSw }: { onOpenMobile: () => void;
             <div className="w-[34px] h-[34px] rounded-full bg-brand text-brand-fg text-[13px] font-bold flex items-center justify-center">{initials(me.fullName)}</div>
             <div className="hidden md:block text-start leading-tight max-w-[120px]">
               <div className="text-[13px] font-semibold text-navy dark:text-dk-texthi truncate">{me.fullName}</div>
-              <div className="text-[11px] text-muted truncate">{t(`role.${me.role}`)}</div>
+              {/* Their job as their company names it; the platform role only when there is none. */}
+              <div className="text-[11px] text-muted truncate" data-testid="header-job-title">
+                {me.jobTitle || t(`role.${me.role}`)}
+              </div>
             </div>
             <ChevronDown size={14} className="text-muted" />
           </button>

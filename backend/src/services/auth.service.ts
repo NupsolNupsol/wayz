@@ -130,10 +130,17 @@ export async function buildMe(userId: string) {
     /*
      * The job their company defined.
      *
-     * Their screens read this to know what they may do. `role` beside it is the platform
-     * primitive and carries no business meaning — see `roleDefinition.model.ts`.
+     * Unused since roles became the platform's fixed list; kept so older sessions still parse.
+     * `role` beside it is what every screen and endpoint authorises against.
      */
     roleKey: user.roleKey ?? null,
+    /*
+     * What this person's company calls their job — "WIQAR CEO", "Horse Trainer".
+     *
+     * Shown wherever a person is named, in place of the platform role: two WIQAR administrators
+     * share TENANT_ADMIN for authorisation and are still a CEO and an IT manager to everyone else.
+     */
+    jobTitle: user.roleLabel?.trim() || null,
     tenant: tenant
       ? {
           id: tenant._id,

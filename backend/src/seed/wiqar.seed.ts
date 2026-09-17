@@ -5,6 +5,7 @@ import {
   AssetType,
   AssetUnit,
   CatalogueProduct,
+  Customer,
   Kiosk,
   Site,
   Station,
@@ -92,6 +93,58 @@ const SPECIES = [
   { key: 'deer', name: 'Deer', nameAr: 'غزال', prefix: 'D', area: 'village', perLocation: 4 },
 ]
 
+/**
+ * §4.1 — the seven experiences, as things a counter can actually sell.
+ *
+ * Each activity is a coded module; this is the *product* that starts one. Without these the
+ * seven workflows exist and nothing can reach them: an agent opens the counter to an empty
+ * catalogue, which is how WIQAR came to have eighty-four animals and nothing to sell.
+ *
+ * ## Prices are placeholders, and the document says so
+ *
+ * §4.1 lists every price as TBD. The figures below are *invented* so the flows can be
+ * exercised end to end, and must be replaced before anybody sells anything. They are round
+ * numbers rather than plausible ones precisely so that nobody mistakes them for real.
+ *
+ * ## Durations are not placeholders
+ *
+ * Those §4.1 does give, and they are reproduced exactly. Where the document states a range,
+ * the longer end is taken — a slot has to be booked for the time it might take, not the time
+ * it might not.
+ */
+const EXPERIENCES: {
+  key: string
+  activity: EngineKind
+  name: string
+  nameAr: string
+  /** §4.1. The upper end where the document gives a range. */
+  minutes: number
+  /** PLACEHOLDER — §4.1 says TBD for every one of these. */
+  price: number
+  species: 'horse' | 'camel' | null
+}[] = [
+  { key: 'horse_tour', activity: 'HORSE_RIDING', name: 'Arabian Horse Riding Tour', nameAr: 'جولة ركوب الخيل العربي', minutes: 60, price: 300, species: 'horse' },
+  { key: 'lesson', activity: 'EQUESTRIAN_LESSON', name: 'Equestrian Lesson', nameAr: 'درس فروسية', minutes: 60, price: 400, species: 'horse' },
+  { key: 'camel_tour', activity: 'CAMEL_TOUR', name: 'Camel Tour', nameAr: 'جولة الجمال', minutes: 30, price: 200, species: 'camel' },
+  { key: 'care', activity: 'ANIMAL_CARE', name: 'Animal Care Pack — Horse', nameAr: 'باقة العناية بالحيوان', minutes: 30, price: 150, species: 'horse' },
+  { key: 'feeding', activity: 'ANIMAL_FEEDING', name: 'Animal Feeding Session', nameAr: 'جلسة إطعام الحيوانات', minutes: 15, price: 50, species: null },
+  { key: 'photo', activity: 'PHOTOGRAPHY', name: 'Professional Photo Session', nameAr: 'جلسة تصوير احترافية', minutes: 20, price: 250, species: null },
+  { key: 'group', activity: 'GROUP_PACKAGE', name: 'Group Package', nameAr: 'الباقة الجماعية', minutes: 90, price: 900, species: null },
+]
+
+/**
+ * Visitors, so the counter has somebody to sell to.
+ *
+ * Not from the requirements — the document describes what WIQAR sells, not who buys it. These
+ * exist so the seven experiences can be walked end to end on a freshly seeded server; without
+ * a customer the counter refuses every sale and the activities cannot be demonstrated at all.
+ */
+const VISITORS = [
+  { key: 'alqahtani', name: 'Nora Al-Qahtani', phone: '+966 55 214 8830', nationalId: '1087654321' },
+  { key: 'alharbi', name: 'Faisal Al-Harbi', phone: '+966 50 771 4402', nationalId: '1098765432' },
+  { key: 'family', name: 'Al-Sudairi Family', phone: '+966 53 309 1187', nationalId: '1076543210' },
+]
+
 /** §4.2 — the changing-room shop catalogue. Prices are TBD in the document. */
 const RETAIL = [
   { key: 'helmet', name: 'Riding Helmet', nameAr: 'خوذة ركوب', category: 'Equestrian accessories', price: 180 },
@@ -150,6 +203,7 @@ const animalId = (s: string, l: string, n: number) => `unit_${ORG}_${s}_${l}_${n
 const productId = (k: string) => `pr_${ORG}_${k}`
 
 export interface WiqarSeedReport {
+  customers: number
   sites: number
   areas: number
   counters: number
@@ -166,7 +220,7 @@ export interface WiqarSeedReport {
  * administrator has made. Re-running must never quietly undo somebody's work.
  */
 export async function seedWiqar(): Promise<WiqarSeedReport> {
-  const report: WiqarSeedReport = { sites: 0, areas: 0, counters: 0, species: 0, animals: 0, products: 0, people: 0 }
+  const report: WiqarSeedReport = { sites: 0, areas: 0, counters: 0, species: 0, animals: 0, products: 0, customers: 0, people: 0 }
 
   /* The organisation itself, with the seven activities it has adopted from the catalogue. */
   if (!(await Tenant.findById(ORG).lean())) {
@@ -177,6 +231,19 @@ export async function seedWiqar(): Promise<WiqarSeedReport> {
       legalName: 'WIQAR Experiential Hospitality Co.',
       crNumber: '4030555123',
       vatNumber: '310555123400003',
+
+      /* The seller address the e-invoice XML needs — ZATCA BR-KSA-09. */
+      zatcaAddress: {
+        street: 'King Abdulaziz Road',
+        building: '4030',
+        additionalNumber: '8817',
+        district: 'Al-Shati',
+        city: 'Jeddah',
+        postalCode: '23511',
+        countrySubentity: 'Makkah Province',
+        countryCode: 'SA',
+      },
+
       currency: 'SAR',
       vatRate: 0.15,
       enabledEngines: ADOPTED,
@@ -283,6 +350,32 @@ export async function seedWiqar(): Promise<WiqarSeedReport> {
     }
   }
 
+  /*
+   * §4.1 — the seven experiences.
+   *
+   * `saleUnit: 'TOUR'` and `billingModel: 'PACKAGE'`: an experience is bought as a whole, not
+   * by the hour. The duration is what the slot occupies, not what it costs.
+   */
+  for (const experience of EXPERIENCES) {
+    if (existing.products.has(productId(experience.key))) continue
+    await CatalogueProduct.create({
+      _id: productId(experience.key),
+      name: experience.name,
+      nameAr: experience.nameAr,
+      category: 'Experiences',
+      basePrice: experience.price,
+      tourMinutes: experience.minutes,
+      saleUnit: 'TOUR',
+      saleType: 'RENTAL',
+      billingModel: 'PACKAGE',
+      engineKind: experience.activity,
+      /* The animal it runs on, where the experience names one. */
+      assetTypeId: experience.species ? speciesId(experience.species) : null,
+      active: true,
+    })
+    report.products += 1
+  }
+
   /* §4.2 — the changing-room catalogue, the same at every location. */
   for (const product of RETAIL) {
     if (existing.products.has(productId(product.key))) continue
@@ -302,11 +395,42 @@ export async function seedWiqar(): Promise<WiqarSeedReport> {
     report.products += 1
   }
 
+  /* Visitors, so a counter can sell to somebody on a freshly seeded server. */
+  for (const visitor of VISITORS) {
+    const _id = `cust_${ORG}_${visitor.key}`
+    if (await Customer.findById(_id).lean()) continue
+    await Customer.create({
+      _id,
+      name: visitor.name,
+      phone: visitor.phone,
+      nationalId: visitor.nationalId,
+      active: true,
+    })
+    report.customers += 1
+  }
+
   /* §5.1 — one account per role, posted where that role works. */
   const home = LOCATIONS[0]
   for (const person of STAFF) {
     const email = `${person.key}.${ORG}@lockerflow.demo`
-    if (await User.findOne({ email }).lean()) continue
+
+    /*
+     * Somebody already here is brought up to date rather than skipped.
+     *
+     * This seed is idempotent so it can be re-run on a server without duplicating anybody, and
+     * a plain `continue` made that mean "never changes an existing person" — so a field added
+     * later, like the job title below, reached new deployments and silently missed every
+     * existing one. Only the descriptive fields are touched: their password, their counter and
+     * anything they have done since are theirs.
+     */
+    const existingPerson = await User.findOne({ email }).lean()
+    if (existingPerson) {
+      await User.updateOne(
+        { email },
+        { $set: { roleLabel: `WIQAR ${person.title}`, fullName: `WIQAR ${person.title}`, role: person.role } },
+      )
+      continue
+    }
 
     const central = person.scope === 'central'
     await User.create({
@@ -316,6 +440,15 @@ export async function seedWiqar(): Promise<WiqarSeedReport> {
       passwordHash: hashPassword(DEMO_PASSWORD),
       demoCredential: DEMO_PASSWORD,
       role: person.role,
+      /*
+       * WIQAR's own word for the job.
+       *
+       * The CEO and the IT Manager both need full configuration access, so both carry
+       * TENANT_ADMIN — that is an authorisation fact. Their *titles* are different, and
+       * showing both as "CEO / tenant admin" made it look as though the platform had two
+       * tenant administrator roles. It has one; WIQAR has two people holding it.
+       */
+      roleLabel: `WIQAR ${person.title}`,
       siteId: siteId(home.key),
       stationId: central ? areaId(home.key, 'welcome') : areaId(home.key, 'welcome'),
       kioskId: person.counter ? counterId(home.key, person.counter) : null,

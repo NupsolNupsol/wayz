@@ -71,6 +71,8 @@ import { AdminOverview } from "@/features/admin/AdminOverview";
 import { AdminCompany } from "@/features/admin/AdminCompany";
 import { AdminAudit, AdminIsolation } from "@/features/admin/AdminPeople";
 import { AdminRules } from "@/features/admin/AdminRules";
+import { AdminActivities } from "@/features/admin/AdminActivities";
+import { AdminRoles } from "@/features/admin/AdminRoles";
 import { AdminVouchers } from "@/features/admin/AdminVouchers";
 import { AdminStationMap } from "@/features/admin/AdminStationMap";
 import { ManagerShiftDetail } from "@/features/manager/ManagerShiftDetail";
@@ -241,6 +243,38 @@ export const router = createBrowserRouter([
       </ProtectedRoute>
     ),
     children: [{ index: true, element: <AdminRules /> }],
+  },
+  /*
+   * What this company runs.
+   *
+   * Addressed `/manager/activities` because that is where both sidebars have always pointed —
+   * the page behind it was the dynamic activity builder, which the client rejected, and the
+   * links were left aimed at nothing. Readable by the back office, because the employee form
+   * and the estate pages both need to know; changing it is the administrator's, enforced on
+   * the server and reflected in what the page offers.
+   */
+  /*
+   * Who can do what. Read-only: a role is the platform's, not a company's — see AdminRoles.
+   * The page behind this link was the role builder the client rejected, and removing it left
+   * the sidebar pointing at nothing.
+   */
+  {
+    path: "/manager/roles",
+    element: (
+      <ProtectedRoute allow={BACK_OFFICE_ROLES}>
+        <AppShell />
+      </ProtectedRoute>
+    ),
+    children: [{ index: true, element: <AdminRoles /> }],
+  },
+  {
+    path: "/manager/activities",
+    element: (
+      <ProtectedRoute allow={BACK_OFFICE_ROLES}>
+        <AppShell />
+      </ProtectedRoute>
+    ),
+    children: [{ index: true, element: <AdminActivities /> }],
   },
   {
     path: "/admin",

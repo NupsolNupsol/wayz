@@ -146,7 +146,7 @@
     "MANAGER": "Activity manager",
     "HR": "HR & expenses",
     "ACCOUNTANT": "Accountant",
-    "TENANT_ADMIN": "CEO / tenant admin",
+    "TENANT_ADMIN": "Company administrator",
     "SUPERVISOR": "Supervisor",
     "CHIEF_CAPTAIN": "Chief captain",
     "PROJECT_MANAGER": "Project manager"

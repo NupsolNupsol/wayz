@@ -1,8 +1,13 @@
-import { LAGOON_OPS, LAGOON_SAIL, LAGOON_TILL } from '../shared/access.js'
-import { ACTIVE, CANCELLED, COMPLETED, CONFIRMED, DRAFT, OVERTIME } from '../shared/status.js'
-import type { EngineWorkflow, OperationResult, ValidationResult, WorkflowContext } from '../shared/types.js'
-import { useLagoonValidator } from '../bookingWorkflowValidators/controller.lagoon.validator.controller.js'
-import { useLagoonOperation } from '../bookingWorkflowOperations/controller.lagoon.operation.controller.js'
+import { LAGOON_OPS, LAGOON_SAIL, LAGOON_TILL } from '../shared/access.js';
+import { ACTIVE, CANCELLED, COMPLETED, CONFIRMED, DRAFT, OVERTIME } from '../shared/status.js';
+import type {
+  EngineWorkflow,
+  OperationResult,
+  ValidationResult,
+  WorkflowContext,
+} from '../shared/types.js';
+import { useLagoonValidator } from '../bookingWorkflowValidators/controller.lagoon.validator.controller.js';
+import { useLagoonOperation } from '../bookingWorkflowOperations/controller.lagoon.operation.controller.js';
 
 export const lagoonWorkflow: EngineWorkflow = {
   engineKind: 'LAGOON',
@@ -44,14 +49,14 @@ export const lagoonWorkflow: EngineWorkflow = {
       style: { backgroundColor: '#db5d5d' },
     },
   ],
-}
+};
 
 export const LaunchLagoonControl = async (
   transitionCode: string,
-  ctx: WorkflowContext,
-): Promise<ValidationResult> => useLagoonValidator(transitionCode, ctx)
+  ctx: WorkflowContext
+): Promise<ValidationResult> => useLagoonValidator(transitionCode, ctx);
 
 export const LaunchLagoonOperation = async (
   transitionCode: string,
-  ctx: WorkflowContext,
-): Promise<OperationResult> => useLagoonOperation(transitionCode, ctx)
+  ctx: WorkflowContext
+): Promise<OperationResult> => useLagoonOperation(transitionCode, ctx);

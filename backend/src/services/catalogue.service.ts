@@ -1,5 +1,6 @@
 import { AssetType, AssetUnit, CatalogueProduct, Gate, Tenant } from '../models/index.js'
-import { engineFilter, kioskFilter, reachableUnitFilter } from '../domain/access.js'
+import { engineFilter, kioskFilter, reachableUnitsAt } from '../domain/access.js'
+import { placesAround } from './reach.service.js'
 import type { EngineKind } from '../domain/types.js'
 import type { Scope } from '../interfaces/index.js'
 
@@ -20,20 +21,6 @@ type Caller = Pick<Scope, 'role' | 'engineKinds'> & Partial<Pick<Scope, 'kioskId
  * isn't stocked anywhere and stays governed by the desk named on it.
  */
 
-/**
- * The gates of a station, as bare ids.
- *
- * A desk reaches stock in two places — its own counter, and the gates of the venue it stands in —
- * so almost every stock question needs this list first. Cached nowhere on purpose: gates are a
- * handful of rows per station and an admin adding one must take effect at the next counter load,
- * not at the next restart.
- */
-async function gateIdsAt(tenantId: string, stationId?: string): Promise<string[]> {
-  if (!stationId) return []
-  const gates = await Gate.find({ tenantId, stationId, active: { $ne: false } }, { _id: 1 }).lean()
-  return gates.map((g) => g._id)
-}
-
 export async function listProducts(tenantId: string, engineKind?: EngineKind, caller?: Caller) {
   const q: Record<string, unknown> = { tenantId, active: true }
   const engines = caller ? engineFilter(caller, engineKind) : engineKind
@@ -53,13 +40,11 @@ export async function listProducts(tenantId: string, engineKind?: EngineKind, ca
   // Both places a desk can reach: its own counter, and the gates of its station. A Shop & Drop
   // counter holds no lockers at all, so without the gates it would find itself stocking nothing
   // and offering nothing.
-  const reach = reachableUnitFilter(caller!, await gateIdsAt(tenantId, caller?.stationId))
   const stocked = new Set(
     await AssetUnit.distinct('assetTypeId', {
       tenantId,
       assetTypeId: { $in: backed },
-      ...(caller?.stationId ? { stationId: caller.stationId } : {}),
-      ...(reach ?? {}),
+      ...(caller?.stationId ? reachableUnitsAt(caller, await placesAround(caller.stationId)) : {}),
     }),
   )
 
@@ -89,18 +74,34 @@ export function getAssetType(tenantId: string, assetTypeId: string) {
  * disagree with itself about which desk a unit belongs to.
  */
 export async function listUnits(tenantId: string, stationId: string, caller?: Caller) {
-  const q: Record<string, unknown> = { tenantId, stationId }
+  const q: Record<string, unknown> = { tenantId }
 
+  if (!caller) q.stationId = stationId
   if (caller) {
     const engines = engineFilter(caller)
     if (engines !== undefined) {
-      const types = await AssetType.find({ tenantId, engineKind: engines }, { _id: 1 }).lean()
-      q.assetTypeId = { $in: types.map((t) => t._id) }
+      /*
+       * The kinds this person works with: those tagged with one of their activities, and those
+       * tagged with none but sold under one of them.
+       *
+       * The second half is animals. A horse is ridden, groomed and taken on lessons, so its kind
+       * belongs to no single activity and carries none — and filtering on the tag alone meant
+       * the reception could sell a ride and then had no horse to give the customer.
+       */
+      const [tagged, sold] = await Promise.all([
+        AssetType.find({ tenantId, engineKind: engines }, { _id: 1 }).lean(),
+        CatalogueProduct.distinct('assetTypeId', {
+          tenantId,
+          engineKind: engines,
+          active: true,
+          assetTypeId: { $ne: null },
+        }),
+      ])
+      q.assetTypeId = { $in: [...new Set([...tagged.map((t) => t._id), ...(sold as string[])])] }
     }
     // The desk's own units and the lockers standing at its station's gates. The engine filter
     // above already keeps a scooter bay from being handed a list of compartments.
-    const reach = reachableUnitFilter(caller, await gateIdsAt(tenantId, stationId))
-    if (reach) Object.assign(q, reach)
+    Object.assign(q, reachableUnitsAt(caller, await placesAround(stationId)))
   }
 
   const units = await AssetUnit.find(q).sort({ assetTypeId: 1, identifier: 1 }).lean()

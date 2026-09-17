@@ -1,5 +1,6 @@
 import { OPS, TILL } from '../../shared/access.js'
 import { ACTIVE, CANCELLED, COMPLETED, CONFIRMED, DRAFT, OVERTIME } from '../../shared/status.js'
+import { LESSON_LEVELS } from '../../bookingWorkflowValidators/shared.animal.validators.js'
 import type { EngineWorkflow, OperationResult, ValidationResult, WorkflowContext } from '../../shared/types.js'
 import { useEquestrianLessonValidator } from '../../bookingWorkflowValidators/wiqar/controller.equestrianLesson.validator.controller.js'
 import { useEquestrianLessonOperation } from '../../bookingWorkflowOperations/wiqar/controller.equestrianLesson.operation.controller.js'
@@ -19,6 +20,8 @@ export const equestrianLessonWorkflow: EngineWorkflow = {
   sessionKind: 'EXPERIENCE',
   initialStatus: DRAFT,
   actors: OPS,
+  // What confirmation asks the counter for — the same checks its validator composes.
+  intake: [{ key: 'consent' }, { key: 'trainer' }, { key: 'level', options: [...LESSON_LEVELS] }],
   transitions: [
     {
       code: 'TO_CONFIRMED',

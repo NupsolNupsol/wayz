@@ -188,6 +188,8 @@ export interface AssetIntent {
   status: AssetUnitStatus
   currentBookingId?: string | null
   note?: string
+  /** When a `RESTING` unit may work again (ISO). The session sweep returns it to service then. */
+  restingUntil?: string | null
 }
 
 export interface AuditIntent {
@@ -220,6 +222,26 @@ export interface Transition {
   style?: TransitionStyle
 }
 
+/**
+ * Something the counter has to collect before an activity's booking can be confirmed.
+ *
+ * Declared by the activity module, beside the validator that enforces it, so the counter renders
+ * exactly what the rules will ask for — no more, no less — and a new activity that needs a new
+ * detail says so in its own file. An activity with nothing extra to collect declares nothing, and
+ * its counter looks as it always has.
+ */
+export type IntakeField =
+  /** The visitor's acceptance of the terms, recorded against them. */
+  | { key: 'consent' }
+  /** A named member of staff who will run the session. */
+  | { key: 'trainer' }
+  /** One of a fixed set of levels the session is taught at. */
+  | { key: 'level'; options: string[] }
+  /** How many people are in the party, and the smallest it may be. */
+  | { key: 'partySize'; min: number }
+  /** How many portions of feed are bought with the session. */
+  | { key: 'feedPortions'; min: number }
+
 export interface EngineWorkflow {
   engineKind: EngineKind
   assetKind: AssetKind
@@ -227,6 +249,8 @@ export interface EngineWorkflow {
   initialStatus: BookingStatus
   actors: Role[]
   transitions: Transition[]
+  /** What confirmation needs from the counter. Absent means nothing beyond the sale itself. */
+  intake?: IntakeField[]
 }
 
 export type WorkflowValidator = (transitionCode: string, ctx: WorkflowContext) => Promise<ValidationResult> | ValidationResult

@@ -12,7 +12,8 @@ import { NumberInput } from '@/components/NumberInput'
 import { useAddAssetUnits, useAssetEstate, useManagerPricing, useRemoveAssetKind } from '@/hooks'
 import { can } from '@/permissions/permissions'
 import { useAuthStore } from '@/store/auth'
-import { engineLabel, VISIBLE_ENGINES } from '@/config/engineMeta'
+import { engineLabel } from '@/config/engineMeta'
+import { useTenantEngines } from '@/hooks/useTenantEngines'
 import { ApiError } from '@/api/client'
 import { toast } from '@/state/toastStore'
 import { money } from '@/utils'
@@ -26,6 +27,14 @@ type Filter = EngineKind | 'ALL'
 
 export function AssetsPage() {
   const { t } = useTranslation(['assets', 'common'])
+  /*
+   * What this organisation runs, not the whole coded catalogue.
+   *
+   * The catalogue is every activity the platform has been built to run; the adopted list is
+   * the subset this company took up on the Activities page. Offering the catalogue showed
+   * every company WAYZ's three and none of its own.
+   */
+  const adoptedActivities = useTenantEngines()
   const navigate = useNavigate()
   const role = useAuthStore((s) => s.me?.role)
   const mayManage = can(role, 'assets.manage')
@@ -81,6 +90,8 @@ export function AssetsPage() {
    * server enforces the same rule; this is the form agreeing with it.
    */
   const atAGate = (row: AssetTypeRow | null) => row?.kind === 'COMPARTMENT'
+  /* An animal belongs to its area; a desk is optional. The server applies the same rule. */
+  const heldByArea = (row: AssetTypeRow | null) => row?.kind === 'ANIMAL'
 
   const desksFor = (row: AssetTypeRow | null, station: string) =>
     atAGate(row)
@@ -92,7 +103,7 @@ export function AssetsPage() {
   const submitAdd = () => {
     if (!addFor) return
     addUnits.mutate(
-      { id: addFor._id, body: { stationId, ...(atAGate(addFor) ? { gateId: kioskId } : { kioskId }), count } },
+      { id: addFor._id, body: { stationId, ...(atAGate(addFor) ? { gateId: kioskId } : { kioskId: kioskId || null }), count } },
       {
         onSuccess: (r) => {
           toast('success', t('toast.added', { count: r.created }), r.identifiers.slice(0, 6).join(', '))
@@ -158,7 +169,7 @@ export function AssetsPage() {
       key: 'engine',
       header: t('common:column.activity'),
       sortValue: (r) => r.engineKind,
-      filter: { kind: 'select', options: VISIBLE_ENGINES.map((k) => ({ label: engineLabel(k), value: k })), value: (r) => r.engineKind },
+      filter: { kind: 'select', options: adoptedActivities.map((k) => ({ label: engineLabel(k), value: k })), value: (r) => r.engineKind },
       render: (r) => <span className="text-muted whitespace-nowrap">{engineLabel(r.engineKind)}</span>,
     },
     {
@@ -307,7 +318,7 @@ export function AssetsPage() {
         <FilterButton active={filter === 'ALL'} onClick={() => setFilter('ALL')} testId="asset-filter-ALL">
           {t('common:table.all')}
         </FilterButton>
-        {VISIBLE_ENGINES.map((kind) => (
+        {adoptedActivities.map((kind) => (
           <FilterButton key={kind} active={filter === kind} onClick={() => setFilter(kind)} testId={`asset-filter-${kind}`}>
             {engineLabel(kind)}
           </FilterButton>
@@ -391,7 +402,7 @@ export function AssetsPage() {
         footer={
           <>
             <Button variant="ghost" onClick={() => setAddFor(null)}>{t('common:action.cancel')}</Button>
-            <Button onClick={submitAdd} loading={addUnits.isPending} disabled={!stationId || !kioskId || count < 1} data-testid="asset-add-submit">
+            <Button onClick={submitAdd} loading={addUnits.isPending} disabled={!stationId || (!kioskId && !heldByArea(addFor)) || count < 1} data-testid="asset-add-submit">
               {t('add.submit', { count })}
             </Button>
           </>
@@ -402,7 +413,7 @@ export function AssetsPage() {
             value={stationId}
             onChange={(v) => {
               setStationId(v)
-              setKioskId(desksFor(addFor, v)[0]?._id ?? '')
+              setKioskId(heldByArea(addFor) ? '' : (desksFor(addFor, v)[0]?._id ?? ''))
             }}
             options={data.stations.map((s) => ({ label: s.name, value: s._id }))}
             testId="asset-add-station"
@@ -410,7 +421,7 @@ export function AssetsPage() {
         </Field>
         <Field
           label={atAGate(addFor) ? t('common:field.gate') : t('common:field.kiosk')}
-          required
+          required={!heldByArea(addFor)}
           hint={atAGate(addFor) ? t('add.gateHint') : t('add.kioskHint')}
         >
           {desksFor(addFor, stationId).length > 0 ? (
@@ -418,11 +429,15 @@ export function AssetsPage() {
               value={kioskId}
               onChange={setKioskId}
               options={[
-                { label: atAGate(addFor) ? t('add.pickGate') : t('add.pickKiosk'), value: '' },
+                heldByArea(addFor)
+                  ? { label: t('newKind.heldByArea', { defaultValue: 'The whole area — every counter here can sell it' }), value: '' }
+                  : { label: atAGate(addFor) ? t('add.pickGate') : t('add.pickKiosk'), value: '' },
                 ...desksFor(addFor, stationId).map((k) => ({ label: k.name, value: k._id })),
               ]}
               testId="asset-add-kiosk"
             />
+          ) : heldByArea(addFor) ? (
+            <p className="text-xs text-muted" data-testid="asset-add-area">{t('newKind.heldByArea', { defaultValue: 'The whole area — every counter here can sell it' })}</p>
           ) : (
             <p className="text-xs text-danger-strong" data-testid="asset-add-no-kiosk">
               {atAGate(addFor) ? t('add.noGateHere') : t('add.noKioskHere')}

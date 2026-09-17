@@ -8,6 +8,8 @@ import {
 } from "../services/catalogue.service.js";
 import { suggestPacking } from "../services/packing.service.js";
 import type { EngineKind } from "../domain/types.js";
+import { ENGINE_KINDS } from "../domain/types.js";
+import { trainersFor } from "../services/intake.service.js";
 
 const suggestSchema = z.object({
   bags: z
@@ -24,6 +26,12 @@ const suggestSchema = z.object({
 });
 
 export const catalogueController = {
+  /** Staff at this location who can be named to run a session of an activity. */
+  trainers: asyncHandler(async (req, res) => {
+    const engineKind = z.enum(ENGINE_KINDS).parse(req.query.engineKind);
+    res.json({ success: true, data: await trainersFor(scopeFromReq(req), engineKind) });
+  }),
+
   products: asyncHandler(async (req, res) => {
     const s = scopeFromReq(req);
     res.json({

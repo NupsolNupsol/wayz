@@ -1,4 +1,6 @@
-import { AssetType, AssetUnit, Gate, Kiosk } from '../models/index.js'
+import { AssetType, AssetUnit, Kiosk } from '../models/index.js'
+import { unitsReachableFrom } from '../domain/access.js'
+import { placesAround } from './reach.service.js'
 import type { BookingHydrated } from '../models/booking.model.js'
 import type { Role } from '../domain/types.js'
 import { ApiError } from '../utils/ApiError.js'
@@ -128,28 +130,26 @@ async function gatherAssets(
   const scannedId = typeof payload.scannedUnitId === 'string' ? payload.scannedUnitId : null
 
   /*
-   * What this desk can reserve: its own counter, and the gates of its station.
+   * What this desk can reserve — the same rule the counter used to decide it could sell.
    *
    * The reservation and the check that runs before the money is taken must agree exactly, or an
-   * agent sells storage and then cannot lock a locker for it. Lockers live at gates now, so a
-   * desk-only lookup would find nothing for any bag drop on the platform.
+   * agent sells something and then cannot hand it over. This used to be its own copy of the
+   * rule, and when location-held stock was added to the counter's copy this one still looked
+   * only at the desk's own area: WIQAR's reception could sell a ride on a horse in the stable
+   * and then be told the horse was "already out with someone else" when the ride started.
+   *
+   * The condition carries its own "where", so no station is added beside it here.
    */
-  const gates = await Gate.find({ tenantId, stationId, active: { $ne: false } }, { _id: 1 }).lean()
-  const reach = kioskId
-    ? gates.length
-      ? { $or: [{ kioskId }, { gateId: { $in: gates.map((g) => g._id) } }] }
-      : { kioskId }
-    : {}
+  const where = unitsReachableFrom(kioskId ?? undefined, await placesAround(stationId))
 
   const [current, available, referenced] = await Promise.all([
     currentId ? AssetUnit.findOne({ _id: currentId, tenantId }).lean() : null,
     assetTypeId
       ? AssetUnit.find({
           tenantId,
-          stationId,
           assetTypeId,
           status: 'AVAILABLE',
-          ...reach,
+          ...where,
         })
           .sort({ identifier: 1 })
           .limit(25)
@@ -178,6 +178,15 @@ function applySnapshot(booking: BookingHydrated, next: BookingSnapshot): void {
   booking.assetUnitId = next.assetUnitId ?? null
   booking.custody = next.custody as unknown as BookingHydrated['custody']
   booking.verifications = next.verifications as unknown as BookingHydrated['verifications']
+  /*
+   * What the operation wrote about the session.
+   *
+   * This was marked modified and never copied, so every operation-level note was dropped on
+   * save — the trainer who ran a WIQAR session, when its animal may work again, and how a
+   * photo session's pictures were delivered. The operation starts from a clone of the booking,
+   * so this is the whole metadata with its additions, not a partial overwrite.
+   */
+  if (next.metadata) booking.metadata = next.metadata as BookingHydrated['metadata']
   booking.markModified('bags')
   booking.markModified('session')
   booking.markModified('custody')
@@ -191,6 +200,9 @@ async function applyAssetIntents(intents: AssetIntent[], tenantId: string): Prom
     const patch: Record<string, unknown> = { status: intent.status }
     if (intent.currentBookingId !== undefined) patch.currentBookingId = intent.currentBookingId
     if (intent.note !== undefined) patch.note = intent.note
+    if (intent.restingUntil !== undefined) patch.restingUntil = intent.restingUntil ? new Date(intent.restingUntil) : null
+    /* Anything that puts a unit back to work ends whatever rest it was on. */
+    if (intent.status !== 'RESTING' && intent.restingUntil === undefined) patch.restingUntil = null
     await AssetUnit.updateOne({ _id: intent.unitId, tenantId }, { $set: patch })
   }
 }
@@ -234,7 +246,16 @@ async function noUnitHere(
   return lines
 }
 
-export async function applyTransition(params: ApplyTransitionParams): Promise<ApplyTransitionResult> {
+/**
+ * Everything `applyTransition` checks before it changes anything, and nothing after.
+ *
+ * Exposed so a caller that has to do something irreversible *before* a transition can ask first.
+ * Payment is the case that needed it: money was recorded and the order marked paid, and only
+ * then did confirmation run the activity's rules — a WIQAR ride with no trainer named was
+ * refused after the card had been charged, leaving a paid order on a draft booking that could
+ * not be paid again.
+ */
+export async function checkTransition(params: ApplyTransitionParams) {
   const { booking, code, actor, tenantId, stationId } = params
   const kioskId = params.kioskId ?? booking.kioskId ?? null
   const payload = params.payload ?? {}
@@ -289,6 +310,18 @@ export async function applyTransition(params: ApplyTransitionParams): Promise<Ap
   if (!validator) throw ApiError.unprocessable(`No validator registered for "${booking.engineKind}".`)
   const validation = await validator(code, ctx)
   if (validation.errors.length) throw ApiError.unprocessable(`Cannot ${transition.label}.`, validation.errors)
+
+  return { ctx, transition, kioskId, payload, now }
+}
+
+export async function applyTransition(params: ApplyTransitionParams): Promise<ApplyTransitionResult> {
+  const { booking, code, actor, tenantId, stationId } = params
+  if (booking.engineKind === null) {
+    throw ApiError.unprocessable(
+      'This booking follows its own activity’s steps, which are applied through the activity session.',
+    )
+  }
+  const { ctx, transition, kioskId, payload, now } = await checkTransition(params)
 
   const operator = getOperator(booking.engineKind)
   if (!operator) throw ApiError.unprocessable(`No operator registered for "${booking.engineKind}".`)

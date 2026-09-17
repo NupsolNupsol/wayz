@@ -233,6 +233,15 @@ export async function listStaff(scope: ManagerScope) {
     fullName: u.fullName,
     email: u.email,
     role: u.role,
+    /*
+     * What this company calls the job, when it differs from the platform's word.
+     *
+     * WIQAR's CEO and IT Manager both hold TENANT_ADMIN because both need full configuration
+     * access — that is authorisation. Their titles are not the same, and a list showing both
+     * as "CEO / tenant admin" reads as though the platform has two tenant administrator roles.
+     * Empty for everybody whose job the platform's own label already describes.
+     */
+    roleLabel: u.roleLabel?.trim() || '',
     setUp: !!u.passwordHash,
     invitePending: !u.passwordHash && !!u.invite && new Date(u.invite.expiresAt).getTime() > now,
     inviteExpiresAt: u.passwordHash ? null : (u.invite?.expiresAt ?? null),

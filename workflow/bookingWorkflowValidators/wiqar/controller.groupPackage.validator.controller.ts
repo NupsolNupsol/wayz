@@ -1,6 +1,7 @@
 import type { ValidationResult, WorkflowContext } from '../../shared/types.js'
 import { requireAvailableUnit, requirePaid, requirePositiveDuration } from '../shared.validators.js'
 import {
+  GROUP_MINIMUM_PARTY,
   requireConsent,
   requireFeedPurchased,
   requireMinimumParty,
@@ -18,8 +19,6 @@ import {
  * is only what makes this experience different from the other six.
  */
 
-/** §4.1 EXP-07: the group package is sold to parties of five or more. */
-const MINIMUM_PARTY = 5
 
 export const useGroupPackageValidator = (transitionCode: string, ctx: WorkflowContext): ValidationResult => {
   const errors: string[] = []
@@ -29,7 +28,7 @@ export const useGroupPackageValidator = (transitionCode: string, ctx: WorkflowCo
       // Everything its three parts need, asked once, so a group fails here rather than half way through its afternoon.
       errors.push(
         ...requireConsent(ctx),
-        ...requireMinimumParty(ctx, MINIMUM_PARTY),
+        ...requireMinimumParty(ctx, GROUP_MINIMUM_PARTY),
         // ASSUMPTION A-1 — it contains a camel tour and a feeding session, so it inherits their assumption.
         ...requireNamedTrainer(ctx),
         ...requireWorkableAnimal(ctx),
@@ -43,7 +42,7 @@ export const useGroupPackageValidator = (transitionCode: string, ctx: WorkflowCo
       errors.push(
         ...requirePaid(ctx),
         ...requireWithinSlotGrace(ctx),
-        ...requireMinimumParty(ctx, MINIMUM_PARTY),
+        ...requireMinimumParty(ctx, GROUP_MINIMUM_PARTY),
         ...requireWorkableAnimal(ctx),
         ...requireAvailableUnit(ctx),
         // §4.1 gives this experience a duration of 90 min.

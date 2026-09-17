@@ -1,4 +1,4 @@
-import { InvoiceDoc, Kiosk, Order, Payment, Receipt, Station, Tenant, User } from '../models/index.js'
+import { AssetUnit, Gate, InvoiceDoc, Kiosk, Order, Payment, Receipt, Station, Tenant, User } from '../models/index.js'
 import { ApiError } from '../utils/ApiError.js'
 import { round2 } from '../utils/helpers.js'
 import { SCHEME_LABELS } from '../constants/labels.constants.js'
@@ -18,6 +18,8 @@ export interface InvoiceLine {
   /** The slip prints in Arabic whatever the agent's screen language is. */
   nameAr: string
   quantity: number
+  /** The quantity as the customer was charged it — "1h" for an hour, "2" for two items. */
+  quantityLabel: string
   unitPrice: number
   total: number
   isDeposit: boolean
@@ -42,6 +44,10 @@ export interface Invoice {
   }
   branch: string
   desk: string | null
+  /** The gate the customer collects from, when that differs from the desk. */
+  gate: string | null
+  /** The window the customer is charged for. `startedAt` is null until the session begins. */
+  session: { startedAt: string | null; endsAt: string | null }
   servedBy: string
   customer: { name: string; phone: string }
   lines: InvoiceLine[]
@@ -50,6 +56,21 @@ export interface Invoice {
   qrPayload: string
   barcode: string
   status: string
+}
+
+/** The name of the place a booking is collected from and returned to, if there is one. */
+async function handoverPoint(tenantId: string, booking: { gateId?: string | null; session?: { assetUnitId?: string | null } }) {
+  if (booking.gateId) {
+    return (await Gate.findOne({ _id: booking.gateId, tenantId }, { name: 1 }).lean())?.name ?? null
+  }
+
+  const unitId = booking.session?.assetUnitId
+  if (!unitId) return null
+
+  const unit = await AssetUnit.findOne({ _id: unitId, tenantId }, { gateId: 1, kioskId: 1 }).lean()
+  if (unit?.gateId) return (await Gate.findOne({ _id: unit.gateId, tenantId }, { name: 1 }).lean())?.name ?? null
+  if (unit?.kioskId) return (await Kiosk.findOne({ _id: unit.kioskId, tenantId }, { name: 1 }).lean())?.name ?? null
+  return null
 }
 
 const EXTRA_LINES: Record<string, InvoiceLineKind> = {
@@ -75,10 +96,19 @@ export async function buildInvoice(scope: Scope, booking: BookingHydrated): Prom
   const order = await Order.findById(booking.orderId).lean()
   if (!order) throw ApiError.notFound('Order not found.')
 
-  const [tenant, station, kiosk, agent, payments, receipt] = await Promise.all([
+  const [tenant, station, kiosk, gate, agent, payments, receipt] = await Promise.all([
     Tenant.findById(scope.tenantId).lean(),
     Station.findOne({ _id: booking.stationId, tenantId: scope.tenantId }).lean(),
     booking.kioskId ? Kiosk.findOne({ _id: booking.kioskId, tenantId: scope.tenantId }).lean() : null,
+    /*
+     * Where the customer collects and returns it.
+     *
+     * A bag's booking names its gate. A rented scooter's does not — it is handed over wherever
+     * that scooter is parked — so the rented unit's own gate or bay answers instead. Without
+     * this the line only ever printed for bag storage, which is the one case the customer
+     * already knows where to go.
+     */
+    handoverPoint(scope.tenantId, booking),
     User.findById(booking.agentId, { fullName: 1 }).lean(),
     Payment.find({ orderId: order._id, tenantId: scope.tenantId, status: { $ne: 'PENDING' } })
       .sort({ createdAt: 1 })
@@ -115,11 +145,41 @@ export async function buildInvoice(scope: Scope, booking: BookingHydrated): Prom
     byLabel.set(label.en, line)
   }
 
+  /*
+   * How a line's quantity reads on the slip.
+   *
+   * A bare "1" against a scooter rented for an hour tells the customer nothing — they were
+   * charged for time, and the slip should say how much. An hourly line prints "1h"; anything
+   * sold by the item keeps its plain count.
+   */
+  /*
+   * A session always has a window; a duration of zero means nothing was booked for time.
+   * Every session kind the platform has is timed, so the duration itself is the test.
+   */
+  const bookedMinutes = booking.session?.requestedDurationMin ?? 0
+  const soldByTime = bookedMinutes > 0
+
+  const quantityLabel = (line: (typeof order.lines)[number], kind: InvoiceLineKind): string => {
+    /*
+     * Only the thing that was rented reads as time. A penalty, a delivery fee or a deposit on
+     * the same slip is a count, and labelling those "1h" would be nonsense.
+     */
+    if (!soldByTime || kind !== 'ITEM' || line.isDeposit) return String(line.quantity)
+
+    const total = bookedMinutes * line.quantity
+    const hours = Math.floor(total / 60)
+    const minutes = total % 60
+    if (hours && minutes) return `${hours}h ${minutes}m`
+    if (hours) return `${hours}h`
+    return `${minutes}m`
+  }
+
   const lines: InvoiceLine[] = order.lines.map((line, i) => ({
     index: i + 1,
     name: line.name,
     nameAr: line.nameAr || line.name,
     quantity: line.quantity,
+    quantityLabel: quantityLabel(line, lineKind(line)),
     unitPrice: round2(line.unitPrice),
     total: round2(line.unitPrice * line.quantity),
     isDeposit: line.isDeposit,
@@ -138,6 +198,19 @@ export async function buildInvoice(scope: Scope, booking: BookingHydrated): Prom
     },
     branch: station?.name ?? booking.stationId,
     desk: kiosk?.name ?? null,
+    /* Where it is handed back, when that is somewhere other than the desk it was sold at. */
+    gate: gate ?? null,
+    /*
+     * When the session runs from and to.
+     *
+     * The customer is charged for a window and the slip did not name it, so nobody could tell
+     * from the paper when their hour ended. `startedAt` is null until the session begins —
+     * a bag dropped but not yet started has an end and no beginning, which is honest.
+     */
+    session: {
+      startedAt: booking.session?.startedAt ? new Date(booking.session.startedAt).toISOString() : null,
+      endsAt: booking.session?.expectedEndAt ? new Date(booking.session.expectedEndAt).toISOString() : null,
+    },
     servedBy: agent?.fullName ?? booking.agentId,
     customer: { name: booking.customerName, phone: booking.customerPhone },
     lines,

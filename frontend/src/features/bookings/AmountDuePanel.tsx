@@ -60,9 +60,23 @@ export function AmountDuePanel({
     }
   }, [asked, due, blockedReason])
 
+  /*
+   * Close once the balance is gone, however it went.
+   *
+   * Closing only from the success callback was not enough: React Query runs a `mutate` call's
+   * own callbacks for the *latest* call only, so a second tap on Confirm while the first payment
+   * was finishing dropped the first one's close — and the second failed, having nothing left to
+   * collect. The desk was left looking at "0.00 SAR owed" with a dead button.
+   */
+  useEffect(() => {
+    if (open && due <= 0 && settle.isSuccess) setOpen(false)
+  }, [open, due, settle.isSuccess])
+
   if (due <= 0 && !open) return null
 
   const collect = (splits: PaymentSplit[]) => {
+    /* One payment at a time, and never for nothing. */
+    if (settle.isPending || due <= 0) return
     settle.mutate(
       { id: bookingId, splits: splits.map((s) => ({ method: s.method, cardScheme: s.cardScheme ?? null, amount: s.amount, payerId: s.payerId })) },
       {

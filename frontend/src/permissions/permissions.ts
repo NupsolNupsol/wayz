@@ -41,7 +41,8 @@ export const FLOOR_LEADS: Role[] = ['SUPERVISOR', 'MANAGER', 'PROJECT_MANAGER', 
 
 export const BACK_OFFICE: Role[] = ['MANAGER', 'PROJECT_MANAGER', 'TENANT_ADMIN']
 
-const PERMISSION_ROLES: Record<Permission, Role[]> = {
+/** Exported so the Roles & permissions page can show the same table the guards use. */
+export const PERMISSION_ROLES: Record<Permission, Role[]> = {
   'pos.use': SELLING_ROLES,
   'booking.create': SELLING_ROLES,
   'capacity.hold': SELLING_ROLES,

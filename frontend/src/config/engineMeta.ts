@@ -46,7 +46,28 @@ export function engineTagline(kind: EngineKind): string {
   return i18n.t(`common:engineTagline.${kind}`, { defaultValue: ENGINE_META[kind]?.tagline ?? '' })
 }
 
-export const VISIBLE_ENGINES: EngineKind[] = ['SHOP_AND_DROP', 'MOBILITY', 'LAGOON']
+/**
+ * Every activity the platform has coded.
+ *
+ * Derived from `ENGINE_META` rather than written out, because a hand-written list is a list
+ * that goes stale. It used to name three — Shop & Drop, Mobility and Lagoon — which were
+ * WAYZ's, and every screen that asked "which activity?" therefore offered WAYZ's three to
+ * everybody. WIQAR's administrator was shown them when hiring, and shown nothing of their own.
+ *
+ * This is the *catalogue*, not what any organisation runs. For that, use `useTenantEngines()`,
+ * which narrows this to the activities the organisation has adopted. Almost every screen wants
+ * that one; this is for the few places that legitimately describe the platform itself.
+ */
+export const VISIBLE_ENGINES: EngineKind[] = Object.keys(ENGINE_META) as EngineKind[]
+
+/**
+ * Activities whose resource is taken away and brought back — a scooter, not a horse ride.
+ *
+ * Only these can be returned to the wrong station or swapped mid-rental for a faulty one, so the
+ * settings for those two things exist only where one of these is adopted. A property of the
+ * activity, not of any company that runs it.
+ */
+export const TAKEN_AWAY_ACTIVITIES: EngineKind[] = ['MOBILITY']
 
 export function isVisibleEngine(kind: EngineKind): boolean {
   return VISIBLE_ENGINES.includes(kind)
@@ -89,10 +110,26 @@ export function productIconFor(
  * What each activity is sold by, and whether time is charged for at all. Kept beside the labels so
  * a form never offers a unit the API will refuse — a trip is sold as a trip.
  */
-export const SALE_UNITS_FOR: Partial<Record<EngineKind, string[]>> = {
+export const SALE_UNITS_FOR: Record<EngineKind, string[]> = {
   SHOP_AND_DROP: ['HOUR', 'FULL_DAY', 'BAG', 'CART', 'DELIVERY', 'ITEM'],
   MOBILITY: ['HOUR', 'FULL_DAY', 'TOUR', 'ITEM'],
   LAGOON: ['TOUR'],
+  COTE_RESTAURANT: ['ITEM'],
+  /*
+   * WIQAR's experiences are priced per session (§4.1). Riding, lessons and the group package may
+   * also be sold by the hour; the rest only per session.
+   *
+   * Every activity is listed — the type requires it — because a missing entry used to fall back
+   * to *every* unit, and the asset form then defaulted a horse to "per bag".
+   * Must match `backend/src/domain/types.ts`; `roleTables.api.mjs` checks that it does.
+   */
+  HORSE_RIDING: ['TOUR', 'HOUR'],
+  EQUESTRIAN_LESSON: ['TOUR', 'HOUR'],
+  CAMEL_TOUR: ['TOUR'],
+  ANIMAL_CARE: ['TOUR'],
+  ANIMAL_FEEDING: ['TOUR'],
+  PHOTOGRAPHY: ['TOUR'],
+  GROUP_PACKAGE: ['TOUR', 'HOUR'],
 }
 
 export function saleUnitsFor(engineKind: EngineKind, all: readonly string[]): string[] {
@@ -107,10 +144,19 @@ export function saleUnitsFor(engineKind: EngineKind, all: readonly string[]): st
  * kind starts out charging a flat fee and the first long stay is undercharged before anyone
  * notices. A lagoon trip is a trip, so it defaults to one.
  */
-export const DEFAULT_SALE_UNIT: Partial<Record<EngineKind, string>> = {
+export const DEFAULT_SALE_UNIT: Record<EngineKind, string> = {
   SHOP_AND_DROP: 'HOUR',
   MOBILITY: 'HOUR',
   LAGOON: 'TOUR',
+  COTE_RESTAURANT: 'ITEM',
+  // An experience is a session.
+  HORSE_RIDING: 'TOUR',
+  EQUESTRIAN_LESSON: 'TOUR',
+  CAMEL_TOUR: 'TOUR',
+  ANIMAL_CARE: 'TOUR',
+  ANIMAL_FEEDING: 'TOUR',
+  PHOTOGRAPHY: 'TOUR',
+  GROUP_PACKAGE: 'TOUR',
 }
 
 export function defaultSaleUnitFor(engineKind: EngineKind, all: readonly string[]): string {

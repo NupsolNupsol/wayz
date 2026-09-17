@@ -63,7 +63,7 @@ export const signInController = {
         >(),
         User.find(
           { active: true },
-          { email: 1, fullName: 1, role: 1, tenantId: 1, kioskId: 1, engineKinds: 1, demoCredential: 1, passwordHash: 1 },
+          { email: 1, fullName: 1, role: 1, roleLabel: 1, tenantId: 1, kioskId: 1, engineKinds: 1, demoCredential: 1, passwordHash: 1 },
         ).lean<(DemoCandidate & { tenantId: string })[]>(),
       ])
 

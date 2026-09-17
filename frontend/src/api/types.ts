@@ -62,6 +62,8 @@ export interface Me {
   activityKeys?: string[]
   /** The job this person holds, as their own company defines it. See role.api.ts. */
   roleKey?: string | null
+  /** What their company calls their job. Shown in place of the platform role when present. */
+  jobTitle?: string | null
   tenant: {
     id: string
     /** The handle this tenant is reached at — `/t/<slug>/…`. From the control-plane registry. */
@@ -377,12 +379,22 @@ export interface AvailableTransition {
   style?: { backgroundColor: string }
 }
 
+/** A detail an activity needs before confirmation. Declared by the activity's own module. */
+export type IntakeField =
+  | { key: 'consent' }
+  | { key: 'trainer' }
+  | { key: 'level'; options: string[] }
+  | { key: 'partySize'; min: number }
+  | { key: 'feedPortions'; min: number }
+
 export interface EngineWorkflow {
   engineKind: EngineKind
   sessionKind: string
   initialStatus: BookingStatus
   actors: Role[]
   transitions: { code: string; label: string; source: string[]; target: string; actors: Role[]; style?: { backgroundColor: string } }[]
+  /** Absent for an activity that needs nothing beyond the sale itself. */
+  intake?: IntakeField[]
 }
 
 export interface DashboardStats {

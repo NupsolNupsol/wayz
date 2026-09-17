@@ -150,7 +150,7 @@ export function ManagerOrg() {
         <ChevronRight size={12} />
         <MapPin size={14} /> {t('org.station')}
         <ChevronRight size={12} />
-        <Server size={14} /> Kiosk
+        <Server size={14} /> {t('common:field.kiosk')}
         <ChevronRight size={12} />
         <Boxes size={14} />{t('org.compartments')}<span className="ms-auto">{t('org.deactivateNote')}</span>
       </div>

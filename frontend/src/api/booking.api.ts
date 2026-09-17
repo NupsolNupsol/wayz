@@ -99,6 +99,11 @@ export const bookingApi = {
   create: (input: CreateBookingInput) => unwrap<{ booking: Booking; order: Order }>(http.post('/bookings', input)),
   discount: (id: string, body: { reasonCode: string; percent?: number; amount?: number; note?: string }) =>
     unwrap<{ booking: Booking; order: Order }>(http.post(`/bookings/${id}/discount`, body)),
+  /** Consent, trainer, level, party size, feed — whatever the activity declares. */
+  intake: (
+    id: string,
+    body: { consent?: boolean; trainerId?: string | null; level?: string | null; partySize?: number | null; feedPortions?: number | null },
+  ) => unwrap<Booking>(http.patch(`/bookings/${id}/intake`, body)),
   pay: (
     id: string,
     splits: { method: PaymentMethod; cardScheme?: string | null; amount: number; kind?: string; payerId?: string }[],

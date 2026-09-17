@@ -13,6 +13,17 @@ export interface TenantDoc {
   vatRate: number
   zakatRate: number
   currency: string
+  /** The seller address the e-invoice XML needs. See `zatcaAddressSchema`. */
+  zatcaAddress: {
+    street: string
+    building: string
+    additionalNumber: string
+    district: string
+    city: string
+    postalCode: string
+    countrySubentity: string
+    countryCode: string
+  }
   company: {
     address: string
     city: string
@@ -66,6 +77,35 @@ const companySchema = new Schema(
   { _id: false },
 )
 
+/**
+ * The seller's address, in the shape ZATCA requires.
+ *
+ * `company.address` above is one free-text line, which is fine for a letterhead and useless for
+ * a tax invoice: BR-KSA-09 requires the seller's street, building number, district, city and
+ * postal code as *separate* elements, and the e-invoice XML builder will not produce an invoice
+ * without them.
+ *
+ * Kept apart from `company` rather than replacing it, because the two answer different
+ * questions — one is "where do we write to you", the other is "what goes in the XML".
+ *
+ * Empty by default. A company can exist before its registered address is known; it simply
+ * cannot issue a tax invoice until it is, and `invoiceXml.service.ts` says so by name.
+ */
+const zatcaAddressSchema = new Schema(
+  {
+    street: { type: String, default: '' },
+    building: { type: String, default: '' },
+    /** KSA-23, four digits. Emitted as cbc:PlotIdentification; required for the seller. */
+    additionalNumber: { type: String, default: '' },
+    district: { type: String, default: '' },
+    city: { type: String, default: '' },
+    postalCode: { type: String, default: '' },
+    countrySubentity: { type: String, default: '' },
+    countryCode: { type: String, default: 'SA' },
+  },
+  { _id: false },
+)
+
 const settingsSchema = new Schema(
   {
     timezone: { type: String, default: 'Asia/Riyadh' },
@@ -114,6 +154,7 @@ const tenantSchema = new Schema<TenantDoc>(
     zakatRate: { type: Number, default: 0.025 },
     currency: { type: String, default: 'SAR' },
     company: { type: companySchema, default: () => ({}) },
+    zatcaAddress: { type: zatcaAddressSchema, default: () => ({}) },
     settings: { type: settingsSchema, default: () => ({}) },
     rentalRules: { type: Schema.Types.Mixed, default: () => ({}) },
     transferRules: { type: Schema.Types.Mixed, default: () => ({}) },

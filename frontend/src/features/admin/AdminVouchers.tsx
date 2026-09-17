@@ -10,7 +10,8 @@ import { Modal } from '@/components/Modal'
 import { NumberInput } from '@/components/NumberInput'
 import { adminApi } from '@/api/admin.api'
 import type { CampaignInput, VoucherCampaign, VoucherCode } from '@/api/admin.api'
-import { visibleEngineOptions, engineLabel } from '@/config/engineMeta'
+import { engineLabel } from '@/config/engineMeta'
+import { useTenantEngines } from '@/hooks/useTenantEngines'
 import { toast } from '@/state/toastStore'
 import { ApiError } from '@/api/client'
 import { formatDate } from '@/utils'
@@ -20,6 +21,14 @@ const blank = (): CampaignInput => ({ name: '', percent: 10, quantity: 100, engi
 
 export function AdminVouchers() {
   const { t } = useTranslation(['admin', 'common'])
+  /*
+   * What this organisation runs, not the whole coded catalogue.
+   *
+   * The catalogue is every activity the platform has been built to run; the adopted list is
+   * the subset this company took up on the Activities page. Offering the catalogue showed
+   * every company WAYZ's three and none of its own.
+   */
+  const adoptedActivityOptions = useTenantEngines().map((kind) => ({ label: engineLabel(kind), value: kind }))
   const qc = useQueryClient()
   const { data: campaigns = [], isLoading } = useQuery({ queryKey: ['admin', 'vouchers'], queryFn: adminApi.vouchers })
 
@@ -217,7 +226,7 @@ export function AdminVouchers() {
 
         <p className="text-xs uppercase tracking-wider text-muted font-bold mb-2 mt-1">{t('vouchers.field.activities')}</p>
         <div className="flex flex-wrap gap-2" data-testid="voucher-engines">
-          {visibleEngineOptions().map((opt) => {
+          {adoptedActivityOptions.map((opt) => {
             const on = (form.engineKinds ?? []).includes(opt.value)
             return (
               <button
