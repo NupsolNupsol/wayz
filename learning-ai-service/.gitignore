@@ -1,4 +1,0 @@
-# Real values stay on the machine; the template is committed.
-.env
-.env.*
-!.env.example
