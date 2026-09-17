@@ -12,7 +12,7 @@ export type Role =
   | 'TENANT_ADMIN'
 
 export type EngineKind = 'SHOP_AND_DROP' | 'MOBILITY' | 'LAGOON' | 'COTE_RESTAURANT' | 'ANAAM'
-
+// export type { CardScheme } from '@/config/cardSchemes'
 export type BookingStatus =
   | 'DRAFT'
   | 'CONFIRMED'
