@@ -28,20 +28,8 @@ export type BookingStatus =
 export type BagStatus = 'REGISTERED' | 'LABELLED' | 'STORED' | 'IN_TRANSIT' | 'RETRIEVED' | 'DELIVERED'
 
 export type PaymentMethod = 'CASH' | 'CARD' | 'APPLE_PAY' | 'TRANSFER'
-
-/** One tender against an order. A split sale writes two of these, each on its own payer. */
-export interface Payment {
-  _id: string
-  bookingId: string
-  method: PaymentMethod
-  amount: number
-  cardScheme?: string | null
-  payerId?: string | null
-  payerName?: string | null
-  createdAt: string
-}
 export type CardScheme = 'MADA' | 'SPAN' | 'VISA' | 'MASTERCARD' | 'GCC'
-export type OtpChannel = 'WHATSAPP' | 'SMS' | 'EMAIL'
+export type OtpChannel = 'WHATSAPP' | 'EMAIL'
 export type VerificationPurpose = 'RETRIEVAL' | 'DEPOSIT_REFUND' | 'DELIVERY_REQUEST'
 export type IdDocumentType = 'NATIONAL_ID' | 'IQAMA' | 'PASSPORT' | 'DRIVING_LICENCE'
 
@@ -183,36 +171,6 @@ export interface AssetUnit {
   stationId: string
   kioskId: string | null
   currentBookingId: string | null
-  /**
-   * Joined on by the catalogue so a picker can label a unit without a second round trip: what kind
-   * of thing it is, what it holds, and what it sells for.
-   */
-  assetTypeName?: string
-  assetKind?: string
-  engineKind?: EngineKind
-  capacityScore?: number
-  maxBags?: number | null
-  seats?: number
-  productId?: string | null
-  productName?: string | null
-  price?: number | null
-}
-
-/**
- * A hull and the room left on it.
- *
- * Seats are counted against a named boat rather than a kind of boat, so a picker that offers
- * "8 seats" when seven are taken is offering something the server will refuse.
- */
-export interface BoatSpace {
-  _id: string
-  identifier: string
-  assetTypeId: string
-  assetTypeName: string
-  seats: number
-  taken: number
-  free: number
-  status: 'EMPTY' | 'FILLING' | 'FULL'
 }
 
 export interface AssetTypeLite {
