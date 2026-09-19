@@ -29,10 +29,10 @@ export default function TabsLayout() {
         name="operations"
         options={{ title: "Running", tabBarAccessibilityLabel: "Activity" }}
       />
-      <Tabs.Screen
+      {/* <Tabs.Screen
         name="sell"
-        options={{ title: "New", tabBarAccessibilityLabel: "PlusCircle" }}
-      />
+        // options={{ title: "New", tabBarAccessibilityLabel: "PlusCircle" }}
+      /> */}
       <Tabs.Screen
         name="deliveries"
         options={{
@@ -40,6 +40,10 @@ export default function TabsLayout() {
           tabBarAccessibilityLabel: "Truck",
           tabBarBadge: waitingCount > 0 ? waitingCount : undefined,
         }}
+      />
+      <Tabs.Screen
+        name="tills"
+        options={{ title: "Tills", tabBarAccessibilityLabel: "CircleDollarSign" }}
       />
       <Tabs.Screen
         name="more"

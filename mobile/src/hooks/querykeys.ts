@@ -1,0 +1,116 @@
+// src/hooks/queryKeys.ts
+import type { EngineKind } from "@/types";
+
+export const qk = {
+  me: ["me"] as const,
+
+  products: (e?: EngineKind) => ["products", e ?? "all"] as const,
+  units: ["units"] as const,
+
+  bookings: (f?: object) => ["bookings", f ?? {}] as const,
+  booking: (id: string) => ["booking", id] as const,
+  bookingRefund: (id: string) => ["booking", id, "refund"] as const,
+  bookingOrder: (id: string) => ["booking", id, "order"] as const,
+  transitions: (id: string) => ["transitions", id] as const,
+
+  dashboard: ["dashboard"] as const,
+  stats: ["stats"] as const,
+
+  customers: (q?: string) => ["customers", q ?? ""] as const,
+  customer: (id: string) => ["customer", id] as const,
+
+  shift: ["shift"] as const,
+
+  incidents: ["incidents"] as const,
+  incidentTypes: ["incidentTypes"] as const,
+
+  workflows: ["workflows"] as const,
+  tracking: (id: string) => ["tracking", id] as const,
+
+  assets: {
+    estate: (engineKind: string) => ["assets", "estate", engineKind] as const,
+    type: (id: string) => ["assets", "type", id] as const,
+    unit: (id: string) => ["assets", "unit", id] as const,
+    returnPosition: (id: string) =>
+      ["assets", "unit", id, "return-position"] as const,
+  },
+
+  manager: {
+    overview: ["manager", "overview"] as const,
+    live: ["manager", "live"] as const,
+    rentals: (scope: string) => ["manager", "rentals", scope] as const,
+    rental: (id: string) => ["manager", "rental", id] as const,
+    customers: ["manager", "customers"] as const,
+    customer: (id: string) => ["manager", "customer", id] as const,
+    org: ["manager", "org"] as const,
+    payments: ["manager", "payments"] as const,
+    incidents: ["manager", "incidents"] as const,
+    shifts: ["manager", "shifts"] as const,
+    staff: ["manager", "staff"] as const,
+    pricing: ["manager", "pricing"] as const,
+    settings: ["manager", "settings"] as const,
+    reportRevenue: (r: object) => ["manager", "report", "revenue", r] as const,
+    reportOccupancy: ["manager", "report", "occupancy"] as const,
+    reportRentals: (r: object) => ["manager", "report", "rentals", r] as const,
+    reportDiscounts: (r: object) =>
+      ["manager", "report", "discounts", r] as const,
+    activity: ["manager", "activity"] as const,
+  },
+
+  accounting: {
+    summary: (f: object) => ["accounting", "summary", f] as const,
+    vatReturn: (f: object) => ["accounting", "vat-return", f] as const,
+    ledger: (f: object) => ["accounting", "ledger", f] as const,
+    zakat: (f: object) => ["accounting", "zakat", f] as const,
+    commissionRates: ["accounting", "commission-rates"] as const,
+    transactions: (f: object) =>
+      ["accounting", "transactions", f] as const,
+    transactionSummary: (f: object) =>
+      ["accounting", "transactions", "summary", f] as const,
+    reconciliation: (f: object) =>
+      ["accounting", "reconciliation", f] as const,
+    transaction: (id: string) => ["accounting", "transaction", id] as const,
+    payments: (f: object) => ["accounting", "payments", f] as const,
+    payment: (id: string) => ["accounting", "payment", id] as const,
+  },
+
+  hr: {
+    overview: (f: object) => ["hr", "overview", f] as const,
+    expenses: (f: object) => ["hr", "expenses", f] as const,
+    seasons: ["hr", "seasons"] as const,
+    season: (id: string) => ["hr", "season", id] as const,
+  },
+
+  admin: {
+    overview: ["admin", "overview"] as const,
+    people: ["admin", "people"] as const,
+    audit: ["admin", "audit"] as const,
+    isolation: ["admin", "isolation"] as const,
+    stationMap: ["admin", "station-map"] as const,
+    rules: ["admin", "rules"] as const,
+  },
+
+  notifications: {
+    feed: (f: object) => ["notifications", "feed", f] as const,
+  },
+
+  manualSales: (f: object) => ["manual-sales", f] as const,
+  invoice: (id: string) => ["invoice", id] as const,
+  devClock: ["dev-clock"] as const,
+  refundRequests: (f: object) => ["refund-requests", f] as const,
+
+  till: {
+    overview: ["till", "overview"] as const,
+    queue: ["till", "queue"] as const,
+    transactions: (f?: object) => ["till", "transactions", f ?? {}] as const,
+    drawer: (id?: string) => ["till", "drawer", id ?? "open"] as const,
+  },
+
+  delivery: {
+    board: ["delivery", "board"] as const,
+    station: (f: object) => ["delivery", "station", f] as const,
+    detail: (id: string) => ["delivery", "detail", id] as const,
+    customerBags: (bookingId: string) =>
+      ["delivery", "customer-bags", bookingId] as const,
+  },
+};
